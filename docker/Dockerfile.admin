@@ -1,30 +1,61 @@
-# 阶段一构建：Go 构建阶段
+# =============================================================================
+# Contful Admin 镜像
+# 包含: Nginx (:80) + Admin API (:8080) + Vue Console SPA
+#
+# 职责: 管理后台（Console + Admin API），紧密耦合，无需水平扩展
+#
+# 使用:
+#   单机部署: docker-compose up -d
+#   自定义:   docker build -f docker/Dockerfile.admin -t contful/admin .
+# =============================================================================
+
+# ---- Stage 1: 构建 Go Admin API ----
 FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# 安装构建工具
 RUN apk add --no-cache git
 
-# 复制 go.mod 先下载依赖（利用缓存）
 COPY admin/go.mod admin/go.sum ./
 RUN go mod download
 
-# 复制源码并构建
 COPY admin/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/admin ./cmd/server
 
-# 阶段二运行：轻量运行镜像
-FROM alpine:3.19
+# ---- Stage 2: 构建 Vue Console ----
+FROM node:20-alpine AS console-builder
 
 WORKDIR /app
 
-# 安装运行时依赖
-RUN apk add --no-cache ca-certificates tzdata
+COPY console/package.json console/yarn.lock ./
+RUN yarn install --frozen-lockfile
 
-# 复制构建产物
-COPY --from=builder /app/admin .
+COPY console/ .
+# Console 使用相对路径 /admin/v1/ 调用 API，Nginx 代理到本机 8080
+RUN yarn build
 
-EXPOSE 8080
+# ---- Stage 3: 运行镜像 ----
+FROM alpine:3.19 AS runner
 
-CMD ["./admin"]
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates tzdata nginx bash
+
+# 复制 Admin API
+COPY --from=builder /app/admin /app/admin
+
+# 复制 Console 构建产物
+COPY --from=console-builder /app/dist /usr/share/nginx/html
+
+# 复制 nginx 配置
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+
+# 暴露端口
+EXPOSE 80 8080
+
+# 健康检查：检查 Admin API 是否就绪
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q -O- http://localhost:8080/health || exit 1
+
+# 启动：Admin API 后台运行 + Nginx 前台
+CMD ["sh", "-c", "/app/admin & nginx -g 'daemon off;'"]

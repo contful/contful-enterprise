@@ -15,42 +15,68 @@
 
 ```
 contful/
-├── admin/            # Admin API 服务 (:8080)
-├── open/             # Open API 服务 (:8081)
-├── console/          # Vue 3 控制台
-├── migrations/       # 数据库迁移
-├── docker/           # Docker 配置
-└── website/          # 官网 & 文档 (VitePress)
+├── admin/        # Admin API 服务
+├── open/         # Open API 服务
+├── console/      # Vue 3 控制台
+├── sql/          # 数据库初始化 SQL
+├── docker/       # Docker 配置
+└── website/      # 官网 & 文档 (VitePress)
 ```
 
 ## 快速开始
 
+### 前置条件
+- PostgreSQL 18
+- Redis 7+
+
+### 1. 初始化数据库
+
 ```bash
-# 启动依赖
-docker-compose -f docker/docker-compose.yaml up -d
+# 创建数据库（PostgreSQL）
+psql -h <host> -U <user> -c "CREATE DATABASE contful;"
 
-# 运行迁移
-cd migrations
-migrate -path . -database $DATABASE_URL up
-
-# 启动 Admin API
-cd admin
-go run cmd/server/main.go
-
-# 启动 Open API
-cd open
-go run cmd/server/main.go
-
-# 启动控制台
-cd console
-npm install && npm run dev
+# 导入初始化 SQL
+psql -h <host> -U <user> -d contful -f sql/init.sql
 ```
 
-## 访问
+### 2. Docker 启动
 
-- 控制台: http://localhost:3000
-- Admin API: http://localhost:8080/admin/v1/
-- Open API: http://localhost:8081/api/v1/
+```bash
+cd docker
+cp .env.example .env
+# 编辑 .env，填入 DB_HOST、DB_PASSWORD、JWT_SECRET
+
+# 启动全部服务（Admin + Open API）
+docker-compose --env-file .env up -d
+
+# 访问
+#   管理后台:  http://localhost         (Console + Admin API)
+#   Open API: http://localhost:8081/   (直连)
+```
+
+### 3. 水平扩展 Open API
+
+```bash
+# 扩展 Open API 到 3 个实例
+docker-compose --env-file .env up -d --scale open=3
+
+# 生产环境建议在 Open API 前加 Nginx/HAProxy 负载均衡
+```
+
+### 4. 本地开发启动
+
+```bash
+cd admin && go run cmd/server/main.go   # Admin API (:8080)
+cd open && go run cmd/server/main.go    # Open API (:8081)
+cd console && yarn dev                   # Console (:3000)
+```
+
+## 服务说明
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| contful-admin | 80 | 管理后台（Nginx + Console SPA + Admin API） |
+| contful-open | 8081 | Open API，可水平扩展 |
 
 ## 文档
 

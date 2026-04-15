@@ -1,50 +1,94 @@
-version: '3.8'
+# =============================================================================
+# Contful Docker 编排配置
+# =============================================================================
+# 使用方式:
+#   1. 先将 sql/init.sql 导入到 PostgreSQL
+#   2. cp .env.example .env，填入数据库/Redis/JWT 信息
+#   3. docker-compose --env-file .env up -d
+#
+# 启动后访问:
+#   - 管理后台: http://localhost        (默认端口 80)
+#   - Admin API: http://localhost/admin/v1/
+#   - Open API:  http://localhost:8081/  (直连，如需集群请自行加 LB)
+#
+# 水平扩展 Open API:
+#   docker-compose --env-file .env up -d --scale open=3
+#   (生产环境建议在 Open API 前加 Nginx/HAProxy 负载均衡)
+# =============================================================================
+
+version: "3.8"
 
 services:
+  # ---------------------------------------------------------------------------
+  # Admin 服务（Console + Admin API，紧密耦合，无需水平扩展）
+  # ---------------------------------------------------------------------------
   admin:
     build:
       context: ..
       dockerfile: docker/Dockerfile.admin
+    container_name: contful-admin
     ports:
-      - "${ADMIN_PORT:-8080}:8080"
+      - "80:80"    # Nginx: Console SPA + /admin/ 代理
     environment:
-      - SERVER_PORT=8080
+      # 数据库
       - DB_HOST=${DB_HOST:-host.docker.internal}
       - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-contful}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_NAME=${DB_NAME:-contful}
+      - DB_SSL_MODE=${DB_SSL_MODE:-disable}
+      # Redis
       - REDIS_HOST=${REDIS_HOST:-host.docker.internal}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET:?ADMIN_JWT_SECRET is required}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      # JWT（Admin API）
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required, min 16 chars}
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     restart: unless-stopped
+    volumes:
+      - contful-uploads:/app/uploads
 
+  # ---------------------------------------------------------------------------
+  # Open API 服务（无状态，可水平扩展）
+  # ---------------------------------------------------------------------------
   open:
     build:
       context: ..
       dockerfile: docker/Dockerfile.open
+    container_name: contful-open
     ports:
-      - "${OPEN_PORT:-8081}:8081"
+      - "8081:8081"    # Open API 直通（可加 LB 做集群）
     environment:
-      - SERVER_PORT=8081
+      # 数据库
       - DB_HOST=${DB_HOST:-host.docker.internal}
       - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-contful}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_NAME=${DB_NAME:-contful}
+      - DB_SSL_MODE=${DB_SSL_MODE:-disable}
+      # Redis
       - REDIS_HOST=${REDIS_HOST:-host.docker.internal}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - OPEN_JWT_SECRET=${OPEN_JWT_SECRET:?OPEN_JWT_SECRET is required}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      # JWT（Open API）
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required, min 16 chars}
+      # Rate Limit
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - RATE_LIMIT_RPM=${RATE_LIMIT_RPM:-60}
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8081/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     restart: unless-stopped
+    volumes:
+      - contful-uploads:/app/uploads
+
+volumes:
+  contful-uploads:

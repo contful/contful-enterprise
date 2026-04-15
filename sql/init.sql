@@ -1,51 +1,30 @@
--- +migrate Up
--- +migrate StatementBegin
-
 -- =============================================================================
--- Contful - Headless CMS 数据库架构
+-- Contful - Headless CMS 数据库初始化脚本
 -- 版本: v1.0.0
 -- 数据库: PostgreSQL 18
+-- 使用: psql -h <host> -U <user> -d <db> -f init.sql
 -- =============================================================================
 
--- 扩展启用
+-- 启用扩展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =============================================================================
--- 枚举类型定义
+-- 枚举类型
 -- =============================================================================
 
--- 用户状态
 CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended');
-
--- 内容状态
 CREATE TYPE entry_status AS ENUM ('draft', 'published', 'archived');
-
--- 内容类型类型
 CREATE TYPE content_type_kind AS ENUM ('collection', 'single');
-
--- 字段类型
 CREATE TYPE field_type AS ENUM (
     'text', 'rich_text', 'number', 'boolean', 'date', 'datetime',
     'email', 'url', 'json', 'media', 'relation', 'enum', 'password'
 );
-
--- 资产类型
 CREATE TYPE asset_type AS ENUM ('image', 'video', 'audio', 'document', 'other');
-
--- 资产状态
 CREATE TYPE asset_status AS ENUM ('active', 'processing', 'failed', 'deleted');
-
--- API Token 状态
 CREATE TYPE token_status AS ENUM ('active', 'expired', 'revoked');
-
--- 审计日志级别
 CREATE TYPE audit_level AS ENUM ('debug', 'info', 'warn', 'error');
-
--- 审计日志类型
-CREATE TYPE audit_type AS ENUM (
-    'auth', 'content', 'media', 'settings', 'user', 'system'
-);
+CREATE TYPE audit_type AS ENUM ('auth', 'content', 'media', 'settings', 'user', 'system');
 
 -- =============================================================================
 -- 0. 全局配置表
@@ -127,7 +106,6 @@ CREATE INDEX idx_audit_logs_created ON audit_logs(created_at DESC);
 -- 1. 站点层
 -- =============================================================================
 
--- 站点表
 CREATE TABLE sites (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(200) NOT NULL,
@@ -150,7 +128,6 @@ CREATE INDEX idx_sites_slug ON sites(slug);
 CREATE INDEX idx_sites_active ON sites(is_active);
 CREATE INDEX idx_sites_tenant ON sites(tenant_id);
 
--- 渠道表
 CREATE TABLE channels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
@@ -172,7 +149,6 @@ CREATE INDEX idx_channels_site ON channels(site_id);
 CREATE INDEX idx_channels_type ON channels(channel_type);
 CREATE INDEX idx_channels_enabled ON channels(is_enabled);
 
--- 语言/本地化表
 CREATE TABLE locales (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
@@ -193,7 +169,6 @@ CREATE INDEX idx_locales_default ON locales(site_id, is_default) WHERE is_defaul
 -- 2. 用户权限层
 -- =============================================================================
 
--- 站点角色表
 CREATE TABLE site_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
@@ -211,7 +186,6 @@ CREATE TABLE site_roles (
 );
 CREATE INDEX idx_site_roles_site ON site_roles(site_id);
 
--- 站点用户关联表
 CREATE TABLE site_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
@@ -232,7 +206,6 @@ CREATE INDEX idx_site_users_role ON site_users(role_id);
 -- 3. 内容模型层
 -- =============================================================================
 
--- 内容类型表
 CREATE TABLE content_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
@@ -258,7 +231,6 @@ CREATE INDEX idx_content_types_slug ON content_types(slug);
 CREATE INDEX idx_content_types_active ON content_types(is_active);
 CREATE INDEX idx_content_types_kind ON content_types(kind);
 
--- 字段定义表
 CREATE TABLE fields (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     content_type_id UUID NOT NULL REFERENCES content_types(id) ON DELETE CASCADE,
@@ -284,7 +256,6 @@ CREATE INDEX idx_fields_sort ON fields(content_type_id, sort_order);
 -- 4. 内容条目层
 -- =============================================================================
 
--- 内容条目表
 CREATE TABLE entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     content_type_id UUID NOT NULL REFERENCES content_types(id) ON DELETE CASCADE,
@@ -315,7 +286,6 @@ CREATE INDEX idx_entries_sort ON entries(content_type_id, sort_weight);
 CREATE INDEX idx_entries_created_by ON entries(created_by);
 CREATE INDEX idx_entries_deleted ON entries(deleted_at) WHERE deleted_at IS NULL;
 
--- 内容值表
 CREATE TABLE entry_values (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entry_id UUID NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
@@ -337,7 +307,6 @@ CREATE INDEX idx_entry_values_number ON entry_values(number_value) WHERE number_
 CREATE INDEX idx_entry_values_bool ON entry_values(bool_value) WHERE bool_value IS NOT NULL;
 CREATE INDEX idx_entry_values_date ON entry_values(date_value) WHERE date_value IS NOT NULL;
 
--- 内容版本历史表
 CREATE TABLE entry_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entry_id UUID NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
@@ -355,7 +324,6 @@ CREATE INDEX idx_entry_versions_created ON entry_versions(created_at DESC);
 -- 5. 媒体资产层
 -- =============================================================================
 
--- 媒体资产表
 CREATE TABLE assets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id),
@@ -396,7 +364,6 @@ CREATE INDEX idx_assets_uploaded_by ON assets(uploaded_by);
 -- 6. API Token 层
 -- =============================================================================
 
--- API Token 表 (存储 SHA-256 Hash，不存明文)
 CREATE TABLE api_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id),
@@ -425,7 +392,7 @@ CREATE INDEX idx_api_tokens_status ON api_tokens(status);
 CREATE INDEX idx_api_tokens_expires ON api_tokens(expires_at) WHERE expires_at IS NOT NULL;
 
 -- =============================================================================
--- 7. Webhook 表
+-- 7. Webhook 层
 -- =============================================================================
 
 CREATE TABLE webhooks (
@@ -471,7 +438,7 @@ CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
 CREATE INDEX idx_webhook_deliveries_created ON webhook_deliveries(created_at DESC);
 
 -- =============================================================================
--- 8. 分布式锁表
+-- 8. 分布式锁
 -- =============================================================================
 
 CREATE TABLE distributed_locks (
@@ -492,7 +459,7 @@ INSERT INTO global_roles (id, name, description, is_system, permissions) VALUES
     (gen_random_uuid(), 'Auditor', '审计员，只读访问', TRUE, '["audit:read"]');
 
 -- =============================================================================
--- 触发器函数
+-- 触发器
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -503,7 +470,6 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- 创建 updated_at 触发器
 CREATE TRIGGER update_global_users_updated_at BEFORE UPDATE ON global_users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_global_roles_updated_at BEFORE UPDATE ON global_roles
@@ -536,5 +502,3 @@ CREATE TRIGGER update_api_tokens_updated_at BEFORE UPDATE ON api_tokens
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_webhooks_updated_at BEFORE UPDATE ON webhooks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- +migrate StatementEnd

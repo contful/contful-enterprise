@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/contful/contful/open/internal/config"
 	"github.com/contful/contful/open/internal/middleware"
@@ -26,7 +24,10 @@ import (
 
 func main() {
 	// 初始化配置
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	// 初始化日志
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -34,29 +35,23 @@ func main() {
 	logger.Info().Str("service", "open").Str("port", cfg.Server.Port).Msg("starting")
 
 	// 初始化 PostgreSQL
-	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Database.Host, cfg.Database.Port,
-		cfg.Database.User, cfg.Database.Password,
-		cfg.Database.Name, cfg.Database.SSLMode,
-	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+	db, err := gorm.Open(postgres.Open(cfg.Database.GetDSN()), &gorm.Config{
+		Logger: nil, // GORM 日志由 zerolog 统一输出
 	})
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
 	sqlDB, _ := db.DB()
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	sqlDB.SetConnMaxLifetime(cfg.Database.GetConnMaxLifetime())
 	logger.Info().Msg("database connected")
 
 	// 初始化 Redis
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Addr:     cfg.Redis.GetAddr(),
 		Password: cfg.Redis.Password,
-		DB:       0,
+		DB:       cfg.Redis.DB,
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -75,9 +70,9 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Use(gin.Logger())
 
 	// 全局中间件（所有路由都走）
-	r.Use(middleware.LoggerMiddleware(&logger))
 	r.Use(middleware.SecurityHeadersMiddleware())
 	r.Use(middleware.CORSMiddleware())
 
@@ -92,14 +87,13 @@ func main() {
 
 	// API 路由组
 	api := r.Group("/api/v1")
-	api.Use(middleware.TokenAuthMiddleware(
-		service.NewAPITokenService(tokenSvc),
-		logger,
-	))
+	api.Use(middleware.TokenAuthMiddleware(tokenSvc, logger))
 
-	// 速率限制：100次/分钟/Token（Open API 标准）
+	// 速率限制（从 config.yaml 读取）
 	rateLimiter := middleware.NewRateLimiter(rdb)
-	api.Use(rateLimiter.RateLimitByToken(100))
+	if cfg.RateLimit.Enabled {
+		api.Use(rateLimiter.RateLimitByToken(cfg.RateLimit.RequestsPerMin))
+	}
 
 	// TODO: 内容读写路由将由 M1-009 后续完善
 	// 当前占位路由，演示 Token 认证和 Rate Limit 已生效

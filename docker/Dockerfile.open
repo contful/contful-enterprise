@@ -1,30 +1,41 @@
-# 阶段一构建：Go 构建阶段
+# =============================================================================
+# Contful Open API 镜像
+# 包含: Go Open API (:8081)
+#
+# 职责: Open API 服务，无状态，可水平扩展
+#
+# 使用:
+#   单实例: docker-compose up -d
+#   水平扩展: docker-compose up --scale open=3
+#   自定义:  docker build -f docker/Dockerfile.open -t contful/open .
+# =============================================================================
+
+# ---- Stage 1: 构建 ----
 FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# 安装构建工具
 RUN apk add --no-cache git
 
-# 复制 go.mod 先下载依赖（利用缓存）
 COPY open/go.mod open/go.sum ./
 RUN go mod download
 
-# 复制源码并构建
 COPY open/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/open ./cmd/server
 
-# 阶段二运行：轻量运行镜像
-FROM alpine:3.19
+# ---- Stage 2: 运行 ----
+FROM alpine:3.19 AS runner
 
 WORKDIR /app
 
-# 安装运行时依赖
 RUN apk add --no-cache ca-certificates tzdata
 
-# 复制构建产物
 COPY --from=builder /app/open .
 
 EXPOSE 8081
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q -O- http://localhost:8081/health || exit 1
 
 CMD ["./open"]
