@@ -58,14 +58,17 @@ func main() {
 	auditRepo := repository.NewAuditRepository(db)
 	contentTypeRepo := repository.NewContentTypeRepository(db)
 	fieldRepo := repository.NewFieldRepository(db)
+	entryRepo := repository.NewEntryRepository(db)
 
 	// 初始化 Service
 	authService := service.NewAuthService(userRepo, auditRepo, cfg.JWT.Secret)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
+	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
 	ctHandler := handler.NewContentTypeHandler(ctService)
+	entryHandler := handler.NewEntryHandler(entryService)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)
@@ -116,19 +119,29 @@ func main() {
 			protected.GET("/users/me", authHandler.Me)
 			protected.GET("/users", authHandler.ListUsers)
 
-			// 内容类型管理
-			protected.GET("/content-types", ctHandler.List)
-			protected.POST("/content-types", ctHandler.Create)
-			protected.GET("/content-types/:id", ctHandler.Get)
-			protected.PUT("/content-types/:id", ctHandler.Update)
-			protected.DELETE("/content-types/:id", ctHandler.Delete)
-			protected.POST("/content-types/:id/fields", ctHandler.CreateField)
-			protected.GET("/content-types/:id/fields", ctHandler.ListFields)
-			protected.PUT("/content-types/fields/:fieldId", ctHandler.UpdateField)
-			protected.DELETE("/content-types/fields/:fieldId", ctHandler.DeleteField)
-			protected.POST("/content-types/:id/fields/reorder", ctHandler.ReorderFields)
+			// 内容类型管理 (REST: /content/types)
+			protected.GET("/content/types", ctHandler.List)
+			protected.POST("/content/types", ctHandler.Create)
+			protected.GET("/content/types/:id", ctHandler.Get)
+			protected.PUT("/content/types/:id", ctHandler.Update)
+			protected.DELETE("/content/types/:id", ctHandler.Delete)
+			protected.POST("/content/types/:id/fields", ctHandler.CreateField)
+			protected.GET("/content/types/:id/fields", ctHandler.ListFields)
+			protected.PUT("/content/types/fields/:fieldId", ctHandler.UpdateField)
+			protected.DELETE("/content/types/fields/:fieldId", ctHandler.DeleteField)
+			protected.POST("/content/types/:id/fields/reorder", ctHandler.ReorderFields)
 
-			// TODO: 内容管理
+			// 内容管理 (REST: /content/entries)
+			protected.GET("/content/entries", entryHandler.List)
+			protected.POST("/content/entries", entryHandler.Create)
+			protected.GET("/content/entries/:id", entryHandler.Get)
+			protected.PUT("/content/entries/:id", entryHandler.Update)
+			protected.DELETE("/content/entries/:id", entryHandler.Delete)
+			protected.POST("/content/entries/:id/publish", entryHandler.Publish)
+			protected.POST("/content/entries/:id/unpublish", entryHandler.Unpublish)
+			protected.GET("/content/entries/:id/versions", entryHandler.GetVersions)
+
+			// TODO: 媒体库
 			// TODO: 媒体库
 			// TODO: 站点管理
 		}

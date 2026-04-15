@@ -1,0 +1,86 @@
+package model
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// EntryStatus 条目状态
+type EntryStatus string
+
+const (
+	EntryStatusDraft     EntryStatus = "draft"     // 草稿
+	EntryStatusPublished EntryStatus = "published" // 已发布
+	EntryStatusArchived  EntryStatus = "archived"  // 已归档
+)
+
+// Entry 内容条目
+type Entry struct {
+	ID             uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ContentTypeID  uuid.UUID  `json:"content_type_id" gorm:"type:uuid;not null;index"`
+	SiteID         uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
+	Locale         string     `json:"locale" gorm:"size:20;not null;default:'zh-CN'"`
+	Status         EntryStatus `json:"status" gorm:"type:entry_status;not null;default:'draft'"`
+	Version        int        `json:"version" gorm:"not null;default:1"`
+	VersionHistory JSONArray  `json:"version_history" gorm:"type:jsonb"`
+	PublishedAt    *time.Time `json:"published_at" gorm:"type:timestamptz"`
+	PublishedBy    *uuid.UUID `json:"published_by" gorm:"type:uuid"`
+	Relations      JSONBSlice `json:"relations" gorm:"type:jsonb;default:'[]'"`
+	SEOTitle       string     `json:"seo_title" gorm:"size:255"`
+	SEODescription string     `json:"seo_description" gorm:"type:text"`
+	SEOKeywords    []string   `json:"seo_keywords" gorm:"type:text[]"`
+	SortWeight     int        `json:"sort_weight" gorm:"not null;default:0"`
+	CreatedBy      *uuid.UUID `json:"created_by" gorm:"type:uuid"`
+	CreatedAt      time.Time  `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt      time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+	DeletedAt      *time.Time `json:"deleted_at" gorm:"index"`
+
+	// 关联
+	ContentType *ContentType    `json:"content_type,omitempty" gorm:"foreignKey:ContentTypeID;references:ID"`
+	Values      []EntryValue    `json:"values,omitempty" gorm:"foreignKey:EntryID;references:ID"`
+}
+
+// TableName 表名
+func (Entry) TableName() string {
+	return "entries"
+}
+
+// EntryValue 内容字段值
+type EntryValue struct {
+	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	EntryID     uuid.UUID  `json:"entry_id" gorm:"type:uuid;not null;index"`
+	FieldID     uuid.UUID  `json:"field_id" gorm:"type:uuid;not null;index"`
+	Value       JSONB      `json:"value" gorm:"type:jsonb;not null"`
+	TextValue   *string    `json:"text_value,omitempty" gorm:"type:text"`
+	NumberValue *float64   `json:"number_value,omitempty" gorm:"type:numeric"`
+	BoolValue   *bool      `json:"bool_value,omitempty" gorm:"type:boolean"`
+	DateValue   *time.Time `json:"date_value,omitempty" gorm:"type:date"`
+	DatetimeValue *time.Time `json:"datetime_value,omitempty" gorm:"type:timestamptz"`
+	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+
+	// 关联
+	Field *Field `json:"field,omitempty" gorm:"foreignKey:FieldID;references:ID"`
+}
+
+// TableName 表名
+func (EntryValue) TableName() string {
+	return "entry_values"
+}
+
+// EntryVersion 内容版本历史
+type EntryVersion struct {
+	ID            uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	EntryID       uuid.UUID `json:"entry_id" gorm:"type:uuid;not null;index"`
+	Version       int       `json:"version" gorm:"not null"`
+	ValuesSnapshot JSONB    `json:"values_snapshot" gorm:"type:jsonb;not null"`
+	CreatedBy     *uuid.UUID `json:"created_by" gorm:"type:uuid"`
+	CreatedAt     time.Time `json:"created_at" gorm:"autoCreateTime"`
+	ChangeSummary string    `json:"change_summary" gorm:"type:text"`
+}
+
+// TableName 表名
+func (EntryVersion) TableName() string {
+	return "entry_versions"
+}

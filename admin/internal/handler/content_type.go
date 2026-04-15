@@ -25,7 +25,7 @@ func NewContentTypeHandler(ctService *service.ContentTypeService) *ContentTypeHa
 
 // RegisterRoutes 注册路由
 func (h *ContentTypeHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	contentTypes := rg.Group("/content-types")
+	contentTypes := rg.Group("/content/types")
 	{
 		contentTypes.POST("", h.Create)
 		contentTypes.GET("", h.List)
@@ -49,7 +49,7 @@ func (h *ContentTypeHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // @Produce json
 // @Param request body model.ContentTypeCreate true "创建请求"
 // @Success 201 {object} model.Response{data=model.ContentTypeResponse}
-// @Router /admin/v1/content-types [post]
+// @Router /admin/v1/content/types [post]
 func (h *ContentTypeHandler) Create(c *gin.Context) {
 	var req model.ContentTypeCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -81,7 +81,7 @@ func (h *ContentTypeHandler) Create(c *gin.Context) {
 // @Produce json
 // @Param id path string true "内容类型ID"
 // @Success 200 {object} model.Response{data=model.ContentTypeResponse}
-// @Router /admin/v1/content-types/{id} [get]
+// @Router /admin/v1/content/types/{id} [get]
 func (h *ContentTypeHandler) Get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -106,7 +106,7 @@ func (h *ContentTypeHandler) Get(c *gin.Context) {
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(20)
 // @Success 200 {object} model.Response{data=model.ContentTypeListResponse}
-// @Router /admin/v1/content-types [get]
+// @Router /admin/v1/content/types [get]
 func (h *ContentTypeHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
@@ -129,7 +129,7 @@ func (h *ContentTypeHandler) List(c *gin.Context) {
 // @Param id path string true "内容类型ID"
 // @Param request body model.ContentTypeUpdate true "更新请求"
 // @Success 200 {object} model.Response{data=model.ContentTypeResponse}
-// @Router /admin/v1/content-types/{id} [put]
+// @Router /admin/v1/content/types/{id} [put]
 func (h *ContentTypeHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -158,7 +158,7 @@ func (h *ContentTypeHandler) Update(c *gin.Context) {
 // @Tags ContentTypes
 // @Param id path string true "内容类型ID"
 // @Success 204
-// @Router /admin/v1/content-types/{id} [delete]
+// @Router /admin/v1/content/types/{id} [delete]
 func (h *ContentTypeHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
