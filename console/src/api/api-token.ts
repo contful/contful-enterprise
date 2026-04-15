@@ -1,4 +1,4 @@
-import request from './request'
+import request from '@/utils/request'
 
 // ============ Types ============
 
@@ -166,3 +166,57 @@ export const apiTokenApi = {
 
 // 便捷导出
 export default apiTokenApi
+
+// ============ 便捷函数导出 ============
+export const getApiTokens = (params?: { page?: number; page_size?: number; status?: string; name?: string }) => {
+  return apiTokenApi.list({ page: params?.page, page_size: params?.page_size, filter: params })
+}
+
+export const getApiToken = (id: string) => {
+  return apiTokenApi.get(id)
+}
+
+export const createApiToken = (data: {
+  name: string
+  description?: string
+  expires_in_days?: number
+  permissions?: string[]
+  rate_limit?: number
+}) => {
+  return apiTokenApi.create({
+    name: data.name,
+    description: data.description,
+    expires_at: data.expires_in_days ? new Date(Date.now() + data.expires_in_days * 24 * 60 * 60 * 1000).toISOString() : undefined,
+    permissions: data.permissions ? { content_types: data.permissions } : undefined,
+    rate_limits: data.rate_limit ? { requests_per_minute: Math.floor(data.rate_limit / 60), requests_per_day: data.rate_limit } : undefined,
+  })
+}
+
+export const updateApiToken = (id: string, data: {
+  name?: string
+  description?: string
+  permissions?: string[]
+  rate_limit?: number
+}) => {
+  return apiTokenApi.update(id, {
+    name: data.name,
+    description: data.description,
+    permissions: data.permissions ? { content_types: data.permissions } : undefined,
+    rate_limits: data.rate_limit ? { requests_per_minute: Math.floor(data.rate_limit / 60), requests_per_day: data.rate_limit } : undefined,
+  })
+}
+
+export const deleteApiToken = (id: string) => {
+  return apiTokenApi.delete(id)
+}
+
+export const regenerateApiToken = (id: string) => {
+  return apiTokenApi.regenerate(id)
+}
+
+export const revokeApiToken = (id: string) => {
+  return apiTokenApi.revoke(id)
+}
+
+// 类型导出
+export type { APITokenResponse as ApiToken } from './api-token'

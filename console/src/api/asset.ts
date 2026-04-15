@@ -1,4 +1,4 @@
-import request from './request'
+import request from '@/utils/request'
 import type { AxiosProgressEvent } from 'axios'
 
 // ============ Types ============
@@ -268,3 +268,49 @@ export const folderApi = {
 
 // 便捷导出
 export default assetApi
+
+// ============ 便捷函数导出 ============
+// 与 media/List.vue 兼容的导出
+export const getAssets = (params?: { page?: number; page_size?: number; folder_id?: string; type?: string; keyword?: string }) => {
+  return assetApi.list({ page: params?.page, page_size: params?.page_size, filter: params })
+}
+
+export const getAsset = (id: string) => {
+  return assetApi.get(id)
+}
+
+export const createAsset = (data: { file: File; folder_id?: string; alt?: string; title?: string }) => {
+  return assetApi.upload(data.file, { folder_id: data.folder_id, alt: data.alt, title: data.title })
+}
+
+export const updateAsset = (id: string, data: AssetUpdate) => {
+  return assetApi.update(id, data)
+}
+
+export const deleteAsset = (id: string) => {
+  return assetApi.delete(id)
+}
+
+export const batchDeleteAssets = (ids: string[]) => {
+  return assetApi.batchDelete(ids)
+}
+
+// 文件夹相关
+export const getAssetFolders = () => {
+  return folderApi.getTree()
+}
+
+export const createFolder = (data: FolderCreate) => {
+  return folderApi.create(data)
+}
+
+export const updateFolder = (id: string, data: FolderUpdate) => {
+  return folderApi.update(id, data)
+}
+
+export const deleteFolder = (id: string) => {
+  return folderApi.delete(id)
+}
+
+// 导出类型
+export type { Asset, Folder } from './asset-types'
