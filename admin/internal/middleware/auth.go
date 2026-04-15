@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
@@ -18,6 +19,13 @@ const (
 	UserContextKey      = "user"
 	ClaimsContextKey    = "claims"
 )
+
+// Claims JWT Claims
+type Claims struct {
+	UserID       uuid.UUID
+	Email        string
+	IsSuperAdmin bool
+}
 
 // JWTAuth JWT 认证中间件
 func JWTAuth(authService *service.AuthService) gin.HandlerFunc {

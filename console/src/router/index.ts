@@ -23,6 +23,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/content-types/:id/fields',
+    name: 'ContentTypeFields',
+    component: () => import('@/pages/content-types/Fields.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/content/:slug',
     name: 'Content',
     component: () => import('@/pages/content/List.vue'),

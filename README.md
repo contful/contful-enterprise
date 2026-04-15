@@ -19,7 +19,8 @@ contful/
 ├── open/             # Open API 服务 (:8081)
 ├── console/          # Vue 3 控制台
 ├── migrations/       # 数据库迁移
-└── docker/           # Docker 配置
+├── docker/           # Docker 配置
+└── website/          # 官网 & 文档 (VitePress)
 ```
 
 ## 快速开始
@@ -48,13 +49,16 @@ npm install && npm run dev
 ## 访问
 
 - 控制台: http://localhost:3000
-- Admin API: http://localhost:8080
-- Open API: http://localhost:8081
+- Admin API: http://localhost:8080/admin/v1/
+- Open API: http://localhost:8081/api/v1/
 
-## 相关链接
+## 文档
 
-- [完整文档](https://contful.dev/docs/)
-- [部署指南](https://contful.dev/docs/deployment)
-- [API 文档](https://contful.dev/docs/api/admin-api/overview)
-- [贡献指南](https://contful.dev/docs/community/contributing)
-- [更新日志](https://contful.dev/guide/release)
+- [快速开始](https://contful.com/docs/getting-started)
+- [部署指南](https://contful.com/docs/deployment)
+- [系统架构](https://contful.com/docs/architecture/overview)
+- [Admin API 文档](https://contful.com/docs/api/admin-api/overview)
+- [Open API 文档](https://contful.com/docs/api/open-api/overview)
+- [数据库 Schema](https://contful.com/docs/database/schema)
+- [贡献指南](https://contful.com/docs/community/contributing)
+- [更新日志](https://contful.com/guide/release)

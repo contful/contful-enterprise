@@ -20,7 +20,6 @@ import (
 
 	"github.com/contful/contful/admin/internal/handler"
 	"github.com/contful/contful/admin/internal/middleware"
-	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/service"
 )
@@ -57,12 +56,16 @@ func main() {
 	// 初始化 Repository
 	userRepo := repository.NewUserRepository(db, redisClient)
 	auditRepo := repository.NewAuditRepository(db)
+	contentTypeRepo := repository.NewContentTypeRepository(db)
+	fieldRepo := repository.NewFieldRepository(db)
 
 	// 初始化 Service
 	authService := service.NewAuthService(userRepo, auditRepo, cfg.JWT.Secret)
+	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
+	ctHandler := handler.NewContentTypeHandler(ctService)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)
@@ -113,7 +116,18 @@ func main() {
 			protected.GET("/users/me", authHandler.Me)
 			protected.GET("/users", authHandler.ListUsers)
 
-			// TODO: 内容类型管理
+			// 内容类型管理
+			protected.GET("/content-types", ctHandler.List)
+			protected.POST("/content-types", ctHandler.Create)
+			protected.GET("/content-types/:id", ctHandler.Get)
+			protected.PUT("/content-types/:id", ctHandler.Update)
+			protected.DELETE("/content-types/:id", ctHandler.Delete)
+			protected.POST("/content-types/:id/fields", ctHandler.CreateField)
+			protected.GET("/content-types/:id/fields", ctHandler.ListFields)
+			protected.PUT("/content-types/fields/:fieldId", ctHandler.UpdateField)
+			protected.DELETE("/content-types/fields/:fieldId", ctHandler.DeleteField)
+			protected.POST("/content-types/:id/fields/reorder", ctHandler.ReorderFields)
+
 			// TODO: 内容管理
 			// TODO: 媒体库
 			// TODO: 站点管理
