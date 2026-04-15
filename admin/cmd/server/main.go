@@ -59,16 +59,19 @@ func main() {
 	contentTypeRepo := repository.NewContentTypeRepository(db)
 	fieldRepo := repository.NewFieldRepository(db)
 	entryRepo := repository.NewEntryRepository(db)
+	assetRepo := repository.NewAssetRepository(db)
 
 	// 初始化 Service
 	authService := service.NewAuthService(userRepo, auditRepo, cfg.JWT.Secret)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
+	assetService := service.NewAssetService(assetRepo, "./uploads", "/admin/v1")
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
 	ctHandler := handler.NewContentTypeHandler(ctService)
 	entryHandler := handler.NewEntryHandler(entryService)
+	assetHandler := handler.NewAssetHandler(assetService)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)
@@ -142,7 +145,22 @@ func main() {
 			protected.GET("/content/entries/:id/versions", entryHandler.GetVersions)
 
 			// TODO: 媒体库
-			// TODO: 媒体库
+			// protected.POST("/assets/upload", assetHandler.Upload) // 已在 /assets 中注册
+			protected.GET("/assets", assetHandler.List)
+			protected.POST("/assets", assetHandler.Upload)
+			protected.GET("/assets/:id", assetHandler.Get)
+			protected.PUT("/assets/:id", assetHandler.Update)
+			protected.DELETE("/assets/:id", assetHandler.Delete)
+			protected.DELETE("/assets", assetHandler.BatchDelete)
+
+			// 文件夹管理
+			protected.POST("/assets/folders", assetHandler.CreateFolder)
+			protected.GET("/assets/folders/tree", assetHandler.GetFolderTree)
+			protected.GET("/assets/folders", assetHandler.ListFolders)
+			protected.GET("/assets/folders/:id", assetHandler.GetFolder)
+			protected.PUT("/assets/folders/:id", assetHandler.UpdateFolder)
+			protected.DELETE("/assets/folders/:id", assetHandler.DeleteFolder)
+
 			// TODO: 站点管理
 		}
 	}
