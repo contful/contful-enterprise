@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,13 +10,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"github.com/contful/contful/admin/internal/config"
 	"github.com/contful/contful/admin/internal/handler"
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/repository"
@@ -26,12 +25,26 @@ import (
 
 func main() {
 	// 初始化配置
-	cfg := loadConfig()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	// 初始化日志
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: log.Writer()}).With().Timestamp().Logger()
-	logger.Info().Str("service", "admin").Str("port", cfg.Server.Port).Msg("starting")
+	logger.Info().
+		Str("service", "admin").
+		Str("port", cfg.Server.Port).
+		Str("mode", cfg.Server.Mode).
+		Msg("starting")
+
+	// 设置 Gin 模式
+	if cfg.Server.Mode == "debug" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// 初始化数据库
 	db, err := initDB(cfg.Database)
@@ -41,9 +54,10 @@ func main() {
 
 	// 初始化 Redis
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
+		Addr:     cfg.Redis.GetAddr(),
 		Password: cfg.Redis.Password,
-		DB: cfg.Redis.DB,
+		DB:       cfg.Redis.DB,
+		PoolSize: cfg.Redis.PoolSize,
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -66,7 +80,7 @@ func main() {
 	authService := service.NewAuthService(userRepo, auditRepo, cfg.JWT.Secret)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
-	assetService := service.NewAssetService(assetRepo, "./uploads", "/admin/v1")
+	assetService := service.NewAssetService(assetRepo, cfg.Storage.UploadDir, "/admin/v1")
 	tokenService := service.NewAPITokenService(tokenRepo)
 
 	// 初始化 Handler
@@ -77,7 +91,6 @@ func main() {
 	tokenHandler := handler.NewAPITokenHandler(tokenService)
 
 	// 初始化 Gin
-	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORSMiddleware())
@@ -147,8 +160,7 @@ func main() {
 			protected.POST("/content/entries/:id/unpublish", entryHandler.Unpublish)
 			protected.GET("/content/entries/:id/versions", entryHandler.GetVersions)
 
-			// TODO: 媒体库
-			// protected.POST("/assets/upload", assetHandler.Upload) // 已在 /assets 中注册
+			// 媒体库
 			protected.GET("/assets", assetHandler.List)
 			protected.POST("/assets", assetHandler.Upload)
 			protected.GET("/assets/:id", assetHandler.Get)
@@ -172,16 +184,16 @@ func main() {
 			protected.DELETE("/api-tokens/:id", tokenHandler.Delete)
 			protected.POST("/api-tokens/:id/regenerate", tokenHandler.Regenerate)
 			protected.POST("/api-tokens/:id/revoke", tokenHandler.Revoke)
-
-			// TODO: 站点管理
 		}
 	}
 
 	// 启动服务
 	addr := ":" + cfg.Server.Port
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  time.Duration(cfg.Server.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(cfg.Server.WriteTimeout) * time.Second,
 	}
 
 	// Graceful shutdown
@@ -197,82 +209,17 @@ func main() {
 	<-quit
 	logger.Info().Msg("shutting down server...")
 
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Duration(cfg.Server.ShutdownTimeout)*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Fatal().Err(err).Msg("server forced to shutdown")
 	}
 
 	logger.Info().Msg("server exited")
 }
 
-// Config 配置结构
-type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-}
-
-type ServerConfig struct {
-	Port string
-}
-
-type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
-}
-
-type RedisConfig struct {
-	Host     string
-	Port     string
-	Password string
-	DB       int
-}
-
-type JWTConfig struct {
-	Secret string
-}
-
-func loadConfig() *Config {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath("/etc/contful/")
-
-	viper.SetDefault("SERVER_PORT", "8080")
-	viper.SetDefault("DB_PORT", "5432")
-	viper.SetDefault("DB_SSLMODE", "disable")
-	viper.SetDefault("REDIS_PORT", "6379")
-	viper.SetDefault("REDIS_DB", 0)
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Warning: config file not found, using defaults")
-	}
-
-	cfg := &Config{}
-	if err := viper.Unmarshal(cfg); err != nil {
-		log.Fatalf("failed to unmarshal config: %v", err)
-	}
-
-	// JWT Secret 必填
-	if cfg.JWT.Secret == "" {
-		log.Fatal("JWT_SECRET is required")
-	}
-
-	return cfg
-}
-
-func initDB(dbCfg DatabaseConfig) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		dbCfg.Host, dbCfg.Port, dbCfg.User, dbCfg.Password, dbCfg.DBName, dbCfg.SSLMode,
-	)
+func initDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
+	dsn := cfg.GetDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
@@ -286,9 +233,9 @@ func initDB(dbCfg DatabaseConfig) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetConnMaxLifetime(cfg.GetConnMaxLifetime())
 
 	return db, nil
 }
