@@ -1,0 +1,147 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
+	"github.com/contful/contful/admin/internal/model"
+	"gorm.io/gorm"
+)
+
+var (
+	ErrUserNotFound      = errors.New("user not found")
+	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrInvalidPassword   = errors.New("invalid password")
+	ErrUserInactive      = errors.New("user is inactive")
+	ErrUserSuspended     = errors.New("user is suspended")
+)
+
+type UserRepository struct {
+	db    *gorm.DB
+	redis *redis.Client
+}
+
+func NewUserRepository(db *gorm.DB, redis *redis.Client) *UserRepository {
+	return &UserRepository{db: db, redis: redis}
+}
+
+// Create 创建用户
+func (r *UserRepository) Create(ctx context.Context, user *model.GlobalUser) error {
+	result := r.db.WithContext(ctx).Create(user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return ErrUserAlreadyExists
+		}
+		return result.Error
+	}
+	return nil
+}
+
+// FindByID 根据 ID 查找用户
+func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.GlobalUser, error) {
+	var user model.GlobalUser
+	result := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
+// FindByEmail 根据邮箱查找用户
+func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.GlobalUser, error) {
+	var user model.GlobalUser
+	result := r.db.WithContext(ctx).Where("email = ? AND deleted_at IS NULL", email).First(&user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
+// UpdateLastLogin 更新最后登录信息
+func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uuid.UUID, ip string) error {
+	now := time.Now()
+	return r.db.WithContext(ctx).Model(&model.GlobalUser{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"last_login_at": now,
+			"last_login_ip": ip,
+		}).Error
+}
+
+// List 查询用户列表（分页）
+func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]model.GlobalUser, int64, error) {
+	var users []model.GlobalUser
+	var total int64
+
+	db := r.db.WithContext(ctx).Model(&model.GlobalUser{}).Where("deleted_at IS NULL")
+	
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	if err := db.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
+// Refresh Token 管理
+const refreshTokenPrefix = "refresh_token:"
+const refreshTokenTTL = 7 * 24 * time.Hour // 7 days
+
+// StoreRefreshToken 存储 Refresh Token 到 Redis
+func (r *UserRepository) StoreRefreshToken(ctx context.Context, userID uuid.UUID, token string) error {
+	key := refreshTokenPrefix + token
+	return r.redis.Set(ctx, key, userID.String(), refreshTokenTTL).Err()
+}
+
+// ValidateRefreshToken 验证 Refresh Token
+func (r *UserRepository) ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error) {
+	key := refreshTokenPrefix + token
+	userIDStr, err := r.redis.Get(ctx, key).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return uuid.Nil, errors.New("invalid refresh token")
+		}
+		return uuid.Nil, err
+	}
+	return uuid.Parse(userIDStr)
+}
+
+// DeleteRefreshToken 删除 Refresh Token
+func (r *UserRepository) DeleteRefreshToken(ctx context.Context, token string) error {
+	key := refreshTokenPrefix + token
+	return r.redis.Del(ctx, key).Err()
+}
+
+// DeleteAllUserRefreshTokens 删除用户所有 Refresh Token（登出所有设备）
+func (r *UserRepository) DeleteAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
+	pattern := refreshTokenPrefix + "*"
+	iter := r.redis.Scan(ctx, 0, pattern, 0).Iterator()
+	
+	for iter.Next(ctx) {
+		token := iter.Val()
+		userIDStr, err := r.redis.Get(ctx, token).Result()
+		if err != nil {
+			continue
+		}
+		if userIDStr == userID.String() {
+			if err := r.redis.Del(ctx, token).Err(); err != nil {
+				log.Error().Err(err).Str("token", token).Msg("failed to delete refresh token")
+			}
+		}
+	}
+	return nil
+}

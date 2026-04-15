@@ -1,11 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { getAccessToken } from '@/utils/request'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
     component: () => import('@/pages/auth/Login.vue'),
+    meta: { requiresAuth: false },
   },
   {
     path: '/',
@@ -37,6 +40,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/settings/Index.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/users',
+    name: 'Users',
+    component: () => import('@/pages/users/List.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({
@@ -45,10 +54,15 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, _from, next) => {
-  const token = localStorage.getItem('access_token')
-  if (to.meta.requiresAuth && !token) {
+router.beforeEach(async (to, _from, next) => {
+  const requiresAuth = to.meta.requiresAuth !== false
+  const token = getAccessToken()
+
+  if (requiresAuth && !token) {
     next('/login')
+  } else if (to.path === '/login' && token) {
+    // 已登录用户访问登录页，跳转到首页
+    next('/')
   } else {
     next()
   }
