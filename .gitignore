@@ -1,0 +1,57 @@
+# 环境配置（含敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 密钥和证书
+*.pem
+*.key
+*.crt
+*.p12
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 依赖目录
+node_modules/
+vendor/
+
+# 构建产物
+dist/
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+*.out
+go.work
+
+# 日志和临时文件
+*.log
+*.tmp
+tmp/
+temp/
+
+# 上传文件（开发环境）
+uploads/
+
+# 测试覆盖率
+coverage/
+*.coverprofile
+
+# 缓存
+.cache/
+.parcel-cache/
+.vitepress/cache/

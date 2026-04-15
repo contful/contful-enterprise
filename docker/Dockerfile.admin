@@ -1,0 +1,30 @@
+# 阶段一构建：Go 构建阶段
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /app
+
+# 安装构建工具
+RUN apk add --no-cache git
+
+# 复制 go.mod 先下载依赖（利用缓存）
+COPY admin/go.mod admin/go.sum ./
+RUN go mod download
+
+# 复制源码并构建
+COPY admin/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/admin ./cmd/server
+
+# 阶段二运行：轻量运行镜像
+FROM alpine:3.19
+
+WORKDIR /app
+
+# 安装运行时依赖
+RUN apk add --no-cache ca-certificates tzdata
+
+# 复制构建产物
+COPY --from=builder /app/admin .
+
+EXPOSE 8080
+
+CMD ["./admin"]
