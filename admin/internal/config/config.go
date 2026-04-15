@@ -3,9 +3,11 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/subosito/gotenv"
 	"github.com/spf13/viper"
 )
 
@@ -109,6 +111,16 @@ var globalConfig *Config
 // Load 加载配置
 func Load(configPaths ...string) (*Config, error) {
 	v := viper.New()
+
+	// 读取 .env 文件（如果存在）
+	// 搜索路径：当前目录 → config/ 目录
+	for _, p := range []string{".", "./config"} {
+		envPath := filepath.Join(p, ".env")
+		if _, err := os.Stat(envPath); err == nil {
+			gotenv.OverLoad(envPath)
+			break
+		}
+	}
 
 	// 设置配置名和类型
 	v.SetConfigName("config")
