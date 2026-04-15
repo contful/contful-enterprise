@@ -60,18 +60,21 @@ func main() {
 	fieldRepo := repository.NewFieldRepository(db)
 	entryRepo := repository.NewEntryRepository(db)
 	assetRepo := repository.NewAssetRepository(db)
+	tokenRepo := repository.NewAPITokenRepository(db)
 
 	// 初始化 Service
 	authService := service.NewAuthService(userRepo, auditRepo, cfg.JWT.Secret)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 	assetService := service.NewAssetService(assetRepo, "./uploads", "/admin/v1")
+	tokenService := service.NewAPITokenService(tokenRepo)
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
 	ctHandler := handler.NewContentTypeHandler(ctService)
 	entryHandler := handler.NewEntryHandler(entryService)
 	assetHandler := handler.NewAssetHandler(assetService)
+	tokenHandler := handler.NewAPITokenHandler(tokenService)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)
@@ -160,6 +163,15 @@ func main() {
 			protected.GET("/assets/folders/:id", assetHandler.GetFolder)
 			protected.PUT("/assets/folders/:id", assetHandler.UpdateFolder)
 			protected.DELETE("/assets/folders/:id", assetHandler.DeleteFolder)
+
+			// API Token 管理
+			protected.POST("/api-tokens", tokenHandler.Create)
+			protected.GET("/api-tokens", tokenHandler.List)
+			protected.GET("/api-tokens/:id", tokenHandler.Get)
+			protected.PUT("/api-tokens/:id", tokenHandler.Update)
+			protected.DELETE("/api-tokens/:id", tokenHandler.Delete)
+			protected.POST("/api-tokens/:id/regenerate", tokenHandler.Regenerate)
+			protected.POST("/api-tokens/:id/revoke", tokenHandler.Revoke)
 
 			// TODO: 站点管理
 		}
