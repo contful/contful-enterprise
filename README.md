@@ -51,14 +51,14 @@ docker-compose --env-file .env up -d
 
 # 访问
 #   管理后台:  http://localhost         (Console + Admin API)
-#   Open API: http://localhost:8081/   (直连)
+#   Open API: http://localhost:8080/   (直连)
 ```
 
 ### 3. 水平扩展 Open API
 
 ```bash
 # 扩展 Open API 到 3 个实例
-docker-compose --env-file .env up -d --scale open=3
+docker-compose --env-file .env up -d --scale api=3
 
 # 生产环境建议在 Open API 前加 Nginx/HAProxy 负载均衡
 ```
@@ -75,8 +75,8 @@ cd console && yarn dev                   # Console (:3000)
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| contful-admin | 80 | 管理后台（Nginx + Console SPA + Admin API） |
-| contful-open | 8081 | Open API，可水平扩展 |
+| contful-admin | 80 | 管理后台（OpenResty → Console SPA + /admin/ 代理） |
+| contful-api | 8080 | Open API，可水平扩展 |
 
 ## 文档
 

@@ -4,20 +4,20 @@
 #
 # 前置条件:
 #   1. 将 sql/init.sql 导入到 PostgreSQL
-#   2. cp .env.example .env，填入数据库/Valkey/JWT 信息
+#   2. cp .env.example .env，填入数据库/Redis/JWT 信息
 #   3. 已构建镜像:
-#      docker build -t contful/console:alpine -f docker/Dockerfile.admin ..
-#      docker build -t contful/api:alpine -f docker/Dockerfile.open ..
+#      docker build -t contful/console:alpine -f Dockerfile.admin ..
+#      docker build -t contful/api:alpine -f Dockerfile.open ..
 #
 # 启动:
-#   docker-compose up -d
+#   docker-compose --env-file .env up -d
 #
 # 访问:
 #   - 管理后台: http://localhost            (OpenResty → Console SPA + /admin/ 代理)
-#   - Open API: http://localhost:8080/api/v1/
+#   - Open API: http://localhost:8080/      (直连)
 #
 # 水平扩展 Open API:
-#   docker-compose up -d --scale api=3
+#   docker-compose --env-file .env up -d --scale api=3
 # =============================================================================
 
 services:
