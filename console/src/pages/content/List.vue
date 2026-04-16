@@ -14,6 +14,9 @@ import {
   deleteEntry,
   publishEntry,
   unpublishEntry,
+  batchDeleteEntries,
+  batchPublishEntries,
+  batchUnpublishEntries,
   type Entry,
   type EntryCreate,
   type EntryUpdate,
@@ -46,6 +49,27 @@ const formData = ref<Record<string, any>>({})
 // 过滤器
 const statusFilter = ref<string>('')
 
+// 搜索与排序
+const searchKeyword = ref<string>('')
+const sortField = ref<string>('updated_time')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
+// 批量选择
+const selectedIds = ref<Set<string>>(new Set())
+const batchLoading = ref(false)
+const showBatchConfirm = ref(false)
+const batchAction = ref<'delete' | 'publish' | 'unpublish'>('delete')
+const batchActionLabel = ref('')
+
+// 计算属性
+const isAllSelected = computed(() => {
+  return entries.value.length > 0 && selectedIds.value.size === entries.value.length
+})
+
+const selectedCount = computed(() => selectedIds.value.size)
+
+const hasSelected = computed(() => selectedIds.value.size > 0)
+
 // 加载内容类型
 const loadContentTypes = async () => {
   try {
@@ -61,14 +85,21 @@ const loadEntries = async () => {
   if (!selectedType.value) return
 
   loading.value = true
+  // 清空选择
+  selectedIds.value.clear()
   try {
     const params: any = {
       page: page.value,
       page_size: pageSize.value,
       content_type_id: selectedType.value.id,
+      sort_field: sortField.value,
+      sort_order: sortOrder.value,
     }
     if (statusFilter.value) {
       params.status = statusFilter.value
+    }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
     }
     const res = await getEntries(params)
     entries.value = res.data.items || []
@@ -183,6 +214,92 @@ const handleDelete = async () => {
   }
 }
 
+// ============ 批量操作 ============
+
+// 切换单选
+const toggleSelect = (id: string) => {
+  if (selectedIds.value.has(id)) {
+    selectedIds.value.delete(id)
+  } else {
+    selectedIds.value.add(id)
+  }
+  // 触发响应式更新
+  selectedIds.value = new Set(selectedIds.value)
+}
+
+// 切换全选
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedIds.value.clear()
+  } else {
+    entries.value.forEach(entry => {
+      selectedIds.value.add(entry.id)
+    })
+  }
+  selectedIds.value = new Set(selectedIds.value)
+}
+
+// 批量操作确认
+const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
+  batchAction.value = action
+  const labels = {
+    delete: '删除',
+    publish: '发布',
+    unpublish: '取消发布'
+  }
+  batchActionLabel.value = labels[action]
+  showBatchConfirm.value = true
+}
+
+// 执行批量操作
+const executeBatchAction = async () => {
+  const ids = Array.from(selectedIds.value)
+  if (ids.length === 0) return
+
+  batchLoading.value = true
+  try {
+    switch (batchAction.value) {
+      case 'delete':
+        await batchDeleteEntries(ids)
+        showSuccess(`已删除 ${ids.length} 条内容`)
+        break
+      case 'publish':
+        await batchPublishEntries(ids)
+        showSuccess(`已发布 ${ids.length} 条内容`)
+        break
+      case 'unpublish':
+        await batchUnpublishEntries(ids)
+        showSuccess(`已取消发布 ${ids.length} 条内容`)
+        break
+    }
+    showBatchConfirm.value = false
+    selectedIds.value.clear()
+    selectedIds.value = new Set()
+    loadEntries()
+  } catch (error) {
+    showError(error)
+  } finally {
+    batchLoading.value = false
+  }
+}
+
+// 获取批量操作确认提示
+const getBatchConfirmText = () => {
+  const count = selectedIds.value.size
+  const action = batchActionLabel.value
+  if (batchAction.value === 'delete') {
+    return `确定要删除选中的 ${count} 条内容吗？此操作不可撤销。`
+  }
+  return `确定要${action}选中的 ${count} 条内容吗？`
+}
+
+// 清除搜索
+const clearSearch = () => {
+  searchKeyword.value = ''
+  page.value = 1
+  loadEntries()
+}
+
 // 状态样式
 const getStatusClass = (status: string) => {
   const map: Record<string, string> = {
@@ -275,13 +392,59 @@ onMounted(() => {
                 <option value="published">已发布</option>
                 <option value="archived">已归档</option>
               </select>
+
+              <!-- 搜索框 -->
+              <div class="search-box">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/>
+                </svg>
+                <input
+                  v-model="searchKeyword"
+                  type="text"
+                  class="input search-input"
+                  placeholder="搜索内容..."
+                  @keyup.enter="loadEntries"
+                />
+                <button v-if="searchKeyword" class="search-clear" @click="clearSearch">
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- 排序 -->
+              <select v-model="sortField" class="input" style="width: 130px;" @change="loadEntries">
+                <option value="updated_time">按更新时间</option>
+                <option value="created_time">按创建时间</option>
+                <option value="published_time">按发布时间</option>
+                <option value="sort_weight">按排序权重</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; loadEntries()">
+                {{ sortOrder === 'asc' ? '↑ 升序' : '↓ 降序' }}
+              </button>
             </div>
-            <button class="btn btn-primary" @click="openCreateModal">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-              </svg>
-              创建内容
-            </button>
+
+            <div class="toolbar-right">
+              <!-- 批量操作 -->
+              <div v-if="hasSelected" class="batch-actions">
+                <span class="selected-count">已选择 {{ selectedCount }} 条</span>
+                <button class="btn btn-secondary btn-sm" :disabled="batchLoading" @click="confirmBatchAction('publish')">
+                  批量发布
+                </button>
+                <button class="btn btn-secondary btn-sm" :disabled="batchLoading" @click="confirmBatchAction('unpublish')">
+                  批量取消发布
+                </button>
+                <button class="btn btn-danger btn-sm" :disabled="batchLoading" @click="confirmBatchAction('delete')">
+                  批量删除
+                </button>
+              </div>
+              <button class="btn btn-primary" @click="openCreateModal">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
+                </svg>
+                创建内容
+              </button>
+            </div>
           </div>
 
           <!-- 表格 -->
@@ -289,6 +452,14 @@ onMounted(() => {
             <table class="table">
               <thead>
                 <tr>
+                  <th class="checkbox-col">
+                    <input
+                      type="checkbox"
+                      :checked="isAllSelected"
+                      :indeterminate="hasSelected && !isAllSelected"
+                      @change="toggleSelectAll"
+                    />
+                  </th>
                   <th>ID</th>
                   <th v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
                     {{ field.name }}
@@ -300,13 +471,13 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="6" class="loading-state">
+                  <td colspan="7" class="loading-state">
                     <div class="spinner"></div>
                     <span>加载中...</span>
                   </td>
                 </tr>
                 <tr v-else-if="entries.length === 0">
-                  <td colspan="6" class="empty-state">
+                  <td colspan="7" class="empty-state">
                     <div class="empty-icon">
                       <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
                         <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
@@ -319,7 +490,14 @@ onMounted(() => {
                     </button>
                   </td>
                 </tr>
-                <tr v-else v-for="entry in entries" :key="entry.id">
+                <tr v-else v-for="entry in entries" :key="entry.id" :class="{ selected: selectedIds.has(entry.id) }">
+                  <td class="checkbox-col">
+                    <input
+                      type="checkbox"
+                      :checked="selectedIds.has(entry.id)"
+                      @change="toggleSelect(entry.id)"
+                    />
+                  </td>
                   <td class="id-cell">{{ entry.id.slice(0, 8) }}</td>
                   <td v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
                     {{ entry.values?.[field.name] || '-' }}
@@ -478,6 +656,30 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 批量操作确认弹窗 -->
+    <div v-if="showBatchConfirm" class="modal-overlay" @click.self="showBatchConfirm = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h3>确认{{ batchActionLabel }}</h3>
+        </div>
+        <div class="modal-body">
+          <p>{{ getBatchConfirmText() }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showBatchConfirm = false" :disabled="batchLoading">取消</button>
+          <button
+            class="btn"
+            :class="batchAction === 'delete' ? 'btn-danger' : 'btn-primary'"
+            :disabled="batchLoading"
+            @click="executeBatchAction"
+          >
+            <span v-if="batchLoading" class="btn-spinner"></span>
+            {{ batchLoading ? '处理中...' : batchActionLabel }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -601,6 +803,86 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--color-primary-light);
+  border-radius: 8px;
+}
+
+.selected-count {
+  font-size: 13px;
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+/* 搜索框 */
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: 34px !important;
+  padding-right: 34px !important;
+  width: 200px;
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.search-clear:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+/* 多选列 */
+.checkbox-col {
+  width: 40px;
+  text-align: center;
+}
+
+.checkbox-col input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+/* 选中行样式 */
+tr.selected {
+  background: var(--color-primary-light) !important;
 }
 
 .id-cell {

@@ -109,3 +109,25 @@ export function unpublishEntry(id: string) {
 export function getEntryVersions(id: string) {
   return request.get<{ code: number; data: EntryVersion[] }>(`/content/entries/${id}/versions`)
 }
+
+// ============ 批量操作 API ============
+
+// 批量删除
+export function batchDeleteEntries(ids: string[]) {
+  return request.post('/content/entries/batch-delete', { ids })
+}
+
+// 批量发布
+export function batchPublishEntries(ids: string[]) {
+  return request.post('/content/entries/batch-publish', { ids })
+}
+
+// 批量取消发布
+export function batchUnpublishEntries(ids: string[]) {
+  return request.post('/content/entries/batch-unpublish', { ids })
+}
+
+// 批量移动到归档
+export function batchArchiveEntries(ids: string[]) {
+  return request.post('/content/entries/batch-archive', { ids })
+}

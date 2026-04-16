@@ -34,6 +34,10 @@ func (h *EntryHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		entries.POST("/:id/publish", h.Publish)
 		entries.POST("/:id/unpublish", h.Unpublish)
 		entries.GET("/:id/versions", h.GetVersions)
+		// 批量操作
+		entries.POST("/batch-delete", h.BatchDelete)
+		entries.POST("/batch-publish", h.BatchPublish)
+		entries.POST("/batch-unpublish", h.BatchUnpublish)
 	}
 }
 
@@ -101,6 +105,12 @@ func (h *EntryHandler) List(c *gin.Context) {
 	if locale := c.Query("locale"); locale != "" {
 		filter.Locale = &locale
 	}
+	if keyword := c.Query("keyword"); keyword != "" {
+		filter.Keyword = &keyword
+	}
+	// 排序参数
+	filter.SortField = c.DefaultQuery("sort_field", "updated_time")
+	filter.SortOrder = c.DefaultQuery("sort_order", "desc")
 
 	entries, total, err := h.entryService.List(c.Request.Context(), siteID, filter, page, pageSize)
 	if err != nil {
@@ -228,6 +238,65 @@ func (h *EntryHandler) GetVersions(c *gin.Context) {
 	}
 
 	middleware.OK(c, versions)
+}
+
+// ============ 批量操作 ============
+
+// BatchDelete 批量删除
+func (h *EntryHandler) BatchDelete(c *gin.Context) {
+	siteID, _ := middleware.GetSiteID(c)
+
+	var req model.BatchDeleteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.BadRequest(c, err.Error())
+		return
+	}
+
+	result, err := h.entryService.BatchDelete(c.Request.Context(), siteID, req.IDs)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, result)
+}
+
+// BatchPublish 批量发布
+func (h *EntryHandler) BatchPublish(c *gin.Context) {
+	siteID, _ := middleware.GetSiteID(c)
+
+	var req model.BatchPublishRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.BadRequest(c, err.Error())
+		return
+	}
+
+	result, err := h.entryService.BatchPublish(c.Request.Context(), siteID, req.IDs)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, result)
+}
+
+// BatchUnpublish 批量取消发布
+func (h *EntryHandler) BatchUnpublish(c *gin.Context) {
+	siteID, _ := middleware.GetSiteID(c)
+
+	var req model.BatchPublishRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.BadRequest(c, err.Error())
+		return
+	}
+
+	result, err := h.entryService.BatchUnpublish(c.Request.Context(), siteID, req.IDs)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, result)
 }
 
 // handleError 处理错误

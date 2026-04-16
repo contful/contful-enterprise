@@ -10,6 +10,67 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =============================================================================
+-- 清理已有对象（支持重复执行）
+-- =============================================================================
+
+-- 删除触发器
+DROP TRIGGER IF EXISTS update_system_users_updated_time ON system_users;
+DROP TRIGGER IF EXISTS update_system_roles_updated_time ON system_roles;
+DROP TRIGGER IF EXISTS update_plugins_updated_time ON plugins;
+DROP TRIGGER IF EXISTS update_sites_updated_time ON sites;
+DROP TRIGGER IF EXISTS update_channels_updated_time ON channels;
+DROP TRIGGER IF EXISTS update_locales_updated_time ON locales;
+DROP TRIGGER IF EXISTS update_site_roles_updated_time ON site_roles;
+DROP TRIGGER IF EXISTS update_site_users_updated_time ON site_users;
+DROP TRIGGER IF EXISTS update_content_types_updated_time ON content_types;
+DROP TRIGGER IF EXISTS update_fields_updated_time ON fields;
+DROP TRIGGER IF EXISTS update_entries_updated_time ON entries;
+DROP TRIGGER IF EXISTS update_entry_values_updated_time ON entry_values;
+DROP TRIGGER IF EXISTS update_entry_versions_updated_time ON entry_versions;
+DROP TRIGGER IF EXISTS update_assets_updated_time ON assets;
+DROP TRIGGER IF EXISTS update_api_tokens_updated_time ON api_tokens;
+DROP TRIGGER IF EXISTS update_webhooks_updated_time ON webhooks;
+
+-- 删除表（按依赖顺序）
+DROP TABLE IF EXISTS webhook_deliveries CASCADE;
+DROP TABLE IF EXISTS webhooks CASCADE;
+DROP TABLE IF EXISTS api_tokens CASCADE;
+DROP TABLE IF EXISTS assets CASCADE;
+DROP TABLE IF EXISTS entry_versions CASCADE;
+DROP TABLE IF EXISTS entry_values CASCADE;
+DROP TABLE IF EXISTS entries CASCADE;
+DROP TABLE IF EXISTS fields CASCADE;
+DROP TABLE IF EXISTS content_types CASCADE;
+DROP TABLE IF EXISTS site_users CASCADE;
+DROP TABLE IF EXISTS site_roles CASCADE;
+DROP TABLE IF EXISTS locales CASCADE;
+DROP TABLE IF EXISTS channels CASCADE;
+DROP TABLE IF EXISTS sites CASCADE;
+DROP TABLE IF EXISTS plugins CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS system_roles CASCADE;
+DROP TABLE IF EXISTS system_users CASCADE;
+DROP TABLE IF EXISTS distributed_locks CASCADE;
+
+-- 删除视图
+DROP VIEW IF EXISTS active_locks;
+
+-- 删除函数
+DROP FUNCTION IF EXISTS cleanup_expired_locks();
+DROP FUNCTION IF EXISTS update_updated_time_column();
+
+-- 删除枚举类型
+DROP TYPE IF EXISTS user_status;
+DROP TYPE IF EXISTS entry_status;
+DROP TYPE IF EXISTS content_type_kind;
+DROP TYPE IF EXISTS field_type;
+DROP TYPE IF EXISTS asset_type;
+DROP TYPE IF EXISTS asset_status;
+DROP TYPE IF EXISTS token_status;
+DROP TYPE IF EXISTS audit_level;
+DROP TYPE IF EXISTS audit_type;
+
+-- =============================================================================
 -- 枚举类型
 -- =============================================================================
 
@@ -564,7 +625,7 @@ BEGIN
     NEW.updated_time = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION update_updated_time_column() IS '自动更新 updated_time 时间戳的触发器函数';
 

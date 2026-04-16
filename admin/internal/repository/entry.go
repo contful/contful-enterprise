@@ -124,15 +124,34 @@ func (r *EntryRepository) ListByContentType(ctx context.Context, siteID uuid.UUI
 		if filter.Locale != nil {
 			query = query.Where("locale = ?", *filter.Locale)
 		}
+		// TODO: Keyword 搜索需要关联 entry_values 表，支持文本搜索
 	}
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
+	// 构建排序
+	orderClause := "sort_weight DESC, updated_time DESC"
+	if filter != nil && filter.SortField != "" {
+		validFields := map[string]string{
+			"updated_time":   "updated_time",
+			"created_time":   "created_time",
+			"published_time": "published_time",
+			"sort_weight":    "sort_weight",
+		}
+		if field, ok := validFields[filter.SortField]; ok {
+			order := "DESC"
+			if filter.SortOrder == "asc" {
+				order = "ASC"
+			}
+			orderClause = field + " " + order
+		}
+	}
+
 	offset := (page - 1) * pageSize
 	err := query.
-		Order("sort_weight DESC, updated_time DESC").
+		Order(orderClause).
 		Offset(offset).
 		Limit(pageSize).
 		Find(&entries).Error
@@ -160,6 +179,41 @@ func (r *EntryRepository) CountByContentType(ctx context.Context, contentTypeID 
 		Where("content_type_id = ?", contentTypeID).
 		Count(&count).Error
 	return count, err
+}
+
+// ============ 批量操作 ============
+
+// BatchDelete 批量删除
+func (r *EntryRepository) BatchDelete(ctx context.Context, ids []uuid.UUID) (int64, error) {
+	result := r.db.WithContext(ctx).Delete(&model.Entry{}, "id IN ?", ids)
+	return result.RowsAffected, result.Error
+}
+
+// BatchUpdateStatus 批量更新状态
+func (r *EntryRepository) BatchUpdateStatus(ctx context.Context, ids []uuid.UUID, status model.EntryStatus) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&model.Entry{}).
+		Where("id IN ?", ids).
+		Update("status", status)
+	return result.RowsAffected, result.Error
+}
+
+// BatchPublish 批量发布
+func (r *EntryRepository) BatchPublish(ctx context.Context, ids []uuid.UUID) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&model.Entry{}).
+		Where("id IN ?", ids).
+		Updates(map[string]interface{}{
+			"status":          model.EntryStatusPublished,
+			"published_time":  gorm.Expr("NOW()"),
+		})
+	return result.RowsAffected, result.Error
+}
+
+// BatchUnpublish 批量取消发布
+func (r *EntryRepository) BatchUnpublish(ctx context.Context, ids []uuid.UUID) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&model.Entry{}).
+		Where("id IN ?", ids).
+		Update("status", model.EntryStatusDraft)
+	return result.RowsAffected, result.Error
 }
 
 // ============ EntryValue 操作 ============

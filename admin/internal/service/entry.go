@@ -317,6 +317,95 @@ func (s *EntryService) GetVersions(ctx context.Context, siteID uuid.UUID, id uui
 	return s.entryRepo.GetVersions(ctx, id)
 }
 
+// ============ 批量操作 ============
+
+// BatchDelete 批量删除
+func (s *EntryService) BatchDelete(ctx context.Context, siteID uuid.UUID, ids []uuid.UUID) (*model.BatchResponse, error) {
+	// 验证站点权限
+	var validIDs []uuid.UUID
+	for _, id := range ids {
+		entry, err := s.entryRepo.GetByID(ctx, id)
+		if err != nil {
+			continue // 跳过不存在的
+		}
+		if entry.SiteID == siteID {
+			validIDs = append(validIDs, id)
+		}
+	}
+
+	if len(validIDs) == 0 {
+		return &model.BatchResponse{SuccessCount: 0, FailedCount: len(ids)}, nil
+	}
+
+	count, err := s.entryRepo.BatchDelete(ctx, validIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.BatchResponse{
+		SuccessCount: int(count),
+		FailedCount:  len(ids) - int(count),
+	}, nil
+}
+
+// BatchPublish 批量发布
+func (s *EntryService) BatchPublish(ctx context.Context, siteID uuid.UUID, ids []uuid.UUID) (*model.BatchResponse, error) {
+	// 验证站点权限
+	var validIDs []uuid.UUID
+	for _, id := range ids {
+		entry, err := s.entryRepo.GetByID(ctx, id)
+		if err != nil {
+			continue
+		}
+		if entry.SiteID == siteID {
+			validIDs = append(validIDs, id)
+		}
+	}
+
+	if len(validIDs) == 0 {
+		return &model.BatchResponse{SuccessCount: 0, FailedCount: len(ids)}, nil
+	}
+
+	count, err := s.entryRepo.BatchPublish(ctx, validIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.BatchResponse{
+		SuccessCount: int(count),
+		FailedCount:  len(ids) - int(count),
+	}, nil
+}
+
+// BatchUnpublish 批量取消发布
+func (s *EntryService) BatchUnpublish(ctx context.Context, siteID uuid.UUID, ids []uuid.UUID) (*model.BatchResponse, error) {
+	// 验证站点权限
+	var validIDs []uuid.UUID
+	for _, id := range ids {
+		entry, err := s.entryRepo.GetByID(ctx, id)
+		if err != nil {
+			continue
+		}
+		if entry.SiteID == siteID {
+			validIDs = append(validIDs, id)
+		}
+	}
+
+	if len(validIDs) == 0 {
+		return &model.BatchResponse{SuccessCount: 0, FailedCount: len(ids)}, nil
+	}
+
+	count, err := s.entryRepo.BatchUnpublish(ctx, validIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.BatchResponse{
+		SuccessCount: int(count),
+		FailedCount:  len(ids) - int(count),
+	}, nil
+}
+
 // ============ 辅助方法 ============
 
 // parseAndValidateValues 解析并验证字段值

@@ -76,10 +76,12 @@ type EntryListResponse struct {
 
 // EntryListFilter 条目列表过滤条件
 type EntryListFilter struct {
-	ContentTypeID *uuid.UUID  `json:"content_type_id"`
+	ContentTypeID *uuid.UUID   `json:"content_type_id"`
 	Status        *EntryStatus `json:"status"`
-	Locale        *string     `json:"locale"`
-	Keyword       *string     `json:"keyword"` // 搜索标题或内容
+	Locale        *string      `json:"locale"`
+	Keyword       *string      `json:"keyword"`         // 搜索标题或内容
+	SortField     string       `json:"sort_field"`     // 排序字段
+	SortOrder     string       `json:"sort_order"`     // 排序方向: asc, desc
 }
 
 // ToResponse 转换为响应
@@ -155,4 +157,23 @@ func (e *Entry) ToResponseWithType(ct *ContentType) EntryResponseWithType {
 		EntryResponse: e.ToResponse(),
 		ContentType:   func() *ContentTypeResponse { r := ct.ToResponse(); return &r }(),
 	}
+}
+
+// ============ 批量操作请求 ============
+
+// BatchDeleteRequest 批量删除请求
+type BatchDeleteRequest struct {
+	IDs []uuid.UUID `json:"ids" binding:"required,min=1"`
+}
+
+// BatchPublishRequest 批量发布请求
+type BatchPublishRequest struct {
+	IDs []uuid.UUID `json:"ids" binding:"required,min=1"`
+}
+
+// BatchResponse 批量操作响应
+type BatchResponse struct {
+	SuccessCount int `json:"success_count"`
+	FailedCount  int `json:"failed_count"`
+	FailedIDs    []uuid.UUID `json:"failed_ids,omitempty"`
 }

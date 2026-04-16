@@ -144,7 +144,7 @@ func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest, 
 		return nil, err
 	}
 
-	user := &model.GlobalUser{
+	user := &model.SystemUser{
 		ID:           uuid.New(),
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
@@ -343,7 +343,7 @@ func (s *AuthService) ListUsers(ctx context.Context, page, pageSize int) (*model
 
 // Helper functions
 
-func (s *AuthService) generateAccessToken(user *model.GlobalUser) (string, error) {
+func (s *AuthService) generateAccessToken(user *model.SystemUser) (string, error) {
 	claims := JWTClaims{
 		UserID:       user.ID,
 		Email:        user.Email,
@@ -359,7 +359,7 @@ func (s *AuthService) generateAccessToken(user *model.GlobalUser) (string, error
 	return token.SignedString(s.jwtSecret)
 }
 
-func (s *AuthService) generateAccessTokenWithClaims(user *model.GlobalUser, existingToken string) (string, error) {
+func (s *AuthService) generateAccessTokenWithClaims(user *model.SystemUser, existingToken string) (string, error) {
 	claims := JWTClaims{
 		UserID:       user.ID,
 		Email:        user.Email,
@@ -408,7 +408,7 @@ func (s *AuthService) generateRefreshToken(ctx context.Context, userID uuid.UUID
 	return token, nil
 }
 
-func (s *AuthService) toUserResponse(user *model.GlobalUser) *model.UserResponse {
+func (s *AuthService) toUserResponse(user *model.SystemUser) *model.UserResponse {
 	return &model.UserResponse{
 		ID:           user.ID,
 		Email:        user.Email,
