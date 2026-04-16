@@ -8,8 +8,8 @@ export type Asset = {
   size: number
   url: string
   thumbnail_url?: string
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
 }
 
 // Folder 类型别名
@@ -22,6 +22,6 @@ export type Folder = {
   path: string
   sort_order: number
   children?: Folder[]
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
 }

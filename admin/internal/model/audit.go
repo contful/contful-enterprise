@@ -37,7 +37,7 @@ type AuditLog struct {
 	Details      string     `json:"details" gorm:"type:jsonb"`
 	IPAddress    string     `json:"ip_address" gorm:"type:inet"`
 	UserAgent    string     `json:"user_agent" gorm:"type:text"`
-	CreatedAt    string     `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
+	CreatedTime    string     `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
 }
 
 func (AuditLog) TableName() string {

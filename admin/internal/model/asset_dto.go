@@ -51,7 +51,7 @@ type AssetUpload struct {
 	URL          string    `json:"url"`
 	ThumbnailURL *string   `json:"thumbnail_url,omitempty"`
 	FileHash     string    `json:"file_hash"`
-	CreatedAt    time.Time `json:"created_at"`
+	CreatedTime    time.Time `json:"created_time"`
 }
 
 // AssetResponse 资源响应
@@ -86,8 +86,8 @@ type AssetResponse struct {
 	DownloadCount int            `json:"download_count"`
 	UsedCount    int             `json:"used_count"`
 	CreatedBy    *uuid.UUID      `json:"created_by,omitempty"`
-	CreatedAt    time.Time       `json:"created_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
+	CreatedTime    time.Time       `json:"created_time"`
+	UpdatedTime    time.Time       `json:"updated_time"`
 }
 
 // AssetListResponse 资源列表响应
@@ -142,8 +142,8 @@ type FolderResponse struct {
 	Children  []FolderResponse `json:"children,omitempty"`
 	Assets    []AssetResponse  `json:"assets,omitempty"`
 	CreatedBy *uuid.UUID      `json:"created_by,omitempty"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
+	CreatedTime time.Time       `json:"created_time"`
+	UpdatedTime time.Time       `json:"updated_time"`
 }
 
 // ToResponse 转换为响应
@@ -179,8 +179,8 @@ func (a *Asset) ToResponse() AssetResponse {
 		DownloadCount: a.DownloadCount,
 		UsedCount:     a.UsedCount,
 		CreatedBy:     a.CreatedBy,
-		CreatedAt:     a.CreatedAt,
-		UpdatedAt:     a.UpdatedAt,
+		CreatedTime:     a.CreatedTime,
+		UpdatedTime:     a.UpdatedTime,
 	}
 }
 
@@ -195,8 +195,8 @@ func (f *AssetFolder) ToFolderResponse() FolderResponse {
 		Path:      f.Path,
 		SortOrder: f.SortOrder,
 		CreatedBy: f.CreatedBy,
-		CreatedAt: f.CreatedAt,
-		UpdatedAt: f.UpdatedAt,
+		CreatedTime: f.CreatedTime,
+		UpdatedTime: f.UpdatedTime,
 	}
 
 	if len(f.Children) > 0 {

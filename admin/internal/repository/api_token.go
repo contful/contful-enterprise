@@ -96,7 +96,7 @@ func (r *APITokenRepository) List(ctx context.Context, siteID uuid.UUID, filter 
 
 	offset := (page - 1) * pageSize
 	err := query.
-		Order("created_at DESC").
+		Order("created_time DESC").
 		Offset(offset).
 		Limit(pageSize).
 		Find(&tokens).Error
@@ -139,7 +139,7 @@ func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) e
 	return r.db.WithContext(ctx).
 		Model(&model.APIToken{}).
 		Where("id = ?", id).
-		Update("last_used_at", &now).Error
+		Update("last_used_time", &now).Error
 }
 
 // CountBySite 统计站点的 Token 数量

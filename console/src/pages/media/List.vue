@@ -310,7 +310,7 @@ onMounted(() => {
                 <div class="asset-name" :title="asset.name">{{ asset.name }}</div>
                 <div class="asset-meta">
                   <span>{{ formatSize(asset.size) }}</span>
-                  <span>{{ new Date(asset.created_at).toLocaleDateString('zh-CN') }}</span>
+                  <span>{{ new Date(asset.created_time).toLocaleDateString('zh-CN') }}</span>
                 </div>
               </div>
               <div v-if="selectedAssets.has(asset.id)" class="selected-badge">
@@ -377,7 +377,7 @@ onMounted(() => {
                   <span class="type-badge">{{ asset.mime_type?.split('/')[1] || '-' }}</span>
                 </td>
                 <td>{{ formatSize(asset.size) }}</td>
-                <td>{{ new Date(asset.created_at).toLocaleDateString('zh-CN') }}</td>
+                <td>{{ new Date(asset.created_time).toLocaleDateString('zh-CN') }}</td>
                 <td>
                   <button class="btn btn-secondary btn-sm" @click="confirmDelete(asset)">删除</button>
                 </td>

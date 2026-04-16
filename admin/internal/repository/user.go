@@ -30,7 +30,7 @@ func NewUserRepository(db *gorm.DB, redis *redis.Client) *UserRepository {
 }
 
 // Create 创建用户
-func (r *UserRepository) Create(ctx context.Context, user *model.GlobalUser) error {
+func (r *UserRepository) Create(ctx context.Context, user *model.SystemUser) error {
 	result := r.db.WithContext(ctx).Create(user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
@@ -42,9 +42,9 @@ func (r *UserRepository) Create(ctx context.Context, user *model.GlobalUser) err
 }
 
 // FindByID 根据 ID 查找用户
-func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.GlobalUser, error) {
-	var user model.GlobalUser
-	result := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&user)
+func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
+	var user model.SystemUser
+	result := r.db.WithContext(ctx).Where("id = ? AND deleted_time IS NULL", id).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
@@ -55,9 +55,9 @@ func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.Glo
 }
 
 // FindByEmail 根据邮箱查找用户
-func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.GlobalUser, error) {
-	var user model.GlobalUser
-	result := r.db.WithContext(ctx).Where("email = ? AND deleted_at IS NULL", email).First(&user)
+func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.SystemUser, error) {
+	var user model.SystemUser
+	result := r.db.WithContext(ctx).Where("email = ? AND deleted_time IS NULL", email).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
@@ -71,30 +71,30 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uuid.UUID, ip string) error {
 	now := time.Now()
 	updates := map[string]interface{}{
-		"last_login_at": now,
+		"last_login_time": now,
 	}
 	// inet 类型不接受空字符串，只有有效 IP 才更新
 	if ip != "" {
 		updates["last_login_ip"] = ip
 	}
-	return r.db.WithContext(ctx).Model(&model.GlobalUser{}).
+	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
 		Where("id = ?", id).
 		Updates(updates).Error
 }
 
 // List 查询用户列表（分页）
-func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]model.GlobalUser, int64, error) {
-	var users []model.GlobalUser
+func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]model.SystemUser, int64, error) {
+	var users []model.SystemUser
 	var total int64
 
-	db := r.db.WithContext(ctx).Model(&model.GlobalUser{}).Where("deleted_at IS NULL")
+	db := r.db.WithContext(ctx).Model(&model.SystemUser{}).Where("deleted_time IS NULL")
 	
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	offset := (page - 1) * pageSize
-	if err := db.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&users).Error; err != nil {
+	if err := db.Offset(offset).Limit(pageSize).Order("created_time DESC").Find(&users).Error; err != nil {
 		return nil, 0, err
 	}
 

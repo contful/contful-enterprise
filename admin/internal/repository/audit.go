@@ -33,7 +33,7 @@ func (r *AuditRepository) ListByUser(ctx context.Context, userID uuid.UUID, page
 	}
 
 	offset := (page - 1) * pageSize
-	if err := db.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&logs).Error; err != nil {
+	if err := db.Offset(offset).Limit(pageSize).Order("created_time DESC").Find(&logs).Error; err != nil {
 		return nil, 0, err
 	}
 

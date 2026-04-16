@@ -37,8 +37,8 @@ export interface AssetResponse {
   download_count: number
   used_count: number
   created_by?: string
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
 }
 
 export interface AssetListFilter {
@@ -79,8 +79,8 @@ export interface FolderResponse {
   children?: FolderResponse[]
   assets?: AssetResponse[]
   created_by?: string
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
 }
 
 export interface FolderCreate {

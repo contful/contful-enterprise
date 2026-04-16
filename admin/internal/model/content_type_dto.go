@@ -53,8 +53,8 @@ type ContentTypeResponse struct {
 	IsActive             bool                  `json:"is_active"`
 	SortOrder            int                   `json:"sort_order"`
 	CreatedBy            *uuid.UUID            `json:"created_by"`
-	CreatedAt            time.Time             `json:"created_at"`
-	UpdatedAt            time.Time             `json:"updated_at"`
+	CreatedTime            time.Time             `json:"created_time"`
+	UpdatedTime            time.Time             `json:"updated_time"`
 	Fields               []FieldResponse       `json:"fields,omitempty"`
 }
 
@@ -80,8 +80,8 @@ func (ct *ContentType) ToResponse() ContentTypeResponse {
 		IsActive:             ct.IsActive,
 		SortOrder:            ct.SortOrder,
 		CreatedBy:            ct.CreatedBy,
-		CreatedAt:            ct.CreatedAt,
-		UpdatedAt:            ct.UpdatedAt,
+		CreatedTime:            ct.CreatedTime,
+		UpdatedTime:            ct.UpdatedTime,
 	}
 
 	// 解析 JSONB 字段
@@ -150,8 +150,8 @@ type FieldResponse struct {
 	DefaultValue       interface{}            `json:"default_value,omitempty"`
 	SortOrder          int                    `json:"sort_order"`
 	ConditionalDisplay interface{}            `json:"conditional_display,omitempty"`
-	CreatedAt          time.Time              `json:"created_at"`
-	UpdatedAt          time.Time              `json:"updated_at"`
+	CreatedTime          time.Time              `json:"created_time"`
+	UpdatedTime          time.Time              `json:"updated_time"`
 }
 
 // ToResponse 转换为响应
@@ -164,8 +164,8 @@ func (f *Field) ToResponse() FieldResponse {
 		Description:   f.Description,
 		FieldType:     f.FieldType,
 		SortOrder:     f.SortOrder,
-		CreatedAt:     f.CreatedAt,
-		UpdatedAt:     f.UpdatedAt,
+		CreatedTime:     f.CreatedTime,
+		UpdatedTime:     f.UpdatedTime,
 	}
 
 	if f.Config != nil {

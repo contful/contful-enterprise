@@ -45,7 +45,7 @@ type EntryResponse struct {
 	Status         EntryStatus            `json:"status"`
 	Version        int                    `json:"version"`
 	VersionHistory []EntryVersionInfo     `json:"version_history,omitempty"`
-	PublishedAt    *time.Time             `json:"published_at,omitempty"`
+	PublishedAt    *time.Time             `json:"published_time,omitempty"`
 	PublishedBy    *uuid.UUID             `json:"published_by,omitempty"`
 	Relations      []map[string]interface{} `json:"relations,omitempty"`
 	SEOTitle       string                 `json:"seo_title,omitempty"`
@@ -53,8 +53,8 @@ type EntryResponse struct {
 	SEOKeywords    []string               `json:"seo_keywords,omitempty"`
 	SortWeight     int                    `json:"sort_weight"`
 	CreatedBy      *uuid.UUID             `json:"created_by,omitempty"`
-	CreatedAt      time.Time              `json:"created_at"`
-	UpdatedAt      time.Time              `json:"updated_at"`
+	CreatedTime      time.Time              `json:"created_time"`
+	UpdatedTime      time.Time              `json:"updated_time"`
 	Values         map[string]interface{} `json:"values,omitempty"`
 }
 
@@ -62,7 +62,7 @@ type EntryResponse struct {
 type EntryVersionInfo struct {
 	Version       int       `json:"version"`
 	CreatedBy     *uuid.UUID `json:"created_by,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
+	CreatedTime     time.Time `json:"created_time"`
 	ChangeSummary string    `json:"change_summary,omitempty"`
 }
 
@@ -98,8 +98,8 @@ func (e *Entry) ToResponse() EntryResponse {
 		SEOKeywords:    e.SEOKeywords,
 		SortWeight:     e.SortWeight,
 		CreatedBy:      e.CreatedBy,
-		CreatedAt:      e.CreatedAt,
-		UpdatedAt:      e.UpdatedAt,
+		CreatedTime:      e.CreatedTime,
+		UpdatedTime:      e.UpdatedTime,
 		Values:         make(map[string]interface{}),
 	}
 
@@ -112,8 +112,8 @@ func (e *Entry) ToResponse() EntryResponse {
 				if v, ok := m["version"].(float64); ok {
 					vi.Version = int(v)
 				}
-				if v, ok := m["created_at"].(string); ok {
-					vi.CreatedAt, _ = time.Parse(time.RFC3339, v)
+				if v, ok := m["created_time"].(string); ok {
+					vi.CreatedTime, _ = time.Parse(time.RFC3339, v)
 				}
 				if v, ok := m["change_summary"].(string); ok {
 					vi.ChangeSummary = v

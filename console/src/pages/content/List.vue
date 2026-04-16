@@ -329,7 +329,7 @@ onMounted(() => {
                       {{ getStatusLabel(entry.status) }}
                     </span>
                   </td>
-                  <td>{{ formatDate(entry.updated_at) }}</td>
+                  <td>{{ formatDate(entry.updated_time) }}</td>
                   <td class="actions-cell">
                     <button class="btn btn-secondary btn-sm" :disabled="publishLoading === entry.id" @click="openEditModal(entry)">编辑</button>
                     <button

@@ -247,7 +247,7 @@ onMounted(() => {
               </svg>
             </td>
             <td class="description">{{ row.description || '-' }}</td>
-            <td class="time">{{ formatDate(row.updated_at) }}</td>
+            <td class="time">{{ formatDate(row.updated_time) }}</td>
             <td>
               <div class="action-btns">
                 <button class="btn btn-secondary btn-sm" @click="goToFields(row)" title="管理字段">

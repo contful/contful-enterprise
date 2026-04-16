@@ -15,8 +15,8 @@ const (
 	UserStatusSuspended UserStatus = "suspended"
 )
 
-// GlobalUser 全局用户
-type GlobalUser struct {
+// SystemUser 系统用户
+type SystemUser struct {
 	ID           uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Email        string      `json:"email" gorm:"type:varchar(255);unique_index;not null"`
 	PasswordHash string      `json:"-" gorm:"type:varchar(255);not null"`
@@ -24,31 +24,31 @@ type GlobalUser struct {
 	AvatarURL    string      `json:"avatar_url" gorm:"type:text"`
 	Status       UserStatus  `json:"status" gorm:"type:user_status;not null;default:'active'"`
 	IsSuperAdmin bool        `json:"is_super_admin" gorm:"not null;default:false"`
-	LastLoginAt  *time.Time  `json:"last_login_at" gorm:"type:timestamptz"`
+	LastLoginTime *time.Time `json:"last_login_time" gorm:"type:timestamptz"`
 	LastLoginIP  *string     `json:"last_login_ip" gorm:"type:inet"`
-	CreatedAt    time.Time   `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt    time.Time   `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedAt    *time.Time  `json:"deleted_at" gorm:"type:timestamptz"`
+	CreatedTime  time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedTime  time.Time   `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
+	DeletedTime  *time.Time  `json:"deleted_time" gorm:"type:timestamptz"`
 }
 
-func (GlobalUser) TableName() string {
-	return "global_users"
+func (SystemUser) TableName() string {
+	return "system_users"
 }
 
-// GlobalRole 全局角色
-type GlobalRole struct {
-	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	Name        string     `json:"name" gorm:"type:varchar(100);unique_index;not null"`
-	Description string     `json:"description" gorm:"type:text"`
-	IsSystem    bool       `json:"is_system" gorm:"not null;default:false"`
-	Permissions []string   `json:"permissions" gorm:"type:jsonb;serializer:json"`
-	CreatedAt   time.Time  `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt   time.Time  `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedAt   *time.Time `json:"deleted_at" gorm:"type:timestamptz"`
+// SystemRole 系统角色
+type SystemRole struct {
+	ID          uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Name        string    `json:"name" gorm:"type:varchar(100);unique_index;not null"`
+	Description string    `json:"description" gorm:"type:text"`
+	IsSystem    bool      `json:"is_system" gorm:"not null;default:false"`
+	Permissions []string  `json:"permissions" gorm:"type:jsonb;serializer:json"`
+	CreatedTime time.Time `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedTime time.Time `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
+	DeletedTime *time.Time `json:"deleted_time" gorm:"type:timestamptz"`
 }
 
-func (GlobalRole) TableName() string {
-	return "global_roles"
+func (SystemRole) TableName() string {
+	return "system_roles"
 }
 
 // SiteUser 站点用户关联
@@ -59,9 +59,9 @@ type SiteUser struct {
 	RoleID           uuid.UUID  `json:"role_id" gorm:"type:uuid;not null;index"`
 	Status           UserStatus `json:"status" gorm:"type:user_status;not null;default:'active'"`
 	ExtraPermissions []string   `json:"extra_permissions" gorm:"type:jsonb;serializer:json"`
-	CreatedAt        time.Time  `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt        time.Time  `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedAt        *time.Time `json:"deleted_at" gorm:"type:timestamptz"`
+	CreatedTime      time.Time  `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedTime      time.Time  `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
+	DeletedTime      *time.Time `json:"deleted_time" gorm:"type:timestamptz"`
 }
 
 func (SiteUser) TableName() string {
@@ -70,18 +70,18 @@ func (SiteUser) TableName() string {
 
 // SiteRole 站点角色
 type SiteRole struct {
-	ID                  uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	SiteID              uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
-	Name                string     `json:"name" gorm:"type:varchar(100);not null"`
-	Description         string     `json:"description" gorm:"type:text"`
-	IsSystem            bool       `json:"is_system" gorm:"not null;default:false"`
-	Permissions         []string   `json:"permissions" gorm:"type:jsonb;serializer:json"`
-	ContentPermissions  []string   `json:"content_permissions" gorm:"type:jsonb;serializer:json"`
-	ChannelPermissions  []string   `json:"channel_permissions" gorm:"type:jsonb;serializer:json"`
-	SortOrder           int        `json:"sort_order" gorm:"not null;default:0"`
-	CreatedAt           time.Time  `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt           time.Time  `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedAt           *time.Time `json:"deleted_at" gorm:"type:timestamptz"`
+	ID                 uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	SiteID             uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
+	Name               string     `json:"name" gorm:"type:varchar(100);not null"`
+	Description        string     `json:"description" gorm:"type:text"`
+	IsSystem           bool       `json:"is_system" gorm:"not null;default:false"`
+	Permissions        []string   `json:"permissions" gorm:"type:jsonb;serializer:json"`
+	ContentPermissions []string   `json:"content_permissions" gorm:"type:jsonb;serializer:json"`
+	ChannelPermissions []string   `json:"channel_permissions" gorm:"type:jsonb;serializer:json"`
+	SortOrder          int        `json:"sort_order" gorm:"not null;default:0"`
+	CreatedTime        time.Time  `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedTime        time.Time  `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
+	DeletedTime        *time.Time `json:"deleted_time" gorm:"type:timestamptz"`
 }
 
 func (SiteRole) TableName() string {
@@ -124,7 +124,7 @@ type UserResponse struct {
 	AvatarURL    string     `json:"avatar_url,omitempty"`
 	Status       UserStatus `json:"status"`
 	IsSuperAdmin bool      `json:"is_super_admin"`
-	CreatedAt    time.Time  `json:"created_at"`
+	CreatedTime  time.Time  `json:"created_time"`
 }
 
 // UserWithSites 用户及关联站点

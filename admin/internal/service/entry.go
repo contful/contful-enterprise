@@ -255,7 +255,7 @@ func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uu
 	now := time.Now()
 	historyEntry := map[string]interface{}{
 		"version":        entry.Version,
-		"created_at":     now.Format(time.RFC3339),
+		"created_time":     now.Format(time.RFC3339),
 		"change_summary": req.ChangeSummary,
 	}
 	entry.VersionHistory = append(entry.VersionHistory, historyEntry)

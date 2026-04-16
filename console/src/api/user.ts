@@ -6,8 +6,8 @@ export interface User {
   email: string
   role: string
   status: string
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
 }
 
 export interface UserListParams {

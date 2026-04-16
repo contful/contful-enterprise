@@ -28,7 +28,7 @@ func (r *SiteRepository) Create(ctx context.Context, site *model.Site) error {
 // GetByID 根据 ID 获取
 func (r *SiteRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Site, error) {
 	var site model.Site
-	err := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&site).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND deleted_time IS NULL", id).First(&site).Error
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (r *SiteRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Site
 // GetBySlug 根据 slug 获取
 func (r *SiteRepository) GetBySlug(ctx context.Context, slug string) (*model.Site, error) {
 	var site model.Site
-	err := r.db.WithContext(ctx).Where("slug = ? AND deleted_at IS NULL", slug).First(&site).Error
+	err := r.db.WithContext(ctx).Where("slug = ? AND deleted_time IS NULL", slug).First(&site).Error
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (r *SiteRepository) List(ctx context.Context, page, pageSize int, isActive 
 	var sites []model.Site
 	var total int64
 
-	query := r.db.WithContext(ctx).Model(&model.Site{}).Where("deleted_at IS NULL")
+	query := r.db.WithContext(ctx).Model(&model.Site{}).Where("deleted_time IS NULL")
 
 	if isActive != nil {
 		query = query.Where("is_active = ?", *isActive)
@@ -62,7 +62,7 @@ func (r *SiteRepository) List(ctx context.Context, page, pageSize int, isActive 
 
 	offset := (page - 1) * pageSize
 	err := query.
-		Order("created_at DESC").
+		Order("created_time DESC").
 		Offset(offset).
 		Limit(pageSize).
 		Find(&sites).Error
@@ -86,7 +86,7 @@ func (r *SiteRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // SlugExists 检查 slug 是否已存在
 func (r *SiteRepository) SlugExists(ctx context.Context, slug string, excludeID *uuid.UUID) (bool, error) {
 	var count int64
-	query := r.db.WithContext(ctx).Model(&model.Site{}).Where("slug = ? AND deleted_at IS NULL", slug)
+	query := r.db.WithContext(ctx).Model(&model.Site{}).Where("slug = ? AND deleted_time IS NULL", slug)
 	if excludeID != nil {
 		query = query.Where("id != ?", *excludeID)
 	}

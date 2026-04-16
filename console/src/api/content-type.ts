@@ -20,8 +20,8 @@ export interface ContentType {
   is_active: boolean
   sort_order: number
   created_by: string | null
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
   fields?: Field[]
 }
 
@@ -38,8 +38,8 @@ export interface Field {
   default_value: any
   sort_order: number
   conditional_display: any
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
 }
 
 export type FieldType =

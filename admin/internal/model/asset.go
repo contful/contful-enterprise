@@ -57,9 +57,9 @@ type Asset struct {
 	DownloadCount int             `json:"download_count" gorm:"not null;default:0"`
 	UsedCount     int             `json:"used_count" gorm:"not null;default:0"` // 被引用次数
 	CreatedBy     *uuid.UUID      `json:"created_by" gorm:"type:uuid"`
-	CreatedAt     time.Time       `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt     time.Time       `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt     *time.Time      `json:"deleted_at" gorm:"index"`
+	CreatedTime     time.Time       `json:"created_time" gorm:"autoCreateTime"`
+	UpdatedTime     time.Time       `json:"updated_time" gorm:"autoUpdateTime"`
+	DeletedTime     *time.Time      `json:"deleted_time" gorm:"index"`
 
 	// 关联
 	Folder *AssetFolder `json:"folder,omitempty" gorm:"foreignKey:FolderID;references:ID"`
@@ -80,9 +80,9 @@ type AssetFolder struct {
 	Path      string     `json:"path" gorm:"size:500;not null"` // 完整路径
 	SortOrder int        `json:"sort_order" gorm:"not null;default:0"`
 	CreatedBy *uuid.UUID `json:"created_by" gorm:"type:uuid"`
-	CreatedAt time.Time  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt *time.Time `json:"deleted_at" gorm:"index"`
+	CreatedTime time.Time  `json:"created_time" gorm:"autoCreateTime"`
+	UpdatedTime time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
+	DeletedTime *time.Time `json:"deleted_time" gorm:"index"`
 
 	// 关联
 	Parent   *AssetFolder `json:"parent,omitempty" gorm:"foreignKey:ParentID;references:ID"`

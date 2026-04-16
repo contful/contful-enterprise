@@ -92,7 +92,7 @@ func (r *AssetRepository) List(ctx context.Context, siteID uuid.UUID, filter *mo
 
 	offset := (page - 1) * pageSize
 	err := query.
-		Order("created_at DESC").
+		Order("created_time DESC").
 		Offset(offset).
 		Limit(pageSize).
 		Find(&assets).Error

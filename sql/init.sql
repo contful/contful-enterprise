@@ -31,7 +31,7 @@ CREATE TYPE audit_type AS ENUM ('auth', 'content', 'media', 'settings', 'user', 
 -- =============================================================================
 
 -- 超级管理员用户表
-CREATE TABLE global_users (
+CREATE TABLE system_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -39,28 +39,28 @@ CREATE TABLE global_users (
     avatar_url TEXT,
     status user_status NOT NULL DEFAULT 'active',
     is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
-    last_login_at TIMESTAMPTZ,
+    last_login_time TIMESTAMPTZ,
     last_login_ip INET,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     CONSTRAINT valid_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
-CREATE INDEX idx_global_users_email ON global_users(email);
-CREATE INDEX idx_global_users_status ON global_users(status);
+CREATE INDEX idx_system_users_email ON system_users(email);
+CREATE INDEX idx_system_users_status ON system_users(status);
 
 -- 全局角色表
-CREATE TABLE global_roles (
+CREATE TABLE system_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     is_system BOOLEAN NOT NULL DEFAULT FALSE,
     permissions JSONB NOT NULL DEFAULT '[]',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ
 );
-CREATE INDEX idx_global_roles_name ON global_roles(name);
+CREATE INDEX idx_system_roles_name ON system_roles(name);
 
 -- 插件表
 CREATE TABLE plugins (
@@ -75,9 +75,9 @@ CREATE TABLE plugins (
     is_system BOOLEAN NOT NULL DEFAULT FALSE,
     config JSONB NOT NULL DEFAULT '{}',
     hooks JSONB NOT NULL DEFAULT '[]',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ
 );
 CREATE INDEX idx_plugins_name ON plugins(name);
 CREATE INDEX idx_plugins_enabled ON plugins(is_enabled);
@@ -95,12 +95,12 @@ CREATE TABLE audit_logs (
     details JSONB,
     ip_address INET,
     user_agent TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_audit_logs_site ON audit_logs(site_id);
 CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
 CREATE INDEX idx_audit_logs_category ON audit_logs(category);
-CREATE INDEX idx_audit_logs_created ON audit_logs(created_at DESC);
+CREATE INDEX idx_audit_logs_created ON audit_logs(created_time DESC);
 
 -- =============================================================================
 -- 1. 站点层
@@ -120,9 +120,9 @@ CREATE TABLE sites (
     tenant_id UUID,
     plan VARCHAR(50) DEFAULT 'free',
     created_by UUID,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ
 );
 CREATE INDEX idx_sites_slug ON sites(slug);
 CREATE INDEX idx_sites_active ON sites(is_active);
@@ -140,9 +140,9 @@ CREATE TABLE channels (
     cache JSONB NOT NULL DEFAULT '{}',
     is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     UNIQUE(site_id, slug)
 );
 CREATE INDEX idx_channels_site ON channels(site_id);
@@ -157,9 +157,9 @@ CREATE TABLE locales (
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     UNIQUE(site_id, code)
 );
 CREATE INDEX idx_locales_site ON locales(site_id);
@@ -179,9 +179,9 @@ CREATE TABLE site_roles (
     content_permissions JSONB NOT NULL DEFAULT '[]',
     channel_permissions JSONB NOT NULL DEFAULT '[]',
     sort_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     UNIQUE(site_id, name)
 );
 CREATE INDEX idx_site_roles_site ON site_roles(site_id);
@@ -189,13 +189,13 @@ CREATE INDEX idx_site_roles_site ON site_roles(site_id);
 CREATE TABLE site_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES global_users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES system_users(id) ON DELETE CASCADE,
     role_id UUID NOT NULL REFERENCES site_roles(id),
     status user_status NOT NULL DEFAULT 'active',
     extra_permissions JSONB NOT NULL DEFAULT '[]',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     UNIQUE(site_id, user_id)
 );
 CREATE INDEX idx_site_users_site ON site_users(site_id);
@@ -221,9 +221,9 @@ CREATE TABLE content_types (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
     created_by UUID,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     UNIQUE(site_id, slug)
 );
 CREATE INDEX idx_content_types_site ON content_types(site_id);
@@ -244,9 +244,9 @@ CREATE TABLE fields (
     default_value JSONB,
     sort_order INT NOT NULL DEFAULT 0,
     conditional_display JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     UNIQUE(content_type_id, name)
 );
 CREATE INDEX idx_fields_content_type ON fields(content_type_id);
@@ -264,7 +264,7 @@ CREATE TABLE entries (
     status entry_status NOT NULL DEFAULT 'draft',
     version INT NOT NULL DEFAULT 1,
     version_history JSONB,
-    published_at TIMESTAMPTZ,
+    published_time TIMESTAMPTZ,
     published_by UUID,
     relations JSONB NOT NULL DEFAULT '[]',
     seo_title VARCHAR(255),
@@ -272,19 +272,19 @@ CREATE TABLE entries (
     seo_keywords TEXT[],
     sort_weight INT NOT NULL DEFAULT 0,
     created_by UUID,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ,
     UNIQUE(content_type_id, locale, id)
 );
 CREATE INDEX idx_entries_type ON entries(content_type_id);
 CREATE INDEX idx_entries_site ON entries(site_id);
 CREATE INDEX idx_entries_locale ON entries(locale);
 CREATE INDEX idx_entries_status ON entries(status);
-CREATE INDEX idx_entries_published ON entries(published_at DESC) WHERE status = 'published';
+CREATE INDEX idx_entries_published ON entries(published_time DESC) WHERE status = 'published';
 CREATE INDEX idx_entries_sort ON entries(content_type_id, sort_weight);
 CREATE INDEX idx_entries_created_by ON entries(created_by);
-CREATE INDEX idx_entries_deleted ON entries(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX idx_entries_deleted ON entries(deleted_time) WHERE deleted_time IS NULL;
 
 CREATE TABLE entry_values (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -296,8 +296,8 @@ CREATE TABLE entry_values (
     bool_value BOOLEAN,
     date_value DATE,
     datetime_value TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(entry_id, field_id)
 );
 CREATE INDEX idx_entry_values_entry ON entry_values(entry_id);
@@ -332,12 +332,12 @@ CREATE TABLE entry_versions (
     version INT NOT NULL,
     values_snapshot JSONB NOT NULL,
     created_by UUID,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     change_summary TEXT,
     UNIQUE(entry_id, version)
 );
 CREATE INDEX idx_entry_versions_entry ON entry_versions(entry_id);
-CREATE INDEX idx_entry_versions_created ON entry_versions(created_at DESC);
+CREATE INDEX idx_entry_versions_created ON entry_versions(created_time DESC);
 
 -- =============================================================================
 -- 5. 媒体资产层
@@ -367,16 +367,16 @@ CREATE TABLE assets (
     usage_count INT NOT NULL DEFAULT 0,
     uploaded_by UUID,
     ip_address INET,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ
 );
 CREATE INDEX idx_assets_site ON assets(site_id);
 CREATE INDEX idx_assets_type ON assets(asset_type);
 CREATE INDEX idx_assets_mimetype ON assets(mimetype);
 CREATE INDEX idx_assets_hash ON assets(file_hash) WHERE file_hash IS NOT NULL;
 CREATE INDEX idx_assets_status ON assets(status);
-CREATE INDEX idx_assets_created ON assets(created_at DESC);
+CREATE INDEX idx_assets_created ON assets(created_time DESC);
 CREATE INDEX idx_assets_uploaded_by ON assets(uploaded_by);
 
 -- =============================================================================
@@ -395,20 +395,20 @@ CREATE TABLE api_tokens (
     channel_scope JSONB NOT NULL DEFAULT '[]',
     allowed_ips INET[],
     rate_limit INT,
-    expires_at TIMESTAMPTZ,
+    expires_time TIMESTAMPTZ,
     status token_status NOT NULL DEFAULT 'active',
-    last_used_at TIMESTAMPTZ,
+    last_used_time TIMESTAMPTZ,
     last_used_ip INET,
     request_count BIGINT NOT NULL DEFAULT 0,
     created_by UUID,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ
 );
 CREATE INDEX idx_api_tokens_site ON api_tokens(site_id);
 CREATE INDEX idx_api_tokens_hash ON api_tokens(token_hash);
 CREATE INDEX idx_api_tokens_status ON api_tokens(status);
-CREATE INDEX idx_api_tokens_expires ON api_tokens(expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX idx_api_tokens_expires ON api_tokens(expires_time) WHERE expires_time IS NOT NULL;
 
 -- =============================================================================
 -- 7. Webhook 层
@@ -429,12 +429,12 @@ CREATE TABLE webhooks (
     is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     success_count INT NOT NULL DEFAULT 0,
     failure_count INT NOT NULL DEFAULT 0,
-    last_triggered_at TIMESTAMPTZ,
+    last_triggered_time TIMESTAMPTZ,
     last_error TEXT,
     created_by UUID,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ
 );
 CREATE INDEX idx_webhooks_site ON webhooks(site_id);
 CREATE INDEX idx_webhooks_enabled ON webhooks(is_enabled);
@@ -448,13 +448,13 @@ CREATE TABLE webhook_deliveries (
     response_body TEXT,
     response_time_ms INT,
     attempt INT NOT NULL DEFAULT 1,
-    next_retry_at TIMESTAMPTZ,
+    next_retry_time TIMESTAMPTZ,
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id);
 CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
-CREATE INDEX idx_webhook_deliveries_created ON webhook_deliveries(created_at DESC);
+CREATE INDEX idx_webhook_deliveries_created ON webhook_deliveries(created_time DESC);
 
 -- =============================================================================
 -- 8. 分布式锁
@@ -463,10 +463,10 @@ CREATE INDEX idx_webhook_deliveries_created ON webhook_deliveries(created_at DES
 CREATE TABLE distributed_locks (
     lock_key VARCHAR(255) PRIMARY KEY,
     lock_value UUID NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
-    acquired_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    expires_time TIMESTAMPTZ NOT NULL,
+    acquired_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX idx_distributed_locks_expires ON distributed_locks(expires_at);
+CREATE INDEX idx_distributed_locks_expires ON distributed_locks(expires_time);
 
 -- =============================================================================
 -- 性能优化索引
@@ -474,7 +474,7 @@ CREATE INDEX idx_distributed_locks_expires ON distributed_locks(expires_at);
 
 -- 内容列表查询（最常用）
 CREATE INDEX IF NOT EXISTS idx_entries_list
-    ON entries(content_type_id, locale, status, published_at DESC);
+    ON entries(content_type_id, locale, status, published_time DESC);
 
 -- 站点内容查询
 CREATE INDEX IF NOT EXISTS idx_entries_site_locale
@@ -482,7 +482,7 @@ CREATE INDEX IF NOT EXISTS idx_entries_site_locale
 
 -- assets 表索引优化
 CREATE INDEX IF NOT EXISTS idx_assets_site_status_date
-    ON assets(site_id, status, created_at DESC);
+    ON assets(site_id, status, created_time DESC);
 CREATE INDEX IF NOT EXISTS idx_assets_site_type
     ON assets(site_id, asset_type);
 CREATE INDEX IF NOT EXISTS idx_assets_storage_path
@@ -490,9 +490,9 @@ CREATE INDEX IF NOT EXISTS idx_assets_storage_path
 
 -- audit_logs 索引优化
 CREATE INDEX IF NOT EXISTS idx_audit_logs_site_user_time
-    ON audit_logs(site_id, user_id, created_at DESC);
+    ON audit_logs(site_id, user_id, created_time DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_category_time
-    ON audit_logs(category, created_at DESC);
+    ON audit_logs(category, created_time DESC);
 
 -- =============================================================================
 -- 分布式锁自动清理函数
@@ -501,7 +501,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_category_time
 CREATE OR REPLACE FUNCTION cleanup_expired_locks()
 RETURNS void AS $$
 BEGIN
-    DELETE FROM distributed_locks WHERE expires_at < NOW();
+    DELETE FROM distributed_locks WHERE expires_time < NOW();
 END;
 $$ LANGUAGE plpgsql;
 
@@ -524,11 +524,11 @@ CREATE OR REPLACE VIEW active_locks AS
 SELECT
     lock_key,
     lock_value,
-    acquired_at,
-    expires_at,
-    EXTRACT(EPOCH FROM (expires_at - NOW()))::INT as remaining_seconds
+    acquired_time,
+    expires_time,
+    EXTRACT(EPOCH FROM (expires_time - NOW()))::INT as remaining_seconds
 FROM distributed_locks
-WHERE expires_at > NOW();
+WHERE expires_time > NOW();
 
 COMMENT ON VIEW active_locks IS '当前活跃的分布式锁';
 COMMENT ON FUNCTION cleanup_expired_locks() IS '清理过期的分布式锁，由 pg_cron 每分钟调用或应用层调用';
@@ -537,7 +537,7 @@ COMMENT ON FUNCTION cleanup_expired_locks() IS '清理过期的分布式锁，�
 -- 初始化数据
 -- =============================================================================
 
-INSERT INTO global_roles (id, name, description, is_system, permissions) VALUES
+INSERT INTO system_roles (id, name, description, is_system, permissions) VALUES
     (gen_random_uuid(), 'Super Admin', '超级管理员，拥有所有权限', TRUE, '["*"]'),
     (gen_random_uuid(), 'Plugin Manager', '插件管理员', TRUE, '["plugins:read", "plugins:write", "plugins:install", "plugins:uninstall"]'),
     (gen_random_uuid(), 'Auditor', '审计员，只读访问', TRUE, '["audit:read"]');
@@ -549,59 +549,59 @@ INSERT INTO global_roles (id, name, description, is_system, permissions) VALUES
 -- 密码: contful@com
 -- 密码哈希: bcrypt(cost=10) of "contful@com"
 
-INSERT INTO global_users (id, email, password_hash, nickname, status, is_super_admin) VALUES
+INSERT INTO system_users (id, email, password_hash, nickname, status, is_super_admin) VALUES
     ('00000000-0000-0000-0000-000000000001', 'admin@contful.com', '$2a$10$65v1ImEvTC/GCPqBctpsiuAy/J04X1BHX7AKBufYsSV7kvuNSfJMu', 'Administrator', 'active', TRUE);
 
 -- =============================================================================
 -- 触发器
 -- =============================================================================
 
--- 统一 updated_at 自动更新触发器函数
--- 注意: 软删除表必须保留 updated_at 字段，否则触发器会报错
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- 统一 updated_time 自动更新触发器函数
+-- 注意: 软删除表必须保留 updated_time 字段，否则触发器会报错
+CREATE OR REPLACE FUNCTION update_updated_time_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    NEW.updated_time = NOW();
     RETURN NEW;
 END;
 $$ language 'plpgsql';
 
-COMMENT ON FUNCTION update_updated_at_column() IS '自动更新 updated_at 时间戳的触发器函数';
+COMMENT ON FUNCTION update_updated_time_column() IS '自动更新 updated_time 时间戳的触发器函数';
 
 -- 注意:
--- 1. 所有软删除表都有 updated_at 字段，保证触发器正常工作
+-- 1. 所有软删除表都有 updated_time 字段，保证触发器正常工作
 -- 2. 触发器在 BEFORE UPDATE 时执行，不记录变更历史（由 entry_versions 表处理内容版本）
 -- 3. 批量更新时触发器仍会生效，但性能影响可忽略（仅更新一列）
 
-CREATE TRIGGER update_global_users_updated_at BEFORE UPDATE ON global_users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_global_roles_updated_at BEFORE UPDATE ON global_roles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_plugins_updated_at BEFORE UPDATE ON plugins
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_sites_updated_at BEFORE UPDATE ON sites
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_channels_updated_at BEFORE UPDATE ON channels
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_locales_updated_at BEFORE UPDATE ON locales
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_site_roles_updated_at BEFORE UPDATE ON site_roles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_site_users_updated_at BEFORE UPDATE ON site_users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_content_types_updated_at BEFORE UPDATE ON content_types
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_fields_updated_at BEFORE UPDATE ON fields
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_entries_updated_at BEFORE UPDATE ON entries
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_entry_values_updated_at BEFORE UPDATE ON entry_values
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_entry_versions_updated_at BEFORE UPDATE ON entry_versions
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON assets
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_api_tokens_updated_at BEFORE UPDATE ON api_tokens
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_webhooks_updated_at BEFORE UPDATE ON webhooks
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_system_users_updated_time BEFORE UPDATE ON system_users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_system_roles_updated_time BEFORE UPDATE ON system_roles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_plugins_updated_time BEFORE UPDATE ON plugins
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_sites_updated_time BEFORE UPDATE ON sites
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_channels_updated_time BEFORE UPDATE ON channels
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_locales_updated_time BEFORE UPDATE ON locales
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_site_roles_updated_time BEFORE UPDATE ON site_roles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_site_users_updated_time BEFORE UPDATE ON site_users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_content_types_updated_time BEFORE UPDATE ON content_types
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_fields_updated_time BEFORE UPDATE ON fields
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_entries_updated_time BEFORE UPDATE ON entries
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_entry_values_updated_time BEFORE UPDATE ON entry_values
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_entry_versions_updated_time BEFORE UPDATE ON entry_versions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_assets_updated_time BEFORE UPDATE ON assets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_api_tokens_updated_time BEFORE UPDATE ON api_tokens
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+CREATE TRIGGER update_webhooks_updated_time BEFORE UPDATE ON webhooks
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();

@@ -21,9 +21,9 @@ type Site struct {
 	TenantID      *uuid.UUID `json:"tenant_id,omitempty" gorm:"type:uuid"`
 	Plan          string    `json:"plan" gorm:"size:50;default:'free'"`
 	CreatedBy     *uuid.UUID `json:"created_by,omitempty" gorm:"type:uuid"`
-	CreatedAt     time.Time `json:"created_at" gorm:"type:timestamptz;autoCreateTime"`
-	UpdatedAt     time.Time `json:"updated_at" gorm:"type:timestamptz;autoUpdateTime"`
-	DeletedAt     *time.Time `json:"deleted_at,omitempty" gorm:"type:timestamptz;index"`
+	CreatedTime     time.Time `json:"created_time" gorm:"type:timestamptz;autoCreateTime"`
+	UpdatedTime     time.Time `json:"updated_time" gorm:"type:timestamptz;autoUpdateTime"`
+	DeletedTime     *time.Time `json:"deleted_time,omitempty" gorm:"type:timestamptz;index"`
 }
 
 // TableName 表名
@@ -76,8 +76,8 @@ type SiteResponse struct {
 	TenantID      *uuid.UUID     `json:"tenant_id,omitempty"`
 	Plan          string         `json:"plan"`
 	CreatedBy     *uuid.UUID     `json:"created_by,omitempty"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	CreatedTime     time.Time      `json:"created_time"`
+	UpdatedTime     time.Time      `json:"updated_time"`
 }
 
 // SiteListResponse 站点列表响应
@@ -104,7 +104,7 @@ func (s *Site) ToResponse() SiteResponse {
 		TenantID:      s.TenantID,
 		Plan:          s.Plan,
 		CreatedBy:     s.CreatedBy,
-		CreatedAt:     s.CreatedAt,
-		UpdatedAt:     s.UpdatedAt,
+		CreatedTime:     s.CreatedTime,
+		UpdatedTime:     s.UpdatedTime,
 	}
 }

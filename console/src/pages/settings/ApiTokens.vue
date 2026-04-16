@@ -192,13 +192,13 @@ const isExpired = (expiresAt: string | null) => {
 // 获取状态标签
 const getStatusClass = (token: ApiToken) => {
   if (token.revoked) return 'badge-error'
-  if (isExpired(token.expires_at)) return 'badge-warning'
+  if (isExpired(token.expires_time)) return 'badge-warning'
   return 'badge-success'
 }
 
 const getStatusLabel = (token: ApiToken) => {
   if (token.revoked) return '已撤销'
-  if (isExpired(token.expires_at)) return '已过期'
+  if (isExpired(token.expires_time)) return '已过期'
   return '活跃'
 }
 
@@ -274,17 +274,17 @@ onMounted(() => {
               </div>
             </td>
             <td>{{ token.rate_limit }}/小时</td>
-            <td>{{ formatDate(token.expires_at) }}</td>
+            <td>{{ formatDate(token.expires_time) }}</td>
             <td>
               <span :class="['badge', getStatusClass(token)]">
                 {{ getStatusLabel(token) }}
               </span>
             </td>
-            <td>{{ new Date(token.created_at).toLocaleDateString('zh-CN') }}</td>
+            <td>{{ new Date(token.created_time).toLocaleDateString('zh-CN') }}</td>
             <td>
               <div class="action-btns">
                 <button
-                  v-if="!token.revoked && !isExpired(token.expires_at)"
+                  v-if="!token.revoked && !isExpired(token.expires_time)"
                   class="btn btn-secondary btn-sm"
                   @click="confirmRegenerate(token)"
                   title="重新生成"

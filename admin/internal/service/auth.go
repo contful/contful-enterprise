@@ -416,7 +416,7 @@ func (s *AuthService) toUserResponse(user *model.GlobalUser) *model.UserResponse
 		AvatarURL:    user.AvatarURL,
 		Status:       user.Status,
 		IsSuperAdmin: user.IsSuperAdmin,
-		CreatedAt:    user.CreatedAt,
+		CreatedTime:    user.CreatedTime,
 	}
 }
 

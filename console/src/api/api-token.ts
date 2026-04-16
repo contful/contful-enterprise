@@ -35,12 +35,12 @@ export interface APITokenResponse {
   permissions: EndpointPermission
   rate_limits: APIEndpointLimits
   usage: APIUsage
-  expires_at?: string
+  expires_time?: string
   status: TokenStatus
-  last_used_at?: string
+  last_used_time?: string
   created_by?: string
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
 }
 
 export interface APITokenCreateResponse extends APITokenResponse {
@@ -52,7 +52,7 @@ export interface APITokenCreate {
   description?: string
   permissions?: EndpointPermission
   rate_limits?: APIEndpointLimits
-  expires_at?: string
+  expires_time?: string
 }
 
 export interface APITokenUpdate {
@@ -60,7 +60,7 @@ export interface APITokenUpdate {
   description?: string
   permissions?: EndpointPermission
   rate_limits?: APIEndpointLimits
-  expires_at?: string
+  expires_time?: string
   status?: TokenStatus
 }
 
@@ -186,7 +186,7 @@ export const createApiToken = (data: {
   return apiTokenApi.create({
     name: data.name,
     description: data.description,
-    expires_at: data.expires_in_days ? new Date(Date.now() + data.expires_in_days * 24 * 60 * 60 * 1000).toISOString() : undefined,
+    expires_time: data.expires_in_days ? new Date(Date.now() + data.expires_in_days * 24 * 60 * 60 * 1000).toISOString() : undefined,
     permissions: data.permissions ? { content_types: data.permissions } : undefined,
     rate_limits: data.rate_limit ? { requests_per_minute: Math.floor(data.rate_limit / 60), requests_per_day: data.rate_limit } : undefined,
   })

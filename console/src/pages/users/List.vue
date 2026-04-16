@@ -42,8 +42,8 @@
           <span v-else class="text-gray">普通用户</span>
         </template>
 
-        <template #created_at="{ row }">
-          {{ formatDate(row.created_at) }}
+        <template #created_time="{ row }">
+          {{ formatDate(row.created_time) }}
         </template>
 
         <template #operations="{ row }">
@@ -86,7 +86,7 @@ interface User {
   avatar_url?: string
   status: string
   is_super_admin: boolean
-  created_at: string
+  created_time: string
 }
 
 const users = ref<User[]>([])
@@ -103,7 +103,7 @@ const columns = [
   { colKey: 'nickname', title: '昵称', minWidth: 120 },
   { colKey: 'status', title: '状态', width: 100 },
   { colKey: 'is_super_admin', title: '角色', width: 120 },
-  { colKey: 'created_at', title: '创建时间', width: 180 },
+  { colKey: 'created_time', title: '创建时间', width: 180 },
   { colKey: 'operations', title: '操作', width: 180 },
 ]
 

@@ -97,7 +97,7 @@ func (r *EntryRepository) ListBySite(ctx context.Context, siteID uuid.UUID, filt
 
 	offset := (page - 1) * pageSize
 	err := query.
-		Order("updated_at DESC").
+		Order("updated_time DESC").
 		Offset(offset).
 		Limit(pageSize).
 		Find(&entries).Error
@@ -132,7 +132,7 @@ func (r *EntryRepository) ListByContentType(ctx context.Context, siteID uuid.UUI
 
 	offset := (page - 1) * pageSize
 	err := query.
-		Order("sort_weight DESC, updated_at DESC").
+		Order("sort_weight DESC, updated_time DESC").
 		Offset(offset).
 		Limit(pageSize).
 		Find(&entries).Error

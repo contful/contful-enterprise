@@ -10,22 +10,22 @@ export interface Entry {
   status: 'draft' | 'published' | 'archived'
   version: number
   version_history?: EntryVersion[]
-  published_at?: string
+  published_time?: string
   published_by?: string
   seo_title?: string
   seo_description?: string
   seo_keywords?: string[]
   sort_weight: number
   created_by?: string
-  created_at: string
-  updated_at: string
+  created_time: string
+  updated_time: string
   values?: Record<string, any>
 }
 
 export interface EntryVersion {
   version: number
   created_by?: string
-  created_at: string
+  created_time: string
   change_summary?: string
 }
 

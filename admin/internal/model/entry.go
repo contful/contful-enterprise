@@ -24,7 +24,7 @@ type Entry struct {
 	Status         EntryStatus `json:"status" gorm:"type:entry_status;not null;default:'draft'"`
 	Version        int        `json:"version" gorm:"not null;default:1"`
 	VersionHistory JSONArray  `json:"version_history" gorm:"type:jsonb"`
-	PublishedAt    *time.Time `json:"published_at" gorm:"type:timestamptz"`
+	PublishedAt    *time.Time `json:"published_time" gorm:"type:timestamptz"`
 	PublishedBy    *uuid.UUID `json:"published_by" gorm:"type:uuid"`
 	Relations      JSONBSlice `json:"relations" gorm:"type:jsonb;default:'[]'"`
 	SEOTitle       string     `json:"seo_title" gorm:"size:255"`
@@ -32,9 +32,9 @@ type Entry struct {
 	SEOKeywords    []string   `json:"seo_keywords" gorm:"type:text[]"`
 	SortWeight     int        `json:"sort_weight" gorm:"not null;default:0"`
 	CreatedBy      *uuid.UUID `json:"created_by" gorm:"type:uuid"`
-	CreatedAt      time.Time  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt      time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt      *time.Time `json:"deleted_at" gorm:"index"`
+	CreatedTime      time.Time  `json:"created_time" gorm:"autoCreateTime"`
+	UpdatedTime      time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
+	DeletedTime      *time.Time `json:"deleted_time" gorm:"index"`
 
 	// 关联
 	ContentType *ContentType    `json:"content_type,omitempty" gorm:"foreignKey:ContentTypeID;references:ID"`
@@ -57,8 +57,8 @@ type EntryValue struct {
 	BoolValue   *bool      `json:"bool_value,omitempty" gorm:"type:boolean"`
 	DateValue   *time.Time `json:"date_value,omitempty" gorm:"type:date"`
 	DatetimeValue *time.Time `json:"datetime_value,omitempty" gorm:"type:timestamptz"`
-	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+	CreatedTime   time.Time  `json:"created_time" gorm:"autoCreateTime"`
+	UpdatedTime   time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
 
 	// 关联
 	Field *Field `json:"field,omitempty" gorm:"foreignKey:FieldID;references:ID"`
@@ -76,7 +76,7 @@ type EntryVersion struct {
 	Version       int       `json:"version" gorm:"not null"`
 	ValuesSnapshot JSONB    `json:"values_snapshot" gorm:"type:jsonb;not null"`
 	CreatedBy     *uuid.UUID `json:"created_by" gorm:"type:uuid"`
-	CreatedAt     time.Time `json:"created_at" gorm:"autoCreateTime"`
+	CreatedTime     time.Time `json:"created_time" gorm:"autoCreateTime"`
 	ChangeSummary string    `json:"change_summary" gorm:"type:text"`
 }
 

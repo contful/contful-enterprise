@@ -30,9 +30,9 @@ type ContentType struct {
 	IsActive             bool             `json:"is_active" gorm:"default:true"`
 	SortOrder            int              `json:"sort_order" gorm:"default:0"`
 	CreatedBy            *uuid.UUID       `json:"created_by" gorm:"type:uuid"`
-	CreatedAt            time.Time        `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt            time.Time        `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt            *time.Time       `json:"deleted_at" gorm:"index"`
+	CreatedTime            time.Time        `json:"created_time" gorm:"autoCreateTime"`
+	UpdatedTime            time.Time        `json:"updated_time" gorm:"autoUpdateTime"`
+	DeletedTime            *time.Time       `json:"deleted_time" gorm:"index"`
 
 	// 关联
 	Fields []Field `json:"fields,omitempty" gorm:"foreignKey:ContentTypeID;references:ID"`
@@ -57,9 +57,9 @@ type Field struct {
 	DefaultValue        *JSONB     `json:"default_value" gorm:"type:jsonb"`
 	SortOrder           int        `json:"sort_order" gorm:"default:0"`
 	ConditionalDisplay  *JSONB      `json:"conditional_display" gorm:"type:jsonb"`
-	CreatedAt           time.Time  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt           time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt           *time.Time `json:"deleted_at" gorm:"index"`
+	CreatedTime           time.Time  `json:"created_time" gorm:"autoCreateTime"`
+	UpdatedTime           time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
+	DeletedTime           *time.Time `json:"deleted_time" gorm:"index"`
 }
 
 // TableName 表名
