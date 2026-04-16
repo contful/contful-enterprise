@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/contful/contful/open/internal/model"
+	"github.com/contful/contful/api/internal/model"
 )
 
 // RateLimiter Redis 滑动窗口速率限制

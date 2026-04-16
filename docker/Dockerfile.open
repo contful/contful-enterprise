@@ -11,12 +11,12 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-COPY open/go.mod open/go.sum ./
+COPY api/go.mod api/go.sum ./
 ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
-COPY open/ .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/open-api ./cmd/server
+COPY api/ .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/api-server ./cmd/server
 
 # ---- Stage 2: 运行 ----
 FROM reg.reepu.cn/library/alpine:amd64-latest AS runner
@@ -25,11 +25,11 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY --from=builder /app/open-api .
+COPY --from=builder /app/api-server .
 
-EXPOSE 8081
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q -O- http://localhost:8081/health || exit 1
+    CMD wget -q -O- http://localhost:8080/health || exit 1
 
-CMD ["./open-api"]
+CMD ["./api-server"]

@@ -82,7 +82,7 @@ func main() {
 	siteService := service.NewSiteService(siteRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
-	assetService := service.NewAssetService(assetRepo, cfg.Storage.UploadDir, "/admin/v1")
+	assetService := service.NewAssetService(assetRepo, cfg.Storage.UploadDir, "/admin/api/v1")
 	tokenService := service.NewAPITokenService(tokenRepo)
 
 	// 初始化 Handler
@@ -120,7 +120,7 @@ func main() {
 	})
 
 	// API 路由组
-	api := r.Group("/admin/v1")
+	api := r.Group("/admin/api/v1")
 	{
 		// 公开路由
 		auth := api.Group("/auth")

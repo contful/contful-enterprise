@@ -1,4 +1,4 @@
-module github.com/contful/contful/open
+module github.com/contful/contful/api
 
 go 1.22
 

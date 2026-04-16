@@ -6,8 +6,8 @@
 #   1. 将 sql/init.sql 导入到 PostgreSQL
 #   2. cp .env.example .env，填入数据库/Valkey/JWT 信息
 #   3. 已构建镜像:
-#      docker build -t contful/admin:alpine -f docker/Dockerfile.admin ..
-#      docker build -t contful/open:alpine -f docker/Dockerfile.open ..
+#      docker build -t contful/console:alpine -f docker/Dockerfile.admin ..
+#      docker build -t contful/api:alpine -f docker/Dockerfile.open ..
 #
 # 启动:
 #   docker-compose up -d
@@ -17,15 +17,16 @@
 #   - Open API: http://localhost:8080/api/v1/
 #
 # 水平扩展 Open API:
-#   docker-compose up -d --scale open=3
+#   docker-compose up -d --scale api=3
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
   # Admin 服务（Console SPA + Admin API，OpenResty 对外 :80 :443）
+  # 容器内 Admin API 监听 9080，由 nginx 反向代理
   # ---------------------------------------------------------------------------
   admin:
-    image: contful/admin:alpine
+    image: contful/console:alpine
     container_name: contful-admin
     ports:
       - "80:80"
@@ -43,10 +44,11 @@ services:
 
   # ---------------------------------------------------------------------------
   # Open API 服务（无状态，可水平扩展）
+  # 容器内监听 8080，宿主机映射 8080
   # ---------------------------------------------------------------------------
-  open:
-    image: contful/open:alpine
-    container_name: contful-open
+  api:
+    image: contful/api:alpine
+    container_name: contful-api
     ports:
       - "8080:8080"
     env_file: .env

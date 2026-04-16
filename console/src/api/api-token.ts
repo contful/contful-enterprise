@@ -85,7 +85,7 @@ export const apiTokenApi = {
    */
   create: async (data: APITokenCreate): Promise<APITokenCreateResponse> => {
     const response = await request.post<{ data: APITokenCreateResponse }>(
-      '/admin/v1/api-tokens',
+      '/admin/api/v1/api-tokens',
       data
     )
     return response.data.data
@@ -111,7 +111,7 @@ export const apiTokenApi = {
     }
 
     const response = await request.get<{ data: APITokenListResponse }>(
-      `/admin/v1/api-tokens?${queryParams.toString()}`
+      `/admin/api/v1/api-tokens?${queryParams.toString()}`
     )
 
     return response.data.data
@@ -122,7 +122,7 @@ export const apiTokenApi = {
    */
   get: async (id: string): Promise<APITokenResponse> => {
     const response = await request.get<{ data: APITokenResponse }>(
-      `/admin/v1/api-tokens/${id}`
+      `/admin/api/v1/api-tokens/${id}`
     )
     return response.data.data
   },
@@ -132,7 +132,7 @@ export const apiTokenApi = {
    */
   update: async (id: string, data: APITokenUpdate): Promise<APITokenResponse> => {
     const response = await request.put<{ data: APITokenResponse }>(
-      `/admin/v1/api-tokens/${id}`,
+      `/admin/api/v1/api-tokens/${id}`,
       data
     )
     return response.data.data
@@ -142,7 +142,7 @@ export const apiTokenApi = {
    * 删除 Token
    */
   delete: async (id: string): Promise<void> => {
-    await request.delete(`/admin/v1/api-tokens/${id}`)
+    await request.delete(`/admin/api/v1/api-tokens/${id}`)
   },
 
   /**
@@ -151,7 +151,7 @@ export const apiTokenApi = {
    */
   regenerate: async (id: string): Promise<APITokenCreateResponse> => {
     const response = await request.post<{ data: APITokenCreateResponse }>(
-      `/admin/v1/api-tokens/${id}/regenerate`
+      `/admin/api/v1/api-tokens/${id}/regenerate`
     )
     return response.data.data
   },
@@ -160,7 +160,7 @@ export const apiTokenApi = {
    * 撤销 Token
    */
   revoke: async (id: string): Promise<void> => {
-    await request.post(`/admin/v1/api-tokens/${id}/revoke`)
+    await request.post(`/admin/api/v1/api-tokens/${id}/revoke`)
   },
 }
 

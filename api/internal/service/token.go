@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/contful/contful/open/internal/model"
-	"github.com/contful/contful/open/internal/repository"
+	"github.com/contful/contful/api/internal/model"
+	"github.com/contful/contful/api/internal/repository"
 )
 
 const (

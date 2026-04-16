@@ -8,7 +8,7 @@
 #   (前端产物在 console/dist/)
 #
 # 构建:
-#   docker build -t contful/admin:alpine -f docker/Dockerfile.admin ..
+#   docker build -t contful/console:alpine -f docker/Dockerfile.admin ..
 #
 # 运行:
 #   见 docker/docker-compose.yaml
@@ -45,7 +45,7 @@ COPY docker/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 # 日志目录 + 上传目录
 RUN mkdir -p /var/log/nginx /app/uploads
 
-EXPOSE 80
+EXPOSE 9080
 
 # 同时启动 admin-api 和 openresty
 RUN echo '#!/bin/sh' > /app/start.sh && \

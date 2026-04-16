@@ -15,11 +15,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/contful/contful/open/internal/config"
-	"github.com/contful/contful/open/internal/middleware"
-	"github.com/contful/contful/open/internal/model"
-	"github.com/contful/contful/open/internal/repository"
-	"github.com/contful/contful/open/internal/service"
+	"github.com/contful/contful/api/internal/config"
+	"github.com/contful/contful/api/internal/middleware"
+	"github.com/contful/contful/api/internal/model"
+	"github.com/contful/contful/api/internal/repository"
+	"github.com/contful/contful/api/internal/service"
 )
 
 func main() {

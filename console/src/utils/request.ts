@@ -96,7 +96,7 @@ export function showSuccess(message: string) {
 // =============================================================================
 
 const request: AxiosInstance = axios.create({
-  baseURL: '/admin/v1',
+  baseURL: '/admin/api/v1',
   timeout: 30000,
   withCredentials: true, // 携带 HttpOnly Cookie (refresh_token)
 })
@@ -124,7 +124,7 @@ request.interceptors.response.use(
       // Token 过期，尝试刷新
       try {
         const refreshRes = await axios.post(
-          '/admin/v1/auth/refresh',
+          '/admin/api/v1/auth/refresh',
           {},
           {
             withCredentials: true,
