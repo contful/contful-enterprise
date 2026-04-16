@@ -125,20 +125,21 @@ func (r *APITokenRepository) Revoke(ctx context.Context, id uuid.UUID) error {
 		Update("status", model.TokenStatusRevoked).Error
 }
 
-// UpdateUsage 更新使用统计
-func (r *APITokenRepository) UpdateUsage(ctx context.Context, id uuid.UUID, usage *model.APIUsage) error {
+// UpdateUsage 更新使用统计（自增 request_count）
+func (r *APITokenRepository) UpdateUsage(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).
 		Model(&model.APIToken{}).
 		Where("id = ?", id).
-		Update("usage", usage).Error
+		Update("request_count", gorm.Expr("request_count + 1")).Error
 }
 
 // UpdateLastUsed 更新最后使用时间
 func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) error {
+	now := time.Now()
 	return r.db.WithContext(ctx).
 		Model(&model.APIToken{}).
 		Where("id = ?", id).
-		Update("last_used_at", time.Now()).Error
+		Update("last_used_at", &now).Error
 }
 
 // CountBySite 统计站点的 Token 数量

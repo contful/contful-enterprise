@@ -1,10 +1,37 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { MessagePlugin } from 'tdesign-vue-next'
 import AppLayout from '@/components/AppLayout.vue'
 
 const route = useRoute()
 const isLoginPage = computed(() => route.path === '/login')
+
+// =============================================================================
+// MX-002-2: 全局网络状态监听
+// =============================================================================
+
+const handleOffline = () => {
+  MessagePlugin.warning({
+    content: '网络连接已断开，请检查网络',
+    duration: 0, // 不自动关闭
+    closeBtn: true,
+  })
+}
+
+const handleOnline = () => {
+  MessagePlugin.success('网络已恢复')
+}
+
+onMounted(() => {
+  window.addEventListener('offline', handleOffline)
+  window.addEventListener('online', handleOnline)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('offline', handleOffline)
+  window.removeEventListener('online', handleOnline)
+})
 </script>
 
 <template>

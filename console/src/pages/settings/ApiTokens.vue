@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { MessagePlugin } from 'tdesign-vue-next'
 import {
   getApiTokens,
   createApiToken,
@@ -9,6 +10,7 @@ import {
   revokeApiToken,
   type ApiToken,
 } from '@/api/api-token'
+import { showError } from '@/utils/request'
 
 const loading = ref(false)
 const tokens = ref<ApiToken[]>([])
@@ -19,6 +21,7 @@ const editingToken = ref<ApiToken | null>(null)
 const tokenToDelete = ref<ApiToken | null>(null)
 const tokenToRegenerate = ref<ApiToken | null>(null)
 const newToken = ref('')
+const submitting = ref(false) // MX-001: Loading 状态
 
 // 表单数据
 const formData = ref({
@@ -44,7 +47,7 @@ const loadTokens = async () => {
     const res = await getApiTokens({ page: 1, page_size: 100 })
     tokens.value = res.data.items || []
   } catch (error) {
-    console.error('Failed to load tokens:', error)
+    showError(error)
   } finally {
     loading.value = false
   }
@@ -78,6 +81,7 @@ const openEditModal = (token: ApiToken) => {
 
 // 提交表单
 const handleSubmit = async () => {
+  submitting.value = true
   try {
     if (editingToken.value) {
       await updateApiToken(editingToken.value.id, {
@@ -86,6 +90,7 @@ const handleSubmit = async () => {
         permissions: formData.value.permissions,
         rate_limit: formData.value.rate_limit,
       })
+      MessagePlugin.success('Token 已更新')
     } else {
       const res = await createApiToken({
         name: formData.value.name,
@@ -95,11 +100,14 @@ const handleSubmit = async () => {
         rate_limit: formData.value.rate_limit,
       })
       newToken.value = res.data.token || ''
+      MessagePlugin.success('Token 创建成功')
     }
     showModal.value = false
     await loadTokens()
   } catch (error) {
-    console.error('Failed to save token:', error)
+    showError(error)
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -115,11 +123,12 @@ const handleDelete = async () => {
 
   try {
     await deleteApiToken(tokenToDelete.value.id)
+    MessagePlugin.success('Token 已删除')
     showDeleteConfirm.value = false
     tokenToDelete.value = null
     await loadTokens()
   } catch (error) {
-    console.error('Failed to delete token:', error)
+    showError(error)
   }
 }
 

@@ -69,6 +69,7 @@ func main() {
 
 	// 初始化 Repository
 	userRepo := repository.NewUserRepository(db, redisClient)
+	siteRepo := repository.NewSiteRepository(db)
 	auditRepo := repository.NewAuditRepository(db)
 	contentTypeRepo := repository.NewContentTypeRepository(db)
 	fieldRepo := repository.NewFieldRepository(db)
@@ -78,6 +79,7 @@ func main() {
 
 	// 初始化 Service
 	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret)
+	siteService := service.NewSiteService(siteRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 	assetService := service.NewAssetService(assetRepo, cfg.Storage.UploadDir, "/admin/v1")
@@ -85,6 +87,7 @@ func main() {
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
+	siteHandler := handler.NewSiteHandler(siteService)
 	ctHandler := handler.NewContentTypeHandler(ctService)
 	entryHandler := handler.NewEntryHandler(entryService)
 	assetHandler := handler.NewAssetHandler(assetService)
@@ -133,6 +136,13 @@ func main() {
 		{
 			// 认证相关
 			protected.POST("/auth/logout", authHandler.Logout)
+
+			// 站点管理
+			protected.GET("/sites", siteHandler.List)
+			protected.POST("/sites", siteHandler.Create)
+			protected.GET("/sites/:id", siteHandler.Get)
+			protected.PUT("/sites/:id", siteHandler.Update)
+			protected.DELETE("/sites/:id", siteHandler.Delete)
 
 			// 用户相关
 			protected.GET("/users/me", authHandler.Me)

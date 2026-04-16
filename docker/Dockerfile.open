@@ -1,41 +1,35 @@
 # =============================================================================
 # Contful Open API 镜像
-# 包含: Go Open API (:8081)
-#
-# 职责: Open API 服务，无状态，可水平扩展
-#
-# 使用:
-#   单实例: docker-compose up -d
-#   水平扩展: docker-compose up --scale open=3
-#   自定义:  docker build -f docker/Dockerfile.open -t contful/open .
+# Stage 1: Go 编译
+# Stage 2: Alpine 运行
 # =============================================================================
 
 # ---- Stage 1: 构建 ----
-FROM golang:1.22-alpine AS builder
+FROM reg.reepu.cn/library/golang:1.25-amd64 AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 COPY open/go.mod open/go.sum ./
+ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY open/ .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/open ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/open-api ./cmd/server
 
 # ---- Stage 2: 运行 ----
-FROM alpine:3.19 AS runner
+FROM reg.reepu.cn/library/alpine:amd64-latest AS runner
 
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY --from=builder /app/open .
+COPY --from=builder /app/open-api .
 
 EXPOSE 8081
 
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -q -O- http://localhost:8081/health || exit 1
 
-CMD ["./open"]
+CMD ["./open-api"]

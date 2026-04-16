@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import {
   getContentTypes,
   createContentType,
@@ -10,6 +11,7 @@ import {
   type ContentTypeCreate,
   type ContentTypeUpdate,
 } from '@/api/content-type'
+import { showError, getFriendlyError } from '@/utils/request'
 
 const router = useRouter()
 
@@ -25,6 +27,7 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('创建内容类型')
 const isEditing = ref(false)
 const editingId = ref('')
+const submitting = ref(false) // MX-001: 表单提交 Loading
 
 const formData = ref<ContentTypeCreate>({
   name: '',
@@ -57,7 +60,7 @@ const loadData = async () => {
       total.value = res.data.data.total || 0
     }
   } catch (e) {
-    console.error('加载失败', e)
+    showError(e)
   } finally {
     loading.value = false
   }
@@ -111,30 +114,45 @@ const submitForm = async () => {
     return
   }
   formError.value = ''
+  submitting.value = true
 
   try {
     if (isEditing.value) {
       await updateContentType(editingId.value, formData.value as ContentTypeUpdate)
+      MessagePlugin.success('内容类型已更新')
     } else {
       await createContentType(formData.value)
+      MessagePlugin.success('内容类型创建成功')
     }
     dialogVisible.value = false
     loadData()
   } catch (e: any) {
-    formError.value = e?.response?.data?.msg || '操作失败'
+    formError.value = getFriendlyError(e)
+  } finally {
+    submitting.value = false
   }
 }
 
-// 删除内容类型
+// 删除内容类型 - MX-001: 二次确认弹窗
 const handleDelete = async (row: ContentType) => {
-  if (!confirm(`确定删除「${row.name}」吗？此操作不可恢复。`)) return
-
-  try {
-    await deleteContentType(row.id)
-    loadData()
-  } catch (e) {
-    console.error('删除失败', e)
-  }
+  const confirmDialog = DialogPlugin.confirm({
+    header: '确认删除',
+    body: `确定删除「${row.name}」吗？此操作不可恢复。`,
+    confirmBtn: { content: '确认删除', theme: 'danger' },
+    cancelBtn: '取消',
+    onConfirm: async () => {
+      try {
+        await deleteContentType(row.id)
+        MessagePlugin.success('删除成功')
+        loadData()
+      } catch (e) {
+        showError(e)
+      } finally {
+        confirmDialog.hide()
+      }
+    },
+    onClose: () => confirmDialog.hide(),
+  })
 }
 
 // 跳转到字段管理
@@ -339,8 +357,8 @@ onMounted(() => {
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="dialogVisible = false">取消</button>
-          <button class="btn btn-primary" @click="submitForm">
-            {{ isEditing ? '保存' : '创建' }}
+          <button class="btn btn-primary" :disabled="submitting" @click="submitForm">
+            {{ submitting ? '处理中...' : (isEditing ? '保存' : '创建') }}
           </button>
         </div>
       </div>

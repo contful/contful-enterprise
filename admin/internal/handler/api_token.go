@@ -55,8 +55,12 @@ func getTokenUserID(c *gin.Context) (uuid.UUID, error) {
 
 // getTokenSiteID 从上下文获取站点 ID
 func getTokenSiteID(c *gin.Context) (uuid.UUID, error) {
-	// 暂时使用用户 ID 作为 site ID
-	return getTokenUserID(c)
+	// 从请求头获取站点 ID
+	if siteID := c.GetHeader("X-Site-ID"); siteID != "" {
+		return uuid.Parse(siteID)
+	}
+	// 默认站点 ID
+	return uuid.MustParse("00000000-0000-0000-0000-000000000001"), nil
 }
 
 // Create 创建 Token

@@ -1,6 +1,10 @@
 package model
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,8 +14,8 @@ import (
 type TokenType string
 
 const (
-	TokenTypeAPI    TokenType = "api"    // API Token (ctf_ 前缀)
-	TokenTypeAccess TokenType = "access" // Access Token (不持久化)
+	TokenTypeAPI     TokenType = "api"     // API Token (ctf_ 前缀)
+	TokenTypeAccess  TokenType = "access"  // Access Token (不持久化)
 	TokenTypeRefresh TokenType = "refresh" // Refresh Token
 )
 
@@ -19,58 +23,73 @@ const (
 type TokenStatus string
 
 const (
-	TokenStatusActive   TokenStatus = "active"   // 激活
-	TokenStatusExpired  TokenStatus = "expired"  // 过期
-	TokenStatusRevoked  TokenStatus = "revoked"  // 已撤销
+	TokenStatusActive  TokenStatus = "active"  // 激活
+	TokenStatusExpired TokenStatus = "expired" // 过期
+	TokenStatusRevoked TokenStatus = "revoked" // 已撤销
 )
 
-// APIEndpoint API 端点权限
-type APIEndpoint struct {
-	Path   string   `json:"path"`   // 路径模式 (如 /content/*)
-	Method []string `json:"method"` // HTTP 方法 (GET, POST, PUT, DELETE)
+// StringArray PostgreSQL JSONB []string 类型
+type StringArray []string
+
+// Scan 实现 sql.Scanner
+func (s *StringArray) Scan(value interface{}) error {
+	if value == nil {
+		*s = nil
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, s)
 }
 
-// APIEndpointPermission 端点权限
-type EndpointPermission struct {
-	ContentTypes []string `json:"content_types,omitempty"` // 允许的内容类型 (* 表示全部)
-	Endpoints    []APIEndpoint `json:"endpoints,omitempty"` // 允许的端点
+// Value 实现 driver.Valuer
+func (s StringArray) Value() (driver.Value, error) {
+	if s == nil {
+		return "[]", nil
+	}
+	return json.Marshal(s)
 }
 
-// APIEndpointLimits 速率限制
-type APIEndpointLimits struct {
-	RequestsPerMinute int `json:"requests_per_minute"` // 每分钟请求数
-	RequestsPerDay    int `json:"requests_per_day"`    // 每天请求数
-}
-
-// APIUsage 资源使用统计
+// APIUsage 资源使用统计（保留扩展字段，当前 DB 用 request_count 列）
 type APIUsage struct {
-	RequestCount    int       `json:"request_count"`    // 总请求数
-	DailyRequestCount int     `json:"daily_request_count"` // 今日请求数
-	BandwidthUsed    int64    `json:"bandwidth_used"`     // 带宽使用 (bytes)
-	LastRequestAt   *time.Time `json:"last_request_at,omitempty"` // 最后请求时间
+	RequestCount int `json:"request_count"`
 }
 
 // APIToken API Token
 type APIToken struct {
-	ID              uuid.UUID              `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID          uuid.UUID              `json:"site_id" gorm:"type:uuid;not null;index"`
-	Name            string                 `json:"name" gorm:"size:100;not null"`
-	Description     string                 `json:"description" gorm:"size:500"`
-	TokenPrefix     string                 `json:"token_prefix" gorm:"size:10;not null;index"` // ctg_ 前 10 位
-	TokenHash       string                 `json:"-" gorm:"size:64;not null;uniqueIndex"`     // SHA-256 哈希
-	Permissions     EndpointPermission     `json:"permissions" gorm:"type:jsonb;default:'{}'"`
-	RateLimits      APIEndpointLimits      `json:"rate_limits" gorm:"type:jsonb;default:'{\"requests_per_minute\": 60, \"requests_per_day\": 10000}'"`
-	Usage           APIUsage               `json:"usage" gorm:"type:jsonb;default:'{\"request_count\": 0}'"`
-	ExpiresAt       *time.Time             `json:"expires_at,omitempty" gorm:"type:timestamptz"`
-	Status          TokenStatus            `json:"status" gorm:"type:token_status;not null;default:'active'"`
-	LastUsedAt      *time.Time             `json:"last_used_at,omitempty" gorm:"type:timestamptz"`
-	CreatedBy       *uuid.UUID             `json:"created_by" gorm:"type:uuid"`
-	CreatedAt       time.Time              `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt       time.Time              `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt       *time.Time             `json:"deleted_at" gorm:"index"`
+	ID            uuid.UUID    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	SiteID        uuid.UUID    `json:"site_id" gorm:"type:uuid;not null;index"`
+	Name          string       `json:"name" gorm:"size:200;not null"`
+	Description   string       `json:"description" gorm:"type:text"`
+	TokenPrefix   string       `json:"token_prefix" gorm:"size:20;not null;index"` // ctg_ 前缀
+	TokenHash     string       `json:"-" gorm:"size:64;not null;uniqueIndex"`
+	Scopes        StringArray  `json:"scopes" gorm:"type:jsonb;default:'[]'"`         // 权限范围
+	SiteScope     StringArray  `json:"site_scope" gorm:"type:jsonb;default:'[]'"`     // 站点范围
+	ChannelScope  StringArray  `json:"channel_scope" gorm:"type:jsonb;default:'[]'"`  // 频道范围
+	AllowedIPs    *string      `json:"allowed_ips,omitempty" gorm:"type:inet"`
+	RateLimit     int          `json:"rate_limit" gorm:"default:60"`
+	ExpiresAt     *time.Time   `json:"expires_at,omitempty" gorm:"type:timestamptz"`
+	Status        TokenStatus  `json:"status" gorm:"type:token_status;not null;default:'active'"`
+	LastUsedAt    *time.Time   `json:"last_used_at,omitempty" gorm:"type:timestamptz"`
+	LastUsedIP    *string      `json:"last_used_ip,omitempty" gorm:"type:inet"`
+	RequestCount  int64        `json:"request_count" gorm:"default:0"`
+	CreatedBy     *uuid.UUID   `json:"created_by" gorm:"type:uuid"`
+	CreatedAt     time.Time    `json:"created_at" gorm:"type:timestamptz;autoCreateTime"`
+	UpdatedAt     time.Time    `json:"updated_at" gorm:"type:timestamptz;autoUpdateTime"`
+	DeletedAt     *time.Time   `json:"deleted_at,omitempty" gorm:"type:timestamptz;index"`
 }
 
 // TableName 表名
 func (APIToken) TableName() string {
 	return "api_tokens"
+}
+
+// TokenHashPrefix 取 Token Hash 前缀用于日志脱敏
+func TokenHashPrefix(fullHash string) string {
+	if len(fullHash) < 8 {
+		return strings.Repeat("*", len(fullHash))
+	}
+	return fullHash[:8] + "..."
 }

@@ -50,9 +50,15 @@ func InternalError(c *gin.Context, msg string) {
 }
 
 // GetSiteID 获取站点 ID
+// 优先从 X-Site-ID 请求头读取，否则返回 nil
 func GetSiteID(c *gin.Context) (uuid.UUID, bool) {
-	// TODO: 从站点中间件获取
-	// 暂时返回 nil
+	siteHeader := c.GetHeader("X-Site-ID")
+	if siteHeader != "" {
+		siteID, err := uuid.Parse(siteHeader)
+		if err == nil {
+			return siteID, true
+		}
+	}
 	return uuid.Nil, false
 }
 

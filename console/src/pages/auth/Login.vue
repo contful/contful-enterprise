@@ -123,7 +123,7 @@
 
       <template #footer>
         <div class="login-footer">
-          <span class="copyright">© 2026 Contful. MIT License.</span>
+          <span class="copyright">© 2026 Contful. Licensed under Apache 2.0. Contact: hi@reepu.com</span>
         </div>
       </template>
     </t-card>

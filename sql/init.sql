@@ -450,6 +450,43 @@ CREATE TABLE distributed_locks (
 CREATE INDEX idx_distributed_locks_expires ON distributed_locks(expires_at);
 
 -- =============================================================================
+-- 性能优化索引
+-- =============================================================================
+
+-- 内容列表查询（最常用）
+CREATE INDEX IF NOT EXISTS idx_entries_list
+    ON entries(content_type_id, locale, status, published_at DESC);
+
+-- 站点内容查询
+CREATE INDEX IF NOT EXISTS idx_entries_site_locale
+    ON entries(site_id, locale, status);
+
+-- assets 表索引优化
+CREATE INDEX IF NOT EXISTS idx_assets_site_status_date
+    ON assets(site_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_assets_site_type
+    ON assets(site_id, asset_type);
+CREATE INDEX IF NOT EXISTS idx_assets_storage_path
+    ON assets(storage_path);
+
+-- audit_logs 索引优化
+CREATE INDEX IF NOT EXISTS idx_audit_logs_site_user_time
+    ON audit_logs(site_id, user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_category_time
+    ON audit_logs(category, created_at DESC);
+
+-- =============================================================================
+-- 分布式锁自动清理函数
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION cleanup_expired_locks()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM distributed_locks WHERE expires_at < NOW();
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================================================================
 -- 初始化数据
 -- =============================================================================
 
