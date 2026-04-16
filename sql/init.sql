@@ -302,10 +302,29 @@ CREATE TABLE entry_values (
 );
 CREATE INDEX idx_entry_values_entry ON entry_values(entry_id);
 CREATE INDEX idx_entry_values_field ON entry_values(field_id);
+-- 默认使用 simple 分词器（不支持中文）
 CREATE INDEX idx_entry_values_text ON entry_values USING gin(to_tsvector('simple', text_value)) WHERE text_value IS NOT NULL;
 CREATE INDEX idx_entry_values_number ON entry_values(number_value) WHERE number_value IS NOT NULL;
 CREATE INDEX idx_entry_values_bool ON entry_values(bool_value) WHERE bool_value IS NOT NULL;
 CREATE INDEX idx_entry_values_date ON entry_values(date_value) WHERE date_value IS NOT NULL;
+
+-- =============================================================================
+-- 中文分词支持（可选，需安装扩展）
+-- =============================================================================
+-- 推荐方案:
+-- 1. pg_jieba: SELECT * FROM jieba_char_dict(); -- 查看词典
+-- 2. zhparser: 需要 SCWS 算法支持
+--
+-- 启用中文分词的步骤:
+-- a) 安装扩展: CREATE EXTENSION pg_jieba; 或 CREATE EXTENSION zhparser;
+-- b) 创建文本搜索配置:
+--    CREATE TEXT SEARCH CONFIGURATION zh_cn (parser = pg_jieba);
+-- c) 创建中文搜索索引:
+--    CREATE INDEX idx_entry_values_text_zh ON entry_values
+--        USING gin(to_tsvector('zh_cn', text_value)) WHERE text_value IS NOT NULL;
+-- d) 应用层切换搜索配置
+--
+-- 注意: 中文分词扩展会增加存储和索引维护开销，按需启用
 
 CREATE TABLE entry_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -486,6 +505,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 自动清理任务（需要 pg_cron 扩展支持）
+-- 如果 pg_cron 不可用，可忽略此错误，或改用应用层定时清理
+DO $$
+BEGIN
+    -- 每分钟清理一次过期锁
+    CREATE EXTENSION IF NOT EXISTS pg_cron;
+    -- 注意: pg_cron 需要配置 cron.database 连接数据库
+    -- 如需启用，在 postgresql.conf 中添加: cron.database_name = 'contful'
+    -- 任务创建可能失败，忽略即可（pg_cron 未配置时）
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'pg_cron not available, automatic lock cleanup disabled: %', SQLERRM;
+END;
+$$;
+
+-- 可选：创建视图查看当前活跃锁
+CREATE OR REPLACE VIEW active_locks AS
+SELECT
+    lock_key,
+    lock_value,
+    acquired_at,
+    expires_at,
+    EXTRACT(EPOCH FROM (expires_at - NOW()))::INT as remaining_seconds
+FROM distributed_locks
+WHERE expires_at > NOW();
+
+COMMENT ON VIEW active_locks IS '当前活跃的分布式锁';
+COMMENT ON FUNCTION cleanup_expired_locks() IS '清理过期的分布式锁，由 pg_cron 每分钟调用或应用层调用';
+
 -- =============================================================================
 -- 初始化数据
 -- =============================================================================
@@ -499,6 +546,8 @@ INSERT INTO global_roles (id, name, description, is_system, permissions) VALUES
 -- 触发器
 -- =============================================================================
 
+-- 统一 updated_at 自动更新触发器函数
+-- 注意: 软删除表必须保留 updated_at 字段，否则触发器会报错
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -506,6 +555,13 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+COMMENT ON FUNCTION update_updated_at_column() IS '自动更新 updated_at 时间戳的触发器函数';
+
+-- 注意:
+-- 1. 所有软删除表都有 updated_at 字段，保证触发器正常工作
+-- 2. 触发器在 BEFORE UPDATE 时执行，不记录变更历史（由 entry_versions 表处理内容版本）
+-- 3. 批量更新时触发器仍会生效，但性能影响可忽略（仅更新一列）
 
 CREATE TRIGGER update_global_users_updated_at BEFORE UPDATE ON global_users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
