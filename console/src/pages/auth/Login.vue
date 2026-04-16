@@ -177,8 +177,8 @@ const registerRules = {
   ],
 }
 
-// Logo URL - 可以替换为实际的 logo
-const logoUrl = 'https://www.contful.dev/logo.png'
+// Logo URL - 本地资源
+const logoUrl = '/assets/logo.png'
 
 const onLogin = async () => {
   const result = await userStore.login(loginForm.email, loginForm.password)

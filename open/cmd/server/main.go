@@ -72,9 +72,9 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 
-	// 全局中间件（所有路由都走）
+	// 全局中间件
 	r.Use(middleware.SecurityHeadersMiddleware())
-	r.Use(middleware.CORSMiddleware())
+	// CORS 由 API 网关统一处理，应用层不介入
 
 	// Health check（无需认证）
 	r.GET("/health", func(c *gin.Context) {

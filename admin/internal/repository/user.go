@@ -70,12 +70,16 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 // UpdateLastLogin 更新最后登录信息
 func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uuid.UUID, ip string) error {
 	now := time.Now()
+	updates := map[string]interface{}{
+		"last_login_at": now,
+	}
+	// inet 类型不接受空字符串，只有有效 IP 才更新
+	if ip != "" {
+		updates["last_login_ip"] = ip
+	}
 	return r.db.WithContext(ctx).Model(&model.GlobalUser{}).
 		Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"last_login_at": now,
-			"last_login_ip": ip,
-		}).Error
+		Updates(updates).Error
 }
 
 // List 查询用户列表（分页）
@@ -127,20 +131,35 @@ func (r *UserRepository) DeleteRefreshToken(ctx context.Context, token string) e
 }
 
 // DeleteAllUserRefreshTokens 删除用户所有 Refresh Token（登出所有设备）
+// P2-003 修复：使用 SCAN + COUNT 分段处理，避免阻塞 Redis
 func (r *UserRepository) DeleteAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
 	pattern := refreshTokenPrefix + "*"
-	iter := r.redis.Scan(ctx, 0, pattern, 0).Iterator()
-	
-	for iter.Next(ctx) {
-		token := iter.Val()
-		userIDStr, err := r.redis.Get(ctx, token).Result()
+	var cursor uint64
+	const batchSize = 100 // 每次 SCAN 最多返回 100 个 key
+
+	for {
+		var keys []string
+		var err error
+		keys, cursor, err = r.redis.Scan(ctx, cursor, pattern, batchSize).Result()
 		if err != nil {
-			continue
+			return err
 		}
-		if userIDStr == userID.String() {
-			if err := r.redis.Del(ctx, token).Err(); err != nil {
-				log.Error().Err(err).Str("token", token).Msg("failed to delete refresh token")
+
+		for _, token := range keys {
+			userIDStr, err := r.redis.Get(ctx, token).Result()
+			if err != nil {
+				continue
 			}
+			if userIDStr == userID.String() {
+				if err := r.redis.Del(ctx, token).Err(); err != nil {
+					log.Error().Err(err).Str("token", token).Msg("failed to delete refresh token")
+				}
+			}
+		}
+
+		// cursor == 0 表示遍历完成
+		if cursor == 0 {
+			break
 		}
 	}
 	return nil

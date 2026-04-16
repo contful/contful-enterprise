@@ -5,10 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 
@@ -16,36 +19,116 @@ import (
 	"github.com/contful/contful/admin/internal/repository"
 )
 
+// P1-003: Token Rotation — 每次 Refresh 时撤销旧 refresh token，生成新的
+// P1-004: 密码强度验证 — 注册时强制复杂度要求
+// P2-002: 账户锁定机制 — 连续失败登录后锁定账户
+// P2-004: 登录失败记录审计日志
+
 type AuthService struct {
 	userRepo  *repository.UserRepository
 	auditRepo *repository.AuditRepository
+	redis     *redis.Client
 	jwtSecret []byte
 	accessTTL time.Duration
+	// P2-002: 账户锁定配置
+	lockMaxAttempts int           // 最大失败次数，默认 5
+	lockDuration    time.Duration // 锁定时长，默认 15 分钟
 }
 
 func NewAuthService(
 	userRepo *repository.UserRepository,
 	auditRepo *repository.AuditRepository,
+	redisClient *redis.Client,
 	jwtSecret string,
 ) *AuthService {
 	return &AuthService{
-		userRepo:  userRepo,
-		auditRepo: auditRepo,
-		jwtSecret: []byte(jwtSecret),
-		accessTTL: 15 * time.Minute, // Access Token 15分钟
+		userRepo:       userRepo,
+		auditRepo:      auditRepo,
+		redis:          redisClient,
+		jwtSecret:      []byte(jwtSecret),
+		accessTTL:      15 * time.Minute,
+		lockMaxAttempts: 5,
+		lockDuration:    15 * time.Minute,
 	}
 }
 
 // JWT Claims
 type JWTClaims struct {
-	UserID uuid.UUID `json:"user_id"`
-	Email  string    `json:"email"`
-	IsSuperAdmin bool `json:"is_super_admin"`
+	UserID       uuid.UUID `json:"user_id"`
+	Email        string    `json:"email"`
+	IsSuperAdmin bool      `json:"is_super_admin"`
 	jwt.RegisteredClaims
+}
+
+// P1-004: 密码复杂度验证（导出供 handler 层使用）
+var (
+	ErrPasswordTooShort      = errors.New("password must be at least 8 characters")
+	ErrPasswordNoUppercase   = errors.New("password must contain at least one uppercase letter")
+	ErrPasswordNoLowercase   = errors.New("password must contain at least one lowercase letter")
+	ErrPasswordNoDigit       = errors.New("password must contain at least one digit")
+	ErrPasswordNoSpecialChar = errors.New("password must contain at least one special character")
+)
+
+func validatePasswordStrength(password string) error {
+	if len(password) < 8 {
+		return ErrPasswordTooShort
+	}
+	if !regexp.MustCompile(`[A-Z]`).MatchString(password) {
+		return ErrPasswordNoUppercase
+	}
+	if !regexp.MustCompile(`[a-z]`).MatchString(password) {
+		return ErrPasswordNoLowercase
+	}
+	if !regexp.MustCompile(`[0-9]`).MatchString(password) {
+		return ErrPasswordNoDigit
+	}
+	if !regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`).MatchString(password) {
+		return ErrPasswordNoSpecialChar
+	}
+	return nil
+}
+
+// P2-002: 账户锁定 Redis key
+func loginAttemptsKey(email string) string {
+	return "login_attempts:" + email
+}
+
+// isAccountLocked 检查账户是否被锁定
+func (s *AuthService) isAccountLocked(ctx context.Context, email string) (bool, time.Duration, error) {
+	key := loginAttemptsKey(email)
+	count, err := s.redis.Get(ctx, key).Int()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return false, 0, err
+	}
+	if count >= s.lockMaxAttempts {
+		ttl := s.redis.TTL(ctx, key).Val()
+		return true, ttl, nil
+	}
+	return false, 0, nil
+}
+
+// incrementLoginAttempts 增加失败计数
+func (s *AuthService) incrementLoginAttempts(ctx context.Context, email string) error {
+	key := loginAttemptsKey(email)
+	pipe := s.redis.Pipeline()
+	pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, s.lockDuration)
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+// clearLoginAttempts 清除失败计数（登录成功时）
+func (s *AuthService) clearLoginAttempts(ctx context.Context, email string) error {
+	return s.redis.Del(ctx, loginAttemptsKey(email)).Err()
 }
 
 // Register 注册新用户
 func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest, ip string) (*model.UserResponse, error) {
+	// P1-004: 密码强度检查
+	if err := validatePasswordStrength(req.Password); err != nil {
+		return nil, err // 返回具体错误
+	}
+
 	// 检查邮箱是否已存在
 	existing, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil && !errors.Is(err, repository.ErrUserNotFound) {
@@ -82,18 +165,41 @@ func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest, 
 
 // Login 登录
 func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip string) (*model.LoginResponse, error) {
+	// P2-002: 检查账户是否被锁定
+	locked, ttl, err := s.isAccountLocked(ctx, req.Email)
+	if err != nil {
+		log.Warn().Err(err).Str("email", req.Email).Msg("failed to check account lock status")
+	}
+	if locked {
+		log.Warn().
+			Str("email", req.Email).
+			Str("remaining", ttl.String()).
+			Msg("login blocked: account locked")
+		return nil, errors.New("account is temporarily locked due to too many failed attempts")
+	}
+
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
-			return nil, repository.ErrInvalidPassword // 防止邮箱枚举攻击
+			// P2-002/P2-004: 邮箱不存在时也增加计数 + 记录审计，防止枚举攻击
+			s.incrementLoginAttempts(ctx, req.Email)
+			s.createAuditLogLoginFail(ctx, req.Email, ip, "user not found")
+			return nil, repository.ErrInvalidPassword // 返回相同错误，防止枚举
 		}
 		return nil, err
 	}
 
 	// 验证密码
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		// P2-002: 密码错误，增加失败计数
+		s.incrementLoginAttempts(ctx, req.Email)
+		// P2-004: 记录审计日志
+		s.createAuditLogLoginFail(ctx, req.Email, ip, "invalid password")
 		return nil, repository.ErrInvalidPassword
 	}
+
+	// P2-002: 登录成功，清除失败计数
+	s.clearLoginAttempts(ctx, req.Email)
 
 	// 检查用户状态
 	switch user.Status {
@@ -131,19 +237,22 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip str
 
 // Refresh 刷新 Token
 func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string, error) {
-	// 解析 token（refreshToken 是单独存储的，格式为 accessToken.refreshToken）
 	parts := splitToken(refreshToken)
 	if len(parts) != 2 {
 		return "", errors.New("invalid token format")
 	}
 
-	accessTokenPart := parts[0]
 	refreshTokenPart := parts[1]
 
-	// 验证 Refresh Token
+	// P1-003: 验证 Refresh Token
 	userID, err := s.userRepo.ValidateRefreshToken(ctx, refreshTokenPart)
 	if err != nil {
 		return "", err
+	}
+
+	// P1-003: 撤销旧 refresh token（实现轮换）
+	if err := s.userRepo.DeleteRefreshToken(ctx, refreshTokenPart); err != nil {
+		log.Warn().Err(err).Msg("failed to delete old refresh token during rotation")
 	}
 
 	// 查找用户
@@ -152,13 +261,19 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string,
 		return "", err
 	}
 
-	// 生成新的 Access Token（保留旧的 refresh token）
-	accessToken, err := s.generateAccessTokenWithClaims(user, accessTokenPart)
+	// 生成新的 Access Token
+	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
 		return "", err
 	}
 
-	return accessToken + "." + refreshTokenPart, nil
+	// 生成新的 Refresh Token（轮换）
+	newRefreshToken, err := s.generateRefreshToken(ctx, user.ID)
+	if err != nil {
+		return "", err
+	}
+
+	return accessToken + "." + newRefreshToken, nil
 }
 
 // Logout 登出
@@ -169,7 +284,7 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string, ip string
 	}
 
 	refreshTokenPart := parts[1]
-	
+
 	// 删除 Refresh Token
 	if err := s.userRepo.DeleteRefreshToken(ctx, refreshTokenPart); err != nil {
 		return err
@@ -274,6 +389,11 @@ func (s *AuthService) parseAccessToken(tokenString string) (*JWTClaims, error) {
 	return nil, errors.New("invalid token")
 }
 
+// ParseAccessTokenInternal 暴露 parseAccessToken 供 handler.GetClaims 使用（避免循环依赖）
+func (s *AuthService) ParseAccessTokenInternal(tokenString string) (*JWTClaims, error) {
+	return s.parseAccessToken(tokenString)
+}
+
 func (s *AuthService) generateRefreshToken(ctx context.Context, userID uuid.UUID) (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
@@ -301,7 +421,6 @@ func (s *AuthService) toUserResponse(user *model.GlobalUser) *model.UserResponse
 }
 
 func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, siteID *uuid.UUID, action, resourceType string, resourceID uuid.UUID, level model.AuditLevel, category model.AuditType, ip string) {
-	// 异步创建审计日志
 	go func() {
 		auditLog := &model.AuditLog{
 			ID:           uuid.New(),
@@ -318,6 +437,40 @@ func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, site
 			log.Error().Err(err).Msg("failed to create audit log")
 		}
 	}()
+}
+
+// P2-004: 登录失败审计日志（userID 为 nil）
+func (s *AuthService) createAuditLogLoginFail(ctx context.Context, email string, ip string, reason string) {
+	go func() {
+		maskedEmail := maskEmail(email)
+		auditLog := &model.AuditLog{
+			ID:           uuid.New(),
+			UserID:       nil,
+			Action:       "login_failed:" + reason, // login_failed:invalid_password
+			ResourceType: "user",
+			ResourceID:   nil,
+			Level:        model.AuditLevelWarn,
+			Category:     model.AuditTypeAuth,
+			IPAddress:    ip,
+		}
+		if err := s.auditRepo.Create(ctx, auditLog); err != nil {
+			log.Error().Err(err).Str("email", maskedEmail).Msg("failed to create login_fail audit log")
+		}
+	}()
+}
+
+// maskEmail 邮箱脱敏：show@example.com → s**w@example.com
+func maskEmail(email string) string {
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 {
+		return "***"
+	}
+	local := parts[0]
+	domain := parts[1]
+	if len(local) <= 2 {
+		return "***@" + domain
+	}
+	return string(local[0]) + strings.Repeat("*", len(local)-2) + string(local[len(local)-1]) + "@" + domain
 }
 
 func splitToken(token string) []string {

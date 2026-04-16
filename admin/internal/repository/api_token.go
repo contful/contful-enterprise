@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/contful/contful/admin/internal/model"
@@ -9,6 +10,14 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// P1-002 修复：转义 LIKE 查询中的通配符字符，防止意外匹配
+func escapeLikePattern(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return s
+}
 
 // APITokenRepository API Token 仓储
 type APITokenRepository struct {
@@ -76,7 +85,8 @@ func (r *APITokenRepository) List(ctx context.Context, siteID uuid.UUID, filter 
 			query = query.Where("status = ?", *filter.Status)
 		}
 		if filter.Name != nil && *filter.Name != "" {
-			query = query.Where("name ILIKE ?", "%"+*filter.Name+"%")
+			escaped := escapeLikePattern(*filter.Name)
+			query = query.Where("name ILIKE ?", "%"+escaped+"%")
 		}
 	}
 

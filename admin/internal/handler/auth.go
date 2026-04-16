@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/service"
@@ -35,6 +36,15 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, model.NewErrorResponse(model.CodeConflict, "email already exists"))
+			return
+		}
+		// P1-004: 密码强度错误
+		if errors.Is(err, service.ErrPasswordTooShort) ||
+			errors.Is(err, service.ErrPasswordNoUppercase) ||
+			errors.Is(err, service.ErrPasswordNoLowercase) ||
+			errors.Is(err, service.ErrPasswordNoDigit) ||
+			errors.Is(err, service.ErrPasswordNoSpecialChar) {
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, err.Error()))
 			return
 		}
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
@@ -155,6 +165,38 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(user))
+}
+
+// GetClaims 实现 middleware.claimsGetter 接口，供 JWT 中间件使用
+func (h *AuthHandler) GetClaims(token string) (*middleware.Claims, error) {
+	// 复用 AuthService 的 token 解析逻辑
+	// 这里直接调用内部方法，绕过 service.JWTClaims
+	parts := splitTokenFull(token)
+	if len(parts) != 2 {
+		return nil, errors.New("invalid token format")
+	}
+	accessPart := parts[0]
+
+	// 调用 service 层的 parseAccessToken
+	claims, err := h.authService.ParseAccessTokenInternal(accessPart)
+	if err != nil {
+		return nil, err
+	}
+
+	return &middleware.Claims{
+		UserID:       claims.UserID,
+		Email:        claims.Email,
+		IsSuperAdmin: claims.IsSuperAdmin,
+	}, nil
+}
+
+func splitTokenFull(token string) []string {
+	for i := len(token) - 1; i >= 0; i-- {
+		if token[i] == '.' {
+			return []string{token[:i], token[i+1:]}
+		}
+	}
+	return nil
 }
 
 // ListUsers 获取用户列表

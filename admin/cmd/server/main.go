@@ -77,7 +77,7 @@ func main() {
 	tokenRepo := repository.NewAPITokenRepository(db)
 
 	// 初始化 Service
-	authService := service.NewAuthService(userRepo, auditRepo, cfg.JWT.Secret)
+	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 	assetService := service.NewAssetService(assetRepo, cfg.Storage.UploadDir, "/admin/v1")
@@ -93,7 +93,7 @@ func main() {
 	// 初始化 Gin
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(middleware.CORSMiddleware())
+	// CORS 由部署环境统一处理（内网/Docker 不对外暴露）
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -129,7 +129,7 @@ func main() {
 
 		// 需要认证的路由
 		protected := api.Group("")
-		protected.Use(middleware.JWTAuth(authService))
+		protected.Use(middleware.JWTAuth(authHandler))
 		{
 			// 认证相关
 			protected.POST("/auth/logout", authHandler.Logout)

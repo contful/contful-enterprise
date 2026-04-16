@@ -25,7 +25,7 @@ type GlobalUser struct {
 	Status       UserStatus  `json:"status" gorm:"type:user_status;not null;default:'active'"`
 	IsSuperAdmin bool        `json:"is_super_admin" gorm:"not null;default:false"`
 	LastLoginAt  *time.Time  `json:"last_login_at" gorm:"type:timestamptz"`
-	LastLoginIP  string      `json:"last_login_ip" gorm:"type:inet"`
+	LastLoginIP  *string     `json:"last_login_ip" gorm:"type:inet"`
 	CreatedAt    time.Time   `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt    time.Time   `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 	DeletedAt    *time.Time  `json:"deleted_at" gorm:"type:timestamptz"`
