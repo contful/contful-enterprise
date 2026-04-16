@@ -115,6 +115,10 @@ export const useUserStore = defineStore('user', () => {
     return res.data.data
   }
 
+  const deleteUser = async (userId: string) => {
+    await request.delete(`/users/${userId}`)
+  }
+
   return {
     user,
     isLoading,
@@ -126,5 +130,6 @@ export const useUserStore = defineStore('user', () => {
     logout,
     fetchUser,
     listUsers,
+    deleteUser,
   }
 })

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { showError, showSuccess } from '@/utils/request'
 import {
   getContentTypes,
   type ContentType,
@@ -23,6 +24,7 @@ const router = useRouter()
 
 // 状态
 const loading = ref(false)
+const submitting = ref(false)
 const contentTypes = ref<ContentType[]>([])
 const entries = ref<Entry[]>([])
 const selectedType = ref<ContentType | null>(null)
@@ -30,6 +32,8 @@ const showModal = ref(false)
 const showDeleteConfirm = ref(false)
 const editingEntry = ref<Entry | null>(null)
 const entryToDelete = ref<Entry | null>(null)
+const deleteLoading = ref(false)
+const publishLoading = ref<string | null>(null)
 
 // 分页
 const page = ref(1)
@@ -48,7 +52,7 @@ const loadContentTypes = async () => {
     const res = await getContentTypes({ page: 1, page_size: 100 })
     contentTypes.value = res.data.items || []
   } catch (error) {
-    console.error('Failed to load content types:', error)
+    showError(error)
   }
 }
 
@@ -70,7 +74,7 @@ const loadEntries = async () => {
     entries.value = res.data.items || []
     total.value = res.data.total || 0
   } catch (error) {
-    console.error('Failed to load entries:', error)
+    showError(error)
   } finally {
     loading.value = false
   }
@@ -98,7 +102,7 @@ const openEditModal = async (entry: Entry) => {
     formData.value = { ...res.data.values || {} }
     showModal.value = true
   } catch (error) {
-    console.error('Failed to load entry:', error)
+    showError(error)
   }
 }
 
@@ -113,35 +117,45 @@ const closeModal = () => {
 const handleSubmit = async () => {
   if (!selectedType.value) return
 
+  submitting.value = true
   try {
     if (editingEntry.value) {
       await updateEntry(editingEntry.value.id, {
         values: formData.value,
       } as any)
+      showSuccess('内容已更新')
     } else {
       await createEntry({
         content_type_id: selectedType.value.id,
         values: formData.value,
       } as any)
+      showSuccess('内容已创建')
     }
     closeModal()
     loadEntries()
   } catch (error) {
-    console.error('Failed to save entry:', error)
+    showError(error)
+  } finally {
+    submitting.value = false
   }
 }
 
 // 发布/取消发布
 const handlePublish = async (entry: Entry) => {
+  publishLoading.value = entry.id
   try {
     if (entry.status === 'published') {
       await unpublishEntry(entry.id)
+      showSuccess('已取消发布')
     } else {
       await publishEntry(entry.id)
+      showSuccess('发布成功')
     }
     loadEntries()
   } catch (error) {
-    console.error('Failed to publish entry:', error)
+    showError(error)
+  } finally {
+    publishLoading.value = null
   }
 }
 
@@ -155,13 +169,17 @@ const confirmDelete = (entry: Entry) => {
 const handleDelete = async () => {
   if (!entryToDelete.value) return
 
+  deleteLoading.value = true
   try {
     await deleteEntry(entryToDelete.value.id)
     showDeleteConfirm.value = false
     entryToDelete.value = null
+    showSuccess('删除成功')
     loadEntries()
   } catch (error) {
-    console.error('Failed to delete entry:', error)
+    showError(error)
+  } finally {
+    deleteLoading.value = false
   }
 }
 
@@ -282,12 +300,21 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="6" class="text-center">加载中...</td>
+                  <td colspan="6" class="loading-state">
+                    <div class="spinner"></div>
+                    <span>加载中...</span>
+                  </td>
                 </tr>
                 <tr v-else-if="entries.length === 0">
                   <td colspan="6" class="empty-state">
-                    <p>暂无内容</p>
-                    <button class="btn btn-primary btn-sm" @click="openCreateModal">
+                    <div class="empty-icon">
+                      <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
+                        <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
+                      </svg>
+                    </div>
+                    <p class="empty-title">暂无内容</p>
+                    <p class="empty-desc">开始创建您的第一个内容吧</p>
+                    <button class="btn btn-primary" @click="openCreateModal">
                       创建第一个条目
                     </button>
                   </td>
@@ -304,15 +331,17 @@ onMounted(() => {
                   </td>
                   <td>{{ formatDate(entry.updated_at) }}</td>
                   <td class="actions-cell">
-                    <button class="btn btn-secondary btn-sm" @click="openEditModal(entry)">编辑</button>
+                    <button class="btn btn-secondary btn-sm" :disabled="publishLoading === entry.id" @click="openEditModal(entry)">编辑</button>
                     <button
                       class="btn btn-sm"
                       :class="entry.status === 'published' ? 'btn-secondary' : 'btn-primary'"
+                      :disabled="publishLoading === entry.id"
                       @click="handlePublish(entry)"
                     >
+                      <span v-if="publishLoading === entry.id" class="btn-spinner"></span>
                       {{ entry.status === 'published' ? '取消发布' : '发布' }}
                     </button>
-                    <button class="btn btn-danger btn-sm" @click="confirmDelete(entry)">删除</button>
+                    <button class="btn btn-danger btn-sm" :disabled="deleteLoading" @click="confirmDelete(entry)">删除</button>
                   </td>
                 </tr>
               </tbody>
@@ -422,9 +451,10 @@ onMounted(() => {
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal">取消</button>
-          <button class="btn btn-primary" @click="handleSubmit">
-            {{ editingEntry ? '保存' : '创建' }}
+          <button class="btn btn-secondary" @click="closeModal" :disabled="submitting">取消</button>
+          <button class="btn btn-primary" :disabled="submitting" @click="handleSubmit">
+            <span v-if="submitting" class="btn-spinner"></span>
+            {{ submitting ? '处理中...' : (editingEntry ? '保存' : '创建') }}
           </button>
         </div>
       </div>
@@ -440,8 +470,11 @@ onMounted(() => {
           <p>确定要删除此内容吗？此操作不可撤销。</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false">取消</button>
-          <button class="btn btn-danger" @click="handleDelete">删除</button>
+          <button class="btn btn-secondary" @click="showDeleteConfirm = false" :disabled="deleteLoading">取消</button>
+          <button class="btn btn-danger" :disabled="deleteLoading" @click="handleDelete">
+            <span v-if="deleteLoading" class="btn-spinner"></span>
+            {{ deleteLoading ? '删除中...' : '删除' }}
+          </button>
         </div>
       </div>
     </div>
@@ -685,5 +718,78 @@ onMounted(() => {
   gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid var(--color-border);
+}
+
+/* Loading 状态 */
+.loading-state {
+  text-align: center;
+  padding: 40px !important;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 按钮内 loading */
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* 空态优化 */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px !important;
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0 0 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0 0 20px;
+}
+
+/* 按钮禁用状态 */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn:disabled .btn-spinner {
+  border-color: currentColor;
+  border-top-color: transparent;
 }
 </style>

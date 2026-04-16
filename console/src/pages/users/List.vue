@@ -75,6 +75,7 @@ import { ref, onMounted, reactive } from 'vue'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import { useUserStore } from '@/stores/user'
+import { showError, showSuccess } from '@/utils/request'
 
 const userStore = useUserStore()
 
@@ -114,7 +115,7 @@ const loadUsers = async () => {
       pagination.total = result.total
     }
   } catch (error) {
-    MessagePlugin.error('加载用户列表失败')
+    showError(error)
   }
 }
 
@@ -160,10 +161,15 @@ const deleteUser = (user: User) => {
     header: '确认删除',
     body: `确定要删除用户 ${user.email} 吗？此操作不可恢复。`,
     theme: 'warning',
-    onConfirm: () => {
-      MessagePlugin.success('删除成功')
-      dialog.hide()
-      loadUsers()
+    onConfirm: async () => {
+      try {
+        await userStore.deleteUser(user.id)
+        showSuccess('删除成功')
+        dialog.hide()
+        loadUsers()
+      } catch (error) {
+        showError(error)
+      }
     },
   })
 }
