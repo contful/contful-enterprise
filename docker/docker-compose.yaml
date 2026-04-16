@@ -27,11 +27,13 @@ services:
   # ---------------------------------------------------------------------------
   admin:
     image: contful/console:alpine
-    container_name: contful-admin
+    container_name: contful-console
     ports:
       - "80:80"
       - "443:443"
     env_file: .env
+    environment:
+      - SERVER_PORT=9080
     healthcheck:
       test: ["CMD", "wget", "-q", "-O-", "http://localhost:80/health"]
       interval: 30s
