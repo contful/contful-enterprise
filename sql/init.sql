@@ -543,6 +543,16 @@ INSERT INTO global_roles (id, name, description, is_system, permissions) VALUES
     (gen_random_uuid(), 'Auditor', '审计员，只读访问', TRUE, '["audit:read"]');
 
 -- =============================================================================
+-- 默认管理员账号
+-- =============================================================================
+-- 邮箱: admin@contful.com
+-- 密码: contful@com
+-- 密码哈希: bcrypt(cost=10) of "contful@com"
+
+INSERT INTO global_users (id, email, password_hash, nickname, status, is_super_admin) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'admin@contful.com', '$2a$10$65v1ImEvTC/GCPqBctpsiuAy/J04X1BHX7AKBufYsSV7kvuNSfJMu', 'Administrator', 'active', TRUE);
+
+-- =============================================================================
 -- 触发器
 -- =============================================================================
 
