@@ -16,6 +16,7 @@
 
       <t-form
         :data="loginForm"
+        :required-mark="false"
         :rules="loginRules"
         ref="loginFormRef"
         @submit="onLogin"
