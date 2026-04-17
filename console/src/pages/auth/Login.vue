@@ -7,8 +7,9 @@
             :src="logoUrl"
             alt="Contful"
             class="login-logo"
+            role="heading"
+            aria-level="1"
           />
-          <h1 class="login-title">Contful</h1>
           <p class="login-subtitle">开源 Headless CMS</p>
         </div>
       </template>
@@ -84,7 +85,6 @@ const loginForm = reactive({
   password: '',
 })
 
-
 const loginRules = {
   email: [
     { required: true, message: '请输入邮箱' },
@@ -108,7 +108,6 @@ const onLogin = async () => {
     MessagePlugin.error(result.message || '登录失败')
   }
 }
-
 
 </script>
 
@@ -139,13 +138,6 @@ const onLogin = async () => {
   height: 48px;
   width: auto;
   object-fit: contain;
-}
-
-.login-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--td-text-color-primary);
-  margin: 0;
 }
 
 .login-subtitle {
