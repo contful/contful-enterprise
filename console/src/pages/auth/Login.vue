@@ -120,7 +120,7 @@ const onLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, rgba(200,240,255,0.7) 0%, rgba(180,240,200,0.6) 50%, rgba(220,255,210,0.7) 100%);
   padding: 20px;
 }
 
