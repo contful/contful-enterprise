@@ -26,7 +26,7 @@ ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY admin/ .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/admin-api ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/admin-api .
 
 # ---- Stage 2: OpenResty 运行 ----
 FROM reg.reepu.cn/library/openresty:alpine-amd64 AS runner

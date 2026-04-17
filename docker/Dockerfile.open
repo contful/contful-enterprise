@@ -16,7 +16,7 @@ ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY api/ .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/api-server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/api-server .
 
 # ---- Stage 2: 运行 ----
 FROM reg.reepu.cn/library/alpine:amd64-latest AS runner

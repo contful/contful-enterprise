@@ -66,8 +66,8 @@ docker-compose --env-file .env up -d --scale api=3
 ### 4. 本地开发启动
 
 ```bash
-cd admin && go run cmd/server/main.go   # Admin API (:8080)
-cd open && go run cmd/server/main.go    # Open API (:8081)
+cd admin && go run .                    # Admin API (:8080)
+cd open && go run .                     # Open API (:8080)
 cd console && yarn dev                   # Console (:3000)
 ```
 

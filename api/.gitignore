@@ -1,0 +1,20 @@
+# Go binary
+api
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the Go linkers
+*.out
+
+# Dependency directories
+vendor/
+
+# IDE
+.idea/
+*.swp
+*.swo
