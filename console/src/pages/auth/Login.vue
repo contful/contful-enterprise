@@ -18,6 +18,8 @@
         :data="loginForm"
         :required-mark="false"
         :rules="loginRules"
+        label-width="0"
+        label-align="top"
         ref="loginFormRef"
         @submit="onLogin"
       >
@@ -162,10 +164,5 @@ const onLogin = async () => {
 .copyright a {
   color: var(--td-brand-color);
   text-decoration: none;
-}
-
-.t-form :deep(.t-form__item) {
-  display: flex;
-  justify-content: center;
 }
 </style>
