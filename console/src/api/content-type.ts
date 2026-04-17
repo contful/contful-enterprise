@@ -171,13 +171,13 @@ export function getFields(contentTypeId: string) {
 }
 
 // 更新字段
-export function updateField(fieldId: string, data: FieldUpdate) {
-  return request.put<{ code: number; data: Field }>(`/content/types/fields/${fieldId}`, data)
+export function updateField(contentTypeId: string, fieldId: string, data: FieldUpdate) {
+  return request.put<{ code: number; data: Field }>(`/content/types/${contentTypeId}/fields/${fieldId}`, data)
 }
 
 // 删除字段
-export function deleteField(fieldId: string) {
-  return request.delete(`/content/types/fields/${fieldId}`)
+export function deleteField(contentTypeId: string, fieldId: string) {
+  return request.delete(`/content/types/${contentTypeId}/fields/${fieldId}`)
 }
 
 // 重新排序字段

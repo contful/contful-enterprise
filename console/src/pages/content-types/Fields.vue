@@ -150,7 +150,7 @@ const submitForm = async () => {
   try {
     const contentTypeId = route.params.id as string
     if (isEditing.value) {
-      await updateField(editingId.value, formData.value as FieldUpdate)
+      await updateField(contentTypeId, editingId.value, formData.value as FieldUpdate)
       MessagePlugin.success('更新成功')
     } else {
       await createField(contentTypeId, formData.value)
@@ -166,7 +166,7 @@ const submitForm = async () => {
 // 删除字段
 const handleDelete = async (field: Field) => {
   try {
-    await deleteField(field.id)
+    await deleteField(contentTypeId, field.id)
     MessagePlugin.success('删除成功')
     loadFields()
   } catch (e: any) {

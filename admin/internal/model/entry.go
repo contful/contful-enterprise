@@ -24,7 +24,7 @@ type Entry struct {
 	Status         EntryStatus `json:"status" gorm:"type:entry_status;not null;default:'draft'"`
 	Version        int        `json:"version" gorm:"not null;default:1"`
 	VersionHistory JSONArray  `json:"version_history" gorm:"type:jsonb"`
-	PublishedAt    *time.Time `json:"published_time" gorm:"type:timestamptz"`
+	PublishedTime  *time.Time `json:"published_time" gorm:"column:published_time;type:timestamptz"`
 	PublishedBy    *uuid.UUID `json:"published_by" gorm:"type:uuid"`
 	Relations      JSONBSlice `json:"relations" gorm:"type:jsonb;default:'[]'"`
 	SEOTitle       string     `json:"seo_title" gorm:"size:255"`

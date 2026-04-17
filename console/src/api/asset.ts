@@ -210,7 +210,7 @@ export const assetApi = {
    * 批量删除资源
    */
   batchDelete: async (ids: string[]): Promise<void> => {
-    await request.delete('/admin/api/v1/assets', { data: { ids } })
+    await request.delete('/admin/api/v1/assets/batch-delete', { data: { ids } })
   },
 }
 

@@ -156,11 +156,12 @@ func main() {
 			protected.DELETE("/content/types/:id", ctHandler.Delete)
 			protected.POST("/content/types/:id/fields", ctHandler.CreateField)
 			protected.GET("/content/types/:id/fields", ctHandler.ListFields)
-			protected.PUT("/content/types/fields/:fieldId", ctHandler.UpdateField)
-			protected.DELETE("/content/types/fields/:fieldId", ctHandler.DeleteField)
+			// 字段操作（嵌套在 :id 之下，避免与 /content/types/:id 冲突）
+			protected.PUT("/content/types/:id/fields/:fieldId", ctHandler.UpdateField)
+			protected.DELETE("/content/types/:id/fields/:fieldId", ctHandler.DeleteField)
 			protected.POST("/content/types/:id/fields/reorder", ctHandler.ReorderFields)
 
-			// 内容管理 (REST: /content/entries)
+		// 内容管理 (REST: /content/entries)
 			protected.GET("/content/entries", entryHandler.List)
 			protected.POST("/content/entries", entryHandler.Create)
 			protected.GET("/content/entries/:id", entryHandler.Get)
@@ -169,22 +170,26 @@ func main() {
 			protected.POST("/content/entries/:id/publish", entryHandler.Publish)
 			protected.POST("/content/entries/:id/unpublish", entryHandler.Unpublish)
 			protected.GET("/content/entries/:id/versions", entryHandler.GetVersions)
+			// 批量操作（静态路径在前，避免与 :id 冲突）
+			protected.POST("/content/entries/batch-publish", entryHandler.BatchPublish)
+			protected.POST("/content/entries/batch-unpublish", entryHandler.BatchUnpublish)
+			protected.DELETE("/content/entries/batch-delete", entryHandler.BatchDelete)
 
-			// 媒体库
+		// 媒体库
 			protected.GET("/assets", assetHandler.List)
 			protected.POST("/assets", assetHandler.Upload)
-			protected.GET("/assets/:id", assetHandler.Get)
-			protected.PUT("/assets/:id", assetHandler.Update)
-			protected.DELETE("/assets/:id", assetHandler.Delete)
-			protected.DELETE("/assets", assetHandler.BatchDelete)
-
-			// 文件夹管理
+			// 文件夹管理（静态路径必须在 :id 之前，否则 folders 会被 :id 捕获）
 			protected.POST("/assets/folders", assetHandler.CreateFolder)
 			protected.GET("/assets/folders/tree", assetHandler.GetFolderTree)
 			protected.GET("/assets/folders", assetHandler.ListFolders)
 			protected.GET("/assets/folders/:id", assetHandler.GetFolder)
 			protected.PUT("/assets/folders/:id", assetHandler.UpdateFolder)
 			protected.DELETE("/assets/folders/:id", assetHandler.DeleteFolder)
+			// 资产 CRUD（:id 路由放在最后）
+			protected.GET("/assets/:id", assetHandler.Get)
+			protected.PUT("/assets/:id", assetHandler.Update)
+			protected.DELETE("/assets/:id", assetHandler.Delete)
+			protected.DELETE("/assets/batch-delete", assetHandler.BatchDelete)
 
 			// API Token 管理
 			protected.POST("/api-tokens", tokenHandler.Create)

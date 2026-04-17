@@ -45,7 +45,7 @@ type EntryResponse struct {
 	Status         EntryStatus            `json:"status"`
 	Version        int                    `json:"version"`
 	VersionHistory []EntryVersionInfo     `json:"version_history,omitempty"`
-	PublishedAt    *time.Time             `json:"published_time,omitempty"`
+	PublishedTime  *time.Time             `json:"published_time,omitempty"`
 	PublishedBy    *uuid.UUID             `json:"published_by,omitempty"`
 	Relations      []map[string]interface{} `json:"relations,omitempty"`
 	SEOTitle       string                 `json:"seo_title,omitempty"`
@@ -93,7 +93,7 @@ func (e *Entry) ToResponse() EntryResponse {
 		Locale:         e.Locale,
 		Status:         e.Status,
 		Version:        e.Version,
-		PublishedAt:    e.PublishedAt,
+		PublishedTime:  e.PublishedTime,
 		PublishedBy:    e.PublishedBy,
 		SEOTitle:       e.SEOTitle,
 		SEODescription: e.SEODescription,

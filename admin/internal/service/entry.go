@@ -263,7 +263,7 @@ func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uu
 	// 更新发布状态
 	entry.Status = model.EntryStatusPublished
 	entry.Version++
-	entry.PublishedAt = &now
+	entry.PublishedTime = &now
 	entry.PublishedBy = userID
 
 	if err := s.entryRepo.Update(ctx, entry); err != nil {
@@ -289,7 +289,7 @@ func (s *EntryService) Unpublish(ctx context.Context, siteID uuid.UUID, id uuid.
 	}
 
 	entry.Status = model.EntryStatusDraft
-	entry.PublishedAt = nil
+	entry.PublishedTime = nil
 	entry.PublishedBy = nil
 
 	if err := s.entryRepo.Update(ctx, entry); err != nil {
