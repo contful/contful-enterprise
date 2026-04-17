@@ -39,10 +39,9 @@ export const useUserStore = defineStore('user', () => {
         password,
       })
       if (res.data.code === 0) {
-        // 解析 token (格式: accessToken.refreshToken)
-        const tokenParts = res.data.data.access_token.split('.')
-        const accessToken = tokenParts[0] + '.' + tokenParts[1]
-        const refreshToken = tokenParts[2]
+        // 后端返回独立的 access_token 和 refresh_token 字段
+        const accessToken = res.data.data.access_token as string
+        const refreshToken = res.data.data.refresh_token as string
 
         setAccessToken(accessToken)
         setRefreshToken(refreshToken)

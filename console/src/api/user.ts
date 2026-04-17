@@ -36,7 +36,7 @@ export interface UpdateUserData {
 // 获取用户列表
 export function getUsers(params: UserListParams) {
   return request<{ items: User[]; total: number; page: number; page_size: number }>({
-    url: '/admin/api/v1/users',
+    url: '/users',
     method: 'get',
     params,
   })
@@ -45,7 +45,7 @@ export function getUsers(params: UserListParams) {
 // 获取当前用户
 export function getCurrentUser() {
   return request<User>({
-    url: '/admin/api/v1/users/me',
+    url: '/users/me',
     method: 'get',
   })
 }
@@ -53,7 +53,7 @@ export function getCurrentUser() {
 // 获取用户详情
 export function getUser(id: string) {
   return request<User>({
-    url: `/admin/api/v1/users/${id}`,
+    url: `/users/${id}`,
     method: 'get',
   })
 }
@@ -61,7 +61,7 @@ export function getUser(id: string) {
 // 创建用户
 export function createUser(data: CreateUserData) {
   return request<User>({
-    url: '/admin/api/v1/users',
+    url: '/users',
     method: 'post',
     data,
   })
@@ -70,7 +70,7 @@ export function createUser(data: CreateUserData) {
 // 更新用户
 export function updateUser(id: string, data: UpdateUserData) {
   return request<User>({
-    url: `/admin/api/v1/users/${id}`,
+    url: `/users/${id}`,
     method: 'put',
     data,
   })
@@ -79,7 +79,7 @@ export function updateUser(id: string, data: UpdateUserData) {
 // 删除用户
 export function deleteUser(id: string) {
   return request<void>({
-    url: `/admin/api/v1/users/${id}`,
+    url: `/users/${id}`,
     method: 'delete',
   })
 }
@@ -87,7 +87,7 @@ export function deleteUser(id: string) {
 // 更新密码
 export function updatePassword(id: string, oldPassword: string, newPassword: string) {
   return request<void>({
-    url: `/admin/api/v1/users/${id}/password`,
+    url: `/users/${id}/password`,
     method: 'put',
     data: { old_password: oldPassword, new_password: newPassword },
   })

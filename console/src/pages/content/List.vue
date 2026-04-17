@@ -375,7 +375,7 @@ onMounted(() => {
             <span class="type-count">{{ type.field_count || 0 }}</span>
           </button>
           <div v-if="contentTypes.length === 0" class="empty-tip">
-            暂无内容类型，<router-link to="/content-types">去创建</router-link>
+            暂无内容类型，<router-link to="/content/types">去创建</router-link>
           </div>
         </div>
       </aside>

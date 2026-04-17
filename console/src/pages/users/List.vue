@@ -188,12 +188,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
 .users-header h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  flex: 1;
 }
 
 .text-gray {

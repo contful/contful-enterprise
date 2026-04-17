@@ -157,7 +157,7 @@ const handleDelete = async (row: ContentType) => {
 
 // 跳转到字段管理
 const goToFields = (row: ContentType) => {
-  router.push(`/content-types/${row.id}/fields`)
+  router.push(`/content/types/${row.id}/fields`)
 }
 
 // 格式化时间

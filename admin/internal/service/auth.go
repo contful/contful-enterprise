@@ -231,15 +231,16 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip str
 
 	return &model.LoginResponse{
 		User:        s.toUserResponse(user),
-		AccessToken: accessToken + "." + refreshToken, // accessToken.refreshToken 格式
+		AccessToken: accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
 // Refresh 刷新 Token
-func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string, error) {
+func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
 	parts := splitToken(refreshToken)
 	if len(parts) != 2 {
-		return "", errors.New("invalid token format")
+		return "", "", errors.New("invalid token format")
 	}
 
 	refreshTokenPart := parts[1]
@@ -247,7 +248,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string,
 	// P1-003: 验证 Refresh Token
 	userID, err := s.userRepo.ValidateRefreshToken(ctx, refreshTokenPart)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// P1-003: 撤销旧 refresh token（实现轮换）
@@ -258,22 +259,22 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string,
 	// 查找用户
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// 生成新的 Access Token
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// 生成新的 Refresh Token（轮换）
 	newRefreshToken, err := s.generateRefreshToken(ctx, user.ID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return accessToken + "." + newRefreshToken, nil
+	return accessToken, newRefreshToken, nil
 }
 
 // Logout 登出

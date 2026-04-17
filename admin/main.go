@@ -96,7 +96,7 @@ func main() {
 	// 初始化 Gin
 	r := gin.New()
 	r.Use(gin.Recovery())
-	// CORS 由部署环境统一处理（内网/Docker 不对外暴露）
+	// CORS 由部署环境统一处理（反向代理/API 网关）
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

@@ -107,13 +107,15 @@ type LoginRequest struct {
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	User        *UserResponse `json:"user"`
-	AccessToken string        `json:"access_token"`
+	User         *UserResponse `json:"user"`
+	AccessToken  string        `json:"access_token"`
+	RefreshToken string        `json:"refresh_token"`
 }
 
 // RefreshResponse 刷新 Token 响应
 type RefreshResponse struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 // UserResponse 用户响应（脱敏）

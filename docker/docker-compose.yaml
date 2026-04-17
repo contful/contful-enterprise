@@ -6,8 +6,8 @@
 #   1. 将 sql/init.sql 导入到 PostgreSQL
 #   2. cp .env.example .env，填入数据库/Redis/JWT 信息
 #   3. 已构建镜像:
-#      docker build -t contful/console:alpine -f Dockerfile.admin ..
-#      docker build -t contful/api:alpine -f Dockerfile.open ..
+#      docker build -t contful/console:alpine -f Dockerfile.console ..
+#      docker build -t contful/api:alpine -f Dockerfile.api ..
 #
 # 启动:
 #   docker-compose --env-file .env up -d

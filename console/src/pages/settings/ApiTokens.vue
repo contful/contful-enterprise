@@ -45,7 +45,7 @@ const loadTokens = async () => {
   loading.value = true
   try {
     const res = await getApiTokens({ page: 1, page_size: 100 })
-    tokens.value = res.data.items || []
+    tokens.value = res.items || []
   } catch (error) {
     showError(error)
   } finally {

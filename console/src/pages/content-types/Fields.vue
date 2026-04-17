@@ -181,7 +181,7 @@ const getFieldTypeLabel = (type: string) => {
 
 // 返回列表
 const goBack = () => {
-  router.push('/content-types')
+  router.push('/content/types')
 }
 
 onMounted(() => {

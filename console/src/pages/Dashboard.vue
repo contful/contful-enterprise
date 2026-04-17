@@ -38,9 +38,9 @@ onMounted(async () => {
 })
 
 const quickActions = [
-  { icon: 'add', label: '创建内容', path: '/content', color: '#3b82f6' },
-  { icon: 'upload', label: '上传媒体', path: '/media', color: '#10b981' },
-  { icon: 'schema', label: '管理类型', path: '/content-types', color: '#8b5cf6' },
+  { icon: 'add', label: '创建内容', path: '/content/entries', color: '#3b82f6' },
+  { icon: 'upload', label: '上传媒体', path: '/assets', color: '#10b981' },
+  { icon: 'schema', label: '管理类型', path: '/content/types', color: '#8b5cf6' },
   { icon: 'token', label: 'API Token', path: '/settings', color: '#f59e0b' },
 ]
 
@@ -74,7 +74,7 @@ const getStatusLabel = (status: string) => {
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
-      <div class="stat-card" @click="router.push('/content')">
+      <div class="stat-card" @click="router.push('/content/entries')">
         <div class="stat-icon" style="background: #eff6ff; color: #3b82f6;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v10h8V4H6z"/>
@@ -86,7 +86,7 @@ const getStatusLabel = (status: string) => {
         </div>
       </div>
 
-      <div class="stat-card" @click="router.push('/content-types')">
+      <div class="stat-card" @click="router.push('/content/types')">
         <div class="stat-icon" style="background: #f3e8ff; color: #8b5cf6;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
@@ -98,7 +98,7 @@ const getStatusLabel = (status: string) => {
         </div>
       </div>
 
-      <div class="stat-card" @click="router.push('/media')">
+      <div class="stat-card" @click="router.push('/assets')">
         <div class="stat-icon" style="background: #ecfdf5; color: #10b981;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
@@ -156,7 +156,7 @@ const getStatusLabel = (status: string) => {
         <div v-if="loading" class="loading">加载中...</div>
         <div v-else-if="recentEntries.length === 0" class="empty-state">
           <p>暂无内容</p>
-          <button class="btn btn-primary btn-sm" @click="router.push('/content')">
+          <button class="btn btn-primary btn-sm" @click="router.push('/content/entries')">
             创建第一个内容
           </button>
         </div>
@@ -173,7 +173,7 @@ const getStatusLabel = (status: string) => {
             <tr
               v-for="entry in recentEntries"
               :key="entry.id"
-              @click="router.push(`/content/${entry.content_type_id}?id=${entry.id}`)"
+              @click="router.push(`/content/entries?type=${entry.content_type_id}&id=${entry.id}`)"
               style="cursor: pointer;"
             >
               <td>{{ entry.title || entry.id.slice(0, 8) }}</td>

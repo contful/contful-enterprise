@@ -2,8 +2,8 @@ import axios, { type AxiosInstance, type AxiosError, type AxiosRequestConfig } f
 import { MessagePlugin } from 'tdesign-vue-next'
 
 // Token 存储在内存中，不持久化（安全要求）
-let accessToken: string | null = null
-let refreshToken: string | null = null
+let accessToken: string | null = null  // 完整 JWT (header.payload.signature)
+let refreshToken: string | null = null   // 随机字符串（64 hex）
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token
@@ -104,8 +104,12 @@ const request: AxiosInstance = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
+    // 强制 JSON Content-Type
+    config.headers['Content-Type'] = 'application/json'
+
     if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}.${refreshToken}`
+      // 只发 JWT，不带 refreshToken（后端中间件只需 JWT）
+      config.headers.Authorization = `Bearer ${accessToken}`
     }
     return config
   },
@@ -123,23 +127,31 @@ request.interceptors.response.use(
       config._retry = true
       // Token 过期，尝试刷新
       try {
+        // 发送完整 token 格式: JWT.refreshToken（后端 splitToken 按最后一个 . 分割）
+        const tokenForRefresh = accessToken && refreshToken
+          ? `${accessToken}.${refreshToken}`
+          : null
         const refreshRes = await axios.post(
           '/admin/api/v1/auth/refresh',
           {},
           {
             withCredentials: true,
-            headers: accessToken ? { Authorization: `Bearer ${accessToken}.${refreshToken}` } : {}
+            headers: {
+              'Content-Type': 'application/json',
+              ...(tokenForRefresh ? { Authorization: `Bearer ${tokenForRefresh}` } : {}),
+            }
           }
         )
         if (refreshRes.data.code === 0) {
-          // 刷新成功，更新内存中的 token
-          const newToken = refreshRes.data.data.access_token
-          const tokenParts = newToken.split('.')
-          accessToken = tokenParts[0] + '.' + tokenParts[1]
-          refreshToken = tokenParts[2]
+          // 刷新成功，直接从响应字段读取
+          const newAccessToken = refreshRes.data.data.access_token as string
+          const newRefreshToken = refreshRes.data.data.refresh_token as string
+
+          accessToken = newAccessToken
+          refreshToken = newRefreshToken
 
           // 重试原请求
-          config.headers!.Authorization = `Bearer ${accessToken}.${refreshToken}`
+          config.headers!.Authorization = `Bearer ${accessToken}`
           return request(config)
         }
       } catch {

@@ -99,14 +99,15 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 	
-	newToken, err := h.authService.Refresh(c.Request.Context(), token)
+	newAccessToken, newRefreshToken, err := h.authService.Refresh(c.Request.Context(), token)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid refresh token"))
 		return
 	}
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(model.RefreshResponse{
-		AccessToken: newToken,
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
 	}))
 }
 
@@ -169,16 +170,8 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 // GetClaims 实现 middleware.claimsGetter 接口，供 JWT 中间件使用
 func (h *AuthHandler) GetClaims(token string) (*middleware.Claims, error) {
-	// 复用 AuthService 的 token 解析逻辑
-	// 这里直接调用内部方法，绕过 service.JWTClaims
-	parts := splitTokenFull(token)
-	if len(parts) != 2 {
-		return nil, errors.New("invalid token format")
-	}
-	accessPart := parts[0]
-
-	// 调用 service 层的 parseAccessToken
-	claims, err := h.authService.ParseAccessTokenInternal(accessPart)
+	// JWT 格式: header.payload.signature，直接解析即可
+	claims, err := h.authService.ParseAccessTokenInternal(token)
 	if err != nil {
 		return nil, err
 	}
@@ -188,15 +181,6 @@ func (h *AuthHandler) GetClaims(token string) (*middleware.Claims, error) {
 		Email:        claims.Email,
 		IsSuperAdmin: claims.IsSuperAdmin,
 	}, nil
-}
-
-func splitTokenFull(token string) []string {
-	for i := len(token) - 1; i >= 0; i-- {
-		if token[i] == '.' {
-			return []string{token[:i], token[i+1:]}
-		}
-	}
-	return nil
 }
 
 // ListUsers 获取用户列表

@@ -123,7 +123,7 @@ export const assetApi = {
       formData.append('title', options.title)
     }
 
-    const response = await request.post<AssetResponse>('/admin/api/v1/assets', formData, {
+    const response = await request.post<AssetResponse>('/assets', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -177,7 +177,7 @@ export const assetApi = {
     }
 
     const response = await request.get<AssetListResponse>(
-      `/admin/api/v1/assets?${queryParams.toString()}`
+      `/assets?${queryParams.toString()}`
     )
 
     return response.data
@@ -187,7 +187,7 @@ export const assetApi = {
    * 获取资源详情
    */
   get: async (id: string): Promise<AssetResponse> => {
-    const response = await request.get<AssetResponse>(`/admin/api/v1/assets/${id}`)
+    const response = await request.get<AssetResponse>(`/assets/${id}`)
     return response.data
   },
 
@@ -195,7 +195,7 @@ export const assetApi = {
    * 更新资源
    */
   update: async (id: string, data: AssetUpdate): Promise<AssetResponse> => {
-    const response = await request.put<AssetResponse>(`/admin/api/v1/assets/${id}`, data)
+    const response = await request.put<AssetResponse>(`/assets/${id}`, data)
     return response.data
   },
 
@@ -203,14 +203,14 @@ export const assetApi = {
    * 删除资源
    */
   delete: async (id: string): Promise<void> => {
-    await request.delete(`/admin/api/v1/assets/${id}`)
+    await request.delete(`/assets/${id}`)
   },
 
   /**
    * 批量删除资源
    */
   batchDelete: async (ids: string[]): Promise<void> => {
-    await request.delete('/admin/api/v1/assets/batch-delete', { data: { ids } })
+    await request.delete('/assets/batch-delete', { data: { ids } })
   },
 }
 
@@ -221,7 +221,7 @@ export const folderApi = {
    * 创建文件夹
    */
   create: async (data: FolderCreate): Promise<FolderResponse> => {
-    const response = await request.post<FolderResponse>('/admin/api/v1/assets/folders', data)
+    const response = await request.post<FolderResponse>('/assets/folders', data)
     return response.data
   },
 
@@ -229,7 +229,7 @@ export const folderApi = {
    * 获取文件夹树
    */
   getTree: async (): Promise<FolderResponse[]> => {
-    const response = await request.get<FolderResponse[]>('/admin/api/v1/assets/folders/tree')
+    const response = await request.get<FolderResponse[]>('/assets/folders/tree')
     return response.data
   },
 
@@ -238,7 +238,7 @@ export const folderApi = {
    */
   list: async (parentId?: string): Promise<FolderResponse[]> => {
     const params = parentId ? { parent_id: parentId } : {}
-    const response = await request.get<FolderResponse[]>('/admin/api/v1/assets/folders', { params })
+    const response = await request.get<FolderResponse[]>('/assets/folders', { params })
     return response.data
   },
 
@@ -246,7 +246,7 @@ export const folderApi = {
    * 获取文件夹详情
    */
   get: async (id: string): Promise<FolderResponse> => {
-    const response = await request.get<FolderResponse>(`/admin/api/v1/assets/folders/${id}`)
+    const response = await request.get<FolderResponse>(`/assets/folders/${id}`)
     return response.data
   },
 
@@ -254,7 +254,7 @@ export const folderApi = {
    * 更新文件夹
    */
   update: async (id: string, data: FolderUpdate): Promise<FolderResponse> => {
-    const response = await request.put<FolderResponse>(`/admin/api/v1/assets/folders/${id}`, data)
+    const response = await request.put<FolderResponse>(`/assets/folders/${id}`, data)
     return response.data
   },
 
@@ -262,7 +262,7 @@ export const folderApi = {
    * 删除文件夹
    */
   delete: async (id: string): Promise<void> => {
-    await request.delete(`/admin/api/v1/assets/folders/${id}`)
+    await request.delete(`/assets/folders/${id}`)
   },
 }
 

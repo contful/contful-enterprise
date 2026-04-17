@@ -36,6 +36,7 @@ DROP TABLE IF EXISTS webhook_deliveries CASCADE;
 DROP TABLE IF EXISTS webhooks CASCADE;
 DROP TABLE IF EXISTS api_tokens CASCADE;
 DROP TABLE IF EXISTS assets CASCADE;
+DROP TABLE IF EXISTS asset_folders CASCADE;
 DROP TABLE IF EXISTS entry_versions CASCADE;
 DROP TABLE IF EXISTS entry_values CASCADE;
 DROP TABLE IF EXISTS entries CASCADE;
@@ -66,6 +67,7 @@ DROP TYPE IF EXISTS content_type_kind;
 DROP TYPE IF EXISTS field_type;
 DROP TYPE IF EXISTS asset_type;
 DROP TYPE IF EXISTS asset_status;
+DROP TYPE IF EXISTS asset_visibility;
 DROP TYPE IF EXISTS token_status;
 DROP TYPE IF EXISTS audit_level;
 DROP TYPE IF EXISTS audit_type;
@@ -81,8 +83,6 @@ CREATE TYPE field_type AS ENUM (
     'text', 'rich_text', 'number', 'boolean', 'date', 'datetime',
     'email', 'url', 'json', 'media', 'relation', 'enum', 'password'
 );
-CREATE TYPE asset_type AS ENUM ('image', 'video', 'audio', 'document', 'other');
-CREATE TYPE asset_status AS ENUM ('active', 'processing', 'failed', 'deleted');
 CREATE TYPE token_status AS ENUM ('active', 'expired', 'revoked');
 CREATE TYPE audit_level AS ENUM ('debug', 'info', 'warn', 'error');
 CREATE TYPE audit_type AS ENUM ('auth', 'content', 'media', 'settings', 'user', 'system');
@@ -404,41 +404,77 @@ CREATE INDEX idx_entry_versions_created ON entry_versions(created_time DESC);
 -- 5. 媒体资产层
 -- =============================================================================
 
+-- 资源类型枚举
+CREATE TYPE asset_type AS ENUM ('image', 'video', 'audio', 'document', 'file');
+
+-- 资源可见性枚举
+CREATE TYPE asset_visibility AS ENUM ('public', 'private');
+
+-- 资源状态枚举
+CREATE TYPE asset_status AS ENUM ('active', 'inactive', 'deleted');
+
+-- 资产文件夹表
+CREATE TABLE asset_folders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    site_id UUID NOT NULL REFERENCES sites(id),
+    parent_id UUID REFERENCES asset_folders(id),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL,
+    path VARCHAR(500) NOT NULL,  -- 完整路径
+    sort_order INT NOT NULL DEFAULT 0,
+    created_by UUID,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_time TIMESTAMPTZ
+);
+CREATE INDEX idx_asset_folders_site ON asset_folders(site_id);
+CREATE INDEX idx_asset_folders_parent ON asset_folders(parent_id);
+
+-- 资产表（匹配 Go Model: Asset）
 CREATE TABLE assets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id),
-    filename VARCHAR(255) NOT NULL,
-    original_filename VARCHAR(255),
-    mimetype VARCHAR(100) NOT NULL,
-    size_bytes BIGINT NOT NULL,
-    storage_provider VARCHAR(50) NOT NULL DEFAULT 'local',
-    storage_path VARCHAR(512) NOT NULL,
-    storage_url TEXT,
-    file_hash VARCHAR(64),
-    asset_type asset_type NOT NULL,
+    folder_id UUID REFERENCES asset_folders(id),
+    uuid VARCHAR(36) NOT NULL UNIQUE,  -- 业务 UUID
+    name VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL,
+    type asset_type NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    extension VARCHAR(20) NOT NULL,
+    size BIGINT NOT NULL,  -- bytes
     width INT,
     height INT,
-    duration_sec NUMERIC(10,3),
-    color_space VARCHAR(50),
-    has_alpha BOOLEAN DEFAULT FALSE,
-    thumbnail_path VARCHAR(512),
-    thumbnail_url TEXT,
+    duration DOUBLE PRECISION,  -- 音视频时长(秒)
+    path VARCHAR(500) NOT NULL,  -- 存储路径
+    url VARCHAR(500) NOT NULL,  -- 访问 URL
+    thumbnail_url VARCHAR(500),
+    alt TEXT,
+    title VARCHAR(255),
+    caption TEXT,
+    alt_text TEXT,
+    description TEXT,
+    tags TEXT[],
     metadata JSONB NOT NULL DEFAULT '{}',
-    status asset_status NOT NULL DEFAULT 'active',
-    usage_count INT NOT NULL DEFAULT 0,
-    uploaded_by UUID,
-    ip_address INET,
+    visibility asset_visibility NOT NULL DEFAULT 'private',
+    file_hash VARCHAR(64),
+    disk VARCHAR(50) NOT NULL DEFAULT 'local',
+    download_count INT NOT NULL DEFAULT 0,
+    used_count INT NOT NULL DEFAULT 0,  -- 被引用次数
+    created_by UUID,
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_time TIMESTAMPTZ
 );
 CREATE INDEX idx_assets_site ON assets(site_id);
-CREATE INDEX idx_assets_type ON assets(asset_type);
-CREATE INDEX idx_assets_mimetype ON assets(mimetype);
+CREATE INDEX idx_assets_folder ON assets(folder_id);
+CREATE INDEX idx_assets_type ON assets(type);
+CREATE INDEX idx_assets_extension ON assets(extension);
+CREATE INDEX idx_assets_slug ON assets(slug);
 CREATE INDEX idx_assets_hash ON assets(file_hash) WHERE file_hash IS NOT NULL;
-CREATE INDEX idx_assets_status ON assets(status);
 CREATE INDEX idx_assets_created ON assets(created_time DESC);
-CREATE INDEX idx_assets_uploaded_by ON assets(uploaded_by);
+CREATE INDEX idx_assets_download ON assets(download_count);
+CREATE INDEX idx_assets_used ON assets(used_count);
 
 -- =============================================================================
 -- 6. API Token 层
@@ -542,12 +578,12 @@ CREATE INDEX IF NOT EXISTS idx_entries_site_locale
     ON entries(site_id, locale, status);
 
 -- assets 表索引优化
-CREATE INDEX IF NOT EXISTS idx_assets_site_status_date
-    ON assets(site_id, status, created_time DESC);
 CREATE INDEX IF NOT EXISTS idx_assets_site_type
-    ON assets(site_id, asset_type);
-CREATE INDEX IF NOT EXISTS idx_assets_storage_path
-    ON assets(storage_path);
+    ON assets(site_id, type);
+CREATE INDEX IF NOT EXISTS idx_assets_site_created
+    ON assets(site_id, created_time DESC);
+CREATE INDEX IF NOT EXISTS idx_assets_path
+    ON assets(path);
 
 -- audit_logs 索引优化
 CREATE INDEX IF NOT EXISTS idx_audit_logs_site_user_time
