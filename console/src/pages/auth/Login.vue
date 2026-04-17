@@ -163,4 +163,9 @@ const onLogin = async () => {
   color: var(--td-brand-color);
   text-decoration: none;
 }
+
+.t-form :deep(.t-form__item) {
+  display: flex;
+  justify-content: center;
+}
 </style>
