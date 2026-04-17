@@ -9,7 +9,7 @@
 | 后端 | Go 1.22+ / Gin / GORM |
 | 前端 | Vue 3.4+ / TDesign |
 | 数据库 | PostgreSQL 16+ |
-| 缓存 | Redis 7+ |
+| 缓存 | Valkey 9+ |
 
 ## 项目结构
 
@@ -27,7 +27,7 @@ contful/
 
 ### 前置条件
 - PostgreSQL 18
-- Redis 7+
+- Valkey 9+
 
 ### 1. 初始化数据库
 
