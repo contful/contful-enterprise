@@ -11,6 +11,7 @@ import {
   type Asset,
   type AssetFolder,
 } from '@/api/asset'
+import { showError, showSuccess } from '@/utils/request'
 
 const loading = ref(false)
 const assets = ref<Asset[]>([])
@@ -61,7 +62,7 @@ const loadAssets = async () => {
     assets.value = res.data.items || []
     total.value = res.data.total || 0
   } catch (error) {
-    console.error('Failed to load assets:', error)
+    showError(error)
   } finally {
     loading.value = false
   }
@@ -73,7 +74,7 @@ const loadFolders = async () => {
     const res = await getAssetFolders()
     folders.value = res.data || []
   } catch (error) {
-    console.error('Failed to load folders:', error)
+    showError(error)
   }
 }
 
@@ -91,10 +92,11 @@ const handleUpload = async (event: Event) => {
       file,
       folder_id: selectedFolder.value,
     })
+    showSuccess('上传成功')
     await loadAssets()
     showUploadModal.value = false
   } catch (error) {
-    console.error('Failed to upload:', error)
+    showError(error)
   } finally {
     uploading.value = false
     input.value = ''
@@ -116,14 +118,14 @@ const handleDrop = async (event: DragEvent) => {
       })
     }
     await loadAssets()
+    showSuccess('上传成功')
   } catch (error) {
-    console.error('Failed to upload:', error)
+    showError(error)
   } finally {
-    uploading.value = false
+    showUploadModal.value = false
   }
 }
 
-// 新建文件夹
 const handleCreateFolder = async () => {
   if (!newFolderName.value.trim()) return
 
@@ -136,7 +138,7 @@ const handleCreateFolder = async () => {
     showNewFolderModal.value = false
     newFolderName.value = ''
   } catch (error) {
-    console.error('Failed to create folder:', error)
+    showError(error)
   }
 }
 
@@ -151,11 +153,12 @@ const handleDelete = async () => {
 
   try {
     await deleteAsset(assetToDelete.value.id)
+    showSuccess('删除成功')
     showDeleteConfirm.value = false
     assetToDelete.value = null
     await loadAssets()
   } catch (error) {
-    console.error('Failed to delete:', error)
+    showError(error)
   }
 }
 
