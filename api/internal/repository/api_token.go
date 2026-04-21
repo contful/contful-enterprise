@@ -31,13 +31,13 @@ func (r *APITokenRepository) FindByHash(ctx context.Context, tokenHash string) (
 	return &token, nil
 }
 
-// UpdateLastUsedAt 更新最后使用时间
-func (r *APITokenRepository) UpdateLastUsedAt(ctx context.Context, tokenID uuid.UUID) error {
+// UpdateLastUsedTime 更新最后使用时间
+func (r *APITokenRepository) UpdateLastUsedTime(ctx context.Context, tokenID uuid.UUID) error {
 	now := time.Now()
 	return r.db.WithContext(ctx).
 		Model(&APIToken{}).
 		Where("id = ?", tokenID).
-		Update("last_used_at", &now).Error
+		Update("last_used_time", &now).Error
 }
 
 // TokenStatusActive 活跃状态常量
@@ -45,19 +45,19 @@ const TokenStatusActive = "active"
 
 // APIToken 对应 DB 表结构（与 Admin API 共享同一 DB）
 type APIToken struct {
-	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID      uuid.UUID  `gorm:"type:uuid;not null;index"`
-	Name        string     `gorm:"size:100;not null"`
-	TokenPrefix string     `gorm:"size:10;not null;index"` // ctg_ 前 10 位
-	TokenHash   string     `gorm:"size:64;not null;uniqueIndex"`
-	Permissions Permission `gorm:"type:jsonb;default:'{}'"`
-	RateLimits  Limits     `gorm:"type:jsonb;default:'{\"requests_per_minute\": 100}'"`
-	ExpiresAt   *time.Time `gorm:"type:timestamptz"`
-	Status      string     `gorm:"type:token_status;not null;default:'active'"`
-	LastUsedAt  *time.Time `gorm:"type:timestamptz"`
-	CreatedAt   time.Time  `gorm:"autoCreateTime"`
-	UpdatedAt   time.Time  `gorm:"autoUpdateTime"`
-	DeletedAt   *gorm.DeletedAt `gorm:"index"`
+	ID           uuid.UUID       `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	SiteID       uuid.UUID       `gorm:"type:uuid;not null;index"`
+	Name         string          `gorm:"size:100;not null"`
+	TokenPrefix  string          `gorm:"size:10;not null;index"` // ctg_ 前 10 位
+	TokenHash    string          `gorm:"size:64;not null;uniqueIndex"`
+	Permissions  Permission      `gorm:"type:jsonb;default:'{}'"`
+	RateLimits   Limits          `gorm:"type:jsonb;default:'{\"requests_per_minute\": 100}'"`
+	ExpiresTime  *time.Time      `gorm:"column:expires_time;type:timestamptz"`
+	Status       string          `gorm:"type:token_status;not null;default:'active'"`
+	LastUsedTime *time.Time      `gorm:"column:last_used_time;type:timestamptz"`
+	CreatedTime  time.Time       `gorm:"column:created_time;autoCreateTime"`
+	UpdatedTime  time.Time       `gorm:"column:updated_time;autoUpdateTime"`
+	DeletedTime  *gorm.DeletedAt `gorm:"index"`
 }
 
 func (APIToken) TableName() string {

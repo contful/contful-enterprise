@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import { DialogPlugin } from 'tdesign-vue-next'
 import {
   getContentTypes,
   createContentType,
@@ -11,7 +11,7 @@ import {
   type ContentTypeCreate,
   type ContentTypeUpdate,
 } from '@/api/content-type'
-import { showError, getFriendlyError } from '@/utils/request'
+import { showError, showSuccess, getFriendlyError } from '@/utils/request'
 
 const router = useRouter()
 
@@ -55,7 +55,7 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getContentTypes({ page: currentPage.value, page_size: pageSize.value })
-    if (res.data.code === 0) {
+    if (res.data.code === 200) {
       dataList.value = res.data.data.items || []
       total.value = res.data.data.total || 0
     }
@@ -119,10 +119,10 @@ const submitForm = async () => {
   try {
     if (isEditing.value) {
       await updateContentType(editingId.value, formData.value as ContentTypeUpdate)
-      MessagePlugin.success('内容类型已更新')
+      showSuccess('内容类型已更新')
     } else {
       await createContentType(formData.value)
-      MessagePlugin.success('内容类型创建成功')
+      showSuccess('内容类型创建成功')
     }
     dialogVisible.value = false
     loadData()
@@ -143,7 +143,7 @@ const handleDelete = async (row: ContentType) => {
     onConfirm: async () => {
       try {
         await deleteContentType(row.id)
-        MessagePlugin.success('删除成功')
+        showSuccess('删除成功')
         loadData()
       } catch (e) {
         showError(e)

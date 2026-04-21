@@ -575,49 +575,49 @@ onMounted(() => {
               <span v-if="field.required" class="required">*</span>
             </label>
             <input
-              v-if="field.type === 'text' || field.type === 'email' || field.type === 'url'"
+              v-if="field.field_type === 'text' || field.field_type === 'email' || field.field_type === 'url'"
               v-model="formData[field.name]"
               type="text"
               class="input"
               :placeholder="`请输入${field.name}`"
             />
             <textarea
-              v-else-if="field.type === 'rich_text' || field.type === 'json'"
+              v-else-if="field.field_type === 'rich_text' || field.field_type === 'json'"
               v-model="formData[field.name]"
               class="input"
               rows="4"
               :placeholder="`请输入${field.name}`"
             ></textarea>
             <input
-              v-else-if="field.type === 'number'"
+              v-else-if="field.field_type === 'number'"
               v-model="formData[field.name]"
               type="number"
               class="input"
               placeholder="请输入数字"
             />
             <input
-              v-else-if="field.type === 'date'"
+              v-else-if="field.field_type === 'date'"
               v-model="formData[field.name]"
               type="date"
               class="input"
             />
             <input
-              v-else-if="field.type === 'datetime'"
+              v-else-if="field.field_type === 'datetime'"
               v-model="formData[field.name]"
               type="datetime-local"
               class="input"
             />
-            <label v-else-if="field.type === 'boolean'" class="checkbox-label">
+            <label v-else-if="field.field_type === 'boolean'" class="checkbox-label">
               <input v-model="formData[field.name]" type="checkbox" />
               <span>{{ formData[field.name] ? '是' : '否' }}</span>
             </label>
             <select
-              v-else-if="field.type === 'enum' && field.options"
+              v-else-if="field.field_type === 'enum' && (field.options || field.config?.options)"
               v-model="formData[field.name]"
               class="input"
             >
               <option value="">请选择</option>
-              <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
+              <option v-for="opt in (field.options || field.config?.options)" :key="opt" :value="opt">{{ opt }}</option>
             </select>
             <input
               v-else

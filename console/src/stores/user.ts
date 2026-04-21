@@ -9,7 +9,7 @@ interface User {
   avatar_url?: string
   status: string
   is_super_admin: boolean
-  created_at: string
+  created_time: string
 }
 
 interface LoginResponse {
@@ -38,7 +38,7 @@ export const useUserStore = defineStore('user', () => {
         email,
         password,
       })
-      if (res.data.code === 0) {
+      if (res.data.code === 200) {
         // 后端返回独立的 access_token 和 refresh_token 字段
         const accessToken = res.data.data.access_token as string
         const refreshToken = res.data.data.refresh_token as string
@@ -65,7 +65,7 @@ export const useUserStore = defineStore('user', () => {
         password,
         nickname,
       })
-      if (res.data.code === 0) {
+      if (res.data.code === 200) {
         return { success: true, data: res.data.data }
       }
       return { success: false, message: res.data.msg }
@@ -93,7 +93,7 @@ export const useUserStore = defineStore('user', () => {
 
     try {
       const res = await request.get<{ user: User }>('/users/me')
-      if (res.data.code === 0) {
+      if (res.data.code === 200) {
         setUser(res.data.data.user)
       }
     } catch {
@@ -105,7 +105,7 @@ export const useUserStore = defineStore('user', () => {
   const listUsers = async (page = 1, pageSize = 20) => {
     const res = await request.get<{
       data: {
-        data: User[]
+        items: User[]
         total: number
         page: number
         page_size: number
@@ -116,6 +116,16 @@ export const useUserStore = defineStore('user', () => {
 
   const deleteUser = async (userId: string) => {
     await request.delete(`/users/${userId}`)
+  }
+
+  const createUser = async (data: { email: string; password: string; nickname?: string; is_super_admin?: boolean }) => {
+    const res = await request.post<{ data: User }>('/users', data)
+    return res.data
+  }
+
+  const updateUser = async (id: string, data: { nickname?: string; status?: string; is_super_admin?: boolean }) => {
+    const res = await request.patch<{ data: User }>(`/users/${id}`, data)
+    return res.data
   }
 
   return {
@@ -130,5 +140,7 @@ export const useUserStore = defineStore('user', () => {
     fetchUser,
     listUsers,
     deleteUser,
+    createUser,
+    updateUser,
   }
 })

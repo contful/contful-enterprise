@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getContentTypes, getContentEntries, getAssets, getUsers } from '@/api/api'
+import { showError } from '@/utils/request'
 
 const router = useRouter()
 
@@ -31,7 +32,7 @@ onMounted(async () => {
     }
     recentEntries.value = entriesRes.data.items || []
   } catch (error) {
-    console.error('Failed to load dashboard data:', error)
+    showError(error)
   } finally {
     loading.value = false
   }
@@ -183,7 +184,7 @@ const getStatusLabel = (status: string) => {
                   {{ getStatusLabel(entry.status) }}
                 </span>
               </td>
-              <td>{{ new Date(entry.updated_at).toLocaleDateString('zh-CN') }}</td>
+              <td>{{ new Date(entry.updated_time).toLocaleDateString('zh-CN') }}</td>
             </tr>
           </tbody>
         </table>

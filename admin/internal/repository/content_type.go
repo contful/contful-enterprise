@@ -76,6 +76,9 @@ func (r *ContentTypeRepository) ListBySite(ctx context.Context, siteID uuid.UUID
 
 	offset := (page - 1) * pageSize
 	err := query.
+		Preload("Fields", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort_order ASC")
+		}).
 		Order("sort_order ASC, created_time DESC").
 		Offset(offset).
 		Limit(pageSize).

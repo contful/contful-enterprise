@@ -67,6 +67,20 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 	return &user, nil
 }
 
+// Update 更新用户信息
+func (r *UserRepository) Update(ctx context.Context, user *model.SystemUser) error {
+	return r.db.WithContext(ctx).
+		Where("id = ?", user.ID).
+		Updates(user).Error
+}
+
+// Delete 软删除用户
+func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Where("id = ?", id).
+		Delete(&model.SystemUser{}).Error
+}
+
 // UpdateLastLogin 更新最后登录信息
 func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uuid.UUID, ip string) error {
 	now := time.Now()

@@ -142,7 +142,7 @@ request.interceptors.response.use(
             }
           }
         )
-        if (refreshRes.data.code === 0) {
+        if (refreshRes.data.code === 200) {
           // 刷新成功，直接从响应字段读取
           const newAccessToken = refreshRes.data.data.access_token as string
           const newRefreshToken = refreshRes.data.data.refresh_token as string

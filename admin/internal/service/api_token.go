@@ -68,9 +68,9 @@ func (s *APITokenService) Create(ctx context.Context, siteID, userID uuid.UUID, 
 		CreatedBy:    &userID,
 	}
 
-	token.ExpiresAt = nil
-	if req.ExpiresAt != nil {
-		token.ExpiresAt = req.ExpiresAt
+	token.ExpiresTime = nil
+	if req.ExpiresTime != nil {
+		token.ExpiresTime = req.ExpiresTime
 	}
 
 	if err := s.tokenRepo.Create(ctx, token); err != nil {
@@ -118,8 +118,8 @@ func (s *APITokenService) Update(ctx context.Context, id uuid.UUID, req *model.A
 	if req.Description != nil {
 		token.Description = *req.Description
 	}
-	if req.ExpiresAt != nil {
-		token.ExpiresAt = req.ExpiresAt
+	if req.ExpiresTime != nil {
+		token.ExpiresTime = req.ExpiresTime
 	}
 	if req.Status != nil {
 		token.Status = model.TokenStatus(*req.Status)
@@ -157,7 +157,7 @@ func (s *APITokenService) Validate(ctx context.Context, tokenStr string) (*model
 	if token.Status != model.TokenStatusActive {
 		return nil, fmt.Errorf("token is %s", token.Status)
 	}
-	if token.ExpiresAt != nil && !token.ExpiresAt.IsZero() && token.ExpiresAt.Before(time.Now()) {
+	if token.ExpiresTime != nil && !token.ExpiresTime.IsZero() && token.ExpiresTime.Before(time.Now()) {
 		token.Status = model.TokenStatusExpired
 		s.tokenRepo.Update(ctx, token)
 		return nil, errors.New("token expired")

@@ -65,13 +65,13 @@ func (s *APITokenService) ValidateToken(ctx context.Context, rawToken string) (*
 	}
 
 	// 5. 检查过期时间
-	if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
+	if token.ExpiresTime != nil && token.ExpiresTime.Before(time.Now()) {
 		return nil, ErrTokenExpired
 	}
 
 	// 6. 异步更新最后使用时间（不阻塞请求）
 	go func() {
-		_ = s.repo.UpdateLastUsedAt(context.Background(), token.ID)
+		_ = s.repo.UpdateLastUsedTime(context.Background(), token.ID)
 	}()
 
 	// 7. 构建上下文
@@ -89,8 +89,8 @@ func (s *APITokenService) ValidateToken(ctx context.Context, rawToken string) (*
 	}
 
 	var expiresAt *int64
-	if token.ExpiresAt != nil {
-		t := token.ExpiresAt.Unix()
+	if token.ExpiresTime != nil {
+		t := token.ExpiresTime.Unix()
 		expiresAt = &t
 	}
 

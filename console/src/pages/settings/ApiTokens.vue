@@ -148,7 +148,7 @@ const handleRegenerate = async () => {
     tokenToRegenerate.value = null
     await loadTokens()
   } catch (error) {
-    console.error('Failed to regenerate token:', error)
+    showError('Failed to regenerate token')
   }
 }
 
@@ -158,7 +158,7 @@ const handleRevoke = async (token: ApiToken) => {
     await revokeApiToken(token.id)
     await loadTokens()
   } catch (error) {
-    console.error('Failed to revoke token:', error)
+    showError('Failed to revoke token')
   }
 }
 

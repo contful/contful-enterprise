@@ -60,10 +60,20 @@ func getUserID(c *gin.Context) (uuid.UUID, error) {
 	}
 }
 
-// getSiteID 从上下文获取站点 ID (当前使用用户 ID 作为站点 ID)
+// getSiteID 从上下文获取站点 ID
 func getSiteID(c *gin.Context) (uuid.UUID, error) {
-	// 暂时使用用户 ID 作为 site ID
-	return getUserID(c)
+	siteIDVal, exists := c.Get("site_id")
+	if !exists {
+		return uuid.Nil, errors.New("site_id not found in context")
+	}
+	switch v := siteIDVal.(type) {
+	case uuid.UUID:
+		return v, nil
+	case string:
+		return uuid.Parse(v)
+	default:
+		return uuid.Nil, errors.New("invalid site_id type")
+	}
 }
 
 // Upload 上传资源

@@ -36,8 +36,8 @@ func (h *ContentTypeHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		// 字段管理
 		contentTypes.POST("/:id/fields", h.CreateField)
 		contentTypes.GET("/:id/fields", h.ListFields)
-		contentTypes.PUT("/fields/:fieldId", h.UpdateField)
-		contentTypes.DELETE("/fields/:fieldId", h.DeleteField)
+		contentTypes.PUT("/:id/fields/:fieldId", h.UpdateField)
+		contentTypes.DELETE("/:id/fields/:fieldId", h.DeleteField)
 		contentTypes.POST("/:id/fields/reorder", h.ReorderFields)
 	}
 }

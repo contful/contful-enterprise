@@ -11,7 +11,7 @@ import (
 // ContentTypeCreate 创建内容类型请求
 type ContentTypeCreate struct {
 	Name                 string          `json:"name" binding:"required,min=1,max=200"`
-	Slug                 string          `json:"slug" binding:"required,min=1,max=100,alphanumunicode"`
+	Slug                 string          `json:"slug" binding:"required,min=1,max=100"`
 	Description          string          `json:"description"`
 	Kind                 ContentTypeKind `json:"kind" binding:"required,oneof=collection single"`
 	DisplayConfig        JSONB           `json:"display_config"`
@@ -25,7 +25,7 @@ type ContentTypeCreate struct {
 // ContentTypeUpdate 更新内容类型请求
 type ContentTypeUpdate struct {
 	Name                 *string          `json:"name" binding:"omitempty,min=1,max=200"`
-	Slug                 *string          `json:"slug" binding:"omitempty,min=1,max=100,alphanumunicode"`
+	Slug                 *string          `json:"slug" binding:"omitempty,min=1,max=100"`
 	Description          *string          `json:"description"`
 	Kind                 *ContentTypeKind `json:"kind" binding:"omitempty,oneof=collection single"`
 	DisplayConfig        *JSONB           `json:"display_config"`

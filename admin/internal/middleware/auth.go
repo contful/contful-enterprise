@@ -21,6 +21,7 @@ const (
 type Claims struct {
 	UserID       uuid.UUID
 	Email        string
+	SiteID       uuid.UUID
 	IsSuperAdmin bool
 }
 
@@ -70,6 +71,7 @@ func JWTAuth(getter claimsGetter) gin.HandlerFunc {
 		// 将用户信息存入上下文
 		c.Set(ClaimsContextKey, claims)
 		c.Set(UserContextKey, claims.UserID)
+		c.Set("site_id", claims.SiteID)
 
 		c.Next()
 	}

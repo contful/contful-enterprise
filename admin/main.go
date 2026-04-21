@@ -79,6 +79,7 @@ func main() {
 
 	// 初始化 Service
 	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret)
+	userService := service.NewUserService(userRepo)
 	siteService := service.NewSiteService(siteRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
@@ -87,6 +88,7 @@ func main() {
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
+	userHandler := handler.NewUserHandler(userService)
 	siteHandler := handler.NewSiteHandler(siteService)
 	ctHandler := handler.NewContentTypeHandler(ctService)
 	entryHandler := handler.NewEntryHandler(entryService)
@@ -144,9 +146,13 @@ func main() {
 			protected.PUT("/sites/:id", siteHandler.Update)
 			protected.DELETE("/sites/:id", siteHandler.Delete)
 
-			// 用户相关
+			// 用户管理
 			protected.GET("/users/me", authHandler.Me)
-			protected.GET("/users", authHandler.ListUsers)
+			protected.GET("/users", userHandler.List)
+			protected.POST("/users", userHandler.Create)
+			protected.GET("/users/:id", userHandler.Get)
+			protected.PUT("/users/:id", userHandler.Update)
+			protected.DELETE("/users/:id", userHandler.Delete)
 
 			// 内容类型管理 (REST: /content/types)
 			protected.GET("/content/types", ctHandler.List)

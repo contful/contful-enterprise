@@ -12,14 +12,14 @@ import (
 type APITokenCreate struct {
 	Name        string     `json:"name" binding:"required,min=1,max=100"`
 	Description string     `json:"description" binding:"max=500"`
-	ExpiresAt   *time.Time `json:"expires_time"`
+	ExpiresTime   *time.Time `json:"expires_time"`
 }
 
 // APITokenUpdate 更新 API Token 请求
 type APITokenUpdate struct {
 	Name        *string    `json:"name" binding:"max=100"`
 	Description *string    `json:"description" binding:"max=500"`
-	ExpiresAt   *time.Time `json:"expires_time"`
+	ExpiresTime *time.Time `json:"expires_time"`
 	Status      *string    `json:"status"` // "active" | "expired" | "revoked"
 }
 
@@ -35,9 +35,9 @@ type APITokenResponse struct {
 	ChannelScope  []string   `json:"channel_scope"`  // 频道范围
 	AllowedIPs    *string    `json:"allowed_ips,omitempty"`
 	RateLimit     int        `json:"rate_limit"`
-	ExpiresAt     *time.Time `json:"expires_time,omitempty"`
+	ExpiresTime   *time.Time `json:"expires_time,omitempty"`
 	Status        TokenStatus `json:"status"`
-	LastUsedAt    *time.Time `json:"last_used_time,omitempty"`
+	LastUsedTime    *time.Time `json:"last_used_time,omitempty"`
 	LastUsedIP    *string    `json:"last_used_ip,omitempty"`
 	RequestCount  int64      `json:"request_count"`
 	CreatedBy     *uuid.UUID `json:"created_by,omitempty"`
@@ -78,9 +78,9 @@ func (t *APIToken) ToResponse() APITokenResponse {
 		ChannelScope: []string(t.ChannelScope),
 		AllowedIPs:   t.AllowedIPs,
 		RateLimit:    t.RateLimit,
-		ExpiresAt:    t.ExpiresAt,
+		ExpiresTime:   t.ExpiresTime,
 		Status:       t.Status,
-		LastUsedAt:   t.LastUsedAt,
+		LastUsedTime:   t.LastUsedTime,
 		LastUsedIP:   t.LastUsedIP,
 		RequestCount: t.RequestCount,
 		CreatedBy:    t.CreatedBy,

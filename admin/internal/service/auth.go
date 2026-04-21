@@ -56,6 +56,7 @@ func NewAuthService(
 type JWTClaims struct {
 	UserID       uuid.UUID `json:"user_id"`
 	Email        string    `json:"email"`
+	SiteID       uuid.UUID `json:"site_id"`
 	IsSuperAdmin bool      `json:"is_super_admin"`
 	jwt.RegisteredClaims
 }
@@ -348,12 +349,16 @@ func (s *AuthService) generateAccessToken(user *model.SystemUser) (string, error
 	claims := JWTClaims{
 		UserID:       user.ID,
 		Email:        user.Email,
+		SiteID:       uuid.UUID{},
 		IsSuperAdmin: user.IsSuperAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.accessTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
+	}
+	if user.SiteID != nil {
+		claims.SiteID = *user.SiteID
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -364,12 +369,16 @@ func (s *AuthService) generateAccessTokenWithClaims(user *model.SystemUser, exis
 	claims := JWTClaims{
 		UserID:       user.ID,
 		Email:        user.Email,
+		SiteID:       uuid.UUID{},
 		IsSuperAdmin: user.IsSuperAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.accessTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
+	}
+	if user.SiteID != nil {
+		claims.SiteID = *user.SiteID
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -151,6 +151,9 @@ func (r *EntryRepository) ListByContentType(ctx context.Context, siteID uuid.UUI
 
 	offset := (page - 1) * pageSize
 	err := query.
+		Preload("Values", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Field")
+		}).
 		Order(orderClause).
 		Offset(offset).
 		Limit(pageSize).

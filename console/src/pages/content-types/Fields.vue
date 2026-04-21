@@ -88,7 +88,7 @@ const loadContentType = async () => {
   try {
     const id = route.params.id as string
     const res = await getContentType(id)
-    if (res.data.code === 0) {
+    if (res.data.code === 200) {
       contentType.value = res.data.data
     }
   } catch (e) {
@@ -102,7 +102,7 @@ const loadFields = async () => {
   try {
     const id = route.params.id as string
     const res = await getFields(id)
-    if (res.data.code === 0) {
+    if (res.data.code === 200) {
       fields.value = res.data.data.items
       total.value = res.data.data.items.length
     }
@@ -166,6 +166,7 @@ const submitForm = async () => {
 // 删除字段
 const handleDelete = async (field: Field) => {
   try {
+    const contentTypeId = route.params.id as string
     await deleteField(contentTypeId, field.id)
     MessagePlugin.success('删除成功')
     loadFields()

@@ -10,7 +10,7 @@ type Response struct {
 // NewSuccessResponse 创建成功响应
 func NewSuccessResponse(data interface{}) Response {
 	return Response{
-		Code: 0,
+		Code: 200,
 		Msg:  "success",
 		Data: data,
 	}

@@ -24,6 +24,7 @@ type SystemUser struct {
 	AvatarURL    string      `json:"avatar_url" gorm:"type:text"`
 	Status       UserStatus  `json:"status" gorm:"type:user_status;not null;default:'active'"`
 	IsSuperAdmin bool        `json:"is_super_admin" gorm:"not null;default:false"`
+	SiteID       *uuid.UUID  `json:"site_id" gorm:"type:uuid"`
 	LastLoginTime *time.Time `json:"last_login_time" gorm:"type:timestamptz"`
 	LastLoginIP  *string     `json:"last_login_ip" gorm:"type:inet"`
 	CreatedTime  time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
@@ -140,4 +141,19 @@ type SiteBasic struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 	Slug string    `json:"slug"`
+}
+
+// CreateUserRequest 管理员创建用户请求
+type CreateUserRequest struct {
+	Email        string `json:"email" binding:"required,email"`
+	Password    string `json:"password" binding:"required,min=8"`
+	Nickname    string `json:"nickname"`
+	IsSuperAdmin bool  `json:"is_super_admin"`
+}
+
+// UpdateUserRequest 管理员更新用户请求
+type UpdateUserRequest struct {
+	Nickname      *string     `json:"nickname"`
+	Status        *UserStatus `json:"status"`
+	IsSuperAdmin  *bool       `json:"is_super_admin"`
 }

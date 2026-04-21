@@ -9,15 +9,20 @@ import (
 // JSONB JSONB 类型
 type JSONB map[string]interface{}
 
-// Scan 实现 sql.Scanner 接口
+// Scan 实现 sql.Scanner 接口（兼容 []byte 和 string，PostgreSQL 不同驱动返回类型不同）
 func (j *JSONB) Scan(value interface{}) error {
 	if value == nil {
 		*j = nil
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return errors.New("unsupported JSONB scan type")
 	}
 	return json.Unmarshal(bytes, j)
 }
@@ -43,15 +48,20 @@ func (j JSONB) Interface() interface{} {
 // JSONBSlice JSONB 数组类型
 type JSONBSlice []map[string]interface{}
 
-// Scan 实现 sql.Scanner 接口
+// Scan 实现 sql.Scanner 接口（兼容 []byte 和 string）
 func (j *JSONBSlice) Scan(value interface{}) error {
 	if value == nil {
 		*j = nil
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return errors.New("unsupported JSONB scan type")
 	}
 	return json.Unmarshal(bytes, j)
 }
@@ -67,15 +77,20 @@ func (j JSONBSlice) Value() (driver.Value, error) {
 // JSONArray JSONB 数组类型（用于存储数组数据）
 type JSONArray []interface{}
 
-// Scan 实现 sql.Scanner 接口
+// Scan 实现 sql.Scanner 接口（兼容 []byte 和 string）
 func (j *JSONArray) Scan(value interface{}) error {
 	if value == nil {
 		*j = nil
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return errors.New("unsupported JSONB scan type")
 	}
 	return json.Unmarshal(bytes, j)
 }

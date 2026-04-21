@@ -70,14 +70,14 @@ type APIToken struct {
 	ChannelScope  StringArray  `json:"channel_scope" gorm:"type:jsonb;default:'[]'"`  // 频道范围
 	AllowedIPs    *string      `json:"allowed_ips,omitempty" gorm:"type:inet"`
 	RateLimit     int          `json:"rate_limit" gorm:"default:60"`
-	ExpiresAt     *time.Time   `json:"expires_time,omitempty" gorm:"type:timestamptz"`
-	Status        TokenStatus  `json:"status" gorm:"type:token_status;not null;default:'active'"`
-	LastUsedAt    *time.Time   `json:"last_used_time,omitempty" gorm:"type:timestamptz"`
-	LastUsedIP    *string      `json:"last_used_ip,omitempty" gorm:"type:inet"`
-	RequestCount  int64        `json:"request_count" gorm:"default:0"`
-	CreatedBy     *uuid.UUID   `json:"created_by" gorm:"type:uuid"`
-	CreatedTime     time.Time    `json:"created_time" gorm:"type:timestamptz;autoCreateTime"`
-	UpdatedTime     time.Time    `json:"updated_time" gorm:"type:timestamptz;autoUpdateTime"`
+	ExpiresTime     *time.Time   `json:"expires_time,omitempty" gorm:"column:expires_time"`
+	Status          TokenStatus  `json:"status" gorm:"type:token_status;not null;default:'active'"`
+	LastUsedTime    *time.Time   `json:"last_used_time,omitempty" gorm:"column:last_used_time"`
+	LastUsedIP      *string      `json:"last_used_ip,omitempty" gorm:"type:inet"`
+	RequestCount    int64        `json:"request_count" gorm:"default:0"`
+	CreatedBy       *uuid.UUID   `json:"created_by" gorm:"type:uuid"`
+	CreatedTime     time.Time    `json:"created_time" gorm:"column:created_time;autoCreateTime"`
+	UpdatedTime     time.Time    `json:"updated_time" gorm:"column:updated_time;autoUpdateTime"`
 	DeletedTime     *time.Time   `json:"deleted_time,omitempty" gorm:"type:timestamptz;index"`
 }
 
