@@ -100,6 +100,7 @@ CREATE TABLE system_users (
     avatar_url TEXT,
     status user_status NOT NULL DEFAULT 'active',
     is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    site_id UUID,
     last_login_time TIMESTAMPTZ,
     last_login_ip INET,
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
