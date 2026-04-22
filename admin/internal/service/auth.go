@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/contful/contful/admin/internal/audit_callback"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 )
@@ -25,11 +26,12 @@ import (
 // P2-004: 登录失败记录审计日志
 
 type AuthService struct {
-	userRepo  *repository.UserRepository
-	auditRepo *repository.AuditRepository
-	redis     *redis.Client
-	jwtSecret []byte
-	accessTTL time.Duration
+	userRepo        *repository.UserRepository
+	auditRepo       *repository.AuditRepository
+	configSvc       *ConfigService // 用于 AuditLog 数据签名
+	redis           *redis.Client
+	jwtSecret       []byte
+	accessTTL       time.Duration
 	// P2-002: 账户锁定配置
 	lockMaxAttempts int           // 最大失败次数，默认 5
 	lockDuration    time.Duration // 锁定时长，默认 15 分钟
@@ -40,10 +42,12 @@ func NewAuthService(
 	auditRepo *repository.AuditRepository,
 	redisClient *redis.Client,
 	jwtSecret string,
+	configSvc *ConfigService,
 ) *AuthService {
 	return &AuthService{
 		userRepo:       userRepo,
 		auditRepo:      auditRepo,
+		configSvc:      configSvc,
 		redis:          redisClient,
 		jwtSecret:      []byte(jwtSecret),
 		accessTTL:      15 * time.Minute,
@@ -238,21 +242,14 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip str
 
 // Refresh 刷新 Token
 func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
-	parts := splitToken(refreshToken)
-	if len(parts) != 2 {
-		return "", "", errors.New("invalid token format")
-	}
-
-	refreshTokenPart := parts[1]
-
 	// P1-003: 验证 Refresh Token
-	userID, err := s.userRepo.ValidateRefreshToken(ctx, refreshTokenPart)
+	userID, err := s.userRepo.ValidateRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return "", "", err
 	}
 
 	// P1-003: 撤销旧 refresh token（实现轮换）
-	if err := s.userRepo.DeleteRefreshToken(ctx, refreshTokenPart); err != nil {
+	if err := s.userRepo.DeleteRefreshToken(ctx, refreshToken); err != nil {
 		log.Warn().Err(err).Msg("failed to delete old refresh token during rotation")
 	}
 
@@ -279,27 +276,10 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string,
 
 // Logout 登出
 func (s *AuthService) Logout(ctx context.Context, refreshToken string, ip string) error {
-	parts := splitToken(refreshToken)
-	if len(parts) != 2 {
-		return nil // 无效 token 直接返回
-	}
-
-	refreshTokenPart := parts[1]
-
-	// 删除 Refresh Token
-	if err := s.userRepo.DeleteRefreshToken(ctx, refreshTokenPart); err != nil {
+	// 删除 Redis 中的 Refresh Token
+	if err := s.userRepo.DeleteRefreshToken(ctx, refreshToken); err != nil {
 		return err
 	}
-
-	// 审计日志（从 accessToken 提取 userID）
-	accessTokenPart := parts[0]
-	claims, err := s.parseAccessToken(accessTokenPart)
-	if err != nil {
-		return nil // token 已无效
-	}
-
-	s.createAuditLog(ctx, claims.UserID, nil, "logout", "user", claims.UserID, model.AuditLevelInfo, model.AuditTypeAuth, ip)
-
 	return nil
 }
 
@@ -418,6 +398,12 @@ func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, site
 			Category:     category,
 			IPAddress:    ip,
 		}
+		// 注入签名密钥到 context
+		if s.configSvc != nil && siteID != nil {
+			if key, _ := s.configSvc.Get(context.Background(), *siteID, "integrity.signing_key"); key != "" {
+				ctx = audit_callback.WithSigningKey(ctx, key)
+			}
+		}
 		if err := s.auditRepo.Create(ctx, auditLog); err != nil {
 			log.Error().Err(err).Msg("failed to create audit log")
 		}
@@ -438,6 +424,7 @@ func (s *AuthService) createAuditLogLoginFail(ctx context.Context, email string,
 			Category:     model.AuditTypeAuth,
 			IPAddress:    ip,
 		}
+		// 登录失败场景暂无 site_id，跳过签名
 		if err := s.auditRepo.Create(ctx, auditLog); err != nil {
 			log.Error().Err(err).Str("email", maskedEmail).Msg("failed to create login_fail audit log")
 		}

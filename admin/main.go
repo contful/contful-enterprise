@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 
+	"github.com/contful/contful/admin/internal/audit_callback"
 	"github.com/contful/contful/admin/internal/config"
 	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/handler"
@@ -52,6 +53,10 @@ func main() {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
 
+	// 注册 AuditLog 数据签名 callback
+	audit_callback.Register(db)
+	logger.Info().Msg("AuditLog 签名 callback 已注册")
+
 	// 初始化 Redis
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     cfg.Redis.GetAddr(),
@@ -78,12 +83,6 @@ func main() {
 	tokenRepo := repository.NewAPITokenRepository(db)
 
 	// 初始化 Service
-	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret)
-	userService := service.NewUserService(userRepo)
-	siteService := service.NewSiteService(db, siteRepo)
-	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
-	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
-	tokenService := service.NewAPITokenService(tokenRepo)
 	configRepo := repository.NewSiteConfigRepository(db)
 	configService := service.NewConfigService(configRepo, os.Getenv("CONTFUL_CONFIG_MASTER_KEY"))
 	if configService.GetMasterKey() != "" {
@@ -92,27 +91,34 @@ func main() {
 		logger.Warn().Msg("警告：CONTFUL_CONFIG_MASTER_KEY 未设置，敏感配置将无法加密存储")
 	}
 
-	// 初始化存储驱动（当前仅支持 local，S3/OSS 等通过 site_configs 配置后动态切换）
-	storageProvider, err := storage.NewFromConfig(context.Background(), "local", &storage.ProviderConfig{
-		RootDir: cfg.Storage.UploadDir,
-		BaseURL: "http://localhost:9080/assets",
-	})
-	if err != nil {
-		logger.Fatal().Err(err).Msg("初始化存储驱动失败")
-	}
-	logger.Info().Str("driver", storageProvider.Name()).Msg("存储驱动已就绪")
+	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
+	userService := service.NewUserService(userRepo)
+	siteService := service.NewSiteService(db, siteRepo)
+	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
+	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
+	tokenService := service.NewAPITokenService(tokenRepo)
 
-	assetService := service.NewAssetService(assetRepo, storageProvider)
+	// 初始化存储驱动（支持 per-site 动态切换）
+	storageConfigSvc := service.NewStorageConfigService(configService)
+	storageManager := storage.NewStorageManager(
+		storageConfigSvc.BuildStorageConfigFunc(),
+		0, // 0 = 不过期缓存（配置变更后主动 Invalidate）
+	)
+	logger.Info().Msg("存储管理器已就绪（支持 per-site 动态存储驱动切换）")
+
+	assetService := service.NewAssetService(assetRepo, storageManager)
+	assetService.SetConfigService(configService)
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	siteHandler := handler.NewSiteHandler(siteService)
 	ctHandler := handler.NewContentTypeHandler(ctService)
-	entryHandler := handler.NewEntryHandler(entryService)
+	entryHandler := handler.NewEntryHandler(entryService, configService)
 	assetHandler := handler.NewAssetHandler(assetService)
 	tokenHandler := handler.NewAPITokenHandler(tokenService)
 	configHandler := handler.NewConfigHandler(configService)
+	integrityHandler := handler.NewIntegrityHandler(entryRepo, assetRepo, auditRepo, configService)
 
 	// 初始化 Gin
 	r := gin.New()
@@ -232,6 +238,10 @@ func main() {
 			protected.GET("/sites/:site_id/configs/:key", configHandler.Get)
 			protected.PUT("/sites/:site_id/configs/:key", configHandler.Set)
 			protected.DELETE("/sites/:site_id/configs/:key", configHandler.Delete)
+
+			// 数据完整性验签（PRE-004）
+			protected.GET("/integrity/verify", integrityHandler.Verify)
+			protected.POST("/integrity/verify/batch", integrityHandler.BatchVerify)
 		}
 	}
 

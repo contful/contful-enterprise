@@ -70,16 +70,22 @@ var audioExtensions = map[string]bool{
 
 // AssetService 资源服务
 type AssetService struct {
-	assetRepo *repository.AssetRepository
-	storage   storage.StorageProvider
+	assetRepo       *repository.AssetRepository
+	storageManager  *storage.StorageManager
+	configService   *ConfigService // 可选，用于数据签名
 }
 
-// NewAssetService 新建服务
-func NewAssetService(assetRepo *repository.AssetRepository, sp storage.StorageProvider) *AssetService {
+// NewAssetService 新建服务（使用 StorageManager 支持 per-site 动态存储驱动）
+func NewAssetService(assetRepo *repository.AssetRepository, storageManager *storage.StorageManager) *AssetService {
 	return &AssetService{
-		assetRepo: assetRepo,
-		storage:   sp,
+		assetRepo:      assetRepo,
+		storageManager: storageManager,
 	}
+}
+
+// SetConfigService 设置配置服务（用于数据签名）
+func (s *AssetService) SetConfigService(cs *ConfigService) {
+	s.configService = cs
 }
 
 
@@ -134,8 +140,14 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 		filename,
 	)
 
+	// 按站点获取存储驱动（动态切换）
+	sp, err := s.storageManager.ProviderFor(ctx, siteID)
+	if err != nil {
+		return nil, fmt.Errorf("获取存储驱动失败: %w", err)
+	}
+
 	// 上传到存储驱动
-	objectInfo, err := s.storage.Upload(ctx, storageKey, bytes.NewReader(data), file.Size, &storage.WriteOptions{
+	objectInfo, err := sp.Upload(ctx, storageKey, bytes.NewReader(data), file.Size, &storage.WriteOptions{
 		ContentType: mimeType,
 	})
 	if err != nil {
@@ -161,7 +173,7 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 		Title:         title,
 		Visibility:    model.AssetVisibilityPrivate,
 		FileHash:      fileHash,
-		Disk:          s.storage.Name(),
+		Disk:          sp.Name(),
 		CreatedBy:     &userID,
 	}
 
@@ -179,9 +191,23 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 
 	// 保存到数据库
 	if err := s.assetRepo.Create(ctx, asset); err != nil {
-		// 删除已上传的文件
-		_ = s.storage.Delete(ctx, storageKey)
+		// 删除已上传的文件（回滚）
+		_ = sp.Delete(ctx, storageKey)
 		return nil, fmt.Errorf("保存资源记录失败: %w", err)
+	}
+
+	// 数据签名（仅当签名密钥已配置时）
+	if s.configService != nil {
+		signingKey, _ := s.configService.Get(ctx, siteID, "integrity.signing_key")
+		alg, _ := s.configService.Get(ctx, siteID, "integrity.algorithm")
+		if alg == "" {
+			alg = "HMAC-SHA256"
+		}
+		intSvc, _ := NewIntegrityService(siteID, signingKey, alg)
+		if intSvc != nil && intSvc.IsEnabled() {
+			_ = intSvc.SignAsset(asset)
+			_ = s.assetRepo.Update(ctx, asset)
+		}
 	}
 
 	return asset, nil
@@ -339,11 +365,10 @@ func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	// 删除存储文件
-	if err := s.storage.Delete(ctx, asset.Path); err != nil {
-		// 日志警告，不阻塞 DB 删除
-		// （本地文件可能已被清理，云存储删除失败需告警）
-		_ = err
+	// 按站点获取存储驱动并删除文件
+	sp, err := s.storageManager.ProviderFor(ctx, asset.SiteID)
+	if err == nil {
+		_ = sp.Delete(ctx, asset.Path) // 不阻塞 DB 删除
 	}
 
 	// 删除数据库记录
@@ -352,16 +377,21 @@ func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
 
 // BatchDelete 批量删除
 func (s *AssetService) BatchDelete(ctx context.Context, ids []uuid.UUID) error {
-	// 先查所有资产获取路径，再批量删除存储文件
+	// 先查所有资产获取路径和站点
 	assets, _ := s.assetRepo.GetByIDs(ctx, ids)
-	var paths []string
+
+	// 按 siteID 分组，每组获取对应 provider
+	bySite := make(map[uuid.UUID][]string)
 	for _, a := range assets {
-		paths = append(paths, a.Path)
+		bySite[a.SiteID] = append(bySite[a.SiteID], a.Path)
 	}
-	// 批量删除存储文件（忽略错误，继续删除 DB 记录）
-	if len(paths) > 0 {
-		_ = s.storage.DeleteMulti(ctx, paths)
+	for siteID, paths := range bySite {
+		sp, err := s.storageManager.ProviderFor(ctx, siteID)
+		if err == nil {
+			_ = sp.DeleteMulti(ctx, paths)
+		}
 	}
+
 	return s.assetRepo.BatchDelete(ctx, ids)
 }
 
