@@ -1,48 +1,64 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ApiTokens from './ApiTokens.vue'
 import SiteSettings from './SiteSettings.vue'
+import Configs from './Configs.vue'
+
+const { t } = useI18n()
 
 const activeTab = ref('api-tokens')
-
-const tabs = [
-  { key: 'api-tokens', label: 'API Token' },
-  { key: 'profile', label: '个人资料' },
-  { key: 'site', label: '站点设置' },
-]
 </script>
 
 <template>
   <div class="settings-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">设置</h1>
-        <p class="page-subtitle">管理您的账户和系统设置</p>
+        <h1 class="page-title">{{ t('settings.title') }}</h1>
+        <p class="page-subtitle">{{ t('settings.subtitle') }}</p>
       </div>
     </div>
 
     <div class="settings-layout">
-      <!-- 侧边导航 -->
       <nav class="settings-nav">
         <button
-          v-for="tab in tabs"
-          :key="tab.key"
           class="nav-item"
-          :class="{ active: activeTab === tab.key }"
-          @click="activeTab = tab.key"
+          :class="{ active: activeTab === 'api-tokens' }"
+          @click="activeTab = 'api-tokens'"
         >
-          {{ tab.label }}
+          {{ t('menu.apiTokens') }}
+        </button>
+        <button
+          class="nav-item"
+          :class="{ active: activeTab === 'site' }"
+          @click="activeTab = 'site'"
+        >
+          {{ t('menu.siteSettings') }}
+        </button>
+        <button
+          class="nav-item"
+          :class="{ active: activeTab === 'configs' }"
+          @click="activeTab = 'configs'"
+        >
+          {{ t('settings.configs') }}
+        </button>
+        <button
+          class="nav-item"
+          :class="{ active: activeTab === 'profile' }"
+          @click="activeTab = 'profile'"
+        >
+          {{ t('settings.personalProfile') }}
         </button>
       </nav>
 
-      <!-- 内容区 -->
       <div class="settings-content">
         <ApiTokens v-if="activeTab === 'api-tokens'" />
-        <div v-else-if="activeTab === 'profile'" class="card">
-          <h3 class="card-title">个人资料</h3>
-          <p class="text-secondary">个人资料设置功能开发中...</p>
-        </div>
         <SiteSettings v-else-if="activeTab === 'site'" />
+        <Configs v-else-if="activeTab === 'configs'" />
+        <div v-else-if="activeTab === 'profile'" class="card">
+          <h3 class="card-title">{{ t('settings.personalProfile') }}</h3>
+          <p class="text-secondary">{{ t('settings.profileComingSoon') }}</p>
+        </div>
       </div>
     </div>
   </div>
