@@ -58,10 +58,7 @@ func (h *ContentTypeHandler) Create(c *gin.Context) {
 	}
 
 	// 获取站点 ID（从上下文中）
-	siteID, ok := middleware.GetSiteID(c)
-	if !ok {
-		siteID = uuid.Nil // 使用默认站点
-	}
+	siteID := middleware.GetSiteID(c)
 
 	// 获取用户 ID
 	userID, _ := middleware.GetUserID(c)
@@ -89,7 +86,7 @@ func (h *ContentTypeHandler) Get(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	resp, err := h.ctService.Get(c.Request.Context(), siteID, id)
 	if err != nil {
 		h.handleError(c, err)
@@ -111,7 +108,7 @@ func (h *ContentTypeHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	resp, err := h.ctService.List(c.Request.Context(), siteID, page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
@@ -143,7 +140,7 @@ func (h *ContentTypeHandler) Update(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	resp, err := h.ctService.Update(c.Request.Context(), siteID, id, &req)
 	if err != nil {
 		h.handleError(c, err)
@@ -166,7 +163,7 @@ func (h *ContentTypeHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	if err := h.ctService.Delete(c.Request.Context(), siteID, id); err != nil {
 		h.handleError(c, err)
 		return
@@ -191,7 +188,7 @@ func (h *ContentTypeHandler) CreateField(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	resp, err := h.ctService.CreateField(c.Request.Context(), siteID, contentTypeID, &req)
 	if err != nil {
 		h.handleError(c, err)
@@ -209,7 +206,7 @@ func (h *ContentTypeHandler) ListFields(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	fields, err := h.ctService.ListFields(c.Request.Context(), siteID, contentTypeID)
 	if err != nil {
 		h.handleError(c, err)
@@ -233,7 +230,7 @@ func (h *ContentTypeHandler) UpdateField(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	resp, err := h.ctService.UpdateField(c.Request.Context(), siteID, fieldID, &req)
 	if err != nil {
 		h.handleError(c, err)
@@ -251,7 +248,7 @@ func (h *ContentTypeHandler) DeleteField(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	if err := h.ctService.DeleteField(c.Request.Context(), siteID, fieldID); err != nil {
 		h.handleError(c, err)
 		return
@@ -276,7 +273,7 @@ func (h *ContentTypeHandler) ReorderFields(c *gin.Context) {
 		return
 	}
 
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	if err := h.ctService.ReorderFields(c.Request.Context(), siteID, contentTypeID, req.Orders); err != nil {
 		h.handleError(c, err)
 		return

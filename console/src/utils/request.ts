@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosError, type AxiosRequestConfig } from 'axios'
 import { MessagePlugin } from 'tdesign-vue-next'
+import { useSiteStore } from '@/stores/site'
 
 // Token 存储在内存中，不持久化（安全要求）
 let accessToken: string | null = null  // 完整 JWT (header.payload.signature)
@@ -106,6 +107,12 @@ request.interceptors.request.use(
   (config) => {
     // 强制 JSON Content-Type
     config.headers['Content-Type'] = 'application/json'
+
+    // 添加站点 ID 到请求头（后端需要）
+    const siteStore = useSiteStore()
+    if (siteStore.currentSiteId) {
+      config.headers['X-Site-ID'] = siteStore.currentSiteId
+    }
 
     if (accessToken) {
       // 只发 JWT，不带 refreshToken（后端中间件只需 JWT）

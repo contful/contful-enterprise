@@ -179,7 +179,6 @@ func (h *AuthHandler) GetClaims(token string) (*middleware.Claims, error) {
 	return &middleware.Claims{
 		UserID:       claims.UserID,
 		Email:        claims.Email,
-		SiteID:       claims.SiteID,
 		IsSuperAdmin: claims.IsSuperAdmin,
 	}, nil
 }

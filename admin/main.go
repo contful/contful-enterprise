@@ -80,7 +80,7 @@ func main() {
 	// 初始化 Service
 	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret)
 	userService := service.NewUserService(userRepo)
-	siteService := service.NewSiteService(siteRepo)
+	siteService := service.NewSiteService(db, siteRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 	assetService := service.NewAssetService(assetRepo, cfg.Storage.UploadDir, "/admin/api/v1")
@@ -140,6 +140,7 @@ func main() {
 			protected.POST("/auth/logout", authHandler.Logout)
 
 			// 站点管理
+			protected.GET("/sites/mine", siteHandler.MySites)
 			protected.GET("/sites", siteHandler.List)
 			protected.POST("/sites", siteHandler.Create)
 			protected.GET("/sites/:id", siteHandler.Get)

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request, { setAccessToken, getAccessToken, setRefreshToken } from '@/utils/request'
+import { useSiteStore } from '@/stores/site'
 
 interface User {
   id: string
@@ -46,6 +47,11 @@ export const useUserStore = defineStore('user', () => {
         setAccessToken(accessToken)
         setRefreshToken(refreshToken)
         setUser(res.data.data.user)
+
+        // 登录成功后自动加载站点列表
+        const siteStore = useSiteStore()
+        await siteStore.fetchSites()
+
         return { success: true }
       }
       return { success: false, message: res.data.msg }
@@ -86,6 +92,10 @@ export const useUserStore = defineStore('user', () => {
     setAccessToken(null)
     setRefreshToken(null)
     clearUser()
+
+    // 登出时清除站点状态
+    const siteStore = useSiteStore()
+    siteStore.clearSites()
   }
 
   const fetchUser = async () => {

@@ -10,6 +10,7 @@ import (
 	"github.com/contful/contful/admin/internal/repository"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 var (
@@ -23,15 +24,16 @@ var (
 
 // SiteService 站点服务
 type SiteService struct {
+	db       *gorm.DB
 	siteRepo *repository.SiteRepository
 }
 
-// NewSiteService 新建服务
-func NewSiteService(siteRepo *repository.SiteRepository) *SiteService {
-	return &SiteService{siteRepo: siteRepo}
+// NewSiteService 新建站点服务
+func NewSiteService(db *gorm.DB, siteRepo *repository.SiteRepository) *SiteService {
+	return &SiteService{db: db, siteRepo: siteRepo}
 }
 
-// Create 创建站点
+// Create 创建站点（同时创建默认角色 + 关联创建者到 site_users）
 func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.SiteCreate) (*model.Site, error) {
 	// 验证 slug
 	if !siteSlugRegex.MatchString(req.Slug) {
@@ -75,8 +77,76 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 		site.Plan = *req.Plan
 	}
 
-	if err := s.siteRepo.Create(ctx, site); err != nil {
-		return nil, fmt.Errorf("create site failed: %w", err)
+	// 事务：创建站点 + 默认角色 + site_users 关联
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. 创建站点
+		if err := tx.Create(site).Error; err != nil {
+			return fmt.Errorf("create site failed: %w", err)
+		}
+
+		// 2. 创建默认站点角色（Owner）
+		ownerRole := &model.SiteRole{
+			ID:          uuid.New(),
+			SiteID:      site.ID,
+			Name:        "Owner",
+			Description: "站点所有者，拥有全部权限",
+			IsSystem:    true,
+			Permissions: []string{
+				"content_type:read", "content_type:write", "content_type:delete",
+				"entry:read", "entry:write", "entry:delete", "entry:publish",
+				"asset:read", "asset:write", "asset:delete",
+				"media:read", "media:write", "media:delete",
+				"site:read", "site:write", "site:delete",
+				"user:read", "user:write", "user:delete",
+				"api_token:read", "api_token:write", "api_token:delete",
+			},
+			ContentPermissions: []string{"*"},
+			ChannelPermissions: []string{"*"},
+			SortOrder:          0,
+		}
+		if err := tx.Create(ownerRole).Error; err != nil {
+			return fmt.Errorf("create owner role failed: %w", err)
+		}
+
+		// 3. 创建默认站点角色（Editor）
+		editorRole := &model.SiteRole{
+			ID:          uuid.New(),
+			SiteID:      site.ID,
+			Name:        "Editor",
+			Description: "编辑者，可管理内容和媒体",
+			IsSystem:    true,
+			Permissions: []string{
+				"content_type:read", "content_type:write",
+				"entry:read", "entry:write", "entry:publish",
+				"asset:read", "asset:write",
+				"media:read", "media:write",
+				"site:read",
+			},
+			ContentPermissions: []string{"*"},
+			ChannelPermissions: []string{},
+			SortOrder:          1,
+		}
+		if err := tx.Create(editorRole).Error; err != nil {
+			return fmt.Errorf("create editor role failed: %w", err)
+		}
+
+		// 4. 关联创建者到 site_users（Owner 角色）
+		siteUser := &model.SiteUser{
+			ID:      uuid.New(),
+			SiteID:  site.ID,
+			UserID:  userID,
+			RoleID:  ownerRole.ID,
+			Status:  model.UserStatusActive,
+		}
+		if err := tx.Create(siteUser).Error; err != nil {
+			return fmt.Errorf("create site_user failed: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return site, nil
@@ -89,6 +159,54 @@ func (s *SiteService) Get(ctx context.Context, id uuid.UUID) (*model.Site, error
 		return nil, ErrSiteNotFound
 	}
 	return site, nil
+}
+
+// ListMySites 列出当前用户所属的站点
+func (s *SiteService) ListMySites(ctx context.Context, userID uuid.UUID, page, pageSize int) (*model.SiteListResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	var sites []model.Site
+	var total int64
+
+	subQuery := s.db.WithContext(ctx).
+		Model(&model.SiteUser{}).
+		Select("site_id").
+		Where("user_id = ? AND status = ?", userID, model.UserStatusActive)
+
+	query := s.db.WithContext(ctx).
+		Model(&model.Site{}).
+		Where("id IN (?) AND deleted_time IS NULL", subQuery)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("count my sites failed: %w", err)
+	}
+
+	offset := (page - 1) * pageSize
+	err := query.
+		Order("created_time DESC").
+		Offset(offset).
+		Limit(pageSize).
+		Find(&sites).Error
+	if err != nil {
+		return nil, fmt.Errorf("list my sites failed: %w", err)
+	}
+
+	items := make([]model.SiteResponse, len(sites))
+	for i, site := range sites {
+		items[i] = site.ToResponse()
+	}
+
+	return &model.SiteListResponse{
+		Items:    items,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	}, nil
 }
 
 // List 列出站点

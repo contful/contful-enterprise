@@ -24,7 +24,6 @@ type SystemUser struct {
 	AvatarURL    string      `json:"avatar_url" gorm:"type:text"`
 	Status       UserStatus  `json:"status" gorm:"type:user_status;not null;default:'active'"`
 	IsSuperAdmin bool        `json:"is_super_admin" gorm:"not null;default:false"`
-	SiteID       *uuid.UUID  `json:"site_id" gorm:"type:uuid"`
 	LastLoginTime *time.Time `json:"last_login_time" gorm:"type:timestamptz"`
 	LastLoginIP  *string     `json:"last_login_ip" gorm:"type:inet"`
 	CreatedTime  time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`

@@ -83,6 +83,26 @@ func (h *SiteHandler) List(c *gin.Context) {
 	middleware.OK(c, resp)
 }
 
+// MySites 列出当前用户所属站点
+func (h *SiteHandler) MySites(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		middleware.Unauthorized(c, "unauthorized")
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "100"))
+
+	resp, err := h.siteService.ListMySites(c.Request.Context(), *userID, page, pageSize)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, resp)
+}
+
 // Update 更新站点
 func (h *SiteHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))

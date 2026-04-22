@@ -15,13 +15,14 @@ const (
 	BearerPrefix        = "Bearer "
 	UserContextKey      = "user"
 	ClaimsContextKey    = "claims"
+	SiteIDHeader        = "X-Site-ID"
+	SiteContextKey      = "site_id"
 )
 
-// Claims JWT Claims
+// Claims JWT Claims（不含 site_id，由前端通过请求头传递）
 type Claims struct {
 	UserID       uuid.UUID
 	Email        string
-	SiteID       uuid.UUID
 	IsSuperAdmin bool
 }
 
@@ -71,7 +72,14 @@ func JWTAuth(getter claimsGetter) gin.HandlerFunc {
 		// 将用户信息存入上下文
 		c.Set(ClaimsContextKey, claims)
 		c.Set(UserContextKey, claims.UserID)
-		c.Set("site_id", claims.SiteID)
+
+		// 从请求头获取 site_id（前端必须传递）
+		siteIDStr := c.GetHeader(SiteIDHeader)
+		if siteIDStr != "" {
+			if siteID, err := uuid.Parse(siteIDStr); err == nil {
+				c.Set(SiteContextKey, siteID)
+			}
+		}
 
 		c.Next()
 	}
@@ -100,6 +108,38 @@ func SuperAdminOnly() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// GetSiteID 从上下文获取当前站点 ID（需要前端通过 X-Site-ID 头传递）
+func GetSiteID(c *gin.Context) uuid.UUID {
+	if siteID, exists := c.Get(SiteContextKey); exists {
+		if id, ok := siteID.(uuid.UUID); ok {
+			return id
+		}
+	}
+	return uuid.Nil
+}
+
+// MustSiteID 获取站点 ID，如果不存在则返回错误
+func MustSiteID(c *gin.Context) (uuid.UUID, error) {
+	siteID := GetSiteID(c)
+	if siteID == uuid.Nil {
+		return uuid.Nil, ErrSiteIDRequired
+	}
+	return siteID, nil
+}
+
+// ErrSiteIDRequired site_id 缺失错误
+var ErrSiteIDRequired = &BizError{Code: "SITE_ID_REQUIRED", Message: "X-Site-ID header is required"}
+
+// BizError 业务错误
+type BizError struct {
+	Code    string
+	Message string
+}
+
+func (e *BizError) Error() string {
+	return e.Message
 }
 
 // LoggerMiddleware 自定义日志中间件

@@ -357,9 +357,6 @@ func (s *AuthService) generateAccessToken(user *model.SystemUser) (string, error
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
 	}
-	if user.SiteID != nil {
-		claims.SiteID = *user.SiteID
-	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.jwtSecret)
@@ -376,9 +373,6 @@ func (s *AuthService) generateAccessTokenWithClaims(user *model.SystemUser, exis
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
-	}
-	if user.SiteID != nil {
-		claims.SiteID = *user.SiteID
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

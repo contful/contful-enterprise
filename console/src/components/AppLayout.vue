@@ -1,13 +1,24 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useSiteStore } from '@/stores/site'
+import { createSite, type CreateSiteParams } from '@/api/site'
+import { showError, showSuccess } from '@/utils/request'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const siteStore = useSiteStore()
 
 const sidebarCollapsed = ref(false)
+
+// 创建站点弹窗
+const showCreateSite = ref(false)
+const newSiteName = ref('')
+const newSiteSlug = ref('')
+const newSiteDesc = ref('')
+const creating = ref(false)
 
 const menuItems = [
   { path: '/', icon: 'dashboard', label: '仪表盘', name: 'Dashboard', tIcon: 'dashboard' },
@@ -29,6 +40,55 @@ const handleLogout = async () => {
 }
 
 const user = computed(() => userStore.user)
+
+// 生成 slug
+const generateSlug = (name: string) => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100) || 'my-site'
+}
+
+const handleNameInput = (val: string) => {
+  newSiteName.value = val
+  if (!newSiteSlug.value || newSiteSlug.value === generateSlug(newSiteSlug.value)) {
+    newSiteSlug.value = generateSlug(val)
+  }
+}
+
+const handleCreateSite = async () => {
+  if (!newSiteName.value.trim()) {
+    showError({ response: { data: { msg: '请输入站点名称' } } } as any)
+    return
+  }
+  const slug = newSiteSlug.value.trim() || generateSlug(newSiteName.value)
+  if (!/^[a-z][a-z0-9\-]{0,98}[a-z0-9]$/.test(slug)) {
+    showError({ response: { data: { msg: 'Slug 格式不正确：字母开头，仅支持小写字母、数字和连字符' } } } as any)
+    return
+  }
+  creating.value = true
+  const result = await siteStore.createAndSwitch({
+    name: newSiteName.value.trim(),
+    slug,
+    description: newSiteDesc.value.trim() || undefined,
+  })
+  creating.value = false
+  if (result.success) {
+    showCreateSite.value = false
+    newSiteName.value = ''
+    newSiteSlug.value = ''
+    newSiteDesc.value = ''
+  }
+}
+
+// 初始化时加载站点（如果已登录）
+onMounted(async () => {
+  if (userStore.isLoggedIn && siteStore.sites.length === 0) {
+    await siteStore.fetchSites()
+  }
+})
 </script>
 
 <template>
@@ -46,6 +106,39 @@ const user = computed(() => userStore.user)
           <template #icon>
             <t-icon :name="sidebarCollapsed ? 'indent-right' : 'indent-left'" />
           </template>
+        </t-button>
+      </div>
+      <div class="header-center">
+        <!-- 站点选择器 -->
+        <t-select
+          v-model="siteStore.currentSiteId"
+          :options="siteStore.sites.map(s => ({ label: s.name, value: s.id }))"
+          placeholder="选择站点"
+          :clearable="false"
+          style="width: 200px"
+          @change="(val: string) => siteStore.setCurrentSite(val)"
+        >
+          <template #suffixIcon>
+            <t-icon name="chevron-down" />
+          </template>
+        </t-select>
+        <t-button
+          v-if="siteStore.currentSiteId"
+          shape="square" variant="text"
+          size="small"
+          title="创建新站点"
+          @click="showCreateSite = true"
+        >
+          <template #icon>
+            <t-icon name="add" />
+          </template>
+        </t-button>
+        <t-button
+          v-else-if="siteStore.sites.length === 0 && userStore.isLoggedIn"
+          variant="outline" size="small"
+          @click="showCreateSite = true"
+        >
+          创建站点
         </t-button>
       </div>
       <div class="header-right">
@@ -90,6 +183,40 @@ const user = computed(() => userStore.user)
         </div>
       </main>
     </div>
+
+    <!-- 创建站点弹窗 -->
+    <t-dialog
+      v-model:visible="showCreateSite"
+      header="创建站点"
+      :confirm-btn="{ loading: creating, theme: 'primary' }"
+      @confirm="handleCreateSite"
+    >
+      <t-form layout="vertical">
+        <t-form-item label="站点名称" required>
+          <t-input
+            v-model="newSiteName"
+            placeholder="例如：我的博客"
+            :maxlength="200"
+            @input="handleNameInput"
+          />
+        </t-form-item>
+        <t-form-item label="站点标识 (Slug)" required>
+          <t-input
+            v-model="newSiteSlug"
+            placeholder="字母开头，小写字母+数字+连字符"
+            :maxlength="100"
+          />
+        </t-form-item>
+        <t-form-item label="描述">
+          <t-textarea
+            v-model="newSiteDesc"
+            placeholder="站点描述（可选）"
+            :maxlength="2000"
+            :autosize="{ minRows: 2, maxRows: 4 }"
+          />
+        </t-form-item>
+      </t-form>
+    </t-dialog>
   </div>
 </template>
 
@@ -155,6 +282,8 @@ const user = computed(() => userStore.user)
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
 .breadcrumb {

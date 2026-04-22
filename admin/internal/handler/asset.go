@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 )
@@ -60,20 +61,13 @@ func getUserID(c *gin.Context) (uuid.UUID, error) {
 	}
 }
 
-// getSiteID 从上下文获取站点 ID
+// getSiteID 从上下文获取站点 ID（通过 middleware.GetSiteID）
 func getSiteID(c *gin.Context) (uuid.UUID, error) {
-	siteIDVal, exists := c.Get("site_id")
-	if !exists {
-		return uuid.Nil, errors.New("site_id not found in context")
+	siteID := middleware.GetSiteID(c)
+	if siteID == uuid.Nil {
+		return uuid.Nil, errors.New("site_id not found in context, X-Site-ID header required")
 	}
-	switch v := siteIDVal.(type) {
-	case uuid.UUID:
-		return v, nil
-	case string:
-		return uuid.Parse(v)
-	default:
-		return uuid.Nil, errors.New("invalid site_id type")
-	}
+	return siteID, nil
 }
 
 // Upload 上传资源

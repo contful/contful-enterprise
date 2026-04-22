@@ -49,19 +49,6 @@ func InternalError(c *gin.Context, msg string) {
 	c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, msg))
 }
 
-// GetSiteID 获取站点 ID
-// 优先从 X-Site-ID 请求头读取，否则返回 nil
-func GetSiteID(c *gin.Context) (uuid.UUID, bool) {
-	siteHeader := c.GetHeader("X-Site-ID")
-	if siteHeader != "" {
-		siteID, err := uuid.Parse(siteHeader)
-		if err == nil {
-			return siteID, true
-		}
-	}
-	return uuid.Nil, false
-}
-
 // GetUserID 获取用户 ID
 func GetUserID(c *gin.Context) (*uuid.UUID, bool) {
 	userID, exists := c.Get(UserContextKey)

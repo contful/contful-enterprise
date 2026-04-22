@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 )
@@ -53,14 +54,13 @@ func getTokenUserID(c *gin.Context) (uuid.UUID, error) {
 	}
 }
 
-// getTokenSiteID 从上下文获取站点 ID
+// getTokenSiteID 从上下文获取站点 ID（通过 middleware.GetSiteID）
 func getTokenSiteID(c *gin.Context) (uuid.UUID, error) {
-	// 从请求头获取站点 ID
-	if siteID := c.GetHeader("X-Site-ID"); siteID != "" {
-		return uuid.Parse(siteID)
+	siteID := middleware.GetSiteID(c)
+	if siteID == uuid.Nil {
+		return uuid.Nil, errors.New("site_id not found in context, X-Site-ID header required")
 	}
-	// 默认站点 ID
-	return uuid.MustParse("00000000-0000-0000-0000-000000000001"), nil
+	return siteID, nil
 }
 
 // Create 创建 Token

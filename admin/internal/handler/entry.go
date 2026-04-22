@@ -43,7 +43,7 @@ func (h *EntryHandler) RegisterRoutes(rg *gin.RouterGroup) {
 
 // Create 创建条目
 func (h *EntryHandler) Create(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	if siteID == uuid.Nil {
 		siteID = uuid.Nil // 使用默认站点
 	}
@@ -66,7 +66,7 @@ func (h *EntryHandler) Create(c *gin.Context) {
 
 // Get 获取条目
 func (h *EntryHandler) Get(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -85,7 +85,7 @@ func (h *EntryHandler) Get(c *gin.Context) {
 
 // List 列出条目
 func (h *EntryHandler) List(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	// 解析分页参数
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -134,7 +134,7 @@ func (h *EntryHandler) List(c *gin.Context) {
 
 // Update 更新条目
 func (h *EntryHandler) Update(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	userID, _ := middleware.GetUserID(c)
 
 	id, err := uuid.Parse(c.Param("id"))
@@ -160,7 +160,7 @@ func (h *EntryHandler) Update(c *gin.Context) {
 
 // Delete 删除条目
 func (h *EntryHandler) Delete(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -178,7 +178,7 @@ func (h *EntryHandler) Delete(c *gin.Context) {
 
 // Publish 发布条目
 func (h *EntryHandler) Publish(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 	userID, _ := middleware.GetUserID(c)
 
 	id, err := uuid.Parse(c.Param("id"))
@@ -204,7 +204,7 @@ func (h *EntryHandler) Publish(c *gin.Context) {
 
 // Unpublish 取消发布
 func (h *EntryHandler) Unpublish(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -223,7 +223,7 @@ func (h *EntryHandler) Unpublish(c *gin.Context) {
 
 // GetVersions 获取版本历史
 func (h *EntryHandler) GetVersions(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -244,7 +244,7 @@ func (h *EntryHandler) GetVersions(c *gin.Context) {
 
 // BatchDelete 批量删除
 func (h *EntryHandler) BatchDelete(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	var req model.BatchDeleteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -263,7 +263,7 @@ func (h *EntryHandler) BatchDelete(c *gin.Context) {
 
 // BatchPublish 批量发布
 func (h *EntryHandler) BatchPublish(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	var req model.BatchPublishRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -282,7 +282,7 @@ func (h *EntryHandler) BatchPublish(c *gin.Context) {
 
 // BatchUnpublish 批量取消发布
 func (h *EntryHandler) BatchUnpublish(c *gin.Context) {
-	siteID, _ := middleware.GetSiteID(c)
+	siteID := middleware.GetSiteID(c)
 
 	var req model.BatchPublishRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
