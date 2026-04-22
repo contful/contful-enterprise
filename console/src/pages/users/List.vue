@@ -1,129 +1,165 @@
 <template>
   <div class="users-page">
-    <t-card>
-      <template #header>
-        <div class="users-header">
-          <h2>用户管理</h2>
-          <t-button theme="primary" @click="openCreateDialog">
-            <template #icon>
-              <AddIcon />
-            </template>
-            添加用户
-          </t-button>
-        </div>
-      </template>
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">用户管理</h1>
+        <p class="page-subtitle">管理系统用户与权限</p>
+      </div>
+      <button class="btn btn-primary" @click="openCreateDialog">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
+        </svg>
+        添加用户
+      </button>
+    </div>
 
-      <t-table
-        :data="users"
-        :columns="columns"
-        :pagination="pagination"
-        :loading="loading"
-        row-key="id"
-        hover
-        stripe
-        @page-change="onPageChange"
-      >
-        <template #avatar="{ row }">
-          <t-avatar v-if="row.avatar_url" :src="row.avatar_url" />
-          <t-avatar v-else>
-            {{ row.email?.charAt(0).toUpperCase() }}
-          </t-avatar>
-        </template>
+    <!-- 用户列表 -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>用户</th>
+            <th>邮箱</th>
+            <th>角色</th>
+            <th>状态</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="loading">
+            <td colspan="6" class="empty-state">加载中...</td>
+          </tr>
+          <tr v-else-if="users.length === 0">
+            <td colspan="6" class="empty-state">
+              <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
+                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+              </svg>
+              <h3>暂无用户</h3>
+              <p>点击「添加用户」创建第一个用户</p>
+              <button class="btn btn-primary btn-sm" @click="openCreateDialog">添加用户</button>
+            </td>
+          </tr>
+          <tr v-else v-for="row in users" :key="row.id">
+            <td>
+              <div class="user-info">
+                <div class="user-avatar">{{ row.email?.charAt(0).toUpperCase() }}</div>
+                <span class="user-name">{{ row.nickname || '—' }}</span>
+              </div>
+            </td>
+            <td>{{ row.email }}</td>
+            <td>
+              <span v-if="row.is_super_admin" class="badge badge-warning">超级管理员</span>
+              <span v-else class="badge badge-default">普通用户</span>
+            </td>
+            <td>
+              <span :class="['badge', getStatusBadge(row.status)]">{{ getStatusText(row.status) }}</span>
+            </td>
+            <td>{{ formatDate(row.created_time) }}</td>
+            <td>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" @click="openEditDialog(row)">编辑</button>
+                <button
+                  class="btn btn-sm"
+                  :class="row.is_super_admin ? 'btn-secondary' : 'btn-danger'"
+                  :disabled="row.is_super_admin"
+                  @click="handleDelete(row)"
+                >删除</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-        <template #status="{ row }">
-          <t-tag :theme="getStatusTheme(row.status)" variant="light">
-            {{ getStatusText(row.status) }}
-          </t-tag>
-        </template>
-
-        <template #is_super_admin="{ row }">
-          <t-tag v-if="row.is_super_admin" theme="warning" variant="light">
-            超级管理员
-          </t-tag>
-          <span v-else class="text-gray">普通用户</span>
-        </template>
-
-        <template #created_time="{ row }">
-          {{ formatDate(row.created_time) }}
-        </template>
-
-        <template #operations="{ row }">
-          <t-space>
-            <t-button size="small" variant="text" @click="openEditDialog(row)">
-              编辑
-            </t-button>
-            <t-button
-              size="small"
-              variant="text"
-              theme="danger"
-              :disabled="row.is_super_admin"
-              @click="handleDelete(row)"
-            >
-              删除
-            </t-button>
-          </t-space>
-        </template>
-      </t-table>
-    </t-card>
+    <!-- 分页 -->
+    <div v-if="pagination.total > pagination.pageSize" class="pagination-bar">
+      <t-pagination
+        v-model="pagination.current"
+        :total="pagination.total"
+        :page-size="pagination.pageSize"
+        @change="onPageChange"
+      />
+    </div>
 
     <!-- 创建用户弹窗 -->
-    <t-dialog
-      v-model:visible="createVisible"
-      header="添加用户"
-      :close-on-overlay-click="false"
-      :on-confirm="handleCreate"
-      :on-cancel="createVisible = false"
-    >
-      <t-form ref="createFormRef" :data="createForm" :rules="createRules" layout="vertical">
-        <t-form-item label="邮箱" name="email">
-          <t-input v-model="createForm.email" placeholder="请输入邮箱" />
-        </t-form-item>
-        <t-form-item label="密码" name="password">
-          <t-input v-model="createForm.password" type="password" placeholder="至少 8 位" />
-        </t-form-item>
-        <t-form-item label="昵称" name="nickname">
-          <t-input v-model="createForm.nickname" placeholder="可选" />
-        </t-form-item>
-        <t-form-item label="超级管理员">
-          <t-switch v-model="createForm.is_super_admin" />
-        </t-form-item>
-      </t-form>
-    </t-dialog>
+    <div v-if="createVisible" class="modal-overlay" @click.self="createVisible = false">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>添加用户</h3>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label class="input-label">邮箱 <span class="required">*</span></label>
+            <input v-model="createForm.email" class="input" type="email" placeholder="请输入邮箱" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">密码 <span class="required">*</span></label>
+            <input v-model="createForm.password" class="input" type="password" placeholder="至少 8 位" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">昵称</label>
+            <input v-model="createForm.nickname" class="input" type="text" placeholder="可选" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">超级管理员</label>
+            <t-switch v-model="createForm.is_super_admin" />
+          </div>
+          <p v-if="createError" class="form-error">{{ createError }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="createVisible = false">取消</button>
+          <button class="btn btn-primary" :disabled="creating" @click="handleCreate">
+            {{ creating ? '创建中...' : '创建' }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 编辑用户弹窗 -->
-    <t-dialog
-      v-model:visible="editVisible"
-      header="编辑用户"
-      :close-on-overlay-click="false"
-      :on-confirm="handleUpdate"
-      :on-cancel="editVisible = false"
-    >
-      <t-form ref="editFormRef" :data="editForm" :rules="editRules" layout="vertical">
-        <t-form-item label="邮箱">
-          <t-input v-model="editForm.email" disabled />
-        </t-form-item>
-        <t-form-item label="昵称" name="nickname">
-          <t-input v-model="editForm.nickname" placeholder="可选" />
-        </t-form-item>
-        <t-form-item label="状态" name="status">
-          <t-select v-model="editForm.status">
-            <t-option value="active" label="正常" />
-            <t-option value="inactive" label="停用" />
-            <t-option value="suspended" label="封禁" />
-          </t-select>
-        </t-form-item>
-        <t-form-item label="超级管理员">
-          <t-switch v-model="editForm.is_super_admin" :disabled="editForm.is_super_admin" />
-        </t-form-item>
-      </t-form>
-    </t-dialog>
+    <div v-if="editVisible" class="modal-overlay" @click.self="editVisible = false">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>编辑用户</h3>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label class="input-label">邮箱</label>
+            <input v-model="editForm.email" class="input" disabled />
+          </div>
+          <div class="input-group">
+            <label class="input-label">昵称</label>
+            <input v-model="editForm.nickname" class="input" type="text" placeholder="可选" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">状态</label>
+            <select v-model="editForm.status" class="input">
+              <option value="active">正常</option>
+              <option value="inactive">停用</option>
+              <option value="suspended">封禁</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="input-label">超级管理员</label>
+            <t-switch v-model="editForm.is_super_admin" :disabled="editForm.is_super_admin" />
+          </div>
+          <p v-if="editError" class="form-error">{{ editError }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="editVisible = false">取消</button>
+          <button class="btn btn-primary" :disabled="updating" @click="handleUpdate">
+            {{ updating ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import { AddIcon } from 'tdesign-icons-vue-next'
+import { DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import { showError, showSuccess } from '@/utils/request'
 
@@ -149,24 +185,19 @@ const pagination = reactive({
 
 // 创建弹窗
 const createVisible = ref(false)
-const createFormRef = ref()
+const creating = ref(false)
+const createError = ref('')
 const createForm = reactive({
   email: '',
   password: '',
   nickname: '',
   is_super_admin: false,
 })
-const createRules = {
-  email: [{ required: true, message: '邮箱必填', type: 'error' }],
-  password: [
-    { required: true, message: '密码必填', type: 'error' },
-    { min: 8, message: '密码至少 8 位', type: 'warning' },
-  ],
-}
 
 // 编辑弹窗
 const editVisible = ref(false)
-const editFormRef = ref()
+const updating = ref(false)
+const editError = ref('')
 const editingUserId = ref('')
 const editForm = reactive({
   email: '',
@@ -174,19 +205,6 @@ const editForm = reactive({
   status: 'active' as string,
   is_super_admin: false,
 })
-const editRules = {
-  status: [{ required: true }],
-}
-
-const columns = [
-  { colKey: 'avatar', title: '头像', width: 80 },
-  { colKey: 'email', title: '邮箱', minWidth: 200 },
-  { colKey: 'nickname', title: '昵称', minWidth: 120 },
-  { colKey: 'status', title: '状态', width: 100 },
-  { colKey: 'is_super_admin', title: '角色', width: 120 },
-  { colKey: 'created_time', title: '创建时间', width: 180 },
-  { colKey: 'operations', title: '操作', width: 120 },
-]
 
 const loadUsers = async () => {
   loading.value = true
@@ -203,9 +221,9 @@ const loadUsers = async () => {
   }
 }
 
-const onPageChange = (pageInfo: { current: number; pageSize: number }) => {
-  pagination.current = pageInfo.current
-  pagination.pageSize = pageInfo.pageSize
+const onPageChange = ({ current, pageSize }: { current: number; pageSize: number }) => {
+  pagination.current = current
+  pagination.pageSize = pageSize
   loadUsers()
 }
 
@@ -214,13 +232,13 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-const getStatusTheme = (status: string): 'success' | 'warning' | 'danger' => {
-  const map: Record<string, 'success' | 'warning' | 'danger'> = {
-    active: 'success',
-    inactive: 'warning',
-    suspended: 'danger',
+const getStatusBadge = (status: string): string => {
+  const map: Record<string, string> = {
+    active: 'badge-success',
+    inactive: 'badge-warning',
+    suspended: 'badge-error',
   }
-  return map[status] || 'default'
+  return map[status] || 'badge-default'
 }
 
 const getStatusText = (status: string) => {
@@ -237,13 +255,15 @@ const openCreateDialog = () => {
   createForm.password = ''
   createForm.nickname = ''
   createForm.is_super_admin = false
+  createError.value = ''
   createVisible.value = true
 }
 
 const handleCreate = async () => {
-  const valid = await (createFormRef.value as any).validate()
-  if (!valid) return
-
+  if (!createForm.email) { createError.value = '邮箱必填'; return }
+  if (createForm.password.length < 8) { createError.value = '密码至少 8 位'; return }
+  creating.value = true
+  createError.value = ''
   try {
     await userStore.createUser({
       email: createForm.email,
@@ -256,11 +276,9 @@ const handleCreate = async () => {
     loadUsers()
   } catch (error: any) {
     const msg = error?.response?.data?.msg || '创建失败'
-    if (msg.includes('already exists')) {
-      showError('该邮箱已被注册')
-    } else {
-      showError(msg)
-    }
+    createError.value = msg.includes('already exists') ? '该邮箱已被注册' : msg
+  } finally {
+    creating.value = false
   }
 }
 
@@ -270,10 +288,13 @@ const openEditDialog = (user: User) => {
   editForm.nickname = user.nickname || ''
   editForm.status = user.status
   editForm.is_super_admin = user.is_super_admin
+  editError.value = ''
   editVisible.value = true
 }
 
 const handleUpdate = async () => {
+  updating.value = true
+  editError.value = ''
   try {
     await userStore.updateUser(editingUserId.value, {
       nickname: editForm.nickname || undefined,
@@ -284,7 +305,9 @@ const handleUpdate = async () => {
     editVisible.value = false
     loadUsers()
   } catch (error: any) {
-    showError(error?.response?.data?.msg || '更新失败')
+    editError.value = error?.response?.data?.msg || '更新失败'
+  } finally {
+    updating.value = false
   }
 }
 
@@ -315,21 +338,84 @@ onMounted(() => {
   padding: 24px;
 }
 
-.users-header {
+.pagination-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.user-info {
+  display: flex;
   align-items: center;
-  width: 100%;
+  gap: 10px;
 }
 
-.users-header h2 {
-  margin: 0;
-  font-size: 18px;
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
   font-weight: 600;
-  flex: 1;
+  flex-shrink: 0;
 }
 
-.text-gray {
-  color: var(--td-text-color-secondary);
+.user-name {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.required {
+  color: var(--color-error);
+}
+
+.form-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--color-card);
+  border-radius: 12px;
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  padding: 20px 24px 0;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.modal-body {
+  padding: 20px 24px;
+}
+
+.modal-footer {
+  padding: 0 24px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>
