@@ -132,11 +132,12 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 
 		// 4. 关联创建者到 site_users（Owner 角色）
 		siteUser := &model.SiteUser{
-			ID:      uuid.New(),
-			SiteID:  site.ID,
-			UserID:  userID,
-			RoleID:  ownerRole.ID,
-			Status:  model.UserStatusActive,
+			ID:               uuid.New(),
+			SiteID:           site.ID,
+			UserID:           userID,
+			RoleID:           ownerRole.ID,
+			Status:           model.UserStatusActive,
+			ExtraPermissions: []string{}, // 避免 JSONB NOT NULL 约束
 		}
 		if err := tx.Create(siteUser).Error; err != nil {
 			return fmt.Errorf("create site_user failed: %w", err)

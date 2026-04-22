@@ -106,3 +106,16 @@ func minLen(token string) int {
 	}
 	return len(token)
 }
+
+// GetTokenContext 从 Gin Context 中取出 TokenContext，若不存在返回 nil
+func GetTokenContext(c *gin.Context) *model.TokenContext {
+	val, exists := c.Get(model.TokenContextKey)
+	if !exists {
+		return nil
+	}
+	tc, ok := val.(*model.TokenContext)
+	if !ok {
+		return nil
+	}
+	return tc
+}

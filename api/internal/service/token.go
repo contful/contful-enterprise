@@ -75,17 +75,32 @@ func (s *APITokenService) ValidateToken(ctx context.Context, rawToken string) (*
 	}()
 
 	// 7. 构建上下文
-	perm := model.TokenPermission{
-		AllowRead:  token.Permissions.AllowRead,
-		AllowWrite: token.Permissions.AllowWrite,
+	// Scopes 字段：["read"] 或 ["read","write"]，解析为读写权限
+	allowRead := false
+	allowWrite := false
+	for _, scope := range token.Scopes {
+		switch scope {
+		case "read":
+			allowRead = true
+		case "write":
+			allowWrite = true
+		}
 	}
-	if len(token.Permissions.ContentTypes) > 0 {
-		perm.ContentTypes = token.Permissions.ContentTypes
+	// SiteScope：["*"] 表示全站，否则为指定 content type slug 列表
+	var contentTypes []string
+	if len(token.SiteScope) == 1 && token.SiteScope[0] == "*" {
+		contentTypes = []string{"*"}
+	} else {
+		contentTypes = token.SiteScope
+	}
+	perm := model.TokenPermission{
+		AllowRead:    allowRead,
+		AllowWrite:   allowWrite,
+		ContentTypes: contentTypes,
 	}
 
 	rateCfg := model.RateLimitConfig{
-		RequestsPerMinute: token.RateLimits.RequestsPerMinute,
-		RequestsPerDay:    token.RateLimits.RequestsPerDay,
+		RequestsPerMinute: token.RateLimit,
 	}
 
 	var expiresAt *int64
