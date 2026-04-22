@@ -192,11 +192,12 @@ func main() {
 			protected.GET("/assets/folders/:id", assetHandler.GetFolder)
 			protected.PUT("/assets/folders/:id", assetHandler.UpdateFolder)
 			protected.DELETE("/assets/folders/:id", assetHandler.DeleteFolder)
+			// 批量删除必须在 :id 路由之前注册（Gin 静态路径优先）
+			protected.DELETE("/assets/batch-delete", assetHandler.BatchDelete)
 			// 资产 CRUD（:id 路由放在最后）
 			protected.GET("/assets/:id", assetHandler.Get)
 			protected.PUT("/assets/:id", assetHandler.Update)
 			protected.DELETE("/assets/:id", assetHandler.Delete)
-			protected.DELETE("/assets/batch-delete", assetHandler.BatchDelete)
 
 			// API Token 管理
 			protected.POST("/api-tokens", tokenHandler.Create)

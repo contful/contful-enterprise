@@ -571,16 +571,6 @@ CREATE INDEX idx_entry_values_number ON entry_values(number_value) WHERE number_
 CREATE INDEX idx_entry_values_bool ON entry_values(bool_value) WHERE bool_value IS NOT NULL;
 CREATE INDEX idx_entry_values_date ON entry_values(date_value) WHERE date_value IS NOT NULL;
 
--- 中文分词支持（可选）
-COMMENT ON TABLE entry_versions IS '条目版本表：内容的历史版本记录';
-COMMENT ON COLUMN entry_versions.id IS '版本唯一标识符';
-COMMENT ON COLUMN entry_versions.entry_id IS '所属条目';
-COMMENT ON COLUMN entry_versions.version IS '版本号';
-COMMENT ON COLUMN entry_versions.values_snapshot IS '值快照 JSON';
-COMMENT ON COLUMN entry_versions.created_by IS '创建者';
-COMMENT ON COLUMN entry_versions.created_time IS '创建时间';
-COMMENT ON COLUMN entry_versions.change_summary IS '变更摘要';
-
 CREATE TABLE entry_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entry_id UUID NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
@@ -593,6 +583,17 @@ CREATE TABLE entry_versions (
 );
 CREATE INDEX idx_entry_versions_entry ON entry_versions(entry_id);
 CREATE INDEX idx_entry_versions_created ON entry_versions(created_time DESC);
+
+-- 中文分词支持（可选）
+COMMENT ON TABLE entry_versions IS '条目版本表：内容的历史版本记录';
+COMMENT ON COLUMN entry_versions.id IS '版本唯一标识符';
+COMMENT ON COLUMN entry_versions.entry_id IS '所属条目';
+COMMENT ON COLUMN entry_versions.version IS '版本号';
+COMMENT ON COLUMN entry_versions.values_snapshot IS '值快照 JSON';
+COMMENT ON COLUMN entry_versions.created_by IS '创建者';
+COMMENT ON COLUMN entry_versions.created_time IS '创建时间';
+COMMENT ON COLUMN entry_versions.change_summary IS '变更摘要';
+
 
 -- =============================================================================
 -- 5. 媒体资产层
@@ -749,8 +750,8 @@ COMMENT ON COLUMN api_tokens.description IS 'Token 描述';
 COMMENT ON COLUMN api_tokens.token_prefix IS 'Token 前缀（显示用）';
 COMMENT ON COLUMN api_tokens.token_hash IS 'Token 哈希（存储用）';
 COMMENT ON COLUMN api_tokens.scopes IS '权限范围 JSON';
-COMMENT ON COLUMN api_tokens.site_scope JSONB IS '站点权限范围 JSON';
-COMMENT ON COLUMN api_tokens.channel_scope JSONB IS '渠道权限范围 JSON';
+COMMENT ON COLUMN api_tokens.site_scope IS '站点权限范围 JSON';
+COMMENT ON COLUMN api_tokens.channel_scope IS '渠道权限范围 JSON';
 COMMENT ON COLUMN api_tokens.allowed_ips IS '允许的 IP 列表';
 COMMENT ON COLUMN api_tokens.rate_limit IS '速率限制（请求/分钟）';
 COMMENT ON COLUMN api_tokens.expires_time IS '过期时间';

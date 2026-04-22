@@ -107,40 +107,37 @@ onMounted(async () => {
             <t-icon :name="sidebarCollapsed ? 'indent-right' : 'indent-left'" />
           </template>
         </t-button>
+        <!-- 站点选择器：紧跟折叠按钮，左侧分隔线对齐 -->
+        <div class="site-selector">
+          <t-select
+            v-model="siteStore.currentSiteId"
+            :options="siteStore.sites.map(s => ({ label: s.name, value: s.id }))"
+            placeholder="选择站点"
+            :clearable="false"
+            style="width: 180px"
+            @change="(val: string) => siteStore.setCurrentSite(val)"
+          />
+          <t-button
+            v-if="siteStore.currentSiteId"
+            shape="square" variant="text"
+            size="small"
+            title="创建新站点"
+            @click="showCreateSite = true"
+          >
+            <template #icon>
+              <t-icon name="add" />
+            </template>
+          </t-button>
+          <t-button
+            v-else-if="siteStore.sites.length === 0 && userStore.isLoggedIn"
+            variant="outline" size="small"
+            @click="showCreateSite = true"
+          >
+            创建站点
+          </t-button>
+        </div>
       </div>
-      <div class="header-center">
-        <!-- 站点选择器 -->
-        <t-select
-          v-model="siteStore.currentSiteId"
-          :options="siteStore.sites.map(s => ({ label: s.name, value: s.id }))"
-          placeholder="选择站点"
-          :clearable="false"
-          style="width: 200px"
-          @change="(val: string) => siteStore.setCurrentSite(val)"
-        >
-          <template #suffixIcon>
-            <t-icon name="chevron-down" />
-          </template>
-        </t-select>
-        <t-button
-          v-if="siteStore.currentSiteId"
-          shape="square" variant="text"
-          size="small"
-          title="创建新站点"
-          @click="showCreateSite = true"
-        >
-          <template #icon>
-            <t-icon name="add" />
-          </template>
-        </t-button>
-        <t-button
-          v-else-if="siteStore.sites.length === 0 && userStore.isLoggedIn"
-          variant="outline" size="small"
-          @click="showCreateSite = true"
-        >
-          创建站点
-        </t-button>
-      </div>
+      <div class="header-center"></div>
       <div class="header-right">
         <div class="user-menu">
           <div class="avatar" v-if="user">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
@@ -245,26 +242,7 @@ onMounted(async () => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
-}
-
-.collapse-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.collapse-btn:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
+  gap: 8px;
 }
 
 .logo {
@@ -278,24 +256,16 @@ onMounted(async () => {
   width: auto;
 }
 
+.site-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--color-border);
+}
+
 .header-center {
   flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.breadcrumb-item {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text);
 }
 
 .header-right {

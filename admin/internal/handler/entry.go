@@ -45,7 +45,8 @@ func (h *EntryHandler) RegisterRoutes(rg *gin.RouterGroup) {
 func (h *EntryHandler) Create(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 	if siteID == uuid.Nil {
-		siteID = uuid.Nil // 使用默认站点
+		middleware.BadRequest(c, "X-Site-ID header is required")
+		return
 	}
 	userID, _ := middleware.GetUserID(c)
 
