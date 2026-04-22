@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -8,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -16,6 +16,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
+	"github.com/contful/contful/admin/internal/storage"
 
 	"github.com/google/uuid"
 )
@@ -70,18 +71,17 @@ var audioExtensions = map[string]bool{
 // AssetService 资源服务
 type AssetService struct {
 	assetRepo *repository.AssetRepository
-	uploadDir string
-	baseURL   string
+	storage   storage.StorageProvider
 }
 
 // NewAssetService 新建服务
-func NewAssetService(assetRepo *repository.AssetRepository, uploadDir, baseURL string) *AssetService {
+func NewAssetService(assetRepo *repository.AssetRepository, sp storage.StorageProvider) *AssetService {
 	return &AssetService{
 		assetRepo: assetRepo,
-		uploadDir: uploadDir,
-		baseURL:   baseURL,
+		storage:   sp,
 	}
 }
+
 
 // Upload 上传资源
 func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, file *multipart.FileHeader, folderID *uuid.UUID, alt, title string) (*model.Asset, error) {
@@ -124,29 +124,23 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 	// 生成唯一文件名
 	filename := fmt.Sprintf("%s_%d%s", uuid.New().String()[:8], time.Now().Unix(), ext)
 
-	// 生成存储路径: /{year}/{month}/{day}/{filename}
+	// 生成存储 key: {site_id}/{year}/{month}/{day}/{filename}
 	now := time.Now()
-	relativePath := filepath.Join(
+	storageKey := filepath.Join(
+		siteID.String(),
 		fmt.Sprintf("%d", now.Year()),
 		fmt.Sprintf("%02d", now.Month()),
 		fmt.Sprintf("%02d", now.Day()),
 		filename,
 	)
 
-	// 确保目录存在
-	fullDir := filepath.Join(s.uploadDir, fmt.Sprintf("%s", siteID.String()), fmt.Sprintf("%d", now.Year()), fmt.Sprintf("%02d", now.Month()), fmt.Sprintf("%02d", now.Day()))
-	if err := os.MkdirAll(fullDir, 0755); err != nil {
-		return nil, fmt.Errorf("创建目录失败: %w", err)
+	// 上传到存储驱动
+	objectInfo, err := s.storage.Upload(ctx, storageKey, bytes.NewReader(data), file.Size, &storage.WriteOptions{
+		ContentType: mimeType,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("上传文件失败: %w", err)
 	}
-
-	// 保存文件
-	fullPath := filepath.Join(fullDir, filename)
-	if err := os.WriteFile(fullPath, data, 0644); err != nil {
-		return nil, fmt.Errorf("保存文件失败: %w", err)
-	}
-
-	// 生成 URL
-	url := fmt.Sprintf("%s/assets/%s/%s", s.baseURL, siteID.String(), relativePath)
 
 	// 创建资源记录
 	asset := &model.Asset{
@@ -161,13 +155,13 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 		MimeType:      mimeType,
 		Extension:     strings.TrimPrefix(ext, "."),
 		Size:          file.Size,
-		Path:          filepath.Join(siteID.String(), relativePath),
-		URL:           url,
+		Path:          storageKey,
+		URL:           objectInfo.URL,
 		Alt:           alt,
 		Title:         title,
 		Visibility:    model.AssetVisibilityPrivate,
 		FileHash:      fileHash,
-		Disk:          "local",
+		Disk:          s.storage.Name(),
 		CreatedBy:     &userID,
 	}
 
@@ -179,14 +173,14 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 			asset.Height = &height
 		}
 		// 生成缩略图 URL（实际项目中需要实际生成缩略图）
-		thumbnailURL := strings.Replace(url, filepath.Ext(url), "_thumb"+ext, 1)
+		thumbnailURL := strings.Replace(objectInfo.URL, filepath.Ext(objectInfo.URL), "_thumb"+ext, 1)
 		asset.ThumbnailURL = &thumbnailURL
 	}
 
 	// 保存到数据库
 	if err := s.assetRepo.Create(ctx, asset); err != nil {
-		// 删除已保存的文件
-		os.Remove(fullPath)
+		// 删除已上传的文件
+		_ = s.storage.Delete(ctx, storageKey)
 		return nil, fmt.Errorf("保存资源记录失败: %w", err)
 	}
 
@@ -345,9 +339,12 @@ func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	// 删除物理文件
-	fullPath := filepath.Join(s.uploadDir, asset.Path)
-	os.Remove(fullPath)
+	// 删除存储文件
+	if err := s.storage.Delete(ctx, asset.Path); err != nil {
+		// 日志警告，不阻塞 DB 删除
+		// （本地文件可能已被清理，云存储删除失败需告警）
+		_ = err
+	}
 
 	// 删除数据库记录
 	return s.assetRepo.Delete(ctx, id)
@@ -355,6 +352,16 @@ func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
 
 // BatchDelete 批量删除
 func (s *AssetService) BatchDelete(ctx context.Context, ids []uuid.UUID) error {
+	// 先查所有资产获取路径，再批量删除存储文件
+	assets, _ := s.assetRepo.GetByIDs(ctx, ids)
+	var paths []string
+	for _, a := range assets {
+		paths = append(paths, a.Path)
+	}
+	// 批量删除存储文件（忽略错误，继续删除 DB 记录）
+	if len(paths) > 0 {
+		_ = s.storage.DeleteMulti(ctx, paths)
+	}
 	return s.assetRepo.BatchDelete(ctx, ids)
 }
 

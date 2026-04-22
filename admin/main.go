@@ -12,15 +12,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/contful/contful/admin/internal/config"
+	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/handler"
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/service"
+	"github.com/contful/contful/admin/internal/storage"
 )
 
 func main() {
@@ -83,8 +83,26 @@ func main() {
 	siteService := service.NewSiteService(db, siteRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
-	assetService := service.NewAssetService(assetRepo, cfg.Storage.UploadDir, "/admin/api/v1")
 	tokenService := service.NewAPITokenService(tokenRepo)
+	configRepo := repository.NewSiteConfigRepository(db)
+	configService := service.NewConfigService(configRepo, os.Getenv("CONTFUL_CONFIG_MASTER_KEY"))
+	if configService.GetMasterKey() != "" {
+		logger.Info().Msg("配置中心已启用（AES-256-GCM 主密钥已加载）")
+	} else {
+		logger.Warn().Msg("警告：CONTFUL_CONFIG_MASTER_KEY 未设置，敏感配置将无法加密存储")
+	}
+
+	// 初始化存储驱动（当前仅支持 local，S3/OSS 等通过 site_configs 配置后动态切换）
+	storageProvider, err := storage.NewFromConfig(context.Background(), "local", &storage.ProviderConfig{
+		RootDir: cfg.Storage.UploadDir,
+		BaseURL: "http://localhost:9080/assets",
+	})
+	if err != nil {
+		logger.Fatal().Err(err).Msg("初始化存储驱动失败")
+	}
+	logger.Info().Str("driver", storageProvider.Name()).Msg("存储驱动已就绪")
+
+	assetService := service.NewAssetService(assetRepo, storageProvider)
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
@@ -94,6 +112,7 @@ func main() {
 	entryHandler := handler.NewEntryHandler(entryService)
 	assetHandler := handler.NewAssetHandler(assetService)
 	tokenHandler := handler.NewAPITokenHandler(tokenService)
+	configHandler := handler.NewConfigHandler(configService)
 
 	// 初始化 Gin
 	r := gin.New()
@@ -207,6 +226,12 @@ func main() {
 			protected.DELETE("/api-tokens/:id", tokenHandler.Delete)
 			protected.POST("/api-tokens/:id/regenerate", tokenHandler.Regenerate)
 			protected.POST("/api-tokens/:id/revoke", tokenHandler.Revoke)
+
+			// 站点配置管理（PRE-001）
+			protected.GET("/sites/:site_id/configs", configHandler.List)
+			protected.GET("/sites/:site_id/configs/:key", configHandler.Get)
+			protected.PUT("/sites/:site_id/configs/:key", configHandler.Set)
+			protected.DELETE("/sites/:site_id/configs/:key", configHandler.Delete)
 		}
 	}
 
@@ -242,23 +267,13 @@ func main() {
 }
 
 func initDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
-	dsn := cfg.GetDSN()
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	if err != nil {
-		return nil, err
+	dsnCfg := &database.DSNConfig{
+		Host:     cfg.Host,
+		Port:     cfg.Port,
+		User:     cfg.User,
+		Password: cfg.Password,
+		Name:     cfg.Name,
+		SSLMode:  cfg.SSLMode,
 	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
-	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
-	sqlDB.SetConnMaxLifetime(cfg.GetConnMaxLifetime())
-
-	return db, nil
+	return database.Open(dsnCfg, cfg.MaxOpenConns, cfg.MaxIdleConns, cfg.ConnMaxLifetime)
 }
