@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import ApiTokens from './ApiTokens.vue'
+import SiteSettings from './SiteSettings.vue'
 
 const activeTab = ref('api-tokens')
 
@@ -41,10 +42,7 @@ const tabs = [
           <h3 class="card-title">个人资料</h3>
           <p class="text-secondary">个人资料设置功能开发中...</p>
         </div>
-        <div v-else-if="activeTab === 'site'" class="card">
-          <h3 class="card-title">站点设置</h3>
-          <p class="text-secondary">站点设置功能开发中...</p>
-        </div>
+        <SiteSettings v-else-if="activeTab === 'site'" />
       </div>
     </div>
   </div>
