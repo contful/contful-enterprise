@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -63,8 +64,10 @@ func main() {
 	// 初始化 Repository / Service
 	tokenRepo := repository.NewAPITokenRepository(db)
 	tokenSvc := service.NewAPITokenService(tokenRepo)
-	// 注册 GORM model
-	_ = db.AutoMigrate(&repository.APIToken{})
+
+	entryRepo := repository.NewEntryRepository(db)
+	ctRepo := repository.NewContentTypeRepository(db)
+	entrySvc := service.NewEntryService(entryRepo, ctRepo)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)
@@ -95,19 +98,67 @@ func main() {
 		api.Use(rateLimiter.RateLimitByToken(cfg.RateLimit.RequestsPerMin))
 	}
 
-	// TODO: 内容读写路由将由 M1-009 后续完善
-	// 当前占位路由，演示 Token 认证和 Rate Limit 已生效
+	// 内容读取路由（需 Token 认证）
+	// GET  /api/v1/content/:slug         — 列出指定内容类型的已发布条目
+	// GET  /api/v1/content/:slug/:id     — 获取单个已发布条目
 	api.GET("/content/:slug", middleware.RequireRead(), func(c *gin.Context) {
-		c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{
-			"message": "M1-015 Token 验证中间件已就绪",
-			"slug":   c.Param("slug"),
-		}))
+		tc := middleware.GetTokenContext(c)
+		if tc == nil {
+			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "unauthorized"))
+			return
+		}
+
+		slug := c.Param("slug")
+		locale := c.Query("locale")
+		sortField := c.Query("sort_field")
+		sortOrder := c.Query("sort_order")
+		page, pageSize := service.ParsePage(c.Query("page"), c.Query("page_size"))
+
+		resp, err := entrySvc.ListBySlug(c.Request.Context(), tc.SiteID, slug, locale, sortField, sortOrder, page, pageSize)
+		if err != nil {
+			if err == service.ErrContentTypeNotFound {
+				c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "content type not found"))
+				return
+			}
+			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+			return
+		}
+
+		c.JSON(http.StatusOK, model.NewSuccessResponse(resp))
+	})
+
+	api.GET("/content/:slug/:id", middleware.RequireRead(), func(c *gin.Context) {
+		tc := middleware.GetTokenContext(c)
+		if tc == nil {
+			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "unauthorized"))
+			return
+		}
+
+		slug := c.Param("slug")
+		idStr := c.Param("id")
+		entryID, err := parseUUID(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid id"))
+			return
+		}
+
+		item, err := entrySvc.GetByID(c.Request.Context(), tc.SiteID, slug, entryID)
+		if err != nil {
+			if err == service.ErrContentTypeNotFound || err == service.ErrEntryNotFound {
+				c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "not found"))
+				return
+			}
+			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+			return
+		}
+
+		c.JSON(http.StatusOK, model.NewSuccessResponse(item))
 	})
 
 	api.POST("/content/:slug", middleware.RequireWrite(), func(c *gin.Context) {
 		c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{
-			"message": "M1-015 Token 验证中间件已就绪",
-			"slug":   c.Param("slug"),
+			"message": "write API coming in M2",
+			"slug":    c.Param("slug"),
 		}))
 	})
 
@@ -140,4 +191,9 @@ func main() {
 		logger.Fatal().Err(err).Msg("server forced to shutdown")
 	}
 	logger.Info().Msg("server exited")
+}
+
+// parseUUID 解析 UUID 字符串，失败返回 error
+func parseUUID(s string) (uuid.UUID, error) {
+	return uuid.Parse(s)
 }

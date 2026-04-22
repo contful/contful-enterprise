@@ -1,0 +1,168 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+
+	"github.com/contful/contful/api/internal/repository"
+	"github.com/google/uuid"
+)
+
+// ErrContentTypeNotFound 内容类型不存在
+var ErrContentTypeNotFound = errors.New("content type not found")
+
+// ErrEntryNotFound 条目不存在
+var ErrEntryNotFound = errors.New("entry not found")
+
+// EntryService Open API 内容读取服务
+type EntryService struct {
+	entryRepo *repository.EntryRepository
+	ctRepo    *repository.ContentTypeRepository
+}
+
+// NewEntryService 创建 EntryService
+func NewEntryService(entryRepo *repository.EntryRepository, ctRepo *repository.ContentTypeRepository) *EntryService {
+	return &EntryService{
+		entryRepo: entryRepo,
+		ctRepo:    ctRepo,
+	}
+}
+
+// EntryItem 对外输出的条目结构（扁平化字段值）
+type EntryItem struct {
+	ID             uuid.UUID              `json:"id"`
+	Locale         string                 `json:"locale"`
+	Version        int                    `json:"version"`
+	PublishedTime  interface{}            `json:"published_time"`
+	UpdatedTime    interface{}            `json:"updated_time"`
+	Fields         map[string]interface{} `json:"fields"`
+}
+
+// EntryListResponse 条目列表响应
+type EntryListResponse struct {
+	Items    []EntryItem `json:"items"`
+	Total    int64       `json:"total"`
+	Page     int         `json:"page"`
+	PageSize int         `json:"page_size"`
+}
+
+// ListBySlug 通过内容类型 slug 列出已发布条目
+func (s *EntryService) ListBySlug(ctx context.Context, siteID uuid.UUID, slug string, locale string, sortField, sortOrder string, page, pageSize int) (*EntryListResponse, error) {
+	// 1. 通过 slug 找内容类型
+	ct, err := s.ctRepo.FindBySlug(ctx, siteID, slug)
+	if err != nil {
+		return nil, ErrContentTypeNotFound
+	}
+
+	// 2. 查询已发布条目
+	filter := repository.EntryListFilter{
+		Locale:    locale,
+		SortField: sortField,
+		SortOrder: sortOrder,
+	}
+	entries, total, err := s.entryRepo.ListPublished(ctx, siteID, ct.ID, filter, page, pageSize)
+	if err != nil {
+		return nil, fmt.Errorf("query entries failed: %w", err)
+	}
+
+	// 3. 组装响应
+	items := make([]EntryItem, len(entries))
+	for i, e := range entries {
+		items[i] = flattenEntry(e)
+	}
+
+	return &EntryListResponse{
+		Items:    items,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	}, nil
+}
+
+// GetByID 获取单个已发布条目
+func (s *EntryService) GetByID(ctx context.Context, siteID uuid.UUID, slug string, entryID uuid.UUID) (*EntryItem, error) {
+	// 验证 slug 对应的内容类型存在
+	_, err := s.ctRepo.FindBySlug(ctx, siteID, slug)
+	if err != nil {
+		return nil, ErrContentTypeNotFound
+	}
+
+	entry, err := s.entryRepo.GetPublishedByID(ctx, siteID, entryID)
+	if err != nil {
+		return nil, ErrEntryNotFound
+	}
+
+	item := flattenEntry(*entry)
+	return &item, nil
+}
+
+// flattenEntry 将条目的 Values 扁平化为 fields map
+func flattenEntry(e repository.Entry) EntryItem {
+	fields := make(map[string]interface{})
+	for _, v := range e.Values {
+		if v.Field.Name == "" {
+			continue
+		}
+		fields[v.Field.Name] = extractValue(v.Value)
+	}
+
+	var publishedTime interface{}
+	if e.PublishedTime != nil {
+		publishedTime = e.PublishedTime.Format("2006-01-02T15:04:05Z07:00")
+	}
+
+	return EntryItem{
+		ID:            e.ID,
+		Locale:        e.Locale,
+		Version:       e.Version,
+		PublishedTime: publishedTime,
+		UpdatedTime:   e.UpdatedTime.Format("2006-01-02T15:04:05Z07:00"),
+		Fields:        fields,
+	}
+}
+
+// extractValue 从 JSONB value 中提取实际值
+// entry_values.value 存储为 {"value": <实际值>} 结构
+func extractValue(v repository.JSONBValue) interface{} {
+	if v == nil {
+		return nil
+	}
+	// 如果有 "value" 包装层，解包
+	if wrapped, ok := v["value"]; ok {
+		return wrapped
+	}
+	// 如果是原始 JSON 对象（如 rich_text 存完整结构），直接返回
+	// 尝试将字符串类型的 JSON 进一步解析
+	if raw, ok := v["raw"]; ok {
+		return raw
+	}
+	// 尝试将整个 map 作为字符串返回（兼容旧格式）
+	if s, ok := v["string_value"]; ok {
+		return s
+	}
+	// 如果只有一个键值对，取其值
+	if len(v) == 1 {
+		for _, val := range v {
+			return val
+		}
+	}
+	// 返回完整 map
+	b, _ := json.Marshal(v)
+	return string(b)
+}
+
+// ParsePage 解析分页参数，返回 page 和 pageSize
+func ParsePage(pageStr, pageSizeStr string) (int, int) {
+	page, _ := strconv.Atoi(pageStr)
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(pageSizeStr)
+	if pageSize < 1 || pageSize > 200 {
+		pageSize = 20
+	}
+	return page, pageSize
+}
