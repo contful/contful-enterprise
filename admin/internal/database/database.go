@@ -1,8 +1,11 @@
-// Package database 提供 PostgreSQL 数据库连接。
+// Package database 提供数据库驱动的编译时选择支持。
+// 通过 build tag 选择编译目标数据库：
+//
+//   - //go:build pg  — PostgreSQL 驱动
+//   - //go:build dm  — 达梦 DM8 驱动
 //
 // 使用方式：
 //
 //	go build -tags=pg   # 编译 PostgreSQL 版本
-//
-// 达梦 DM8 支持：需用户自行提供 gorm.io/driver/dm 及对应的 driver_dm.go。
+//	go build -tags=dm   # 编译达梦 DM8 版本
 package database
