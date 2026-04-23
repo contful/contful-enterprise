@@ -105,6 +105,7 @@ onMounted(async () => {
         </div>
         <t-button
           shape="square" variant="text"
+          style="flex-shrink: 0"
           @click="sidebarCollapsed = !sidebarCollapsed"
         >
           <template #icon>
@@ -118,7 +119,7 @@ onMounted(async () => {
             :options="siteStore.sites.map(s => ({ label: s.name, value: s.id }))"
             :placeholder="t('site.selectSite')"
             :clearable="false"
-            style="width: 180px"
+            style="width: 220px"
             @change="(val: string) => siteStore.setCurrentSite(val)"
           />
           <t-button
@@ -139,11 +140,11 @@ onMounted(async () => {
           >
             {{ t('site.createSite') }}
           </t-button>
-        </div>
       </div>
-      <div class="header-center"></div>
-        <div class="header-right">
-        <!-- 语言切换 -->
+      </div>
+      <!-- 占位，撑开左右两端的间距 -->
+      <div class="header-spacer"></div>
+      <div class="header-right">
         <LangSwitcher />
         <div class="user-menu">
           <div class="avatar" v-if="user">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
@@ -236,7 +237,6 @@ onMounted(async () => {
   height: 56px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 20px;
   background: #fff;
   border-bottom: 1px solid var(--color-border);
@@ -249,6 +249,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-spacer {
+  flex: 1;
 }
 
 .logo {
@@ -270,13 +275,15 @@ onMounted(async () => {
   border-left: 1px solid var(--color-border);
 }
 
-.header-center {
-  flex: 1;
+.site-selector :deep(.t-select) {
+  font-size: 14px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .user-menu {
@@ -296,31 +303,17 @@ onMounted(async () => {
   justify-content: center;
   font-weight: 600;
   font-size: 13px;
+  flex-shrink: 0;
 }
 
 .user-name {
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text);
-}
-
-.logout-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.logout-btn:hover {
-  background: var(--color-error-light);
-  color: var(--color-error);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
 }
 
 /* 主体区域 */

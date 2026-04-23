@@ -93,7 +93,7 @@ func main() {
 
 	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
 	userService := service.NewUserService(userRepo)
-	siteService := service.NewSiteService(db, siteRepo)
+	siteService := service.NewSiteService(db, siteRepo, configRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 	tokenService := service.NewAPITokenService(tokenRepo)

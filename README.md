@@ -78,6 +78,25 @@ cd console && yarn dev                   # Console (:3000)
 | contful-admin | 80 | 管理后台（OpenResty → Console SPA + /admin/ 代理） |
 | contful-api | 8080 | Open API，可水平扩展 |
 
+## 站点默认配置
+
+新站点创建时会自动写入以下默认配置（存储在 `site_configs` 表）：
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `storage.driver` | `local` | 存储驱动：`local` / `oss` / `cos` / `obs` / `s3` |
+| `storage.local.root` | `uploads` | 本地存储根目录 |
+| `storage.local.base_url` | `/uploads` | 本地存储访问路径 |
+| `integrity.enabled` | `false` | 是否启用数据签名（HMAC-SHA256） |
+| `integrity.algorithm` | `HMAC-SHA256` | 签名算法 |
+| `integrity.signing_key` | _(空) | 签名密钥，AES-256-GCM 加密存储；`integrity.enabled=true` 时自动生成 |
+
+> **提示**：敏感配置（`integrity.signing_key` 等）通过 `CONTFUL_CONFIG_MASTER_KEY` 环境变量加密存储。
+> 生产环境请设置 32 字节随机字符串作为主密钥：
+> ```bash
+> openssl rand -hex 32
+> ```
+
 ## 文档
 
 - [快速开始](https://contful.com/docs/getting-started)
