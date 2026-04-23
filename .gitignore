@@ -56,3 +56,4 @@ coverage/
 .cache/
 .parcel-cache/
 .vitepress/cache/
+admin/admin-server

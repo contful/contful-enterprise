@@ -248,10 +248,10 @@ func main() {
 			protected.POST("/api-tokens/:id/revoke", tokenHandler.Revoke)
 
 			// 站点配置管理（PRE-001）
-			protected.GET("/sites/:site_id/configs", configHandler.List)
-			protected.GET("/sites/:site_id/configs/:key", configHandler.Get)
-			protected.PUT("/sites/:site_id/configs/:key", configHandler.Set)
-			protected.DELETE("/sites/:site_id/configs/:key", configHandler.Delete)
+			protected.GET("/sites/:id/configs", configHandler.List)
+			protected.GET("/sites/:id/configs/:key", configHandler.Get)
+			protected.PUT("/sites/:id/configs/:key", configHandler.Set)
+			protected.DELETE("/sites/:id/configs/:key", configHandler.Delete)
 
 			// 数据完整性验签（PRE-004）
 			protected.GET("/integrity/verify", integrityHandler.Verify)

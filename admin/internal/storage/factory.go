@@ -13,12 +13,11 @@ type ProviderFactory struct {
 	defaultCfg *ProviderConfig
 }
 
-var globalFactory *ProviderFactory
+var globalFactory = &ProviderFactory{
+	providers: make(map[string]func(ctx context.Context, cfg *ProviderConfig) (StorageProvider, error)),
+}
 
 func init() {
-	globalFactory = &ProviderFactory{
-		providers: make(map[string]func(ctx context.Context, cfg *ProviderConfig) (StorageProvider, error)),
-	}
 	// 注册内置驱动
 	RegisterProvider("local", NewLocalProvider)
 	RegisterProvider("s3", NewS3Provider)

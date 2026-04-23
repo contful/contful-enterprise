@@ -130,7 +130,7 @@ func (h *ConfigHandler) Delete(c *gin.Context) {
 // getSiteID 从 URL 参数或请求头获取 siteID
 func (h *ConfigHandler) getSiteID(c *gin.Context) (uuid.UUID, error) {
 	// 优先从 URL 参数
-	if idStr := c.Param("site_id"); idStr != "" {
+	if idStr := c.Param("id"); idStr != "" {
 		return uuid.Parse(idStr)
 	}
 	// 其次从请求头 X-Site-ID
