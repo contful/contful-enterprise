@@ -64,13 +64,13 @@ export const useSiteStore = defineStore('site', () => {
       const res = await createSite(data)
       if (res.data.code === 200) {
         showSuccess(t('site.created'))
-        // 重新加载站点列表
-        await fetchSites()
         // 返回新创建的站点（响应中直接包含）
         const newSite = res.data.data
         if (newSite?.id) {
           setCurrentSite(newSite.id)
         }
+        // 异步刷新站点列表（不阻塞返回）
+        fetchSites().catch(() => {})
         return { success: true }
       }
       return { success: false, message: res.data.msg }

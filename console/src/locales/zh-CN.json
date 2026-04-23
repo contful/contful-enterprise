@@ -66,8 +66,8 @@
   "menu": {
     "dashboard": "仪表盘",
     "content": "内容",
-    "contentTypes": "内容类型",
-    "contentEntries": "内容条目",
+    "contentTypes": "类型",
+    "contentEntries": "内容",
     "media": "媒体",
     "users": "用户",
     "settings": "设置",
@@ -106,10 +106,12 @@
     "title": "仪表盘",
     "welcome": "欢迎回来！以下是您的内容概览。",
     "stats": "统计卡片",
+    "sites": "站点数",
     "contentEntries": "内容条目",
     "contentTypes": "内容类型",
     "mediaFiles": "媒体文件",
     "users": "用户数",
+    "apiTokens": "API 密钥",
     "quickActions": "快速操作",
     "createContent": "创建内容",
     "uploadMedia": "上传媒体",
@@ -573,7 +575,13 @@
     "createSiteDialog": "创建站点弹窗",
     "contentTypes": "内容类型",
     "created": "站点创建成功",
-    "createFailed": "创建站点失败"
+    "createFailed": "创建站点失败",
+    "noSiteTitle": "暂无站点",
+    "noSiteHint": "请先创建一个站点，才能管理内容",
+    "goToCreate": "返回首页创建站点",
+    "copySiteId": "复制 Site ID",
+    "siteIdCopied": "Site ID 已复制到剪贴板",
+    "copyFailed": "复制失败"
   },
   "app": {
     "offline": "网络连接已断开，请检查网络",

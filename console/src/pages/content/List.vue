@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useSiteStore } from '@/stores/site'
 import { showError, showSuccess } from '@/utils/request'
 import {
   getContentTypes,
@@ -26,6 +27,7 @@ import {
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const siteStore = useSiteStore()
 
 // 状态
 const loading = ref(false)
@@ -73,6 +75,11 @@ const hasSelected = computed(() => selectedIds.value.size > 0)
 
 // 加载内容类型
 const loadContentTypes = async () => {
+  // 检查是否有当前站点
+  if (!siteStore.currentSiteId) {
+    contentTypes.value = []
+    return
+  }
   try {
     const res = await getContentTypes({ page: 1, page_size: 100 })
     contentTypes.value = res.data.items || []
@@ -341,6 +348,20 @@ onMounted(() => {
     </div>
 
     <div class="content-layout">
+      <!-- 无站点提示 -->
+      <div v-if="!siteStore.currentSiteId" class="no-site-container">
+        <div class="no-site-card">
+          <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
+            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+          </svg>
+          <h3>{{ t('site.noSiteTitle') || '暂无站点' }}</h3>
+          <p>{{ t('site.noSiteHint') || '请先创建一个站点，才能管理内容' }}</p>
+          <button class="btn btn-primary" @click="router.push('/')">{{ t('site.goToCreate') || '返回首页创建站点' }}</button>
+        </div>
+      </div>
+
+      <!-- 有站点时正常显示 -->
+      <template v-else>
       <!-- 侧边：内容类型列表 -->
       <aside class="type-sidebar">
         <div class="sidebar-header">
@@ -543,6 +564,7 @@ onMounted(() => {
           <p>{{ t('content.selectTypeHint') }}</p>
         </div>
       </main>
+      </template>
     </div>
 
     <!-- 创建/编辑弹窗 -->
@@ -1061,5 +1083,36 @@ tr.selected {
 .btn:disabled .btn-spinner {
   border-color: currentColor;
   border-top-color: transparent;
+}
+
+/* 无站点提示 */
+.no-site-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.no-site-card {
+  text-align: center;
+  max-width: 400px;
+  padding: 40px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.no-site-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 16px 0 8px;
+}
+
+.no-site-card p {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0 0 24px;
 }
 </style>

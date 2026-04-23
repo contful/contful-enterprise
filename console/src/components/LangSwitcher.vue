@@ -1,7 +1,6 @@
 <template>
   <t-dropdown>
     <t-button variant="text" theme="default" class="lang-switcher-btn">
-      <span class="lang-icon">{{ currentLocale === 'zh-CN' ? '🇨🇳' : '🇺🇸' }}</span>
       <span class="lang-label">{{ currentLocaleLabel }}</span>
       <Icon name="chevron-down" size="14px" />
     </t-button>
@@ -51,9 +50,6 @@ function switchLocale(locale: Locale) {
 }
 .lang-switcher-btn:hover {
   background: var(--color-hover);
-}
-.lang-icon {
-  font-size: 16px;
 }
 .lang-label {
   font-size: 13px;

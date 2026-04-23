@@ -56,17 +56,22 @@ setAccessToken(localStorage.getItem(ACCESS_TOKEN_KEY))
 
 // ── Axios 实例 ─────────────────────────────────────────────────────────────
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/admin/api/v1',
   timeout: 30_000,
 })
 
-// ── 请求拦截器：附加 Authorization ─────────────────────────────────────────
+// ── 请求拦截器：附加 Authorization + X-Site-ID ───────────────────────────────
 request.interceptors.request.use(
   (config) => {
     // 优先用内存中的 token（最新）
     const token = accessToken || localStorage.getItem(ACCESS_TOKEN_KEY)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    // 注入 X-Site-ID header
+    const siteId = localStorage.getItem('currentSiteId')
+    if (siteId) {
+      config.headers['X-Site-ID'] = siteId
     }
     return config
   },
@@ -94,7 +99,7 @@ request.interceptors.response.use(
     try {
       // 调用 Refresh 接口，返回新的 access_token + refresh_token
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/auth/refresh`,
+        `${import.meta.env.VITE_API_BASE_URL || '/admin/api/v1'}/auth/refresh`,
         {},
         {
           headers: {

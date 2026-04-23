@@ -55,6 +55,17 @@ const generateSlug = (name: string) => {
     .slice(0, 100) || 'my-site'
 }
 
+// 复制 Site ID 到剪贴板
+const copySiteId = async () => {
+  if (!siteStore.currentSiteId) return
+  try {
+    await navigator.clipboard.writeText(siteStore.currentSiteId)
+    showSuccess(t('site.siteIdCopied'))
+  } catch (e) {
+    showError({ response: { data: { msg: t('site.copyFailed') } } } as any)
+  }
+}
+
 const handleNameInput = (val: string) => {
   newSiteName.value = val
   if (!newSiteSlug.value || newSiteSlug.value === generateSlug(newSiteSlug.value)) {
@@ -87,10 +98,17 @@ const handleCreateSite = async () => {
   }
 }
 
-// 初始化时加载站点（如果已登录）
+// 初始化时加载用户信息和站点（如果已登录）
 onMounted(async () => {
-  if (userStore.isLoggedIn && siteStore.sites.length === 0) {
-    await siteStore.fetchSites()
+  if (userStore.isLoggedIn) {
+    // 先加载用户信息
+    if (!userStore.user) {
+      await userStore.fetchUser()
+    }
+    // 再加载站点列表
+    if (siteStore.sites.length === 0) {
+      await siteStore.fetchSites()
+    }
   }
 })
 </script>
@@ -122,6 +140,22 @@ onMounted(async () => {
             style="width: 220px"
             @change="(val: string) => siteStore.setCurrentSite(val)"
           />
+          <!-- 复制 Site ID 按钮 -->
+          <t-tooltip
+            v-if="siteStore.currentSiteId"
+            :content="t('site.copySiteId') + ': ' + siteStore.currentSiteId"
+            placement="bottom"
+          >
+            <t-button
+              shape="square" variant="text"
+              size="small"
+              @click="copySiteId"
+            >
+              <template #icon>
+                <Icon name="file-copy" />
+              </template>
+            </t-button>
+          </t-tooltip>
           <t-button
             v-if="siteStore.currentSiteId"
             shape="square" variant="text"

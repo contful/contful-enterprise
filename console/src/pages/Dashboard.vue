@@ -3,34 +3,42 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getContentTypes, getContentEntries, getAssets, getUsers } from '@/api/api'
+import { getMySites } from '@/api/site'
+import { apiTokenApi } from '@/api/api-token'
 import { showError } from '@/utils/request'
 
 const { t } = useI18n()
 const router = useRouter()
 
 const stats = ref({
+  sites: 0,
   contentTypes: 0,
   entries: 0,
   assets: 0,
   users: 0,
+  apiTokens: 0,
 })
 const recentEntries = ref<any[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const [typesRes, entriesRes, assetsRes, usersRes] = await Promise.all([
+    const [sitesRes, typesRes, entriesRes, assetsRes, usersRes, tokensRes] = await Promise.all([
+      getMySites({ page: 1, page_size: 1 }),
       getContentTypes({ page: 1, page_size: 1 }),
       getContentEntries({ page: 1, page_size: 5 }),
       getAssets({ page: 1, page_size: 1 }),
       getUsers({ page: 1, page_size: 1 }),
+      apiTokenApi.list({ page: 1, page_size: 1 }),
     ])
 
     stats.value = {
+      sites: sitesRes.data.total || 0,
       contentTypes: typesRes.data.total || 0,
       entries: entriesRes.data.total || 0,
       assets: assetsRes.data.total || 0,
       users: usersRes.data.total || 0,
+      apiTokens: tokensRes.total || 0,
     }
     recentEntries.value = entriesRes.data.items || []
   } catch (error) {
@@ -77,6 +85,18 @@ const getStatusLabel = (status: string) => {
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
+      <div class="stat-card" @click="router.push('/sites')">
+        <div class="stat-icon" style="background: #fef2f2; color: #ef4444;">
+          <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.sites }}</div>
+          <div class="stat-label">{{ t('dashboard.sites') }}</div>
+        </div>
+      </div>
+
       <div class="stat-card" @click="router.push('/content/entries')">
         <div class="stat-icon" style="background: #eff6ff; color: #3b82f6;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
@@ -122,6 +142,18 @@ const getStatusLabel = (status: string) => {
         <div class="stat-content">
           <div class="stat-value">{{ stats.users }}</div>
           <div class="stat-label">{{ t('dashboard.users') }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card" @click="router.push('/settings')">
+        <div class="stat-icon" style="background: #fce7f3; color: #ec4899;">
+          <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.apiTokens }}</div>
+          <div class="stat-label">{{ t('dashboard.apiTokens') }}</div>
         </div>
       </div>
     </div>

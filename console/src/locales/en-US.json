@@ -66,8 +66,8 @@
   "menu": {
     "dashboard": "Dashboard",
     "content": "Content",
-    "contentTypes": "Content Types",
-    "contentEntries": "Content Entries",
+    "contentTypes": "Types",
+    "contentEntries": "Content",
     "media": "Media",
     "users": "Users",
     "settings": "Settings",
@@ -106,10 +106,12 @@
     "title": "Dashboard",
     "welcome": "Welcome back! Here's your content overview.",
     "stats": "Statistics",
+    "sites": "Sites",
     "contentEntries": "Content Entries",
     "contentTypes": "Content Types",
     "mediaFiles": "Media Files",
     "users": "Users",
+    "apiTokens": "API Tokens",
     "quickActions": "Quick Actions",
     "createContent": "Create Content",
     "uploadMedia": "Upload Media",
@@ -573,7 +575,13 @@
     "createSiteDialog": "Create Site Dialog",
     "contentTypes": "Content Types",
     "created": "Site created successfully",
-    "createFailed": "Failed to create site"
+    "createFailed": "Failed to create site",
+    "noSiteTitle": "No Site",
+    "noSiteHint": "Please create a site first to manage content",
+    "goToCreate": "Go to Dashboard to Create Site",
+    "copySiteId": "Copy Site ID",
+    "siteIdCopied": "Site ID copied to clipboard",
+    "copyFailed": "Copy failed"
   },
   "app": {
     "offline": "Network disconnected, please check your connection",
