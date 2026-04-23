@@ -126,6 +126,51 @@ func (s *UserService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.userRepo.Delete(ctx, id)
 }
 
+// UpdateMe 用户更新自己的资料
+func (s *UserService) UpdateMe(ctx context.Context, userID uuid.UUID, req *model.UpdateMeRequest) (*model.UserResponse, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Nickname != nil {
+		user.Nickname = *req.Nickname
+	}
+	if req.AvatarURL != nil {
+		user.AvatarURL = *req.AvatarURL
+	}
+
+	user.UpdatedTime = time.Now()
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return toUserResponse(user), nil
+}
+
+// UpdatePassword 用户修改密码
+func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// 验证旧密码
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+		return ErrInvalidPassword
+	}
+
+	// 新密码哈希
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashed)
+	user.UpdatedTime = time.Now()
+	return s.userRepo.Update(ctx, user)
+}
+
 func toUserResponse(u *model.SystemUser) *model.UserResponse {
 	return &model.UserResponse{
 		ID:           u.ID,

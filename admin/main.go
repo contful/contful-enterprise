@@ -188,6 +188,8 @@ func main() {
 
 			// 用户管理
 			protected.GET("/users/me", authHandler.Me)
+			protected.PATCH("/users/me", userHandler.UpdateMe)
+			protected.PUT("/users/me/password", userHandler.UpdatePassword)
 			protected.GET("/users", userHandler.List)
 			protected.POST("/users", userHandler.Create)
 			protected.GET("/users/:id", userHandler.Get)

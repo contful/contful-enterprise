@@ -219,3 +219,15 @@ type UpdateUserRequest struct {
 	Status        *UserStatus `json:"status"`
 	IsSuperAdmin  *bool       `json:"is_super_admin"`
 }
+
+// UpdateMeRequest 用户更新自己的资料请求
+type UpdateMeRequest struct {
+	Nickname  *string `json:"nickname"`
+	AvatarURL *string `json:"avatar_url"`
+}
+
+// UpdatePasswordRequest 用户修改密码请求
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
