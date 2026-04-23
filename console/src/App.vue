@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
-import AppLayout from '@/components/AppLayout.vue'
+import Layout from '@/components/Layout.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -37,9 +37,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <AppLayout v-if="!isLoginPage">
+  <Layout v-if="!isLoginPage">
     <router-view />
-  </AppLayout>
+  </Layout>
   <router-view v-else />
 </template>
 
