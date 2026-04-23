@@ -178,3 +178,50 @@ func (r *UserRepository) DeleteAllUserRefreshTokens(ctx context.Context, userID 
 	}
 	return nil
 }
+
+// ============================================
+// MFA 相关方法
+// ============================================
+
+// UpdateMFASecret 写入 TOTP Secret 和 Recovery Code（Setup 阶段，mfa_enabled 保持不变）
+func (r *UserRepository) UpdateMFASecret(ctx context.Context, userID uuid.UUID, encryptedSecret, encryptedCodes string) error {
+	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"totp_secret":    encryptedSecret,
+			"recovery_codes": encryptedCodes,
+			"updated_time":   time.Now(),
+		}).Error
+}
+
+// UpdateMFAEnabled 设置 mfa_enabled 字段
+func (r *UserRepository) UpdateMFAEnabled(ctx context.Context, userID uuid.UUID, enabled bool) error {
+	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"mfa_enabled":  enabled,
+			"updated_time": time.Now(),
+		}).Error
+}
+
+// ClearMFA 清除 MFA 相关字段（禁用 MFA）
+func (r *UserRepository) ClearMFA(ctx context.Context, userID uuid.UUID) error {
+	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"mfa_enabled":    false,
+			"totp_secret":    nil,
+			"recovery_codes": nil,
+			"updated_time":   time.Now(),
+		}).Error
+}
+
+// UpdateRecoveryCodes 更新 Recovery Code（使用后标记）
+func (r *UserRepository) UpdateRecoveryCodes(ctx context.Context, userID uuid.UUID, encryptedCodes string) error {
+	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"recovery_codes": encryptedCodes,
+			"updated_time":   time.Now(),
+		}).Error
+}

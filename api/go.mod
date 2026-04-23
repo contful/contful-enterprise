@@ -9,6 +9,7 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/viper v1.18.2
 	github.com/subosito/gotenv v1.6.0
+	gorm.io/driver/dm v1.0.4
 	gorm.io/driver/postgres v1.5.4
 	gorm.io/gorm v1.25.5
 )

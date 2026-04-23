@@ -60,6 +60,7 @@ type Asset struct {
 	CreatedTime     time.Time       `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime     time.Time       `json:"updated_time" gorm:"autoUpdateTime"`
 	DeletedTime     *time.Time      `json:"deleted_time" gorm:"index"`
+	DataSignature   JSONB           `json:"data_signature" gorm:"type:jsonb"` // 数据完整性签名
 
 	// 关联
 	Folder *AssetFolder `json:"folder,omitempty" gorm:"foreignKey:FolderID;references:ID"`

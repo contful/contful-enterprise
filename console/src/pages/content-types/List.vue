@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'
 import {
   getContentTypes,
@@ -13,6 +14,7 @@ import {
 } from '@/api/content-type'
 import { showError, showSuccess, getFriendlyError } from '@/utils/request'
 
+const { t } = useI18n()
 const router = useRouter()
 
 // 状态
@@ -24,10 +26,10 @@ const pageSize = ref(20)
 
 // 创建/编辑对话框
 const dialogVisible = ref(false)
-const dialogTitle = ref('创建内容类型')
+const dialogTitle = computed(() => isEditing.value ? t('contentTypes.formTitleEdit') : t('contentTypes.formTitleCreate'))
 const isEditing = ref(false)
 const editingId = ref('')
-const submitting = ref(false) // MX-001: 表单提交 Loading
+const submitting = ref(false)
 
 const formData = ref<ContentTypeCreate>({
   name: '',
@@ -37,7 +39,6 @@ const formData = ref<ContentTypeCreate>({
   versioning_enabled: false,
 })
 
-// 表单验证
 const formError = ref('')
 
 // 自动生成 slug
@@ -75,7 +76,6 @@ const onPageChange = (page: number) => {
 // 打开创建对话框
 const openCreateDialog = () => {
   isEditing.value = false
-  dialogTitle.value = '创建内容类型'
   formError.value = ''
   formData.value = {
     name: '',
@@ -90,7 +90,6 @@ const openCreateDialog = () => {
 // 打开编辑对话框
 const openEditDialog = (row: ContentType) => {
   isEditing.value = true
-  dialogTitle.value = '编辑内容类型'
   formError.value = ''
   editingId.value = row.id
   formData.value = {
@@ -106,11 +105,11 @@ const openEditDialog = (row: ContentType) => {
 // 提交表单
 const submitForm = async () => {
   if (!formData.value.name) {
-    formError.value = '请输入名称'
+    formError.value = t('contentTypes.namePlaceholder')
     return
   }
   if (!formData.value.slug) {
-    formError.value = '请输入标识符'
+    formError.value = t('contentTypes.slugPlaceholder')
     return
   }
   formError.value = ''
@@ -119,10 +118,10 @@ const submitForm = async () => {
   try {
     if (isEditing.value) {
       await updateContentType(editingId.value, formData.value as ContentTypeUpdate)
-      showSuccess('内容类型已更新')
+      showSuccess(t('contentTypes.updateSuccess'))
     } else {
       await createContentType(formData.value)
-      showSuccess('内容类型创建成功')
+      showSuccess(t('contentTypes.createSuccess'))
     }
     dialogVisible.value = false
     loadData()
@@ -133,17 +132,17 @@ const submitForm = async () => {
   }
 }
 
-// 删除内容类型 - MX-001: 二次确认弹窗
+// 删除内容类型
 const handleDelete = async (row: ContentType) => {
   const confirmDialog = DialogPlugin.confirm({
-    header: '确认删除',
-    body: `确定删除「${row.name}」吗？此操作不可恢复。`,
-    confirmBtn: { content: '确认删除', theme: 'danger' },
-    cancelBtn: '取消',
+    header: t('contentTypes.deleteConfirm'),
+    body: t('contentTypes.deleteConfirmMsg'),
+    confirmBtn: { content: t('common.confirm'), theme: 'danger' },
+    cancelBtn: t('common.cancel'),
     onConfirm: async () => {
       try {
         await deleteContentType(row.id)
-        showSuccess('删除成功')
+        showSuccess(t('contentTypes.deleteSuccess'))
         loadData()
       } catch (e) {
         showError(e)
@@ -162,13 +161,23 @@ const goToFields = (row: ContentType) => {
 
 // 格式化时间
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleString('zh-CN')
+  return new Date(date).toLocaleString()
 }
 
 // 格式化 kind
 const formatKind = (kind: string) => {
-  return kind === 'collection' ? '集合' : '单条'
+  return kind === 'collection' ? t('contentTypes.kindCollection') : t('contentTypes.kindSingle')
 }
+
+// 格式化状态
+const formatStatus = (isActive: boolean) => {
+  return isActive ? t('common.enabled') : t('common.disabled')
+}
+
+const kindOptions = [
+  { value: 'collection', label: computed(() => t('contentTypes.kindCollection')) },
+  { value: 'single', label: computed(() => t('contentTypes.kindSingle')) },
+]
 
 onMounted(() => {
   loadData()
@@ -180,16 +189,16 @@ onMounted(() => {
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="title-section">
-        <h1>内容类型</h1>
-        <p class="subtitle">定义和管理内容的数据结构</p>
+        <h1>{{ t('contentTypes.title') }}</h1>
+        <p class="subtitle">{{ t('contentTypes.subtitle') }}</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" @click="loadData">刷新</button>
+        <button class="btn btn-secondary" @click="loadData">{{ t('common.refresh') }}</button>
         <button class="btn btn-primary" @click="openCreateDialog">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
           </svg>
-          创建内容类型
+          {{ t('contentTypes.createTypeBtn') }}
         </button>
       </div>
     </div>
@@ -199,25 +208,25 @@ onMounted(() => {
       <table class="table">
         <thead>
           <tr>
-            <th>名称</th>
-            <th style="width: 100px;">类型</th>
-            <th style="width: 100px;">状态</th>
-            <th style="width: 100px;">版本控制</th>
-            <th>描述</th>
-            <th style="width: 180px;">更新时间</th>
-            <th style="width: 180px;">操作</th>
+            <th>{{ t('contentTypes.tableName') }}</th>
+            <th style="width: 100px;">{{ t('contentTypes.tableType') }}</th>
+            <th style="width: 100px;">{{ t('contentTypes.tableStatus') }}</th>
+            <th style="width: 100px;">{{ t('contentTypes.tableVersioning') }}</th>
+            <th>{{ t('common.description') }}</th>
+            <th style="width: 180px;">{{ t('common.updatedAt') }}</th>
+            <th style="width: 180px;">{{ t('common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="7" class="text-center">加载中...</td>
+            <td colspan="7" class="text-center">{{ t('common.loading') }}</td>
           </tr>
           <tr v-else-if="dataList.length === 0">
             <td colspan="7" class="empty-state">
-              <h3>暂无内容类型</h3>
-              <p>创建您的第一个内容类型来开始</p>
+              <h3>{{ t('contentTypes.noTypes') }}</h3>
+              <p>{{ t('contentTypes.noTypesHint') }}</p>
               <button class="btn btn-primary btn-sm" @click="openCreateDialog">
-                创建内容类型
+                {{ t('contentTypes.createTypeBtn') }}
               </button>
             </td>
           </tr>
@@ -235,7 +244,7 @@ onMounted(() => {
             </td>
             <td>
               <span :class="['badge', row.is_active ? 'badge-success' : 'badge-default']">
-                {{ row.is_active ? '启用' : '禁用' }}
+                {{ formatStatus(row.is_active) }}
               </span>
             </td>
             <td>
@@ -250,17 +259,17 @@ onMounted(() => {
             <td class="time">{{ formatDate(row.updated_time) }}</td>
             <td>
               <div class="action-btns">
-                <button class="btn btn-secondary btn-sm" @click="goToFields(row)" title="管理字段">
+                <button class="btn btn-secondary btn-sm" @click="goToFields(row)" :title="t('contentTypes.manageFields')">
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"/>
                   </svg>
                 </button>
-                <button class="btn btn-secondary btn-sm" @click="openEditDialog(row)" title="编辑">
+                <button class="btn btn-secondary btn-sm" @click="openEditDialog(row)" :title="t('common.edit')">
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                   </svg>
                 </button>
-                <button class="btn btn-danger btn-sm" @click="handleDelete(row)" title="删除">
+                <button class="btn btn-danger btn-sm" @click="handleDelete(row)" :title="t('common.delete')">
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
                   </svg>
@@ -273,13 +282,13 @@ onMounted(() => {
 
       <!-- 分页 -->
       <div class="pagination">
-        <span class="pagination-info">共 {{ total }} 条</span>
+        <span class="pagination-info">{{ t('common.total') }} {{ total }} {{ t('common.items') }}</span>
         <button
           class="btn btn-secondary btn-sm"
           :disabled="currentPage === 1"
           @click="onPageChange(currentPage - 1)"
         >
-          上一页
+          {{ t('common.prevPage') }}
         </button>
         <span class="pagination-current">{{ currentPage }} / {{ Math.ceil(total / pageSize) || 1 }}</span>
         <button
@@ -287,7 +296,7 @@ onMounted(() => {
           :disabled="currentPage >= Math.ceil(total / pageSize)"
           @click="onPageChange(currentPage + 1)"
         >
-          下一页
+          {{ t('common.nextPage') }}
         </button>
       </div>
     </div>
@@ -307,58 +316,57 @@ onMounted(() => {
           <div v-if="formError" class="form-error">{{ formError }}</div>
 
           <div class="input-group">
-            <label class="input-label">名称 <span class="required">*</span></label>
+            <label class="input-label">{{ t('common.name') }} <span class="required">*</span></label>
             <input
               v-model="formData.name"
               type="text"
               class="input"
-              placeholder="请输入内容类型名称"
+              :placeholder="t('contentTypes.namePlaceholder')"
               @blur="generateSlug"
             />
           </div>
 
           <div class="input-group">
-            <label class="input-label">标识符 <span class="required">*</span></label>
+            <label class="input-label">{{ t('contentTypes.slug') }} <span class="required">*</span></label>
             <input
               v-model="formData.slug"
               type="text"
               class="input"
-              placeholder="如：article、product"
+              :placeholder="t('contentTypes.slugPlaceholder')"
               :disabled="isEditing"
             />
-            <span class="input-hint">只能包含小写字母、数字和连字符，必须以字母开头</span>
+            <span class="input-hint">{{ t('contentTypes.slugHint') }}</span>
           </div>
 
           <div class="input-group">
-            <label class="input-label">类型</label>
+            <label class="input-label">{{ t('contentTypes.kind') }}</label>
             <select v-model="formData.kind" class="input" :disabled="isEditing">
-              <option value="collection">集合类型</option>
-              <option value="single">单条类型</option>
+              <option value="collection">{{ t('contentTypes.kindCollection') }}</option>
+              <option value="single">{{ t('contentTypes.kindSingle') }}</option>
             </select>
           </div>
 
           <div class="input-group">
-            <label class="input-label">描述</label>
+            <label class="input-label">{{ t('common.description') }}</label>
             <textarea
               v-model="formData.description"
               class="input"
               rows="3"
-              placeholder="可选，简要描述这个内容类型的用途"
+              :placeholder="t('common.description')"
             ></textarea>
           </div>
 
           <div class="input-group">
             <label class="input-label">
               <input v-model="formData.versioning_enabled" type="checkbox" />
-              <span style="margin-left: 8px;">启用版本控制</span>
+              <span style="margin-left: 8px;">{{ t('contentTypes.versioning') }}</span>
             </label>
-            <span class="input-hint">启用后可保留内容的历史版本</span>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="dialogVisible = false">取消</button>
+          <button class="btn btn-secondary" @click="dialogVisible = false">{{ t('common.cancel') }}</button>
           <button class="btn btn-primary" :disabled="submitting" @click="submitForm">
-            {{ submitting ? '处理中...' : (isEditing ? '保存' : '创建') }}
+            {{ submitting ? t('common.loading') : (isEditing ? t('common.save') : t('common.create')) }}
           </button>
         </div>
       </div>

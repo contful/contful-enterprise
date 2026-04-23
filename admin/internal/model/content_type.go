@@ -27,6 +27,7 @@ type ContentType struct {
 	PreviewConfig        JSONB            `json:"preview_config" gorm:"type:jsonb;default:'{}'"`
 	VersioningEnabled    bool             `json:"versioning_enabled" gorm:"default:false"`
 	DraftAutosaveInterval *int            `json:"draft_autosave_interval" gorm:"default:null"`
+	SignatureEnabled     bool             `json:"signature_enabled" gorm:"default:false"` // 是否启用数据签名
 	IsActive             bool             `json:"is_active" gorm:"default:true"`
 	SortOrder            int              `json:"sort_order" gorm:"default:0"`
 	CreatedBy            *uuid.UUID       `json:"created_by" gorm:"type:uuid"`

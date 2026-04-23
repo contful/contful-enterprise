@@ -81,25 +81,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(resp))
 }
-
 // Refresh 刷新 Token
 // POST /admin/v1/auth/refresh
+// 优先从 HttpOnly Cookie 读取 refresh_token（安全），无 Cookie 时从 Authorization Header 兼容旧版
 func (h *AuthHandler) Refresh(c *gin.Context) {
-	// 从 Authorization Header 获取 token
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		// 也可以从 Cookie 获取
-		refreshToken, err := c.Cookie("refresh_token")
-		if err != nil {
+	var refreshToken string
+
+	// 优先从 HttpOnly Cookie 读取（Login 时写入）
+	if cookie, err := c.Cookie("refresh_token"); err == nil && cookie != "" {
+		refreshToken = cookie
+	} else {
+		// 兜底：从 Authorization Header 读取（Barear accessToken.refreshToken 格式）
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "missing refresh token"))
 			return
 		}
-		authHeader = "Bearer " + refreshToken
+		refreshToken = strings.TrimPrefix(authHeader, "Bearer ")
 	}
 
-	token := strings.TrimPrefix(authHeader, "Bearer ")
-	
-	newAccessToken, newRefreshToken, err := h.authService.Refresh(c.Request.Context(), token)
+	newAccessToken, newRefreshToken, err := h.authService.Refresh(c.Request.Context(), refreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid refresh token"))
 		return
@@ -114,21 +115,11 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 // Logout 登出
 // POST /admin/v1/auth/logout
 func (h *AuthHandler) Logout(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusOK, model.NewSuccessResponse(nil))
-		return
+	// 优先从 Cookie 删除 refresh token
+	if cookie, err := c.Cookie("refresh_token"); err == nil && cookie != "" {
+		ip := c.ClientIP()
+		h.authService.Logout(c.Request.Context(), cookie, ip) // 忽略错误，不阻断
 	}
-
-	token := strings.TrimPrefix(authHeader, "Bearer ")
-	ip := c.ClientIP()
-
-	if err := h.authService.Logout(c.Request.Context(), token, ip); err != nil {
-		// 登出错误不阻断流程
-	}
-
-	// 清除 Cookie
-	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(nil))
 }

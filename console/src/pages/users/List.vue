@@ -3,14 +3,14 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">用户管理</h1>
-        <p class="page-subtitle">管理系统用户与权限</p>
+        <h1 class="page-title">{{ t('users.title') }}</h1>
+        <p class="page-subtitle">{{ t('users.subtitle') }}</p>
       </div>
       <button class="btn btn-primary" @click="openCreateDialog">
         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
           <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
         </svg>
-        添加用户
+        {{ t('users.addUser') }}
       </button>
     </div>
 
@@ -19,26 +19,26 @@
       <table class="table">
         <thead>
           <tr>
-            <th>用户</th>
-            <th>邮箱</th>
-            <th>角色</th>
-            <th>状态</th>
-            <th>创建时间</th>
-            <th>操作</th>
+            <th>{{ t('users.user') }}</th>
+            <th>{{ t('users.email') }}</th>
+            <th>{{ t('users.role') }}</th>
+            <th>{{ t('users.status') }}</th>
+            <th>{{ t('users.createdTime') }}</th>
+            <th>{{ t('users.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="6" class="empty-state">加载中...</td>
+            <td colspan="6" class="empty-state">{{ t('users.loading') }}</td>
           </tr>
           <tr v-else-if="users.length === 0">
             <td colspan="6" class="empty-state">
               <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
                 <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
               </svg>
-              <h3>暂无用户</h3>
-              <p>点击「添加用户」创建第一个用户</p>
-              <button class="btn btn-primary btn-sm" @click="openCreateDialog">添加用户</button>
+              <h3>{{ t('users.noUsers') }}</h3>
+              <p>{{ t('users.noUsersHint') }}</p>
+              <button class="btn btn-primary btn-sm" @click="openCreateDialog">{{ t('users.addUser') }}</button>
             </td>
           </tr>
           <tr v-else v-for="row in users" :key="row.id">
@@ -50,8 +50,8 @@
             </td>
             <td>{{ row.email }}</td>
             <td>
-              <span v-if="row.is_super_admin" class="badge badge-warning">超级管理员</span>
-              <span v-else class="badge badge-default">普通用户</span>
+              <span v-if="row.is_super_admin" class="badge badge-warning">{{ t('users.superAdmin') }}</span>
+              <span v-else class="badge badge-default">{{ t('users.normalUser') }}</span>
             </td>
             <td>
               <span :class="['badge', getStatusBadge(row.status)]">{{ getStatusText(row.status) }}</span>
@@ -59,13 +59,13 @@
             <td>{{ formatDate(row.created_time) }}</td>
             <td>
               <div style="display:flex;gap:8px;">
-                <button class="btn btn-secondary btn-sm" @click="openEditDialog(row)">编辑</button>
+                <button class="btn btn-secondary btn-sm" @click="openEditDialog(row)">{{ t('common.edit') }}</button>
                 <button
                   class="btn btn-sm"
                   :class="row.is_super_admin ? 'btn-secondary' : 'btn-danger'"
                   :disabled="row.is_super_admin"
                   @click="handleDelete(row)"
-                >删除</button>
+                >{{ t('common.delete') }}</button>
               </div>
             </td>
           </tr>
@@ -87,31 +87,31 @@
     <div v-if="createVisible" class="modal-overlay" @click.self="createVisible = false">
       <div class="modal">
         <div class="modal-header">
-          <h3>添加用户</h3>
+          <h3>{{ t('users.createTitle') }}</h3>
         </div>
         <div class="modal-body">
           <div class="input-group">
-            <label class="input-label">邮箱 <span class="required">*</span></label>
-            <input v-model="createForm.email" class="input" type="email" placeholder="请输入邮箱" />
+            <label class="input-label">{{ t('users.email') }} <span class="required">*</span></label>
+            <input v-model="createForm.email" class="input" type="email" :placeholder="t('users.enterEmail')" />
           </div>
           <div class="input-group">
-            <label class="input-label">密码 <span class="required">*</span></label>
-            <input v-model="createForm.password" class="input" type="password" placeholder="至少 8 位" />
+            <label class="input-label">{{ t('users.password') }} <span class="required">*</span></label>
+            <input v-model="createForm.password" class="input" type="password" :placeholder="t('users.enterPassword')" />
           </div>
           <div class="input-group">
-            <label class="input-label">昵称</label>
-            <input v-model="createForm.nickname" class="input" type="text" placeholder="可选" />
+            <label class="input-label">{{ t('users.nickname') }}</label>
+            <input v-model="createForm.nickname" class="input" type="text" :placeholder="t('users.enterNickname')" />
           </div>
           <div class="input-group">
-            <label class="input-label">超级管理员</label>
+            <label class="input-label">{{ t('users.superAdminSwitch') }}</label>
             <t-switch v-model="createForm.is_super_admin" />
           </div>
           <p v-if="createError" class="form-error">{{ createError }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="createVisible = false">取消</button>
+          <button class="btn btn-secondary" @click="createVisible = false">{{ t('common.cancel') }}</button>
           <button class="btn btn-primary" :disabled="creating" @click="handleCreate">
-            {{ creating ? '创建中...' : '创建' }}
+            {{ creating ? t('common.creating') : t('common.create') }}
           </button>
         </div>
       </div>
@@ -121,35 +121,35 @@
     <div v-if="editVisible" class="modal-overlay" @click.self="editVisible = false">
       <div class="modal">
         <div class="modal-header">
-          <h3>编辑用户</h3>
+          <h3>{{ t('users.editTitle') }}</h3>
         </div>
         <div class="modal-body">
           <div class="input-group">
-            <label class="input-label">邮箱</label>
+            <label class="input-label">{{ t('users.email') }}</label>
             <input v-model="editForm.email" class="input" disabled />
           </div>
           <div class="input-group">
-            <label class="input-label">昵称</label>
-            <input v-model="editForm.nickname" class="input" type="text" placeholder="可选" />
+            <label class="input-label">{{ t('users.nickname') }}</label>
+            <input v-model="editForm.nickname" class="input" type="text" :placeholder="t('users.enterNickname')" />
           </div>
           <div class="input-group">
-            <label class="input-label">状态</label>
+            <label class="input-label">{{ t('users.status') }}</label>
             <select v-model="editForm.status" class="input">
-              <option value="active">正常</option>
-              <option value="inactive">停用</option>
-              <option value="suspended">封禁</option>
+              <option value="active">{{ t('users.statusActive') }}</option>
+              <option value="inactive">{{ t('users.statusInactive') }}</option>
+              <option value="suspended">{{ t('users.statusBanned') }}</option>
             </select>
           </div>
           <div class="input-group">
-            <label class="input-label">超级管理员</label>
+            <label class="input-label">{{ t('users.superAdminSwitch') }}</label>
             <t-switch v-model="editForm.is_super_admin" :disabled="editForm.is_super_admin" />
           </div>
           <p v-if="editError" class="form-error">{{ editError }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="editVisible = false">取消</button>
+          <button class="btn btn-secondary" @click="editVisible = false">{{ t('common.cancel') }}</button>
           <button class="btn btn-primary" :disabled="updating" @click="handleUpdate">
-            {{ updating ? '保存中...' : '保存' }}
+            {{ updating ? t('common.saving') : t('common.save') }}
           </button>
         </div>
       </div>
@@ -159,9 +159,12 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import { showError, showSuccess } from '@/utils/request'
+
+const { t } = useI18n()
 
 const userStore = useUserStore()
 
@@ -229,7 +232,7 @@ const onPageChange = ({ current, pageSize }: { current: number; pageSize: number
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('zh-CN')
+  return new Date(dateStr).toLocaleString()
 }
 
 const getStatusBadge = (status: string): string => {
@@ -243,9 +246,9 @@ const getStatusBadge = (status: string): string => {
 
 const getStatusText = (status: string) => {
   const map: Record<string, string> = {
-    active: '正常',
-    inactive: '停用',
-    suspended: '封禁',
+    active: t('users.statusActive'),
+    inactive: t('users.statusInactive'),
+    suspended: t('users.statusBanned'),
   }
   return map[status] || status
 }
@@ -260,8 +263,8 @@ const openCreateDialog = () => {
 }
 
 const handleCreate = async () => {
-  if (!createForm.email) { createError.value = '邮箱必填'; return }
-  if (createForm.password.length < 8) { createError.value = '密码至少 8 位'; return }
+  if (!createForm.email) { createError.value = t('users.emailRequired'); return }
+  if (createForm.password.length < 8) { createError.value = t('users.passwordMinLength', { min: 8 }); return }
   creating.value = true
   createError.value = ''
   try {
@@ -271,12 +274,12 @@ const handleCreate = async () => {
       nickname: createForm.nickname || undefined,
       is_super_admin: createForm.is_super_admin,
     })
-    showSuccess('用户创建成功')
+    showSuccess(t('users.createSuccess'))
     createVisible.value = false
     loadUsers()
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || '创建失败'
-    createError.value = msg.includes('already exists') ? '该邮箱已被注册' : msg
+    const msg = error?.response?.data?.msg || t('users.createFailed')
+    createError.value = msg.includes('already exists') ? t('users.emailTaken') : msg
   } finally {
     creating.value = false
   }
@@ -301,11 +304,11 @@ const handleUpdate = async () => {
       status: editForm.status,
       is_super_admin: editForm.is_super_admin,
     })
-    showSuccess('更新成功')
+    showSuccess(t('users.updateSuccess'))
     editVisible.value = false
     loadUsers()
   } catch (error: any) {
-    editError.value = error?.response?.data?.msg || '更新失败'
+    editError.value = error?.response?.data?.msg || t('users.updateFailed')
   } finally {
     updating.value = false
   }
@@ -313,13 +316,13 @@ const handleUpdate = async () => {
 
 const handleDelete = (user: User) => {
   DialogPlugin.confirm({
-    header: '确认删除',
-    body: `确定要删除用户 ${user.email} 吗？此操作不可恢复。`,
+    header: t('users.confirmDeleteUser'),
+    body: t('users.deleteConfirmMsg', { email: user.email }),
     theme: 'warning',
     onConfirm: async () => {
       try {
         await userStore.deleteUser(user.id)
-        showSuccess('删除成功')
+        showSuccess(t('users.deleteSuccess'))
         loadUsers()
       } catch (error) {
         showError(error)

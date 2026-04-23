@@ -98,6 +98,11 @@ func main() {
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 	tokenService := service.NewAPITokenService(tokenRepo)
 
+	// 初始化 MFA 服务（PRE-005）
+	mfaService := service.NewMFAService(userRepo, redisClient, cfg.JWT.Secret)
+	authService.SetMFAService(mfaService)
+	logger.Info().Msg("MFA/TOTP 服务已就绪")
+
 	// 初始化存储驱动（支持 per-site 动态切换）
 	storageConfigSvc := service.NewStorageConfigService(configService)
 	storageManager := storage.NewStorageManager(
@@ -111,6 +116,7 @@ func main() {
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
+	mfaHandler := handler.NewMFAHandler(mfaService, authService)
 	userHandler := handler.NewUserHandler(userService)
 	siteHandler := handler.NewSiteHandler(siteService)
 	ctHandler := handler.NewContentTypeHandler(ctService)
@@ -155,6 +161,9 @@ func main() {
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
+			// MFA 登录步骤 2（无需 JWT）
+			auth.POST("/mfa/verify", mfaHandler.Verify)
+			auth.POST("/mfa/recover", mfaHandler.Recover)
 		}
 
 		// 需要认证的路由
@@ -163,6 +172,11 @@ func main() {
 		{
 			// 认证相关
 			protected.POST("/auth/logout", authHandler.Logout)
+
+			// MFA 管理（需要 JWT 认证）
+			protected.POST("/auth/mfa/setup", mfaHandler.Setup)
+			protected.POST("/auth/mfa/enable", mfaHandler.Enable)
+			protected.POST("/auth/mfa/disable", mfaHandler.Disable)
 
 			// 站点管理
 			protected.GET("/sites/mine", siteHandler.MySites)

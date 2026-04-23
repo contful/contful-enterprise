@@ -29,6 +29,7 @@ type AuthService struct {
 	userRepo        *repository.UserRepository
 	auditRepo       *repository.AuditRepository
 	configSvc       *ConfigService // 用于 AuditLog 数据签名
+	mfaService      *MFAService    // MFA 双因子认证（可空，启用时注入）
 	redis           *redis.Client
 	jwtSecret       []byte
 	accessTTL       time.Duration
@@ -45,15 +46,20 @@ func NewAuthService(
 	configSvc *ConfigService,
 ) *AuthService {
 	return &AuthService{
-		userRepo:       userRepo,
-		auditRepo:      auditRepo,
-		configSvc:      configSvc,
-		redis:          redisClient,
-		jwtSecret:      []byte(jwtSecret),
-		accessTTL:      15 * time.Minute,
+		userRepo:        userRepo,
+		auditRepo:       auditRepo,
+		configSvc:       configSvc,
+		redis:           redisClient,
+		jwtSecret:       []byte(jwtSecret),
+		accessTTL:       15 * time.Minute,
 		lockMaxAttempts: 5,
 		lockDuration:    15 * time.Minute,
 	}
+}
+
+// SetMFAService 注入 MFAService（避免循环依赖，setup 后调用）
+func (s *AuthService) SetMFAService(mfaSvc *MFAService) {
+	s.mfaService = mfaSvc
 }
 
 // JWT Claims
@@ -168,7 +174,7 @@ func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest, 
 }
 
 // Login 登录
-func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip string) (*model.LoginResponse, error) {
+func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip string) (interface{}, error) {
 	// P2-002: 检查账户是否被锁定
 	locked, ttl, err := s.isAccountLocked(ctx, req.Email)
 	if err != nil {
@@ -213,19 +219,28 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip str
 		return nil, repository.ErrUserSuspended
 	}
 
+	// MFA 检测：如果用户启用了 MFA，返回 mfa_required + mfa_token
+	if user.MFAEnabled && s.mfaService != nil {
+		mfaToken, err := s.generateMFAToken()
+		if err != nil {
+			return nil, err
+		}
+		if err := s.mfaService.StoreMFAPendingToken(ctx, mfaToken, MFAPendingDataFromUser(user)); err != nil {
+			return nil, err
+		}
+		return &model.MFARequiredResponse{
+			MFARequired: true,
+			MFAToken:    mfaToken,
+		}, nil
+	}
+
 	// 更新最后登录信息
 	if err := s.userRepo.UpdateLastLogin(ctx, user.ID, ip); err != nil {
 		log.Warn().Err(err).Str("user_id", user.ID.String()).Msg("failed to update last login")
 	}
 
-	// 生成 Access Token
-	accessToken, err := s.generateAccessToken(user)
-	if err != nil {
-		return nil, err
-	}
-
-	// 生成并存储 Refresh Token
-	refreshToken, err := s.generateRefreshToken(ctx, user.ID)
+	// 正常发放 JWT
+	loginResp, err := s.IssueTokens(ctx, user, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -233,11 +248,7 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip str
 	// 审计日志
 	s.createAuditLog(ctx, user.ID, nil, "login", "user", user.ID, model.AuditLevelInfo, model.AuditTypeAuth, ip)
 
-	return &model.LoginResponse{
-		User:        s.toUserResponse(user),
-		AccessToken: accessToken,
-		RefreshToken: refreshToken,
-	}, nil
+	return loginResp, nil
 }
 
 // Refresh 刷新 Token
@@ -381,7 +392,49 @@ func (s *AuthService) toUserResponse(user *model.SystemUser) *model.UserResponse
 		AvatarURL:    user.AvatarURL,
 		Status:       user.Status,
 		IsSuperAdmin: user.IsSuperAdmin,
-		CreatedTime:    user.CreatedTime,
+		MFAEnabled:   user.MFAEnabled,
+		CreatedTime:  user.CreatedTime,
+	}
+}
+
+// IssueTokens 生成并存储 Access Token + Refresh Token（供 AuthService 和 MFA 验证后复用）
+func (s *AuthService) IssueTokens(ctx context.Context, user *model.SystemUser, ip string) (*model.LoginResponse, error) {
+	if err := s.userRepo.UpdateLastLogin(ctx, user.ID, ip); err != nil {
+		log.Warn().Err(err).Str("user_id", user.ID.String()).Msg("failed to update last login")
+	}
+
+	accessToken, err := s.generateAccessToken(user)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := s.generateRefreshToken(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.LoginResponse{
+		User:         s.toUserResponse(user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+// generateMFAToken 生成 mfa_pending token（随机 hex 字符串）
+func (s *AuthService) generateMFAToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// MFAPendingDataFromUser 从 SystemUser 构造 MFAPendingData
+func MFAPendingDataFromUser(user *model.SystemUser) MFAPendingData {
+	return MFAPendingData{
+		UserID:       user.ID.String(),
+		Email:        user.Email,
+		IsSuperAdmin: user.IsSuperAdmin,
 	}
 }
 

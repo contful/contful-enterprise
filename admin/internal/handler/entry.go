@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -14,12 +15,27 @@ import (
 
 // EntryHandler 条目处理器
 type EntryHandler struct {
-	entryService *service.EntryService
+	entryService   *service.EntryService
+	configService *service.ConfigService
 }
 
 // NewEntryHandler 新建处理器
-func NewEntryHandler(entryService *service.EntryService) *EntryHandler {
-	return &EntryHandler{entryService: entryService}
+func NewEntryHandler(entryService *service.EntryService, configService *service.ConfigService) *EntryHandler {
+	return &EntryHandler{entryService: entryService, configService: configService}
+}
+
+// getIntegrityService 获取站点的签名服务
+func (h *EntryHandler) getIntegrityService(ctx context.Context, siteID uuid.UUID) *service.IntegrityService {
+	if h.configService == nil {
+		return nil
+	}
+	signingKey, _ := h.configService.Get(ctx, siteID, "integrity.signing_key")
+	alg, _ := h.configService.Get(ctx, siteID, "integrity.algorithm")
+	if alg == "" {
+		alg = "HMAC-SHA256"
+	}
+	svc, _ := service.NewIntegrityService(siteID, signingKey, alg)
+	return svc
 }
 
 // RegisterRoutes 注册路由
@@ -56,7 +72,7 @@ func (h *EntryHandler) Create(c *gin.Context) {
 		return
 	}
 
-	entry, err := h.entryService.Create(c.Request.Context(), siteID, userID, &req)
+	entry, err := h.entryService.Create(c.Request.Context(), siteID, userID, &req, h.getIntegrityService(c.Request.Context(), siteID))
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -150,7 +166,7 @@ func (h *EntryHandler) Update(c *gin.Context) {
 		return
 	}
 
-	entry, err := h.entryService.Update(c.Request.Context(), siteID, userID, id, &req)
+	entry, err := h.entryService.Update(c.Request.Context(), siteID, userID, id, &req, h.getIntegrityService(c.Request.Context(), siteID))
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -194,7 +210,7 @@ func (h *EntryHandler) Publish(c *gin.Context) {
 		req = model.EntryPublish{}
 	}
 
-	entry, err := h.entryService.Publish(c.Request.Context(), siteID, userID, id, &req)
+	entry, err := h.entryService.Publish(c.Request.Context(), siteID, userID, id, &req, h.getIntegrityService(c.Request.Context(), siteID))
 	if err != nil {
 		h.handleError(c, err)
 		return

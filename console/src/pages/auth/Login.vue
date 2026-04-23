@@ -10,7 +10,7 @@
             role="heading"
             aria-level="1"
           />
-          <p class="login-subtitle">开源 Headless CMS</p>
+          <p class="login-subtitle">{{ t('auth.openSource') }} Headless CMS</p>
         </div>
       </template>
 
@@ -26,11 +26,11 @@
         <t-form-item name="email">
           <t-input
             v-model="loginForm.email"
-            placeholder="邮箱"
+            :placeholder="t('auth.email')"
             size="large"
           >
             <template #prefix-icon>
-              <MailIcon />
+              <Icon name="mail" />
             </template>
           </t-input>
         </t-form-item>
@@ -39,12 +39,12 @@
           <t-input
             v-model="loginForm.password"
             type="password"
-            placeholder="密码"
+            :placeholder="t('auth.password')"
             size="large"
             autocomplete="current-password"
           >
             <template #prefix-icon>
-              <LockOnIcon />
+              <Icon name="lock-on" />
             </template>
           </t-input>
         </t-form-item>
@@ -57,7 +57,7 @@
             block
             :loading="userStore.isLoading"
           >
-            登录
+            {{ t('auth.login') }}
           </t-button>
         </t-form-item>
       </t-form>
@@ -74,10 +74,11 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { MailIcon, LockOnIcon } from 'tdesign-icons-vue-next'
 import { useUserStore } from '@/stores/user'
 
+const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -90,28 +91,37 @@ const loginForm = reactive({
 
 const loginRules = {
   email: [
-    { required: true, message: '请输入邮箱' },
-    { email: true, message: '请输入有效的邮箱地址' },
+    { required: true, message: t('auth.enterEmail') },
+    { email: true, message: t('auth.invalidEmail') },
   ],
   password: [
-    { required: true, message: '请输入密码' },
-    { min: 8, message: '密码至少8位' },
+    { required: true, message: t('auth.enterPassword') },
+    { min: 8, message: t('auth.passwordMinLength', { min: 8 }) },
   ],
 }
 
-// Logo URL - 本地资源
 const logoUrl = '/assets/logo.png'
 
 const onLogin = async () => {
   const result = await userStore.login(loginForm.email, loginForm.password)
   if (result.success) {
-    MessagePlugin.success('登录成功')
-    router.push('/')
+    if ((result as any).mfa_required) {
+      // 跳转 MFA 验证页，携带 mfa_token 和 email
+      router.push({
+        path: '/mfa',
+        query: {
+          mfa_token: (result as any).mfa_token,
+          email: loginForm.email,
+        },
+      })
+    } else {
+      MessagePlugin.success(t('auth.loginSuccess'))
+      router.push('/')
+    }
   } else {
-    MessagePlugin.error(result.message || '登录失败')
+    MessagePlugin.error((result as any).message || t('auth.loginFailed'))
   }
 }
-
 </script>
 
 <style scoped>

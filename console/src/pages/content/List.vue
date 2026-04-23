@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { showError, showSuccess } from '@/utils/request'
 import {
   getContentTypes,
@@ -22,6 +23,7 @@ import {
   type EntryUpdate,
 } from '@/api/entry'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -67,7 +69,6 @@ const isAllSelected = computed(() => {
 })
 
 const selectedCount = computed(() => selectedIds.value.size)
-
 const hasSelected = computed(() => selectedIds.value.size > 0)
 
 // 加载内容类型
@@ -83,9 +84,7 @@ const loadContentTypes = async () => {
 // 加载内容列表
 const loadEntries = async () => {
   if (!selectedType.value) return
-
   loading.value = true
-  // 清空选择
   selectedIds.value.clear()
   try {
     const params: any = {
@@ -147,20 +146,14 @@ const closeModal = () => {
 // 提交表单
 const handleSubmit = async () => {
   if (!selectedType.value) return
-
   submitting.value = true
   try {
     if (editingEntry.value) {
-      await updateEntry(editingEntry.value.id, {
-        values: formData.value,
-      } as any)
-      showSuccess('内容已更新')
+      await updateEntry(editingEntry.value.id, { values: formData.value } as any)
+      showSuccess(t('content.updateSuccess'))
     } else {
-      await createEntry({
-        content_type_id: selectedType.value.id,
-        values: formData.value,
-      } as any)
-      showSuccess('内容已创建')
+      await createEntry({ content_type_id: selectedType.value.id, values: formData.value } as any)
+      showSuccess(t('content.createSuccess'))
     }
     closeModal()
     loadEntries()
@@ -177,10 +170,10 @@ const handlePublish = async (entry: Entry) => {
   try {
     if (entry.status === 'published') {
       await unpublishEntry(entry.id)
-      showSuccess('已取消发布')
+      showSuccess(t('content.unpublishSuccess'))
     } else {
       await publishEntry(entry.id)
-      showSuccess('发布成功')
+      showSuccess(t('content.publishSuccess'))
     }
     loadEntries()
   } catch (error) {
@@ -199,13 +192,12 @@ const confirmDelete = (entry: Entry) => {
 // 执行删除
 const handleDelete = async () => {
   if (!entryToDelete.value) return
-
   deleteLoading.value = true
   try {
     await deleteEntry(entryToDelete.value.id)
     showDeleteConfirm.value = false
     entryToDelete.value = null
-    showSuccess('删除成功')
+    showSuccess(t('content.deleteSuccess'))
     loadEntries()
   } catch (error) {
     showError(error)
@@ -214,8 +206,6 @@ const handleDelete = async () => {
   }
 }
 
-// ============ 批量操作 ============
-
 // 切换单选
 const toggleSelect = (id: string) => {
   if (selectedIds.value.has(id)) {
@@ -223,7 +213,6 @@ const toggleSelect = (id: string) => {
   } else {
     selectedIds.value.add(id)
   }
-  // 触发响应式更新
   selectedIds.value = new Set(selectedIds.value)
 }
 
@@ -242,10 +231,10 @@ const toggleSelectAll = () => {
 // 批量操作确认
 const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
   batchAction.value = action
-  const labels = {
-    delete: '删除',
-    publish: '发布',
-    unpublish: '取消发布'
+  const labels: Record<string, string> = {
+    delete: t('content.batchDelete'),
+    publish: t('content.batchPublish'),
+    unpublish: t('content.batchUnpublish'),
   }
   batchActionLabel.value = labels[action]
   showBatchConfirm.value = true
@@ -255,21 +244,20 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
 const executeBatchAction = async () => {
   const ids = Array.from(selectedIds.value)
   if (ids.length === 0) return
-
   batchLoading.value = true
   try {
     switch (batchAction.value) {
       case 'delete':
         await batchDeleteEntries(ids)
-        showSuccess(`已删除 ${ids.length} 条内容`)
+        showSuccess(t('content.deleted', { count: ids.length }))
         break
       case 'publish':
         await batchPublishEntries(ids)
-        showSuccess(`已发布 ${ids.length} 条内容`)
+        showSuccess(t('content.publishedCount', { count: ids.length }))
         break
       case 'unpublish':
         await batchUnpublishEntries(ids)
-        showSuccess(`已取消发布 ${ids.length} 条内容`)
+        showSuccess(t('content.unpublishedCount', { count: ids.length }))
         break
     }
     showBatchConfirm.value = false
@@ -288,9 +276,9 @@ const getBatchConfirmText = () => {
   const count = selectedIds.value.size
   const action = batchActionLabel.value
   if (batchAction.value === 'delete') {
-    return `确定要删除选中的 ${count} 条内容吗？此操作不可撤销。`
+    return t('content.batchDeleteMsg', { count })
   }
-  return `确定要${action}选中的 ${count} 条内容吗？`
+  return t('content.batchActionMsg', { action, count })
 }
 
 // 清除搜索
@@ -312,16 +300,16 @@ const getStatusClass = (status: string) => {
 
 const getStatusLabel = (status: string) => {
   const map: Record<string, string> = {
-    published: '已发布',
-    draft: '草稿',
-    archived: '已归档',
+    published: t('content.published'),
+    draft: t('content.draft'),
+    archived: t('content.archived'),
   }
   return map[status] || status
 }
 
 // 格式化日期
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('zh-CN', {
+  return new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -347,8 +335,8 @@ onMounted(() => {
   <div class="content-management">
     <div class="page-header">
       <div>
-        <h1 class="page-title">内容管理</h1>
-        <p class="page-subtitle">管理和发布您的内容条目</p>
+        <h1 class="page-title">{{ t('content.title') }}</h1>
+        <p class="page-subtitle">{{ t('content.subtitle') }}</p>
       </div>
     </div>
 
@@ -356,7 +344,7 @@ onMounted(() => {
       <!-- 侧边：内容类型列表 -->
       <aside class="type-sidebar">
         <div class="sidebar-header">
-          <h3>内容类型</h3>
+          <h3>{{ t('contentTypes.title') }}</h3>
         </div>
         <div class="type-list">
           <button
@@ -375,7 +363,7 @@ onMounted(() => {
             <span class="type-count">{{ type.field_count || 0 }}</span>
           </button>
           <div v-if="contentTypes.length === 0" class="empty-tip">
-            暂无内容类型，<router-link to="/content/types">去创建</router-link>
+            {{ t('content.noContentTypes') }}，<router-link to="/content/types">{{ t('content.goToCreate') }}</router-link>
           </div>
         </div>
       </aside>
@@ -387,10 +375,10 @@ onMounted(() => {
             <div class="toolbar-left">
               <h2>{{ selectedType.name }}</h2>
               <select v-model="statusFilter" class="input" style="width: 120px;" @change="loadEntries">
-                <option value="">全部状态</option>
-                <option value="draft">草稿</option>
-                <option value="published">已发布</option>
-                <option value="archived">已归档</option>
+                <option value="">{{ t('content.allStatus') }}</option>
+                <option value="draft">{{ t('content.draft') }}</option>
+                <option value="published">{{ t('content.published') }}</option>
+                <option value="archived">{{ t('content.archived') }}</option>
               </select>
 
               <!-- 搜索框 -->
@@ -402,7 +390,7 @@ onMounted(() => {
                   v-model="searchKeyword"
                   type="text"
                   class="input search-input"
-                  placeholder="搜索内容..."
+                  :placeholder="t('content.searchContent')"
                   @keyup.enter="loadEntries"
                 />
                 <button v-if="searchKeyword" class="search-clear" @click="clearSearch">
@@ -414,35 +402,35 @@ onMounted(() => {
 
               <!-- 排序 -->
               <select v-model="sortField" class="input" style="width: 130px;" @change="loadEntries">
-                <option value="updated_time">按更新时间</option>
-                <option value="created_time">按创建时间</option>
-                <option value="published_time">按发布时间</option>
-                <option value="sort_weight">按排序权重</option>
+                <option value="updated_time">{{ t('content.sortByUpdated') }}</option>
+                <option value="created_time">{{ t('content.sortByCreated') }}</option>
+                <option value="published_time">{{ t('content.sortByPublished') }}</option>
+                <option value="sort_weight">{{ t('content.sortByWeight') }}</option>
               </select>
               <button class="btn btn-secondary btn-sm" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; loadEntries()">
-                {{ sortOrder === 'asc' ? '↑ 升序' : '↓ 降序' }}
+                {{ sortOrder === 'asc' ? t('content.asc') : t('content.desc') }}
               </button>
             </div>
 
             <div class="toolbar-right">
               <!-- 批量操作 -->
               <div v-if="hasSelected" class="batch-actions">
-                <span class="selected-count">已选择 {{ selectedCount }} 条</span>
+                <span class="selected-count">{{ t('common.selectedCount', { count: selectedCount }) }}</span>
                 <button class="btn btn-secondary btn-sm" :disabled="batchLoading" @click="confirmBatchAction('publish')">
-                  批量发布
+                  {{ t('content.batchPublish') }}
                 </button>
                 <button class="btn btn-secondary btn-sm" :disabled="batchLoading" @click="confirmBatchAction('unpublish')">
-                  批量取消发布
+                  {{ t('content.batchUnpublish') }}
                 </button>
                 <button class="btn btn-danger btn-sm" :disabled="batchLoading" @click="confirmBatchAction('delete')">
-                  批量删除
+                  {{ t('content.batchDelete') }}
                 </button>
               </div>
               <button class="btn btn-primary" @click="openCreateModal">
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
                 </svg>
-                创建内容
+                {{ t('content.createEntry') }}
               </button>
             </div>
           </div>
@@ -460,20 +448,20 @@ onMounted(() => {
                       @change="toggleSelectAll"
                     />
                   </th>
-                  <th>ID</th>
+                  <th>{{ t('common.id') }}</th>
                   <th v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
                     {{ field.name }}
                   </th>
-                  <th>状态</th>
-                  <th>更新时间</th>
-                  <th>操作</th>
+                  <th>{{ t('common.status') }}</th>
+                  <th>{{ t('common.updatedAt') }}</th>
+                  <th>{{ t('common.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
                   <td colspan="7" class="loading-state">
                     <div class="spinner"></div>
-                    <span>加载中...</span>
+                    <span>{{ t('common.loading') }}</span>
                   </td>
                 </tr>
                 <tr v-else-if="entries.length === 0">
@@ -483,10 +471,10 @@ onMounted(() => {
                         <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
                       </svg>
                     </div>
-                    <p class="empty-title">暂无内容</p>
-                    <p class="empty-desc">开始创建您的第一个内容吧</p>
+                    <p class="empty-title">{{ t('content.noContent') }}</p>
+                    <p class="empty-desc">{{ t('content.createFirst') }}</p>
                     <button class="btn btn-primary" @click="openCreateModal">
-                      创建第一个条目
+                      {{ t('content.createFirstEntry') }}
                     </button>
                   </td>
                 </tr>
@@ -509,7 +497,7 @@ onMounted(() => {
                   </td>
                   <td>{{ formatDate(entry.updated_time) }}</td>
                   <td class="actions-cell">
-                    <button class="btn btn-secondary btn-sm" :disabled="publishLoading === entry.id" @click="openEditModal(entry)">编辑</button>
+                    <button class="btn btn-secondary btn-sm" :disabled="publishLoading === entry.id" @click="openEditModal(entry)">{{ t('common.edit') }}</button>
                     <button
                       class="btn btn-sm"
                       :class="entry.status === 'published' ? 'btn-secondary' : 'btn-primary'"
@@ -517,9 +505,9 @@ onMounted(() => {
                       @click="handlePublish(entry)"
                     >
                       <span v-if="publishLoading === entry.id" class="btn-spinner"></span>
-                      {{ entry.status === 'published' ? '取消发布' : '发布' }}
+                      {{ entry.status === 'published' ? t('content.unpublish') : t('content.publish') }}
                     </button>
-                    <button class="btn btn-danger btn-sm" :disabled="deleteLoading" @click="confirmDelete(entry)">删除</button>
+                    <button class="btn btn-danger btn-sm" :disabled="deleteLoading" @click="confirmDelete(entry)">{{ t('common.delete') }}</button>
                   </td>
                 </tr>
               </tbody>
@@ -528,13 +516,13 @@ onMounted(() => {
 
           <!-- 分页 -->
           <div class="pagination" v-if="total > pageSize">
-            <span class="pagination-info">共 {{ total }} 条</span>
+            <span class="pagination-info">{{ t('common.total') }} {{ total }} {{ t('common.items') }}</span>
             <button
               class="btn btn-secondary btn-sm"
               :disabled="page === 1"
               @click="page--; loadEntries()"
             >
-              上一页
+              {{ t('common.prevPage') }}
             </button>
             <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
             <button
@@ -542,7 +530,7 @@ onMounted(() => {
               :disabled="page >= Math.ceil(total / pageSize)"
               @click="page++; loadEntries()"
             >
-              下一页
+              {{ t('common.nextPage') }}
             </button>
           </div>
         </template>
@@ -551,8 +539,8 @@ onMounted(() => {
           <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
             <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
           </svg>
-          <h3>选择内容类型</h3>
-          <p>请从左侧选择一个内容类型来管理内容</p>
+          <h3>{{ t('content.selectType') }}</h3>
+          <p>{{ t('content.selectTypeHint') }}</p>
         </div>
       </main>
     </div>
@@ -561,7 +549,7 @@ onMounted(() => {
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>{{ editingEntry ? '编辑内容' : '创建内容' }}</h3>
+          <h3>{{ editingEntry ? t('content.createEntry') : t('content.createEntry') }}</h3>
           <button class="modal-close" @click="closeModal">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -579,21 +567,21 @@ onMounted(() => {
               v-model="formData[field.name]"
               type="text"
               class="input"
-              :placeholder="`请输入${field.name}`"
+              :placeholder="t('content.enterField', { fieldName: field.name })"
             />
             <textarea
               v-else-if="field.field_type === 'rich_text' || field.field_type === 'json'"
               v-model="formData[field.name]"
               class="input"
               rows="4"
-              :placeholder="`请输入${field.name}`"
+              :placeholder="t('content.enterField', { fieldName: field.name })"
             ></textarea>
             <input
               v-else-if="field.field_type === 'number'"
               v-model="formData[field.name]"
               type="number"
               class="input"
-              placeholder="请输入数字"
+              :placeholder="t('content.enterNumber')"
             />
             <input
               v-else-if="field.field_type === 'date'"
@@ -609,14 +597,14 @@ onMounted(() => {
             />
             <label v-else-if="field.field_type === 'boolean'" class="checkbox-label">
               <input v-model="formData[field.name]" type="checkbox" />
-              <span>{{ formData[field.name] ? '是' : '否' }}</span>
+              <span>{{ formData[field.name] ? t('content.yes') : t('content.no') }}</span>
             </label>
             <select
               v-else-if="field.field_type === 'enum' && (field.options || field.config?.options)"
               v-model="formData[field.name]"
               class="input"
             >
-              <option value="">请选择</option>
+              <option value="">{{ t('content.select') }}</option>
               <option v-for="opt in (field.options || field.config?.options)" :key="opt" :value="opt">{{ opt }}</option>
             </select>
             <input
@@ -624,15 +612,15 @@ onMounted(() => {
               v-model="formData[field.name]"
               type="text"
               class="input"
-              :placeholder="`请输入${field.name}`"
+              :placeholder="t('content.enterField', { fieldName: field.name })"
             />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal" :disabled="submitting">取消</button>
+          <button class="btn btn-secondary" @click="closeModal" :disabled="submitting">{{ t('common.cancel') }}</button>
           <button class="btn btn-primary" :disabled="submitting" @click="handleSubmit">
             <span v-if="submitting" class="btn-spinner"></span>
-            {{ submitting ? '处理中...' : (editingEntry ? '保存' : '创建') }}
+            {{ submitting ? t('common.processing') : (editingEntry ? t('common.save') : t('common.create')) }}
           </button>
         </div>
       </div>
@@ -642,16 +630,16 @@ onMounted(() => {
     <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>确认删除</h3>
+          <h3>{{ t('common.confirmDelete') }}</h3>
         </div>
         <div class="modal-body">
-          <p>确定要删除此内容吗？此操作不可撤销。</p>
+          <p>{{ t('content.confirmDelete') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false" :disabled="deleteLoading">取消</button>
+          <button class="btn btn-secondary" @click="showDeleteConfirm = false" :disabled="deleteLoading">{{ t('common.cancel') }}</button>
           <button class="btn btn-danger" :disabled="deleteLoading" @click="handleDelete">
             <span v-if="deleteLoading" class="btn-spinner"></span>
-            {{ deleteLoading ? '删除中...' : '删除' }}
+            {{ deleteLoading ? t('common.deleting') : t('common.delete') }}
           </button>
         </div>
       </div>
@@ -661,13 +649,13 @@ onMounted(() => {
     <div v-if="showBatchConfirm" class="modal-overlay" @click.self="showBatchConfirm = false">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>确认{{ batchActionLabel }}</h3>
+          <h3>{{ t('common.confirmAction', { action: batchActionLabel }) }}</h3>
         </div>
         <div class="modal-body">
           <p>{{ getBatchConfirmText() }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showBatchConfirm = false" :disabled="batchLoading">取消</button>
+          <button class="btn btn-secondary" @click="showBatchConfirm = false" :disabled="batchLoading">{{ t('common.cancel') }}</button>
           <button
             class="btn"
             :class="batchAction === 'delete' ? 'btn-danger' : 'btn-primary'"
@@ -675,7 +663,7 @@ onMounted(() => {
             @click="executeBatchAction"
           >
             <span v-if="batchLoading" class="btn-spinner"></span>
-            {{ batchLoading ? '处理中...' : batchActionLabel }}
+            {{ batchLoading ? t('common.processing') : batchActionLabel }}
           </button>
         </div>
       </div>

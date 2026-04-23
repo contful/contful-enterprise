@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { getContentTypes, getContentEntries, getAssets, getUsers } from '@/api/api'
 import { showError } from '@/utils/request'
 
+const { t } = useI18n()
 const router = useRouter()
 
 const stats = ref({
@@ -38,12 +40,12 @@ onMounted(async () => {
   }
 })
 
-const quickActions = [
-  { icon: 'add', label: '创建内容', path: '/content/entries', color: '#3b82f6' },
-  { icon: 'upload', label: '上传媒体', path: '/assets', color: '#10b981' },
-  { icon: 'schema', label: '管理类型', path: '/content/types', color: '#8b5cf6' },
-  { icon: 'token', label: 'API Token', path: '/settings', color: '#f59e0b' },
-]
+const quickActions = computed(() => [
+  { icon: 'add', label: t('dashboard.createContent'), path: '/content/entries', color: '#3b82f6' },
+  { icon: 'upload', label: t('dashboard.uploadMedia'), path: '/assets', color: '#10b981' },
+  { icon: 'schema', label: t('dashboard.manageTypes'), path: '/content/types', color: '#8b5cf6' },
+  { icon: 'token', label: t('menu.apiTokens'), path: '/settings', color: '#f59e0b' },
+])
 
 const getStatusClass = (status: string) => {
   const map: Record<string, string> = {
@@ -56,9 +58,9 @@ const getStatusClass = (status: string) => {
 
 const getStatusLabel = (status: string) => {
   const map: Record<string, string> = {
-    published: '已发布',
-    draft: '草稿',
-    archived: '已归档',
+    published: t('content.published'),
+    draft: t('content.draft'),
+    archived: t('content.archived'),
   }
   return map[status] || status
 }
@@ -68,8 +70,8 @@ const getStatusLabel = (status: string) => {
   <div class="dashboard">
     <div class="page-header">
       <div>
-        <h1 class="page-title">仪表盘</h1>
-        <p class="page-subtitle">欢迎回来！以下是您的内容概览。</p>
+        <h1 class="page-title">{{ t('dashboard.title') }}</h1>
+        <p class="page-subtitle">{{ t('dashboard.welcome') }}</p>
       </div>
     </div>
 
@@ -83,7 +85,7 @@ const getStatusLabel = (status: string) => {
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.entries }}</div>
-          <div class="stat-label">内容条目</div>
+          <div class="stat-label">{{ t('dashboard.contentEntries') }}</div>
         </div>
       </div>
 
@@ -95,7 +97,7 @@ const getStatusLabel = (status: string) => {
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.contentTypes }}</div>
-          <div class="stat-label">内容类型</div>
+          <div class="stat-label">{{ t('dashboard.contentTypes') }}</div>
         </div>
       </div>
 
@@ -107,7 +109,7 @@ const getStatusLabel = (status: string) => {
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.assets }}</div>
-          <div class="stat-label">媒体文件</div>
+          <div class="stat-label">{{ t('dashboard.mediaFiles') }}</div>
         </div>
       </div>
 
@@ -119,7 +121,7 @@ const getStatusLabel = (status: string) => {
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.users }}</div>
-          <div class="stat-label">用户数</div>
+          <div class="stat-label">{{ t('dashboard.users') }}</div>
         </div>
       </div>
     </div>
@@ -127,7 +129,7 @@ const getStatusLabel = (status: string) => {
     <div class="dashboard-grid">
       <!-- 快速操作 -->
       <div class="card quick-actions">
-        <h3 class="card-title">快速操作</h3>
+        <h3 class="card-title">{{ t('dashboard.quickActions') }}</h3>
         <div class="actions-list">
           <button
             v-for="action in quickActions"
@@ -153,21 +155,21 @@ const getStatusLabel = (status: string) => {
 
       <!-- 最近内容 -->
       <div class="card recent-entries">
-        <h3 class="card-title">最近内容</h3>
-        <div v-if="loading" class="loading">加载中...</div>
+        <h3 class="card-title">{{ t('dashboard.recentContent') }}</h3>
+        <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
         <div v-else-if="recentEntries.length === 0" class="empty-state">
-          <p>暂无内容</p>
+          <p>{{ t('dashboard.noContent') }}</p>
           <button class="btn btn-primary btn-sm" @click="router.push('/content/entries')">
-            创建第一个内容
+            {{ t('dashboard.createFirstContent') }}
           </button>
         </div>
         <table v-else class="table">
           <thead>
             <tr>
-              <th>标题</th>
-              <th>类型</th>
-              <th>状态</th>
-              <th>更新时间</th>
+              <th>{{ t('dashboard.titleCol') }}</th>
+              <th>{{ t('dashboard.typeCol') }}</th>
+              <th>{{ t('dashboard.statusCol') }}</th>
+              <th>{{ t('dashboard.updatedCol') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -184,7 +186,7 @@ const getStatusLabel = (status: string) => {
                   {{ getStatusLabel(entry.status) }}
                 </span>
               </td>
-              <td>{{ new Date(entry.updated_time).toLocaleDateString('zh-CN') }}</td>
+              <td>{{ new Date(entry.updated_time).toLocaleDateString() }}</td>
             </tr>
           </tbody>
         </table>

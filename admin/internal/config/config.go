@@ -36,14 +36,17 @@ type ServerConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Host            string `mapstructure:"host"`
-	Port            int    `mapstructure:"port"`
-	User            string `mapstructure:"user"`
-	Password        string `mapstructure:"password"`
-	Name            string `mapstructure:"name"`
-	SSLMode         string `mapstructure:"ssl_mode"`
-	MaxOpenConns    int    `mapstructure:"max_open_conns"`
-	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
+	// Type 数据库类型：postgres（默认）/ dm（达梦 DM8）
+	// 通过 build tag 选择驱动，运行时通过此字段做日志/监控等区分
+	Type         string `mapstructure:"type"`
+	Host         string `mapstructure:"host"`
+	Port         int    `mapstructure:"port"`
+	User         string `mapstructure:"user"`
+	Password     string `mapstructure:"password"`
+	Name         string `mapstructure:"name"`
+	SSLMode      string `mapstructure:"ssl_mode"`
+	MaxOpenConns int    `mapstructure:"max_open_conns"`
+	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"`
 }
 
@@ -236,8 +239,15 @@ func (c *Config) PostLoad() {
 	}
 
 	// 数据库默认值
+	if c.Database.Type == "" {
+		c.Database.Type = "postgres" // 默认 PostgreSQL
+	}
 	if c.Database.Port == 0 {
-		c.Database.Port = 5432
+		if c.Database.Type == "dm" {
+			c.Database.Port = 5236 // 达梦默认端口
+		} else {
+			c.Database.Port = 5432 // PostgreSQL 默认端口
+		}
 	}
 	if c.Database.SSLMode == "" {
 		c.Database.SSLMode = "disable"
@@ -334,7 +344,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.shutdown_timeout", 30)
 
 	// 数据库
-	v.SetDefault("database.port", 5432)
+	v.SetDefault("database.type", "postgres")
 	v.SetDefault("database.ssl_mode", "disable")
 	v.SetDefault("database.max_open_conns", 100)
 	v.SetDefault("database.max_idle_conns", 10)

@@ -13,10 +13,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 
 	"github.com/contful/contful/api/internal/config"
+	"github.com/contful/contful/api/internal/database"
 	"github.com/contful/contful/api/internal/middleware"
 	"github.com/contful/contful/api/internal/model"
 	"github.com/contful/contful/api/internal/repository"
@@ -35,18 +34,20 @@ func main() {
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: log.Writer()}).With().Timestamp().Logger()
 	logger.Info().Str("service", "open").Str("port", cfg.Server.Port).Msg("starting")
 
-	// 初始化 PostgreSQL
-	db, err := gorm.Open(postgres.Open(cfg.Database.GetDSN()), &gorm.Config{
-		Logger: nil, // GORM 日志由 zerolog 统一输出
-	})
+	// 初始化数据库（根据 build tag 选择 PostgreSQL 或达梦 DM8）
+	dsnCfg := &database.DSNConfig{
+		Host:     cfg.Database.Host,
+		Port:     cfg.Database.Port,
+		User:     cfg.Database.User,
+		Password: cfg.Database.Password,
+		Name:     cfg.Database.Name,
+		SSLMode:  cfg.Database.SSLMode,
+	}
+	db, err := database.Open(dsnCfg, cfg.Database.MaxOpenConns, cfg.Database.MaxIdleConns, cfg.Database.ConnMaxLifetime)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
-	sqlDB, _ := db.DB()
-	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
-	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
-	sqlDB.SetConnMaxLifetime(cfg.Database.GetConnMaxLifetime())
-	logger.Info().Msg("database connected")
+	logger.Info().Str("db_type", database.DBType).Msg("database connected")
 
 	// 初始化 Redis
 	rdb := redis.NewClient(&redis.Options{

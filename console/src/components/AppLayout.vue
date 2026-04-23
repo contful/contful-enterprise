@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useSiteStore } from '@/stores/site'
 import { createSite, type CreateSiteParams } from '@/api/site'
 import { showError, showSuccess } from '@/utils/request'
+import LangSwitcher from './LangSwitcher.vue'
+
+const { t } = useI18n()
 
 const router = useRouter()
 const route = useRoute()
@@ -20,14 +24,14 @@ const newSiteSlug = ref('')
 const newSiteDesc = ref('')
 const creating = ref(false)
 
-const menuItems = [
-  { path: '/', icon: 'dashboard', label: '仪表盘', name: 'Dashboard', tIcon: 'dashboard' },
-  { path: '/content/types', icon: 'schema', label: '类型', name: 'ContentTypes', tIcon: 'server' },
-  { path: '/content/entries', icon: 'article', label: '内容', name: 'Content', tIcon: 'article' },
-  { path: '/assets', icon: 'image', label: '媒体', name: 'Media', tIcon: 'image' },
-  { path: '/users', icon: 'people', label: '用户', name: 'Users', tIcon: 'user' },
-  { path: '/settings', icon: 'settings', label: '设置', name: 'Settings', tIcon: 'setting' },
-]
+const menuItems = computed(() => [
+  { path: '/', icon: 'dashboard', label: t('menu.dashboard'), name: 'Dashboard', tIcon: 'dashboard' },
+  { path: '/content/types', icon: 'schema', label: t('menu.contentTypes'), name: 'ContentTypes', tIcon: 'server' },
+  { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
+  { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
+  { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
+  { path: '/settings', icon: 'settings', label: t('menu.settings'), name: 'Settings', tIcon: 'setting' },
+])
 
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/'
@@ -60,12 +64,12 @@ const handleNameInput = (val: string) => {
 
 const handleCreateSite = async () => {
   if (!newSiteName.value.trim()) {
-    showError({ response: { data: { msg: '请输入站点名称' } } } as any)
+    showError({ response: { data: { msg: t('site.enterSiteName') } } } as any)
     return
   }
   const slug = newSiteSlug.value.trim() || generateSlug(newSiteName.value)
   if (!/^[a-z][a-z0-9\-]{0,98}[a-z0-9]$/.test(slug)) {
-    showError({ response: { data: { msg: 'Slug 格式不正确：字母开头，仅支持小写字母、数字和连字符' } } } as any)
+    showError({ response: { data: { msg: t('site.formatError') } } } as any)
     return
   }
   creating.value = true
@@ -104,7 +108,7 @@ onMounted(async () => {
           @click="sidebarCollapsed = !sidebarCollapsed"
         >
           <template #icon>
-            <t-icon :name="sidebarCollapsed ? 'indent-right' : 'indent-left'" />
+            <Icon :name="sidebarCollapsed ? 'indent-right' : 'indent-left'" />
           </template>
         </t-button>
         <!-- 站点选择器：紧跟折叠按钮，左侧分隔线对齐 -->
@@ -112,7 +116,7 @@ onMounted(async () => {
           <t-select
             v-model="siteStore.currentSiteId"
             :options="siteStore.sites.map(s => ({ label: s.name, value: s.id }))"
-            placeholder="选择站点"
+            :placeholder="t('site.selectSite')"
             :clearable="false"
             style="width: 180px"
             @change="(val: string) => siteStore.setCurrentSite(val)"
@@ -121,11 +125,11 @@ onMounted(async () => {
             v-if="siteStore.currentSiteId"
             shape="square" variant="text"
             size="small"
-            title="创建新站点"
+            :title="t('site.createNewSite')"
             @click="showCreateSite = true"
           >
             <template #icon>
-              <t-icon name="add" />
+              <Icon name="add" />
             </template>
           </t-button>
           <t-button
@@ -133,12 +137,14 @@ onMounted(async () => {
             variant="outline" size="small"
             @click="showCreateSite = true"
           >
-            创建站点
+            {{ t('site.createSite') }}
           </t-button>
         </div>
       </div>
       <div class="header-center"></div>
-      <div class="header-right">
+        <div class="header-right">
+        <!-- 语言切换 -->
+        <LangSwitcher />
         <div class="user-menu">
           <div class="avatar" v-if="user">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
           <span class="user-name" v-if="user">{{ user.nickname || user.email }}</span>
@@ -147,7 +153,7 @@ onMounted(async () => {
             @click="handleLogout"
           >
             <template #icon>
-              <t-icon name="logout" />
+              <Icon name="logout" />
             </template>
           </t-button>
         </div>
@@ -166,7 +172,7 @@ onMounted(async () => {
             :class="{ active: isActive(item.path) }"
           >
             <span class="nav-icon">
-              <t-icon :name="item.tIcon" />
+              <Icon :name="item.tIcon" />
             </span>
             <span class="nav-label">{{ item.label }}</span>
           </router-link>
@@ -184,30 +190,30 @@ onMounted(async () => {
     <!-- 创建站点弹窗 -->
     <t-dialog
       v-model:visible="showCreateSite"
-      header="创建站点"
+      :header="t('site.createSite')"
       :confirm-btn="{ loading: creating, theme: 'primary' }"
       @confirm="handleCreateSite"
     >
       <t-form layout="vertical">
-        <t-form-item label="站点名称" required>
+        <t-form-item :label="t('site.siteName')" required>
           <t-input
             v-model="newSiteName"
-            placeholder="例如：我的博客"
+            :placeholder="t('site.siteNamePlaceholder')"
             :maxlength="200"
             @input="handleNameInput"
           />
         </t-form-item>
-        <t-form-item label="站点标识 (Slug)" required>
+        <t-form-item :label="t('site.siteSlug')" required>
           <t-input
             v-model="newSiteSlug"
-            placeholder="字母开头，小写字母+数字+连字符"
+            :placeholder="t('site.siteSlugPlaceholder')"
             :maxlength="100"
           />
         </t-form-item>
-        <t-form-item label="描述">
+        <t-form-item :label="t('site.siteDescription')">
           <t-textarea
             v-model="newSiteDesc"
-            placeholder="站点描述（可选）"
+            :placeholder="t('site.siteDescPlaceholder')"
             :maxlength="2000"
             :autosize="{ minRows: 2, maxRows: 4 }"
           />

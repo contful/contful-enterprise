@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ApiTokens from './ApiTokens.vue'
 import SiteSettings from './SiteSettings.vue'
 import Configs from './Configs.vue'
+import Security from './Security.vue'
 
 const { t } = useI18n()
 
@@ -44,6 +45,13 @@ const activeTab = ref('api-tokens')
         </button>
         <button
           class="nav-item"
+          :class="{ active: activeTab === 'security' }"
+          @click="activeTab = 'security'"
+        >
+          {{ t('settings.security') }}
+        </button>
+        <button
+          class="nav-item"
           :class="{ active: activeTab === 'profile' }"
           @click="activeTab = 'profile'"
         >
@@ -55,6 +63,7 @@ const activeTab = ref('api-tokens')
         <ApiTokens v-if="activeTab === 'api-tokens'" />
         <SiteSettings v-else-if="activeTab === 'site'" />
         <Configs v-else-if="activeTab === 'configs'" />
+        <Security v-else-if="activeTab === 'security'" />
         <div v-else-if="activeTab === 'profile'" class="card">
           <h3 class="card-title">{{ t('settings.personalProfile') }}</h3>
           <p class="text-secondary">{{ t('settings.profileComingSoon') }}</p>

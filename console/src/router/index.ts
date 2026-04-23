@@ -11,6 +11,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false },
   },
   {
+    path: '/mfa',
+    name: 'MFA',
+    component: () => import('@/pages/auth/MFA.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/',
     name: 'Dashboard',
     component: () => import('@/pages/Dashboard.vue'),

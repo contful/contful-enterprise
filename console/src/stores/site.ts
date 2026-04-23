@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getMySites, createSite, type Site, type CreateSiteParams } from '@/api/site'
 import { showSuccess, showError } from '@/utils/request'
 
 export const useSiteStore = defineStore('site', () => {
+  const { t } = useI18n()
+
   // 当前选中的站点 ID
   const currentSiteId = ref<string | null>(localStorage.getItem('currentSiteId'))
 
@@ -60,7 +63,7 @@ export const useSiteStore = defineStore('site', () => {
     try {
       const res = await createSite(data)
       if (res.data.code === 200) {
-        showSuccess('站点创建成功')
+        showSuccess(t('site.created'))
         // 重新加载站点列表
         await fetchSites()
         // 返回新创建的站点（响应中直接包含）
@@ -71,8 +74,9 @@ export const useSiteStore = defineStore('site', () => {
         return { success: true }
       }
       return { success: false, message: res.data.msg }
-    } catch (error: any) {
-      const msg = error.response?.data?.msg || '创建站点失败'
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { msg?: string } } }
+      const msg = err.response?.data?.msg || t('site.createFailed') || '创建站点失败'
       return { success: false, message: msg }
     }
   }

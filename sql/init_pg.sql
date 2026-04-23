@@ -111,6 +111,9 @@ CREATE TABLE system_users (
     is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
     last_login_time TIMESTAMPTZ,
     last_login_ip INET,
+    mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    totp_secret VARCHAR(512),
+    recovery_codes TEXT,
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_time TIMESTAMPTZ,
@@ -126,6 +129,9 @@ COMMENT ON COLUMN system_users.status IS '账户状态：active/inactive/suspend
 COMMENT ON COLUMN system_users.is_super_admin IS '是否超级管理员（拥有全部权限，不受站点限制）';
 COMMENT ON COLUMN system_users.last_login_time IS '最后登录时间';
 COMMENT ON COLUMN system_users.last_login_ip IS '最后登录 IP 地址';
+COMMENT ON COLUMN system_users.mfa_enabled IS 'MFA 双因子认证是否启用';
+COMMENT ON COLUMN system_users.totp_secret IS 'AES-256-GCM 加密存储的 TOTP Secret（base32）';
+COMMENT ON COLUMN system_users.recovery_codes IS 'AES-256-GCM 加密存储的恢复码 JSON 数组';
 COMMENT ON COLUMN system_users.created_time IS '创建时间';
 COMMENT ON COLUMN system_users.updated_time IS '更新时间';
 COMMENT ON COLUMN system_users.deleted_time IS '软删除时间（非空表示已删除）';
@@ -997,3 +1003,40 @@ CREATE INDEX idx_site_configs_key ON site_configs(site_id, config_key);
 
 CREATE TRIGGER update_site_configs_updated_time BEFORE UPDATE ON site_configs
     FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+
+-- =============================================================================
+-- M3: 数据完整性签名（PRE-004）
+-- =============================================================================
+
+-- entries 表新增签名列
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS data_signature JSONB;
+COMMENT ON COLUMN entries.data_signature IS '数据完整性签名: {"alg":"HMAC-SHA256","created_at":"...","payload_hash":"...","signature":"..."}';
+
+-- entry_values 表新增签名列（联动签名字段值）
+ALTER TABLE entry_values ADD COLUMN IF NOT EXISTS data_signature JSONB;
+COMMENT ON COLUMN entry_values.data_signature IS '字段值完整性签名';
+
+-- assets 表新增签名列
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS data_signature JSONB;
+COMMENT ON COLUMN assets.data_signature IS '媒体资源元信息完整性签名';
+
+-- audit_logs 表新增签名列（NOT NULL，历史数据默认空对象）
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS data_signature JSONB NOT NULL DEFAULT '{}';
+COMMENT ON COLUMN audit_logs.data_signature IS '审计日志完整性签名，防篡改';
+
+-- content_types 表新增签名开关
+ALTER TABLE content_types ADD COLUMN IF NOT EXISTS signature_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN content_types.signature_enabled IS '是否启用数据签名（该内容类型下的条目自动签名）';
+
+-- 禁止更新 audit_logs（防篡改：允许 INSERT/SOFT DELETE，禁止 UPDATE）
+CREATE OR REPLACE FUNCTION prevent_audit_log_update()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION '审计日志禁止更新，仅允许 INSERT 和 SOFT DELETE';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS audit_logs_no_update ON audit_logs;
+CREATE TRIGGER audit_logs_no_update
+    BEFORE UPDATE ON audit_logs
+    FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_update();

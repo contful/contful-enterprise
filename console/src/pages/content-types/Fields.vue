@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   Space,
   Button,
@@ -12,19 +13,11 @@ import {
   Option,
   Switch,
   MessagePlugin,
-  Icon,
   Tooltip,
   Popconfirm,
   Alert,
+  Dialog,
 } from 'tdesign-vue-next'
-import {
-  ArrowLeftIcon,
-  AddIcon,
-  DeleteIcon,
-  EditIcon,
-  DragIcon,
-  SaveIcon,
-} from 'tdesign-icons-vue-next'
 import {
   getContentType,
   getFields,
@@ -39,6 +32,7 @@ import {
   FIELD_TYPES,
 } from '@/api/content-type'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -50,7 +44,7 @@ const total = ref(0)
 
 // 编辑对话框
 const dialogVisible = ref(false)
-const dialogTitle = ref('添加字段')
+const dialogTitle = computed(() => isEditing.value ? t('fields.editField') : t('fields.addField'))
 const isEditing = ref(false)
 const editingId = ref('')
 
@@ -66,12 +60,20 @@ const formData = ref<FieldCreate>({
 // 表单规则
 const formRules = {
   name: [
-    { required: true, message: '请输入字段名', trigger: 'blur' },
-    { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: '只能包含字母、数字和下划线，必须以字母开头', trigger: 'blur' },
+    { required: true, message: t('fields.nameRequired'), trigger: 'blur' },
+    { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: t('fields.nameFormat'), trigger: 'blur' },
   ],
-  label: [{ required: true, message: '请输入显示名称', trigger: 'blur' }],
-  field_type: [{ required: true, message: '请选择字段类型', trigger: 'change' }],
+  label: [{ required: true, message: t('fields.displayNameRequired'), trigger: 'blur' }],
+  field_type: [{ required: true, message: t('fields.typeRequired'), trigger: 'change' }],
 }
+
+// 字段类型选项（带 i18n label）
+const fieldTypeOptions = computed(() =>
+  Object.entries(FIELD_TYPES).map(([key, info]) => ({
+    value: key,
+    label: t(info.labelKey),
+  }))
+)
 
 // 自动生成 label
 const generateLabel = () => {
@@ -91,8 +93,8 @@ const loadContentType = async () => {
     if (res.data.code === 200) {
       contentType.value = res.data.data
     }
-  } catch (e) {
-    MessagePlugin.error('加载内容类型失败')
+  } catch {
+    MessagePlugin.error(t('contentTypes.loadFailed'))
   }
 }
 
@@ -106,8 +108,8 @@ const loadFields = async () => {
       fields.value = res.data.data.items
       total.value = res.data.data.items.length
     }
-  } catch (e) {
-    MessagePlugin.error('加载字段失败')
+  } catch {
+    MessagePlugin.error(t('fields.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -116,7 +118,6 @@ const loadFields = async () => {
 // 打开添加对话框
 const openCreateDialog = () => {
   isEditing.value = false
-  dialogTitle.value = '添加字段'
   editingId.value = ''
   formData.value = {
     name: '',
@@ -132,7 +133,6 @@ const openCreateDialog = () => {
 // 打开编辑对话框
 const openEditDialog = (field: Field) => {
   isEditing.value = true
-  dialogTitle.value = '编辑字段'
   editingId.value = field.id
   formData.value = {
     name: field.name,
@@ -151,15 +151,15 @@ const submitForm = async () => {
     const contentTypeId = route.params.id as string
     if (isEditing.value) {
       await updateField(contentTypeId, editingId.value, formData.value as FieldUpdate)
-      MessagePlugin.success('更新成功')
+      MessagePlugin.success(t('fields.updateSuccess'))
     } else {
       await createField(contentTypeId, formData.value)
-      MessagePlugin.success('添加成功')
+      MessagePlugin.success(t('fields.createSuccess'))
     }
     dialogVisible.value = false
     loadFields()
   } catch (e: any) {
-    MessagePlugin.error(e?.response?.data?.msg || '操作失败')
+    MessagePlugin.error(e?.response?.data?.msg || t('fields.deleteFailed'))
   }
 }
 
@@ -168,16 +168,17 @@ const handleDelete = async (field: Field) => {
   try {
     const contentTypeId = route.params.id as string
     await deleteField(contentTypeId, field.id)
-    MessagePlugin.success('删除成功')
+    MessagePlugin.success(t('fields.deleteSuccess'))
     loadFields()
   } catch (e: any) {
-    MessagePlugin.error(e?.response?.data?.msg || '删除失败')
+    MessagePlugin.error(e?.response?.data?.msg || t('fields.deleteFailed'))
   }
 }
 
-// 获取字段类型标签
+// 获取字段类型标签（通过 i18n key）
 const getFieldTypeLabel = (type: string) => {
-  return FIELD_TYPES[type as keyof typeof FIELD_TYPES]?.label || type
+  const info = FIELD_TYPES[type as keyof typeof FIELD_TYPES]
+  return info ? t(info.labelKey) : type
 }
 
 // 返回列表
@@ -205,20 +206,20 @@ watch(() => route.params.id, () => {
     <div class="page-header">
       <div class="title-section">
         <Button theme="default" variant="text" @click="goBack">
-          <template #icon><ArrowLeftIcon /></template>
-          返回
+          <template #icon><Icon name="arrow-left" /></template>
+          {{ t('common.back') }}
         </Button>
         <div class="title-info">
-          <h1>{{ contentType?.name || '加载中...' }}</h1>
+          <h1>{{ contentType?.name || t('common.loading') }}</h1>
           <p class="subtitle">
             <span class="slug">{{ contentType?.slug }}</span>
-            <span class="kind">{{ contentType?.kind === 'collection' ? '集合' : '单条' }}</span>
+            <span class="kind">{{ contentType?.kind === 'collection' ? t('contentTypes.kindCollection') : t('contentTypes.kindSingle') }}</span>
           </p>
         </div>
       </div>
       <Button theme="primary" @click="openCreateDialog">
-        <template #icon><AddIcon /></template>
-        添加字段
+        <template #icon><Icon name="add" /></template>
+        {{ t('fields.addField') }}
       </Button>
     </div>
 
@@ -226,18 +227,18 @@ watch(() => route.params.id, () => {
     <Card>
       <template #header>
         <div class="card-header">
-          <span>字段列表</span>
-          <span class="field-count">共 {{ total }} 个字段</span>
+          <span>{{ t('fields.fieldList') }}</span>
+          <span class="field-count">{{ t('fields.totalFields', { count: total }) }}</span>
         </div>
       </template>
 
-      <div v-if="loading" class="loading">加载中...</div>
+      <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
 
       <div v-else-if="fields.length === 0" class="empty">
-        <Alert theme="info" message="还没有添加任何字段" />
+        <Alert theme="info" :message="t('fields.noFields')" />
         <Button theme="primary" style="margin-top: 16px" @click="openCreateDialog">
-          <template #icon><AddIcon /></template>
-          添加第一个字段
+          <template #icon><Icon name="add" /></template>
+          {{ t('fields.addFirstField') }}
         </Button>
       </div>
 
@@ -248,7 +249,7 @@ watch(() => route.params.id, () => {
           class="field-item"
         >
           <div class="field-drag">
-            <Tooltip content="拖动排序">
+            <Tooltip :content="t('fields.dragToSort')">
               <Icon name="drag" />
             </Tooltip>
           </div>
@@ -265,18 +266,18 @@ watch(() => route.params.id, () => {
           </div>
 
           <div class="field-actions">
-            <Tooltip content="编辑">
+            <Tooltip :content="t('common.edit')">
               <Button size="small" variant="text" @click="openEditDialog(field)">
-                <template #icon><EditIcon /></template>
+                <template #icon><Icon name="edit" /></template>
               </Button>
             </Tooltip>
             <Popconfirm @confirm="handleDelete(field)">
               <template #content>
-                <p>确定删除字段「{{ field.name }}」吗？</p>
+                <p>{{ t('fields.deleteConfirm') }}</p>
               </template>
-              <Tooltip content="删除">
+              <Tooltip :content="t('common.delete')">
                 <Button size="small" variant="text" theme="danger">
-                  <template #icon><DeleteIcon /></template>
+                  <template #icon><Icon name="delete" /></template>
                 </Button>
               </Tooltip>
             </Popconfirm>
@@ -293,43 +294,43 @@ watch(() => route.params.id, () => {
       :close-on-overlay-click="false"
     >
       <Form :data="formData" :rules="formRules" label-width="100px" colon>
-        <FormItem label="字段名" name="name">
+        <FormItem :label="t('fields.fieldName')" name="name">
           <Input
             v-model="formData.name"
-            placeholder="如：title、content"
+            :placeholder="t('fields.fieldNamePlaceholder')"
             :disabled="isEditing"
             @blur="generateLabel"
           />
           <template #help>
             <span style="color: var(--td-text-color-secondary)">
-              只能包含字母、数字和下划线，将作为 API 字段名
+              {{ t('fields.fieldNameHint') }}
             </span>
           </template>
         </FormItem>
 
-        <FormItem label="显示名称" name="label">
+        <FormItem :label="t('fields.displayName')" name="label">
           <Input
             v-model="formData.label"
-            placeholder="如：标题、正文"
+            :placeholder="t('fields.displayNamePlaceholder')"
           />
         </FormItem>
 
-        <FormItem label="字段类型" name="field_type">
+        <FormItem :label="t('fields.fieldType')" name="field_type">
           <Select v-model="formData.field_type" :disabled="isEditing">
             <Option
-              v-for="(info, key) in FIELD_TYPES"
-              :key="key"
-              :value="key"
-              :label="info.label"
+              v-for="opt in fieldTypeOptions"
+              :key="opt.value"
+              :value="opt.value"
+              :label="opt.label"
             />
           </Select>
         </FormItem>
 
-        <FormItem label="描述">
+        <FormItem :label="t('fields.fieldDescription')">
           <Input
             v-model="formData.description"
             type="textarea"
-            placeholder="可选，对字段用途的说明"
+            :placeholder="t('fields.fieldDescPlaceholder')"
             :rows="2"
           />
         </FormItem>
@@ -337,9 +338,9 @@ watch(() => route.params.id, () => {
 
       <template #footer>
         <Space>
-          <Button @click="dialogVisible = false">取消</Button>
+          <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
           <Button theme="primary" @click="submitForm">
-            {{ isEditing ? '保存' : '添加' }}
+            {{ isEditing ? t('common.save') : t('fields.addField') }}
           </Button>
         </Space>
       </template>

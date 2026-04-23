@@ -36,7 +36,7 @@ contful/
 psql -h <host> -U <user> -c "CREATE DATABASE contful;"
 
 # 导入初始化 SQL
-psql -h <host> -U <user> -d contful -f sql/init.sql
+psql -h <host> -U <user> -d contful -f sql/init_pg.sql
 ```
 
 ### 2. Docker 启动

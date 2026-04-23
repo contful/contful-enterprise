@@ -35,6 +35,7 @@ type Entry struct {
 	CreatedTime      time.Time  `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime      time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
 	DeletedTime      *time.Time `json:"deleted_time" gorm:"index"`
+	DataSignature    JSONB      `json:"data_signature" gorm:"type:jsonb"` // 数据完整性签名
 
 	// 关联
 	ContentType *ContentType    `json:"content_type,omitempty" gorm:"foreignKey:ContentTypeID;references:ID"`
@@ -59,6 +60,7 @@ type EntryValue struct {
 	DatetimeValue *time.Time `json:"datetime_value,omitempty" gorm:"type:timestamptz"`
 	CreatedTime   time.Time  `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime   time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
+	DataSignature JSONB      `json:"data_signature" gorm:"type:jsonb"` // 联动签名
 
 	// 关联
 	Field *Field `json:"field,omitempty" gorm:"foreignKey:FieldID;references:ID"`

@@ -26,18 +26,19 @@ const (
 
 // AuditLog 审计日志
 type AuditLog struct {
-	ID           uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	SiteID       *uuid.UUID `json:"site_id" gorm:"type:uuid;index"`
-	UserID       *uuid.UUID `json:"user_id" gorm:"type:uuid;index"`
-	Action       string     `json:"action" gorm:"type:varchar(100);not null"`
-	ResourceType string     `json:"resource_type" gorm:"type:varchar(100)"`
-	ResourceID   *uuid.UUID `json:"resource_id" gorm:"type:uuid"`
-	Level        AuditLevel `json:"level" gorm:"type:audit_level;not null;default:'info'"`
-	Category     AuditType  `json:"category" gorm:"type:audit_type;not null;index"`
-	Details      string     `json:"details" gorm:"type:jsonb"`
-	IPAddress    string     `json:"ip_address" gorm:"type:inet"`
-	UserAgent    string     `json:"user_agent" gorm:"type:text"`
+	ID             uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	SiteID         *uuid.UUID `json:"site_id" gorm:"type:uuid;index"`
+	UserID         *uuid.UUID `json:"user_id" gorm:"type:uuid;index"`
+	Action         string     `json:"action" gorm:"type:varchar(100);not null"`
+	ResourceType   string     `json:"resource_type" gorm:"type:varchar(100)"`
+	ResourceID     *uuid.UUID `json:"resource_id" gorm:"type:uuid"`
+	Level          AuditLevel `json:"level" gorm:"type:audit_level;not null;default:'info'"`
+	Category       AuditType  `json:"category" gorm:"type:audit_type;not null;index"`
+	Details        string     `json:"details" gorm:"type:jsonb"`
+	IPAddress      string     `json:"ip_address" gorm:"type:inet"`
+	UserAgent      string     `json:"user_agent" gorm:"type:text"`
 	CreatedTime    string     `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
+	DataSignature  JSONB      `json:"data_signature" gorm:"type:jsonb;not null;default:'{}'"` // 防篡改签名
 }
 
 func (AuditLog) TableName() string {

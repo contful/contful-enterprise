@@ -961,3 +961,29 @@ COMMENT ON COLUMN site_configs.is_readonly IS '只读标记（系统配置）';
 CREATE UNIQUE INDEX uk_dm_site_config_key ON site_configs(site_id, config_key);
 CREATE INDEX idx_dm_site_configs_site_id ON site_configs(site_id);
 CREATE INDEX idx_dm_site_configs_group ON site_configs(site_id, config_group);
+
+-- =============================================================================
+-- M3: 数据完整性签名（PRE-004）达梦版本
+-- =============================================================================
+
+-- entries 表新增签名列
+ALTER TABLE entries ADD COLUMN data_signature CLOB;
+COMMENT ON COLUMN entries.data_signature IS '数据完整性签名: {"alg":"HMAC-SHA256","created_at":"...","payload_hash":"...","signature":"..."}';
+
+-- entry_values 表新增签名列
+ALTER TABLE entry_values ADD COLUMN data_signature CLOB;
+COMMENT ON COLUMN entry_values.data_signature IS '字段值完整性签名';
+
+-- assets 表新增签名列
+ALTER TABLE assets ADD COLUMN data_signature CLOB;
+COMMENT ON COLUMN assets.data_signature IS '媒体资源元信息完整性签名';
+
+-- audit_logs 表新增签名列
+ALTER TABLE audit_logs ADD COLUMN data_signature CLOB NOT NULL DEFAULT '{}';
+COMMENT ON COLUMN audit_logs.data_signature IS '审计日志完整性签名，防篡改';
+
+-- content_types 表新增签名开关
+ALTER TABLE content_types ADD COLUMN signature_enabled INT NOT NULL DEFAULT 0;
+COMMENT ON COLUMN content_types.signature_enabled IS '是否启用数据签名（该内容类型下的条目自动签名）';
+
+-- 注：达梦数据库禁止通过触发器阻止 UPDATE，请通过应用层逻辑实现

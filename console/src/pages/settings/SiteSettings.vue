@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { MessagePlugin } from 'tdesign-vue-next'
 import { useSiteStore } from '@/stores/site'
 import { getSite, updateSite, type Site, type SiteConfig, type SiteSEO } from '@/api/site'
 import { showError } from '@/utils/request'
+
+const { t } = useI18n()
 
 // ============ 状态 ============
 const siteStore = useSiteStore()
@@ -37,27 +41,35 @@ const originalSlug = ref('')
 // 自定义域名输入
 const newDomain = ref('')
 
-// 时区选项
+// 时区选项（labelKey 模式）
 const timezoneOptions = [
-  { value: 'Asia/Shanghai', label: 'Asia/Shanghai (UTC+8)' },
-  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (UTC+9)' },
-  { value: 'Asia/Singapore', label: 'Asia/Singapore (UTC+8)' },
-  { value: 'Asia/Hong_Kong', label: 'Asia/Hong_Kong (UTC+8)' },
-  { value: 'America/New_York', label: 'America/New_York (UTC-5)' },
-  { value: 'America/Los_Angeles', label: 'America/Los_Angeles (UTC-8)' },
-  { value: 'Europe/London', label: 'Europe/London (UTC+0)' },
-  { value: 'Europe/Paris', label: 'Europe/Paris (UTC+1)' },
-  { value: 'UTC', label: 'UTC' },
+  { value: 'Asia/Shanghai', labelKey: 'settings.tzShanghai' },
+  { value: 'Asia/Tokyo', labelKey: 'settings.tzTokyo' },
+  { value: 'Asia/Singapore', labelKey: 'settings.tzSingapore' },
+  { value: 'Asia/Hong_Kong', labelKey: 'settings.tzHongKong' },
+  { value: 'America/New_York', labelKey: 'settings.tzNewYork' },
+  { value: 'America/Los_Angeles', labelKey: 'settings.tzLosAngeles' },
+  { value: 'Europe/London', labelKey: 'settings.tzLondon' },
+  { value: 'Europe/Paris', labelKey: 'settings.tzParis' },
+  { value: 'UTC', labelKey: 'settings.tzUTC' },
 ]
 
-// 语言选项
+const timezoneLabels = computed(() =>
+  timezoneOptions.map(opt => ({ ...opt, label: t(opt.labelKey) }))
+)
+
+// 语言选项（labelKey 模式）
 const localeOptions = [
-  { value: 'zh-CN', label: '简体中文' },
-  { value: 'zh-TW', label: '繁體中文' },
-  { value: 'en-US', label: 'English' },
-  { value: 'ja-JP', label: '日本語' },
-  { value: 'ko-KR', label: '한국어' },
+  { value: 'zh-CN', labelKey: 'settings.langZhCN' },
+  { value: 'zh-TW', labelKey: 'settings.langZhTW' },
+  { value: 'en-US', labelKey: 'settings.langEn' },
+  { value: 'ja-JP', labelKey: 'settings.langJa' },
+  { value: 'ko-KR', labelKey: 'settings.langKo' },
 ]
+
+const localeLabels = computed(() =>
+  localeOptions.map(opt => ({ ...opt, label: t(opt.labelKey) }))
+)
 
 // ============ 加载数据 ============
 const loadSite = async () => {
@@ -110,7 +122,7 @@ const handleSave = async () => {
     if (res.data.code === 200) {
       site.value = res.data.data
       originalSlug.value = res.data.data.slug
-      window.__showSuccess?.('站点设置已保存') || (window as any).__messagePlugin?.success?.('站点设置已保存')
+      MessagePlugin.success(t('settings.saved'))
     }
   } catch (error) {
     showError(error)
@@ -137,7 +149,7 @@ const removeDomain = (index: number) => {
 
 // ============ SEO 预览 ============
 const seoPreview = () => {
-  const title = form.value.seo.meta_title || form.value.name || '站点名称'
+  const title = form.value.seo.meta_title || form.value.name || t('settings.defaultSiteName') || 'Site Name'
   const desc = form.value.seo.meta_description || form.value.description || ''
   return { title, desc }
 }
@@ -152,31 +164,31 @@ onMounted(() => {
   <div class="site-settings">
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>加载中...</p>
+      <p>{{ t('settings.loading') }}</p>
     </div>
 
     <div v-else-if="!siteStore.currentSiteId" class="empty-state">
-      <p class="text-secondary">请先选择一个站点</p>
+      <p class="text-secondary">{{ t('settings.noSite') }}</p>
     </div>
 
     <div v-else class="settings-form">
       <!-- 基础信息 -->
       <section class="settings-section">
-        <h3 class="section-title">基础信息</h3>
+        <h3 class="section-title">{{ t('settings.basicInfo') }}</h3>
         <div class="form-grid">
           <div class="form-item">
-            <label class="form-label">站点名称 <span class="required">*</span></label>
+            <label class="form-label">{{ t('settings.siteName') }} <span class="required">*</span></label>
             <input
               v-model="form.name"
               type="text"
               class="input"
-              placeholder="输入站点名称"
+              :placeholder="t('settings.siteNamePlaceholder')"
               maxlength="200"
             />
           </div>
           <div class="form-item">
             <label class="form-label">
-              站点标识 (Slug) <span class="required">*</span>
+              {{ t('settings.siteSlug') }} <span class="required">*</span>
             </label>
             <input
               v-model="form.slug"
@@ -185,17 +197,17 @@ onMounted(() => {
               placeholder="site-identifier"
               maxlength="100"
             />
-            <p class="form-hint">用于 API 路径，只允许小写字母、数字和连字符</p>
+            <p class="form-hint">{{ t('settings.slugFormat') }}</p>
             <p v-if="form.slug !== originalSlug" class="form-warning">
-              修改 Slug 会影响 API 路由，请谨慎操作
+              {{ t('settings.slugWarning') }}
             </p>
           </div>
           <div class="form-item form-item-full">
-            <label class="form-label">站点描述</label>
+            <label class="form-label">{{ t('settings.siteDescription') }}</label>
             <textarea
               v-model="form.description"
               class="input textarea"
-              placeholder="简短描述站点的用途"
+              :placeholder="t('settings.siteDescPlaceholder')"
               rows="3"
               maxlength="2000"
             ></textarea>
@@ -205,51 +217,51 @@ onMounted(() => {
 
       <!-- 品牌设置 -->
       <section class="settings-section">
-        <h3 class="section-title">品牌设置</h3>
+        <h3 class="section-title">{{ t('settings.brand') }}</h3>
         <div class="form-grid">
           <div class="form-item">
-            <label class="form-label">Logo URL</label>
+            <label class="form-label">{{ t('settings.logoUrl') }}</label>
             <input
               v-model="form.logo_url"
               type="url"
               class="input"
-              placeholder="https://example.com/logo.png"
+              :placeholder="t('settings.logoUrlPlaceholder')"
             />
-            <p class="form-hint">站点 Logo 图片链接，建议尺寸 200x60</p>
+            <p class="form-hint">{{ t('settings.logoTip') }}</p>
           </div>
           <div class="form-item">
-            <label class="form-label">Favicon URL</label>
+            <label class="form-label">{{ t('settings.faviconUrl') }}</label>
             <input
               v-model="form.favicon_url"
               type="url"
               class="input"
-              placeholder="https://example.com/favicon.ico"
+              :placeholder="t('settings.faviconUrlPlaceholder')"
             />
-            <p class="form-hint">浏览器标签页图标，建议 32x32 或 64x64</p>
+            <p class="form-hint">{{ t('settings.faviconTip') }}</p>
           </div>
         </div>
         <!-- Logo 预览 -->
         <div v-if="form.logo_url" class="brand-preview">
-          <img :src="form.logo_url" alt="Logo 预览" class="logo-preview" @error="e => (e.target as HTMLImageElement).style.display='none'" />
+          <img :src="form.logo_url" :alt="t('settings.logoPreviewAlt')" class="logo-preview" @error="e => (e.target as HTMLImageElement).style.display='none'" />
         </div>
       </section>
 
       <!-- 区域设置 -->
       <section class="settings-section">
-        <h3 class="section-title">区域设置</h3>
+        <h3 class="section-title">{{ t('settings.region') }}</h3>
         <div class="form-grid">
           <div class="form-item">
-            <label class="form-label">时区</label>
+            <label class="form-label">{{ t('settings.timezone') }}</label>
             <select v-model="form.config.timezone" class="input select">
-              <option v-for="opt in timezoneOptions" :key="opt.value" :value="opt.value">
+              <option v-for="opt in timezoneLabels" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </option>
             </select>
           </div>
           <div class="form-item">
-            <label class="form-label">默认语言</label>
+            <label class="form-label">{{ t('settings.language') }}</label>
             <select v-model="form.config.locale" class="input select">
-              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+              <option v-for="opt in localeLabels" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </option>
             </select>
@@ -259,66 +271,66 @@ onMounted(() => {
 
       <!-- SEO 设置 -->
       <section class="settings-section">
-        <h3 class="section-title">SEO 设置</h3>
-        <p class="section-desc">配置站点在搜索引擎中的展示信息</p>
+        <h3 class="section-title">{{ t('settings.seo') }}</h3>
+        <p class="section-desc">{{ t('settings.seoTip') }}</p>
         <div class="form-grid">
           <div class="form-item">
-            <label class="form-label">Meta 标题</label>
+            <label class="form-label">{{ t('settings.metaTitle') }}</label>
             <input
               v-model="form.seo.meta_title"
               type="text"
               class="input"
-              placeholder="站点名称 - 副标题"
+              :placeholder="t('settings.seoTitlePlaceholder')"
               maxlength="60"
             />
-            <p class="form-hint">{{ form.seo.meta_title.length }}/60 字符</p>
+            <p class="form-hint">{{ t('settings.charCount', { current: form.seo.meta_title.length, max: 60 }) }}</p>
           </div>
           <div class="form-item">
-            <label class="form-label">Meta 关键词</label>
+            <label class="form-label">{{ t('settings.metaKeywords') }}</label>
             <input
               v-model="form.seo.keywords"
               type="text"
               class="input"
-              placeholder="关键词1, 关键词2, 关键词3"
+              :placeholder="t('settings.seoKeywordsPlaceholder')"
               maxlength="200"
             />
-            <p class="form-hint">多个关键词用逗号分隔</p>
+            <p class="form-hint">{{ t('settings.seoKeywordsHint') }}</p>
           </div>
           <div class="form-item form-item-full">
-            <label class="form-label">Meta 描述</label>
+            <label class="form-label">{{ t('settings.metaDesc') }}</label>
             <textarea
               v-model="form.seo.meta_description"
               class="input textarea"
-              placeholder="简短描述站点内容，建议 120-160 字符"
+              :placeholder="t('settings.seoDescPlaceholder')"
               rows="3"
               maxlength="200"
             ></textarea>
-            <p class="form-hint">{{ form.seo.meta_description.length }}/200 字符</p>
+            <p class="form-hint">{{ t('settings.charCount', { current: form.seo.meta_description.length, max: 200 }) }}</p>
           </div>
         </div>
 
         <!-- SEO 预览 -->
         <div class="seo-preview">
-          <p class="preview-label">搜索结果预览</p>
+          <p class="preview-label">{{ t('settings.searchPreview') }}</p>
           <div class="google-preview">
             <p class="preview-title">{{ seoPreview().title }}</p>
             <p class="preview-url">{{ site?.slug || 'your-site' }}.contful.com</p>
-            <p class="preview-desc">{{ seoPreview().desc || '站点描述将显示在这里...' }}</p>
+            <p class="preview-desc">{{ seoPreview().desc || t('settings.seoDescDefault') }}</p>
           </div>
         </div>
       </section>
 
       <!-- 自定义域名 -->
       <section class="settings-section">
-        <h3 class="section-title">自定义域名</h3>
-        <p class="section-desc">为站点绑定独立域名，实现品牌统一</p>
+        <h3 class="section-title">{{ t('settings.customDomainSection') }}</h3>
+        <p class="section-desc">{{ t('settings.customDomainTip') }}</p>
         <div class="domain-list">
           <div v-for="(domain, index) in form.custom_domains" :key="domain" class="domain-item">
             <span class="domain-text">{{ domain }}</span>
-            <button class="btn-remove" @click="removeDomain(index)">移除</button>
+            <button class="btn-remove" @click="removeDomain(index)">{{ t('settings.removeDomain') }}</button>
           </div>
           <div v-if="form.custom_domains.length === 0" class="domain-empty">
-            暂无绑定域名
+            {{ t('settings.noDomains') }}
           </div>
         </div>
         <div class="domain-add">
@@ -326,17 +338,17 @@ onMounted(() => {
             v-model="newDomain"
             type="text"
             class="input"
-            placeholder="输入域名，如 example.com"
+            :placeholder="t('settings.domainInput')"
             @keydown.enter.prevent="addDomain"
           />
-          <button class="btn btn-default" @click="addDomain">添加域名</button>
+          <button class="btn btn-default" @click="addDomain">{{ t('settings.addDomain') }}</button>
         </div>
       </section>
 
       <!-- 提交按钮 -->
       <div class="form-actions">
         <button class="btn btn-primary" :disabled="saving || !form.name || !form.slug" @click="handleSave">
-          {{ saving ? '保存中...' : '保存设置' }}
+          {{ saving ? t('settings.savingBtn') : t('settings.saveBtn') }}
         </button>
       </div>
     </div>
@@ -493,7 +505,7 @@ onMounted(() => {
   object-fit: contain;
 }
 
-/* SEO 预览 */
+/* SEO Preview */
 .seo-preview {
   margin-top: 20px;
   padding: 16px;
@@ -541,7 +553,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 自定义域名 */
+/* Custom Domain */
 .domain-list {
   display: flex;
   flex-direction: column;
@@ -594,7 +606,7 @@ onMounted(() => {
   flex: 1;
 }
 
-/* 按钮 */
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -635,7 +647,7 @@ onMounted(() => {
   background: var(--color-hover);
 }
 
-/* 表单提交区 */
+/* Form Actions */
 .form-actions {
   padding: 24px 0 0;
   display: flex;

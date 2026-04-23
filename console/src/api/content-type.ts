@@ -57,20 +57,20 @@ export type FieldType =
   | 'enum'
   | 'password'
 
-export const FIELD_TYPES: Record<FieldType, { label: string; icon: string }> = {
-  text: { label: '单行文本', icon: 'text' },
-  rich_text: { label: '富文本', icon: 'richtext' },
-  number: { label: '数字', icon: 'number' },
-  boolean: { label: '布尔值', icon: 'boolean' },
-  date: { label: '日期', icon: 'calendar' },
-  datetime: { label: '日期时间', icon: 'calendar' },
-  email: { label: '邮箱', icon: 'mail' },
-  url: { label: 'URL', icon: 'link' },
-  json: { label: 'JSON', icon: 'code' },
-  media: { label: '媒体', icon: 'image' },
-  relation: { label: '关联', icon: 'relation' },
-  enum: { label: '枚举', icon: 'list' },
-  password: { label: '密码', icon: 'lock' },
+export const FIELD_TYPES: Record<FieldType, { labelKey: string; icon: string }> = {
+  text: { labelKey: 'fieldTypes.text', icon: 'text' },
+  rich_text: { labelKey: 'fieldTypes.richText', icon: 'richtext' },
+  number: { labelKey: 'fieldTypes.number', icon: 'number' },
+  boolean: { labelKey: 'fieldTypes.boolean', icon: 'boolean' },
+  date: { labelKey: 'fieldTypes.date', icon: 'calendar' },
+  datetime: { labelKey: 'fieldTypes.dateTime', icon: 'calendar' },
+  email: { labelKey: 'fieldTypes.email', icon: 'mail' },
+  url: { labelKey: 'fieldTypes.url', icon: 'link' },
+  json: { labelKey: 'fieldTypes.json', icon: 'code' },
+  media: { labelKey: 'fieldTypes.media', icon: 'image' },
+  relation: { labelKey: 'fieldTypes.relation', icon: 'relation' },
+  enum: { labelKey: 'fieldTypes.enum', icon: 'list' },
+  password: { labelKey: 'fieldTypes.password', icon: 'lock' },
 }
 
 export interface ContentTypeCreate {

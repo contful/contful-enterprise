@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import AppLayout from '@/components/AppLayout.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const isLoginPage = computed(() => route.path === '/login')
 
@@ -13,14 +15,14 @@ const isLoginPage = computed(() => route.path === '/login')
 
 const handleOffline = () => {
   MessagePlugin.warning({
-    content: '网络连接已断开，请检查网络',
-    duration: 0, // 不自动关闭
+    content: t('app.offline'),
+    duration: 0,
     closeBtn: true,
   })
 }
 
 const handleOnline = () => {
-  MessagePlugin.success('网络已恢复')
+  MessagePlugin.success(t('app.online'))
 }
 
 onMounted(() => {

@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   getAssets,
   getAssetFolders,
   createAsset,
   createFolder,
   deleteAsset,
-  deleteFolder,
-  updateFolder,
   type Asset,
   type AssetFolder,
 } from '@/api/asset'
 import { showError, showSuccess } from '@/utils/request'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const assets = ref<Asset[]>([])
@@ -92,7 +93,7 @@ const handleUpload = async (event: Event) => {
       file,
       folder_id: selectedFolder.value,
     })
-    showSuccess('上传成功')
+    showSuccess(t('media.uploadSuccess'))
     await loadAssets()
     showUploadModal.value = false
   } catch (error) {
@@ -118,7 +119,7 @@ const handleDrop = async (event: DragEvent) => {
       })
     }
     await loadAssets()
-    showSuccess('上传成功')
+    showSuccess(t('media.uploadSuccess'))
   } catch (error) {
     showError(error)
   } finally {
@@ -153,7 +154,7 @@ const handleDelete = async () => {
 
   try {
     await deleteAsset(assetToDelete.value.id)
-    showSuccess('删除成功')
+    showSuccess(t('media.deleteSuccess'))
     showDeleteConfirm.value = false
     assetToDelete.value = null
     await loadAssets()
@@ -212,21 +213,21 @@ onMounted(() => {
   <div class="media-library">
     <div class="page-header">
       <div>
-        <h1 class="page-title">媒体库</h1>
-        <p class="page-subtitle">管理和上传您的媒体文件</p>
+        <h1 class="page-title">{{ t('media.title') }}</h1>
+        <p class="page-subtitle">{{ t('media.subtitle') }}</p>
       </div>
       <div class="header-actions">
         <button class="btn btn-secondary" @click="showNewFolderModal = true">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
           </svg>
-          新建文件夹
+          {{ t('media.newFolder') }}
         </button>
         <button class="btn btn-primary" @click="showUploadModal = true">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path d="M10 3a1 1 0 011 1v5.586l1.707-1.707a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 9.586V4a1 1 0 011-1z"/>
           </svg>
-          上传文件
+          {{ t('media.upload') }}
         </button>
       </div>
     </div>
@@ -239,22 +240,22 @@ onMounted(() => {
             v-model="searchKeyword"
             type="text"
             class="input"
-            placeholder="搜索文件..."
+            :placeholder="t('media.searchFiles')"
             style="width: 240px;"
             @keyup.enter="loadAssets"
           />
           <select v-model="typeFilter" class="input" style="width: 120px;" @change="loadAssets">
-            <option value="">全部类型</option>
-            <option value="image">图片</option>
-            <option value="video">视频</option>
-            <option value="audio">音频</option>
-            <option value="document">文档</option>
+            <option value="">{{ t('media.allTypes') }}</option>
+            <option value="image">{{ t('media.image') }}</option>
+            <option value="video">{{ t('media.video') }}</option>
+            <option value="audio">{{ t('media.audio') }}</option>
+            <option value="document">{{ t('media.document') }}</option>
           </select>
-          <button class="btn btn-secondary btn-sm" @click="loadAssets">搜索</button>
+          <button class="btn btn-secondary btn-sm" @click="loadAssets">{{ t('media.searchBtn') }}</button>
         </div>
         <div class="toolbar-right">
           <span class="selection-info" v-if="selectedAssets.size > 0">
-            已选择 {{ selectedAssets.size }} 个文件
+            {{ t('media.selectedFiles', { count: selectedAssets.size }) }}
           </span>
           <button
             class="btn btn-secondary btn-sm"
@@ -287,7 +288,7 @@ onMounted(() => {
       >
         <!-- 网格视图 -->
         <div v-if="viewMode === 'grid'" class="asset-grid">
-          <div v-if="loading" class="loading">加载中...</div>
+          <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
           <template v-else>
             <div
               v-for="asset in assets"
@@ -300,12 +301,12 @@ onMounted(() => {
                 <img v-if="isImage(asset)" :src="asset.url" :alt="asset.name" />
                 <div v-else class="file-icon" :class="getFileIcon(asset.mime_type || '')">
                   <svg width="32" height="32" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
+                    <path d="M4 4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
                   </svg>
                 </div>
                 <div class="asset-overlay">
                   <button class="btn btn-danger btn-sm" @click.stop="confirmDelete(asset)">
-                    删除
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </div>
@@ -313,7 +314,7 @@ onMounted(() => {
                 <div class="asset-name" :title="asset.name">{{ asset.name }}</div>
                 <div class="asset-meta">
                   <span>{{ formatSize(asset.size) }}</span>
-                  <span>{{ new Date(asset.created_time).toLocaleDateString('zh-CN') }}</span>
+                  <span>{{ new Date(asset.created_time).toLocaleDateString() }}</span>
                 </div>
               </div>
               <div v-if="selectedAssets.has(asset.id)" class="selected-badge">
@@ -328,9 +329,9 @@ onMounted(() => {
             <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
               <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
             </svg>
-            <h3>暂无文件</h3>
-            <p>拖拽文件到此处或点击上传</p>
-            <button class="btn btn-primary" @click="showUploadModal = true">上传文件</button>
+            <h3>{{ t('media.noMedia') }}</h3>
+            <p>{{ t('media.noMediaHint') }}</p>
+            <button class="btn btn-primary" @click="showUploadModal = true">{{ t('media.uploadFirstFile') }}</button>
           </div>
         </div>
 
@@ -346,20 +347,20 @@ onMounted(() => {
                     @change="selectAll"
                   />
                 </th>
-                <th>文件名</th>
-                <th style="width: 100px;">类型</th>
-                <th style="width: 100px;">大小</th>
-                <th style="width: 150px;">上传时间</th>
-                <th style="width: 120px;">操作</th>
+                <th>{{ t('media.fileName') }}</th>
+                <th style="width: 100px;">{{ t('media.fileType') }}</th>
+                <th style="width: 100px;">{{ t('media.fileSize') }}</th>
+                <th style="width: 150px;">{{ t('media.uploadTime') }}</th>
+                <th style="width: 120px;">{{ t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="6" class="text-center">加载中...</td>
+                <td colspan="6" class="text-center">{{ t('common.loading') }}</td>
               </tr>
               <tr v-else-if="assets.length === 0">
                 <td colspan="6" class="empty-state">
-                  <p>暂无文件</p>
+                  <p>{{ t('media.noMedia') }}</p>
                 </td>
               </tr>
               <tr v-else v-for="asset in assets" :key="asset.id">
@@ -380,9 +381,9 @@ onMounted(() => {
                   <span class="type-badge">{{ asset.mime_type?.split('/')[1] || '-' }}</span>
                 </td>
                 <td>{{ formatSize(asset.size) }}</td>
-                <td>{{ new Date(asset.created_time).toLocaleDateString('zh-CN') }}</td>
+                <td>{{ new Date(asset.created_time).toLocaleDateString() }}</td>
                 <td>
-                  <button class="btn btn-secondary btn-sm" @click="confirmDelete(asset)">删除</button>
+                  <button class="btn btn-secondary btn-sm" @click="confirmDelete(asset)">{{ t('common.delete') }}</button>
                 </td>
               </tr>
             </tbody>
@@ -392,13 +393,13 @@ onMounted(() => {
 
       <!-- 分页 -->
       <div class="pagination" v-if="total > pageSize">
-        <span class="pagination-info">共 {{ total }} 个文件</span>
+        <span class="pagination-info">{{ t('media.totalFiles', { total }) }}</span>
         <button
           class="btn btn-secondary btn-sm"
           :disabled="page === 1"
           @click="page--; loadAssets()"
         >
-          上一页
+          {{ t('media.prevPage') }}
         </button>
         <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
         <button
@@ -406,7 +407,7 @@ onMounted(() => {
           :disabled="page >= Math.ceil(total / pageSize)"
           @click="page++; loadAssets()"
         >
-          下一页
+          {{ t('media.nextPage') }}
         </button>
       </div>
     </div>
@@ -415,7 +416,7 @@ onMounted(() => {
     <div v-if="showUploadModal" class="modal-overlay" @click.self="showUploadModal = false">
       <div class="modal">
         <div class="modal-header">
-          <h3>上传文件</h3>
+          <h3>{{ t('media.uploadFile') }}</h3>
           <button class="modal-close" @click="showUploadModal = false">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -436,15 +437,15 @@ onMounted(() => {
             />
             <div v-if="uploading" class="upload-progress">
               <div class="spinner"></div>
-              <p>上传中...</p>
+              <p>{{ t('media.uploading') }}</p>
             </div>
             <template v-else>
               <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
                 <path d="M10 3a1 1 0 011 1v5.586l1.707-1.707a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 9.586V4a1 1 0 011-1z"/>
                 <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/>
               </svg>
-              <p>点击或拖拽文件到此处上传</p>
-              <span class="upload-hint">支持图片、视频、音频、文档等文件</span>
+              <p>{{ t('media.dragTip') }}</p>
+              <span class="upload-hint">{{ t('media.fileTypeTip') }}</span>
             </template>
           </div>
         </div>
@@ -455,23 +456,23 @@ onMounted(() => {
     <div v-if="showNewFolderModal" class="modal-overlay" @click.self="showNewFolderModal = false">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>新建文件夹</h3>
+          <h3>{{ t('media.createFolder') }}</h3>
         </div>
         <div class="modal-body">
           <div class="input-group">
-            <label class="input-label">文件夹名称</label>
+            <label class="input-label">{{ t('media.folderName') }}</label>
             <input
               v-model="newFolderName"
               type="text"
               class="input"
-              placeholder="请输入文件夹名称"
+              :placeholder="t('media.enterFolderName')"
               @keyup.enter="handleCreateFolder"
             />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showNewFolderModal = false">取消</button>
-          <button class="btn btn-primary" @click="handleCreateFolder">创建</button>
+          <button class="btn btn-secondary" @click="showNewFolderModal = false">{{ t('common.cancel') }}</button>
+          <button class="btn btn-primary" @click="handleCreateFolder">{{ t('common.create') }}</button>
         </div>
       </div>
     </div>
@@ -480,14 +481,14 @@ onMounted(() => {
     <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>确认删除</h3>
+          <h3>{{ t('media.confirmDeleteFile') }}</h3>
         </div>
         <div class="modal-body">
-          <p>确定要删除此文件吗？此操作不可撤销。</p>
+          <p>{{ t('media.deleteFileMsg') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false">取消</button>
-          <button class="btn btn-danger" @click="handleDelete">删除</button>
+          <button class="btn btn-secondary" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</button>
+          <button class="btn btn-danger" @click="handleDelete">{{ t('common.delete') }}</button>
         </div>
       </div>
     </div>

@@ -33,7 +33,7 @@ func NewEntryService(
 }
 
 // Create 创建条目
-func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, req *model.EntryCreate) (*model.Entry, error) {
+func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, req *model.EntryCreate, integritySvc *IntegrityService) (*model.Entry, error) {
 	// 验证内容类型存在
 	contentType, err := s.contentTypeRepo.GetByIDWithFields(ctx, req.ContentTypeID)
 	if err != nil {
@@ -60,6 +60,7 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 		VersionHistory: model.JSONArray{},
 		SortWeight:     req.SortWeight,
 		CreatedBy:      userID,
+		ContentType:    contentType,
 	}
 
 	// 设置 SEO
@@ -73,7 +74,7 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 		entry.SEOKeywords = req.SEOKeywords
 	}
 
-	// 事务: 创建条目 + 字段值
+	// 事务: 创建条目 + 字段值 + 签名
 	err = s.entryRepo.WithTransaction(func(txRepo *repository.EntryRepository) error {
 		// 创建条目
 		if err := txRepo.Create(ctx, entry); err != nil {
@@ -90,6 +91,16 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 				return err
 			}
 			entry.Values = values
+		}
+
+		// 数据签名
+		if integritySvc != nil {
+			if err := integritySvc.SignEntry(entry, entry.Values); err != nil {
+				return err
+			}
+			if err := txRepo.Update(ctx, entry); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -143,7 +154,7 @@ func (s *EntryService) List(ctx context.Context, siteID uuid.UUID, filter *model
 }
 
 // Update 更新条目
-func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, id uuid.UUID, req *model.EntryUpdate) (*model.Entry, error) {
+func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, id uuid.UUID, req *model.EntryUpdate, integritySvc *IntegrityService) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByIDWithValues(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -183,7 +194,7 @@ func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uui
 		entry.SortWeight = *req.SortWeight
 	}
 
-	// 事务: 更新条目 + 字段值
+	// 事务: 更新条目 + 字段值 + 重新签名
 	err = s.entryRepo.WithTransaction(func(txRepo *repository.EntryRepository) error {
 		// 更新条目
 		if err := txRepo.Update(ctx, entry); err != nil {
@@ -206,6 +217,16 @@ func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uui
 				return err
 			}
 			entry.Values = values
+		}
+
+		// 重新签名
+		if integritySvc != nil {
+			if err := integritySvc.SignEntry(entry, entry.Values); err != nil {
+				return err
+			}
+			if err := txRepo.Update(ctx, entry); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -237,7 +258,7 @@ func (s *EntryService) Delete(ctx context.Context, siteID uuid.UUID, id uuid.UUI
 }
 
 // Publish 发布条目
-func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, id uuid.UUID, req *model.EntryPublish) (*model.Entry, error) {
+func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, id uuid.UUID, req *model.EntryPublish, integritySvc *IntegrityService) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByIDWithValues(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -250,6 +271,13 @@ func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uu
 	if entry.SiteID != siteID {
 		return nil, ErrEntryNotFound
 	}
+
+	// 获取内容类型（用于签名检查）
+	contentType, err := s.contentTypeRepo.GetByIDWithFields(ctx, entry.ContentTypeID)
+	if err != nil {
+		return nil, err
+	}
+	entry.ContentType = contentType
 
 	// 更新版本历史
 	now := time.Now()
@@ -268,6 +296,12 @@ func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uu
 
 	if err := s.entryRepo.Update(ctx, entry); err != nil {
 		return nil, err
+	}
+
+	// 发布时重新签名
+	if integritySvc != nil {
+		_ = integritySvc.SignEntry(entry, entry.Values)
+		_ = s.entryRepo.Update(ctx, entry)
 	}
 
 	return entry, nil

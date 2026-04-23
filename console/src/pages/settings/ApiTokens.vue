@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import {
   getApiTokens,
@@ -12,6 +13,8 @@ import {
 } from '@/api/api-token'
 import { showError } from '@/utils/request'
 
+const { t } = useI18n()
+
 const loading = ref(false)
 const tokens = ref<ApiToken[]>([])
 const showModal = ref(false)
@@ -21,7 +24,7 @@ const editingToken = ref<ApiToken | null>(null)
 const tokenToDelete = ref<ApiToken | null>(null)
 const tokenToRegenerate = ref<ApiToken | null>(null)
 const newToken = ref('')
-const submitting = ref(false) // MX-001: Loading 状态
+const submitting = ref(false)
 
 // 表单数据
 const formData = ref({
@@ -32,13 +35,17 @@ const formData = ref({
   rate_limit: 1000,
 })
 
-// 权限选项
+// 权限选项（labelKey 模式）
 const permissionOptions = [
-  { value: 'content:read', label: '读取内容' },
-  { value: 'content:write', label: '写入内容' },
-  { value: 'assets:read', label: '读取媒体' },
-  { value: 'assets:write', label: '写入媒体' },
+  { value: 'content:read', labelKey: 'apiTokens.permissionContentRead' },
+  { value: 'content:write', labelKey: 'apiTokens.permissionContentWrite' },
+  { value: 'assets:read', labelKey: 'apiTokens.permissionAssetsRead' },
+  { value: 'assets:write', labelKey: 'apiTokens.permissionAssetsWrite' },
 ]
+
+const permissionLabels = computed(() =>
+  permissionOptions.map(opt => ({ ...opt, label: t(opt.labelKey) }))
+)
 
 // 加载 Token 列表
 const loadTokens = async () => {
@@ -90,7 +97,7 @@ const handleSubmit = async () => {
         permissions: formData.value.permissions,
         rate_limit: formData.value.rate_limit,
       })
-      MessagePlugin.success('Token 已更新')
+      MessagePlugin.success(t('apiTokens.updateSuccess') || 'Token updated')
     } else {
       const res = await createApiToken({
         name: formData.value.name,
@@ -100,7 +107,7 @@ const handleSubmit = async () => {
         rate_limit: formData.value.rate_limit,
       })
       newToken.value = res.data.token || ''
-      MessagePlugin.success('Token 创建成功')
+      MessagePlugin.success(t('apiTokens.createSuccess'))
     }
     showModal.value = false
     await loadTokens()
@@ -123,7 +130,7 @@ const handleDelete = async () => {
 
   try {
     await deleteApiToken(tokenToDelete.value.id)
-    MessagePlugin.success('Token 已删除')
+    MessagePlugin.success(t('apiTokens.deleteSuccess'))
     showDeleteConfirm.value = false
     tokenToDelete.value = null
     await loadTokens()
@@ -148,7 +155,7 @@ const handleRegenerate = async () => {
     tokenToRegenerate.value = null
     await loadTokens()
   } catch (error) {
-    showError('Failed to regenerate token')
+    showError(error)
   }
 }
 
@@ -158,7 +165,7 @@ const handleRevoke = async (token: ApiToken) => {
     await revokeApiToken(token.id)
     await loadTokens()
   } catch (error) {
-    showError('Failed to revoke token')
+    showError(error)
   }
 }
 
@@ -175,12 +182,8 @@ const closeModal = () => {
 
 // 格式化日期
 const formatDate = (date: string | null) => {
-  if (!date) return '永久有效'
-  return new Date(date).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
+  if (!date) return t('apiTokens.permanent')
+  return new Date(date).toLocaleDateString()
 }
 
 // 判断 Token 是否过期
@@ -197,9 +200,9 @@ const getStatusClass = (token: ApiToken) => {
 }
 
 const getStatusLabel = (token: ApiToken) => {
-  if (token.revoked) return '已撤销'
-  if (isExpired(token.expires_time)) return '已过期'
-  return '活跃'
+  if (token.revoked) return t('apiTokens.revoked')
+  if (isExpired(token.expires_time)) return t('apiTokens.expired')
+  return t('apiTokens.active') || 'Active'
 }
 
 onMounted(() => {
@@ -211,14 +214,14 @@ onMounted(() => {
   <div class="api-tokens">
     <div class="page-header">
       <div>
-        <h1 class="page-title">API Token</h1>
-        <p class="page-subtitle">管理 API 访问令牌</p>
+        <h1 class="page-title">{{ t('apiTokens.title') }}</h1>
+        <p class="page-subtitle">{{ t('apiTokens.subtitle') }}</p>
       </div>
       <button class="btn btn-primary" @click="openCreateModal">
         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
           <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
         </svg>
-        创建 Token
+        {{ t('apiTokens.createToken') }}
       </button>
     </div>
 
@@ -227,28 +230,28 @@ onMounted(() => {
       <table class="table">
         <thead>
           <tr>
-            <th>名称</th>
-            <th>权限</th>
-            <th>限流</th>
-            <th>有效期</th>
-            <th>状态</th>
-            <th>创建时间</th>
-            <th>操作</th>
+            <th>{{ t('apiTokens.tableName') }}</th>
+            <th>{{ t('apiTokens.tablePermissions') }}</th>
+            <th>{{ t('apiTokens.tableRateLimit') }}</th>
+            <th>{{ t('apiTokens.tableExpires') }}</th>
+            <th>{{ t('apiTokens.tableStatus') }}</th>
+            <th>{{ t('common.createdAt') }}</th>
+            <th>{{ t('common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="7" class="text-center">加载中...</td>
+            <td colspan="7" class="text-center">{{ t('apiTokens.loading') }}</td>
           </tr>
           <tr v-else-if="tokens.length === 0">
             <td colspan="7" class="empty-state">
               <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
                 <path d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
               </svg>
-              <h3>暂无 API Token</h3>
-              <p>创建您的第一个 API Token 来开始使用 Open API</p>
+              <h3>{{ t('apiTokens.noTokens') }}</h3>
+              <p>{{ t('apiTokens.noTokensHint') }}</p>
               <button class="btn btn-primary btn-sm" @click="openCreateModal">
-                创建 Token
+                {{ t('apiTokens.createToken') }}
               </button>
             </td>
           </tr>
@@ -273,21 +276,21 @@ onMounted(() => {
                 </span>
               </div>
             </td>
-            <td>{{ token.rate_limit }}/小时</td>
+            <td>{{ token.rate_limit }}/{{ t('apiTokens.rateLimitUnit') }}</td>
             <td>{{ formatDate(token.expires_time) }}</td>
             <td>
               <span :class="['badge', getStatusClass(token)]">
                 {{ getStatusLabel(token) }}
               </span>
             </td>
-            <td>{{ new Date(token.created_time).toLocaleDateString('zh-CN') }}</td>
+            <td>{{ new Date(token.created_time).toLocaleDateString() }}</td>
             <td>
               <div class="action-btns">
                 <button
                   v-if="!token.revoked && !isExpired(token.expires_time)"
                   class="btn btn-secondary btn-sm"
                   @click="confirmRegenerate(token)"
-                  title="重新生成"
+                  :title="t('apiTokens.regenerate')"
                 >
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"/>
@@ -297,7 +300,7 @@ onMounted(() => {
                   v-if="!token.revoked"
                   class="btn btn-secondary btn-sm"
                   @click="handleRevoke(token)"
-                  title="撤销"
+                  :title="t('apiTokens.revoke')"
                 >
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
@@ -306,7 +309,7 @@ onMounted(() => {
                 <button
                   class="btn btn-danger btn-sm"
                   @click="confirmDelete(token)"
-                  title="删除"
+                  :title="t('common.delete')"
                 >
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
@@ -323,7 +326,7 @@ onMounted(() => {
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>{{ editingToken ? '编辑 Token' : '创建 Token' }}</h3>
+          <h3>{{ editingToken ? t('apiTokens.editTitle') : t('apiTokens.createTitle') }}</h3>
           <button class="modal-close" @click="closeModal">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -333,58 +336,58 @@ onMounted(() => {
         <div class="modal-body">
           <!-- 新 Token 显示 -->
           <div v-if="newToken" class="new-token-display">
-            <div class="new-token-label">新 Token 已创建，请妥善保存：</div>
+            <div class="new-token-label">{{ t('apiTokens.tokenShownOnce') }}</div>
             <div class="new-token-value">
               <code>{{ newToken }}</code>
               <button class="btn btn-secondary btn-sm" @click="copyToken(newToken)">
-                复制
+                {{ t('common.copy') || 'Copy' }}
               </button>
             </div>
             <p class="new-token-warning">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"/>
               </svg>
-              此 Token 只显示一次，请立即保存
+              {{ t('apiTokens.onlyShowOnce') }}
             </p>
           </div>
 
           <template v-else>
             <div class="input-group">
-              <label class="input-label">名称 <span class="required">*</span></label>
+              <label class="input-label">{{ t('apiTokens.tableName') }} <span class="required">*</span></label>
               <input
                 v-model="formData.name"
                 type="text"
                 class="input"
-                placeholder="例如：生产环境 API"
+                :placeholder="t('apiTokens.tokenNamePlaceholder')"
               />
             </div>
 
             <div class="input-group">
-              <label class="input-label">描述</label>
+              <label class="input-label">{{ t('apiTokens.description') }}</label>
               <input
                 v-model="formData.description"
                 type="text"
                 class="input"
-                placeholder="描述此 Token 的用途"
+                :placeholder="t('apiTokens.descriptionPlaceholder')"
               />
             </div>
 
             <div class="input-group">
-              <label class="input-label">有效期</label>
+              <label class="input-label">{{ t('apiTokens.expiresAt') }}</label>
               <select v-model="formData.expires_in_days" class="input">
-                <option :value="30">30 天</option>
-                <option :value="90">90 天</option>
-                <option :value="180">180 天</option>
-                <option :value="365">1 年</option>
-                <option :value="0">永久有效</option>
+                <option :value="30">{{ t('apiTokens.expiredDays', { days: 30 }) }}</option>
+                <option :value="90">{{ t('apiTokens.expiredDays', { days: 90 }) }}</option>
+                <option :value="180">{{ t('apiTokens.expiredDays', { days: 180 }) }}</option>
+                <option :value="365">1 {{ t('settings.year') }}</option>
+                <option :value="0">{{ t('apiTokens.permanent') }}</option>
               </select>
             </div>
 
             <div class="input-group">
-              <label class="input-label">权限</label>
+              <label class="input-label">{{ t('apiTokens.permissions') }}</label>
               <div class="permissions-grid">
                 <label
-                  v-for="opt in permissionOptions"
+                  v-for="opt in permissionLabels"
                   :key="opt.value"
                   class="permission-item"
                 >
@@ -399,7 +402,7 @@ onMounted(() => {
             </div>
 
             <div class="input-group">
-              <label class="input-label">速率限制 (请求/小时)</label>
+              <label class="input-label">{{ t('apiTokens.rateLimit') }} ({{ t('apiTokens.rateLimitUnit') }})</label>
               <input
                 v-model="formData.rate_limit"
                 type="number"
@@ -412,10 +415,10 @@ onMounted(() => {
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeModal">
-            {{ newToken ? '关闭' : '取消' }}
+            {{ newToken ? t('common.close') : t('common.cancel') }}
           </button>
           <button v-if="!newToken" class="btn btn-primary" @click="handleSubmit">
-            创建
+            {{ t('common.create') }}
           </button>
         </div>
       </div>
@@ -425,14 +428,14 @@ onMounted(() => {
     <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>确认删除</h3>
+          <h3>{{ t('common.confirmDelete') }}</h3>
         </div>
         <div class="modal-body">
-          <p>确定要删除此 Token 吗？使用此 Token 的应用将无法再访问 API。</p>
+          <p>{{ t('apiTokens.deleteMsg') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false">取消</button>
-          <button class="btn btn-danger" @click="handleDelete">删除</button>
+          <button class="btn btn-secondary" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</button>
+          <button class="btn btn-danger" @click="handleDelete">{{ t('common.delete') }}</button>
         </div>
       </div>
     </div>
@@ -441,15 +444,15 @@ onMounted(() => {
     <div v-if="showRegenerateConfirm" class="modal-overlay" @click.self="showRegenerateConfirm = false">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>重新生成 Token</h3>
+          <h3>{{ t('apiTokens.regenerateConfirm') }}</h3>
         </div>
         <div class="modal-body">
-          <p>重新生成将创建一个新的 Token，原 Token 将立即失效。</p>
-          <p class="warning-text">此操作不可撤销，请确保没有应用仍在使用原 Token。</p>
+          <p>{{ t('apiTokens.regenerateMsg') }}</p>
+          <p class="warning-text">{{ t('apiTokens.regenerateWarning') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showRegenerateConfirm = false">取消</button>
-          <button class="btn btn-primary" @click="handleRegenerate">重新生成</button>
+          <button class="btn btn-secondary" @click="showRegenerateConfirm = false">{{ t('common.cancel') }}</button>
+          <button class="btn btn-primary" @click="handleRegenerate">{{ t('apiTokens.regenerate') }}</button>
         </div>
       </div>
     </div>

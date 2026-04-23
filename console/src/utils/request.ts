@@ -1,189 +1,207 @@
-import axios, { type AxiosInstance, type AxiosError, type AxiosRequestConfig } from 'axios'
+/**
+ * Contful Console - HTTP Client
+ * 基于 Axios 封装，统一处理 Admin API 请求
+ *
+ * Token 存储策略（简化版，无 Refresh Token 轮换）：
+ * - AccessToken：JWT，存 localStorage + 内存变量，15min 有效
+ * - RefreshToken：hex token，存 localStorage（无 HttpOnly），7d 有效
+ *
+ * 所有 token 均通过 localStorage 持久化，页面刷新后仍可用。
+ */
+
+import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { useSiteStore } from '@/stores/site'
+import router from '@/router'
 
-// Token 存储在内存中，不持久化（安全要求）
-let accessToken: string | null = null  // 完整 JWT (header.payload.signature)
-let refreshToken: string | null = null   // 随机字符串（64 hex）
+// ── Token 内存缓存 ──────────────────────────────────────────────────────────
+let accessToken: string | null = null
 
-export const setAccessToken = (token: string | null) => {
+// ── localStorage Key ────────────────────────────────────────────────────────
+const ACCESS_TOKEN_KEY = 'ct_access_token'
+const REFRESH_TOKEN_KEY = 'ct_refresh_token'
+
+// ── Access Token 读写 ────────────────────────────────────────────────────────
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
+export function setAccessToken(token: string | null): void {
   accessToken = token
-}
-
-export const getAccessToken = () => accessToken
-
-export const setRefreshToken = (token: string | null) => {
-  refreshToken = token
-}
-
-export const getRefreshToken = () => refreshToken
-
-// =============================================================================
-// MX-002: 统一错误处理 - 友好提示映射
-// =============================================================================
-
-// HTTP 状态码 → 用户友好提示
-const HTTP_ERROR_MESSAGES: Record<number, string> = {
-  400: '请求参数有误，请检查输入',
-  401: '登录已过期，请重新登录',
-  403: '没有权限执行此操作',
-  404: '请求的资源不存在',
-  409: '操作冲突，可能已被其他用户修改',
-  422: '数据验证失败，请检查输入',
-  429: '请求过于频繁，请稍后重试',
-  500: '服务器异常，请稍后重试',
-  502: '网关错误，请稍后重试',
-  503: '服务暂不可用，请稍后重试',
-  504: '请求超时，请稍后重试',
-}
-
-// 业务错误码 → 用户友好提示（根据后端 model/response.go）
-const BIZ_ERROR_MESSAGES: Record<number, string> = {
-  40101: 'Token 无效，请重新登录',
-  40102: 'Token 已过期，请重新登录',
-  40103: 'Token 已被撤销',
-  40301: '没有权限访问此资源',
-  40302: 'Token 权限不足',
-  40401: '资源不存在',
-  40901: '资源已存在，请勿重复创建',
-  42201: '数据验证失败',
-  50001: '服务器内部错误',
-}
-
-// 根据 HTTP 状态码返回友好提示
-export function getFriendlyError(error: any): string {
-  // 优先检查业务错误码
-  const bizCode = error?.response?.data?.code
-  if (bizCode && BIZ_ERROR_MESSAGES[bizCode]) {
-    return BIZ_ERROR_MESSAGES[bizCode]
+  if (token) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token)
+  } else {
+    localStorage.removeItem(ACCESS_TOKEN_KEY)
   }
-
-  // HTTP 状态码
-  const status = error?.response?.status
-  if (status && HTTP_ERROR_MESSAGES[status]) {
-    return HTTP_ERROR_MESSAGES[status]
-  }
-
-  // 网络错误
-  if (error?.code === 'ERR_NETWORK' || error?.message?.includes('Network Error')) {
-    return '网络连接失败，请检查网络'
-  }
-
-  // 超时
-  if (error?.code === 'ECONNABORTED') {
-    return '请求超时，请稍后重试'
-  }
-
-  // 后端返回的错误消息
-  if (error?.response?.data?.msg) {
-    return error.response.data.msg
-  }
-
-  return error?.message || '操作失败，请稍后重试'
 }
 
-// 全局错误 Toast
-export function showError(error: any) {
-  MessagePlugin.error(getFriendlyError(error))
+// ── Refresh Token 读写（localStorage 明文存储）───────────────────────────────
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY)
 }
 
-// 全局成功 Toast
-export function showSuccess(message: string) {
-  MessagePlugin.success(message)
+export function setRefreshToken(token: string | null): void {
+  if (token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token)
+  } else {
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+  }
 }
 
-// =============================================================================
-// Axios 实例配置
-// =============================================================================
+export function clearRefreshToken(): void {
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
 
-const request: AxiosInstance = axios.create({
-  baseURL: '/admin/api/v1',
-  timeout: 30000,
-  withCredentials: true, // 携带 HttpOnly Cookie (refresh_token)
+// ── 初始化：从 localStorage 恢复 Access Token ──────────────────────────────
+setAccessToken(localStorage.getItem(ACCESS_TOKEN_KEY))
+
+// ── Axios 实例 ─────────────────────────────────────────────────────────────
+const request = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  timeout: 30_000,
 })
 
-// 请求拦截器
+// ── 请求拦截器：附加 Authorization ─────────────────────────────────────────
 request.interceptors.request.use(
   (config) => {
-    // 强制 JSON Content-Type
-    config.headers['Content-Type'] = 'application/json'
-
-    // 添加站点 ID 到请求头（后端需要）
-    const siteStore = useSiteStore()
-    if (siteStore.currentSiteId) {
-      config.headers['X-Site-ID'] = siteStore.currentSiteId
-    }
-
-    if (accessToken) {
-      // 只发 JWT，不带 refreshToken（后端中间件只需 JWT）
-      config.headers.Authorization = `Bearer ${accessToken}`
+    // 优先用内存中的 token（最新）
+    const token = accessToken || localStorage.getItem(ACCESS_TOKEN_KEY)
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// 响应拦截器
+// ── 响应拦截器：401 自动 Refresh ───────────────────────────────────────────
 request.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const status = error.response?.status
-    const config = error.config as AxiosRequestConfig & { _retry?: boolean }
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    if (status === 401 && !config._retry) {
-      config._retry = true
-      // Token 过期，尝试刷新
-      try {
-        // 发送完整 token 格式: JWT.refreshToken（后端 splitToken 按最后一个 . 分割）
-        const tokenForRefresh = accessToken && refreshToken
-          ? `${accessToken}.${refreshToken}`
-          : null
-        const refreshRes = await axios.post(
-          '/admin/api/v1/auth/refresh',
-          {},
-          {
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(tokenForRefresh ? { Authorization: `Bearer ${tokenForRefresh}` } : {}),
-            }
-          }
-        )
-        if (refreshRes.data.code === 200) {
-          // 刷新成功，直接从响应字段读取
-          const newAccessToken = refreshRes.data.data.access_token as string
-          const newRefreshToken = refreshRes.data.data.refresh_token as string
-
-          accessToken = newAccessToken
-          refreshToken = newRefreshToken
-
-          // 重试原请求
-          config.headers!.Authorization = `Bearer ${accessToken}`
-          return request(config)
-        }
-      } catch {
-        // 刷新失败，清除 token，跳转登录
-        accessToken = null
-        refreshToken = null
-        MessagePlugin.warning('登录已过期，请重新登录')
-        window.location.href = '/login'
-      }
-    } else if (status === 403) {
-      MessagePlugin.error('权限不足，无法执行此操作')
-    } else if (status === 404) {
-      MessagePlugin.error('请求的资源不存在')
-    } else if (status === 422) {
-      const msg = error.response?.data?.msg || '数据验证失败，请检查输入'
-      MessagePlugin.error(msg)
-    } else if (status === 429) {
-      MessagePlugin.warning('请求过于频繁，请稍后重试')
-    } else if (status && status >= 500) {
-      MessagePlugin.error('服务器异常，请稍后重试')
-    } else if (error.code === 'ERR_NETWORK') {
-      MessagePlugin.error('网络连接失败，请检查网络')
+    // 非 401 或已重试过，不再拦截
+    if (!error.response || error.response.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error)
     }
+    originalRequest._retry = true
+
+    const refreshToken = getRefreshToken()
+    if (!refreshToken) {
+      redirectToLogin()
+      return Promise.reject(error)
+    }
+
+    try {
+      // 调用 Refresh 接口，返回新的 access_token + refresh_token
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/auth/refresh`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      const data = res.data as API.Response<{ access_token: string; refresh_token: string }>
+
+      if (data.code === 200 && data.data) {
+        // 更新 AccessToken（内存 + localStorage）
+        setAccessToken(data.data.access_token)
+        // 更新 RefreshToken（localStorage）
+        setRefreshToken(data.data.refresh_token)
+
+        // 重发被 401 拦截的原请求
+        originalRequest.headers.Authorization = `Bearer ${data.data.access_token}`
+        return request(originalRequest)
+      } else {
+        // Refresh 也失败，说明 Refresh Token 失效
+        redirectToLogin()
+      }
+    } catch {
+      // Refresh 请求本身出错（网络问题等），跳登录
+      redirectToLogin()
+    }
+
     return Promise.reject(error)
   }
 )
+
+// ── 跳转登录 ────────────────────────────────────────────────────────────────
+function redirectToLogin() {
+  setAccessToken(null)
+  clearRefreshToken()
+  router.push('/login')
+}
+
+// ── 通用 GET/POST/PUT/DELETE ────────────────────────────────────────────────
+export function get<T = unknown>(url: string, config?: AxiosRequestConfig) {
+  return request.get<API.Response<T>>(url, config).then((res) => res.data)
+}
+
+export function post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+  return request.post<API.Response<T>>(url, data, config).then((res) => res.data)
+}
+
+export function put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+  return request.put<API.Response<T>>(url, data, config).then((res) => res.data)
+}
+
+export function del<T = unknown>(url: string, config?: AxiosRequestConfig) {
+  return request.delete<API.Response<T>>(url, config).then((res) => res.data)
+}
+
+// ── 用户反馈：showSuccess / showError ──────────────────────────────────────
+
+type ErrorLike = Error | AxiosError | { response?: { data?: { msg?: string; message?: string } }; message?: string } | string
+
+/**
+ * 成功提示
+ */
+export function showSuccess(message: string | { msg?: string; message?: string }): void {
+  const msg = typeof message === 'string' ? message : (message.msg || message.message || '操作成功')
+  MessagePlugin.success(msg)
+}
+
+/**
+ * 错误提示（自动从多种格式提取错误信息）
+ */
+export function showError(error: ErrorLike): void {
+  let msg = '操作失败'
+
+  if (typeof error === 'string') {
+    msg = error
+  } else if (error && typeof error === 'object') {
+    // AxiosError 优先取 response.data.msg
+    const axiosError = error as AxiosError<{ msg?: string; message?: string }>
+    msg = axiosError.response?.data?.msg
+      || axiosError.response?.data?.message
+      || axiosError.message
+      || msg
+  }
+
+  MessagePlugin.error(msg)
+}
+
+/**
+ * 提取友好错误信息（用于表单字段级错误展示）
+ */
+export function getFriendlyError(error: unknown): string {
+  if (!error) return ''
+
+  const err = error as { response?: { data?: { msg?: string; message?: string; errors?: Record<string, string[]> } }; message?: string }
+
+  // 优先取字段级错误
+  if (err.response?.data?.errors) {
+    const errors = err.response.data.errors
+    const firstKey = Object.keys(errors)[0]
+    if (firstKey && Array.isArray(errors[firstKey])) {
+      return errors[firstKey][0] || ''
+    }
+  }
+
+  return err.response?.data?.msg || err.response?.data?.message || err.message || ''
+}
 
 export default request

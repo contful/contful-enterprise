@@ -17,18 +17,21 @@ const (
 
 // SystemUser 系统用户
 type SystemUser struct {
-	ID           uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	Email        string      `json:"email" gorm:"type:varchar(255);unique_index;not null"`
-	PasswordHash string      `json:"-" gorm:"type:varchar(255);not null"`
-	Nickname     string      `json:"nickname" gorm:"type:varchar(100)"`
-	AvatarURL    string      `json:"avatar_url" gorm:"type:text"`
-	Status       UserStatus  `json:"status" gorm:"type:user_status;not null;default:'active'"`
-	IsSuperAdmin bool        `json:"is_super_admin" gorm:"not null;default:false"`
-	LastLoginTime *time.Time `json:"last_login_time" gorm:"type:timestamptz"`
-	LastLoginIP  *string     `json:"last_login_ip" gorm:"type:inet"`
-	CreatedTime  time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedTime  time.Time   `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedTime  *time.Time  `json:"deleted_time" gorm:"type:timestamptz"`
+	ID            uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Email         string      `json:"email" gorm:"type:varchar(255);unique_index;not null"`
+	PasswordHash  string      `json:"-" gorm:"type:varchar(255);not null"`
+	Nickname      string      `json:"nickname" gorm:"type:varchar(100)"`
+	AvatarURL     string      `json:"avatar_url" gorm:"type:text"`
+	Status        UserStatus  `json:"status" gorm:"type:user_status;not null;default:'active'"`
+	IsSuperAdmin  bool        `json:"is_super_admin" gorm:"not null;default:false"`
+	LastLoginTime *time.Time  `json:"last_login_time" gorm:"type:timestamptz"`
+	LastLoginIP   *string     `json:"last_login_ip" gorm:"type:inet"`
+	MFAEnabled    bool        `json:"mfa_enabled" gorm:"not null;default:false"`
+	TOTPSecret    *string     `json:"-" gorm:"type:varchar(512)"` // AES-256-GCM 加密后存储
+	RecoveryCodes *string     `json:"-" gorm:"type:text"`         // AES-256-GCM 加密后存储（JSON 数组）
+	CreatedTime   time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedTime   time.Time   `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
+	DeletedTime   *time.Time  `json:"deleted_time" gorm:"type:timestamptz"`
 }
 
 func (SystemUser) TableName() string {
@@ -112,6 +115,12 @@ type LoginResponse struct {
 	RefreshToken string        `json:"refresh_token"`
 }
 
+// MFARequiredResponse 登录步骤 1 — 需要 MFA 验证时的响应
+type MFARequiredResponse struct {
+	MFARequired bool   `json:"mfa_required"`
+	MFAToken    string `json:"mfa_token"`
+}
+
 // RefreshResponse 刷新 Token 响应
 type RefreshResponse struct {
 	AccessToken  string `json:"access_token"`
@@ -126,7 +135,61 @@ type UserResponse struct {
 	AvatarURL    string     `json:"avatar_url,omitempty"`
 	Status       UserStatus `json:"status"`
 	IsSuperAdmin bool      `json:"is_super_admin"`
+	MFAEnabled   bool       `json:"mfa_enabled"`
 	CreatedTime  time.Time  `json:"created_time"`
+}
+
+// ============================================
+// MFA DTO
+// ============================================
+
+// MFASetupResponse MFA 初始化响应（Setup 阶段）
+type MFASetupResponse struct {
+	TOTPSecret  string `json:"totp_secret"`  // Base32 明文 Secret（仅此次返回）
+	OTPAuthURI  string `json:"otpauth_uri"`
+	QRCodeURL   string `json:"qr_code_url"`
+}
+
+// MFAEnableRequest 启用 MFA 请求
+type MFAEnableRequest struct {
+	TOTPCode string `json:"totp_code" binding:"required,len=6"`
+}
+
+// MFAEnableResponse 启用 MFA 响应（含 Recovery Code）
+type MFAEnableResponse struct {
+	MFAEnabled    bool     `json:"mfa_enabled"`
+	RecoveryCodes []string `json:"recovery_codes"` // 明文，仅此次可见
+}
+
+// MFADisableRequest 关闭 MFA 请求
+type MFADisableRequest struct {
+	TOTPCode string `json:"totp_code" binding:"required,len=6"`
+}
+
+// MFAVerifyRequest 登录 MFA 验证请求
+type MFAVerifyRequest struct {
+	MFAToken string `json:"mfa_token" binding:"required"`
+	TOTPCode string `json:"totp_code" binding:"required,len=6"`
+}
+
+// MFARecoverRequest Recovery Code 恢复请求
+type MFARecoverRequest struct {
+	Email        string `json:"email" binding:"required,email"`
+	RecoveryCode string `json:"recovery_code" binding:"required"`
+}
+
+// MFARecoverResponse Recovery Code 恢复响应
+type MFARecoverResponse struct {
+	AccessToken    string `json:"access_token"`
+	RefreshToken   string `json:"refresh_token"`
+	RemainingCodes int    `json:"remaining_codes"`
+}
+
+// RecoveryCode 恢复码记录
+type RecoveryCode struct {
+	Code   string  `json:"code"`
+	Used   bool    `json:"used"`
+	UsedAt *string `json:"used_at"`
 }
 
 // UserWithSites 用户及关联站点

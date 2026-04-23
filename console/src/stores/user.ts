@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import request, { setAccessToken, getAccessToken, setRefreshToken } from '@/utils/request'
+import request, { setAccessToken, getAccessToken, setRefreshToken, clearRefreshToken } from '@/utils/request'
 import { useSiteStore } from '@/stores/site'
 
 interface User {
@@ -10,12 +10,19 @@ interface User {
   avatar_url?: string
   status: string
   is_super_admin: boolean
+  mfa_enabled: boolean
   created_time: string
 }
 
 interface LoginResponse {
   user: User
   access_token: string
+  refresh_token: string
+}
+
+interface MFARequiredResponse {
+  mfa_required: true
+  mfa_token: string
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -35,24 +42,34 @@ export const useUserStore = defineStore('user', () => {
   const login = async (email: string, password: string) => {
     isLoading.value = true
     try {
-      const res = await request.post<LoginResponse>('/auth/login', {
+      const res = await request.post<LoginResponse | MFARequiredResponse>('/auth/login', {
         email,
         password,
       })
       if (res.data.code === 200) {
-        // 后端返回独立的 access_token 和 refresh_token 字段
-        const accessToken = res.data.data.access_token as string
-        const refreshToken = res.data.data.refresh_token as string
+        const data = res.data.data as any
 
-        setAccessToken(accessToken)
-        setRefreshToken(refreshToken)
-        setUser(res.data.data.user)
+        // MFA 两步验证：返回 mfa_required
+        if (data?.mfa_required === true) {
+          return {
+            success: true,
+            mfa_required: true,
+            mfa_token: data.mfa_token,
+            email,
+          }
+        }
+
+        // 正常登录
+        const loginData = data as LoginResponse
+        setAccessToken(loginData.access_token)
+        setRefreshToken(loginData.refresh_token)
+        setUser(loginData.user)
 
         // 登录成功后自动加载站点列表
         const siteStore = useSiteStore()
         await siteStore.fetchSites()
 
-        return { success: true }
+        return { success: true, mfa_required: false }
       }
       return { success: false, message: res.data.msg }
     } catch (error: any) {
@@ -90,7 +107,7 @@ export const useUserStore = defineStore('user', () => {
       // ignore
     }
     setAccessToken(null)
-    setRefreshToken(null)
+    clearRefreshToken()
     clearUser()
 
     // 登出时清除站点状态
