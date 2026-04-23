@@ -63,13 +63,6 @@ DROP TABLE IF EXISTS plugins;
 DROP TABLE IF EXISTS audit_logs;
 DROP TABLE IF EXISTS system_roles;
 DROP TABLE IF EXISTS system_users;
-DROP TABLE IF EXISTS distributed_locks;
-
--- 删除视图
-DROP VIEW IF EXISTS active_locks;
-
--- 删除函数
-DROP FUNCTION IF EXISTS cleanup_expired_locks;
 DROP FUNCTION IF EXISTS update_updated_time_column;
 
 -- =============================================================================
@@ -847,24 +840,6 @@ CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
 CREATE INDEX idx_webhook_deliveries_created ON webhook_deliveries(created_time DESC);
 
 -- =============================================================================
--- 8. 分布式锁
--- =============================================================================
-
-CREATE TABLE distributed_locks (
-    lock_key VARCHAR(255) PRIMARY KEY,
-    lock_value VARCHAR(36) NOT NULL,
-    expires_time TIMESTAMP(6) NOT NULL,
-    acquired_time TIMESTAMP(6) NOT NULL DEFAULT SYSDATE
-);
-COMMENT ON TABLE distributed_locks IS '分布式锁表：用于分布式环境下的并发控制';
-COMMENT ON COLUMN distributed_locks.lock_key IS '锁键';
-COMMENT ON COLUMN distributed_locks.lock_value IS '锁值（持有者标识）';
-COMMENT ON COLUMN distributed_locks.expires_time IS '过期时间';
-COMMENT ON COLUMN distributed_locks.acquired_time IS '获取时间';
-
-CREATE INDEX idx_distributed_locks_expires ON distributed_locks(expires_time);
-
--- =============================================================================
 -- 性能优化索引
 -- =============================================================================
 
@@ -875,18 +850,6 @@ CREATE INDEX idx_assets_site_created ON assets(site_id, created_time DESC);
 CREATE INDEX idx_assets_path ON assets(path);
 CREATE INDEX idx_audit_logs_site_user_time ON audit_logs(site_id, user_id, created_time DESC);
 CREATE INDEX idx_audit_logs_category_time ON audit_logs(category, created_time DESC);
-
--- =============================================================================
--- 分布式锁清理函数（DM8 PL/SQL 语法）
--- =============================================================================
-
-CREATE OR REPLACE PROCEDURE cleanup_expired_locks AS
-BEGIN
-    DELETE FROM distributed_locks WHERE expires_time < SYSDATE;
-END cleanup_expired_locks;
-/
-
-COMMENT ON PROCEDURE cleanup_expired_locks IS '清理过期的分布式锁（手动调用或定时任务）';
 
 -- =============================================================================
 -- 初始化数据

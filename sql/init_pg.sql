@@ -51,13 +51,6 @@ DROP TABLE IF EXISTS plugins CASCADE;
 DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS system_roles CASCADE;
 DROP TABLE IF EXISTS system_users CASCADE;
-DROP TABLE IF EXISTS distributed_locks CASCADE;
-
--- 删除视图
-DROP VIEW IF EXISTS active_locks;
-
--- 删除函数
-DROP FUNCTION IF EXISTS cleanup_expired_locks();
 DROP FUNCTION IF EXISTS update_updated_time_column();
 
 -- 删除枚举类型
@@ -857,24 +850,6 @@ CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
 CREATE INDEX idx_webhook_deliveries_created ON webhook_deliveries(created_time DESC);
 
 -- =============================================================================
--- 8. 分布式锁
--- =============================================================================
-
-CREATE TABLE distributed_locks (
-    lock_key VARCHAR(255) PRIMARY KEY,
-    lock_value UUID NOT NULL,
-    expires_time TIMESTAMPTZ NOT NULL,
-    acquired_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-COMMENT ON TABLE distributed_locks IS '分布式锁表：用于分布式环境下的并发控制';
-COMMENT ON COLUMN distributed_locks.lock_key IS '锁键';
-COMMENT ON COLUMN distributed_locks.lock_value IS '锁值（持有者标识）';
-COMMENT ON COLUMN distributed_locks.expires_time IS '过期时间';
-COMMENT ON COLUMN distributed_locks.acquired_time IS '获取时间';
-
-CREATE INDEX idx_distributed_locks_expires ON distributed_locks(expires_time);
-
--- =============================================================================
 -- 性能优化索引
 -- =============================================================================
 
@@ -885,38 +860,6 @@ CREATE INDEX IF NOT EXISTS idx_assets_site_created ON assets(site_id, created_ti
 CREATE INDEX IF NOT EXISTS idx_assets_path ON assets(path);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_site_user_time ON audit_logs(site_id, user_id, created_time DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_category_time ON audit_logs(category, created_time DESC);
-
--- =============================================================================
--- 分布式锁自动清理
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION cleanup_expired_locks()
-RETURNS void AS $$
-BEGIN
-    DELETE FROM distributed_locks WHERE expires_time < NOW();
-END;
-$$ LANGUAGE plpgsql;
-
-DO $$
-BEGIN
-    CREATE EXTENSION IF NOT EXISTS pg_cron;
-EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'pg_cron not available: %', SQLERRM;
-END;
-$$;
-
-CREATE OR REPLACE VIEW active_locks AS
-SELECT
-    lock_key,
-    lock_value,
-    acquired_time,
-    expires_time,
-    EXTRACT(EPOCH FROM (expires_time - NOW()))::INT as remaining_seconds
-FROM distributed_locks
-WHERE expires_time > NOW();
-
-COMMENT ON VIEW active_locks IS '当前活跃的分布式锁';
-COMMENT ON FUNCTION cleanup_expired_locks() IS '清理过期的分布式锁';
 
 -- =============================================================================
 -- 初始化数据
