@@ -82,7 +82,7 @@ const loadContentTypes = async () => {
   }
   try {
     const res = await getContentTypes({ page: 1, page_size: 100 })
-    contentTypes.value = res.data.items || []
+    contentTypes.value = res.data.data.items || []
   } catch (error) {
     showError(error)
   }
@@ -108,8 +108,8 @@ const loadEntries = async () => {
       params.keyword = searchKeyword.value
     }
     const res = await getEntries(params)
-    entries.value = res.data.items || []
-    total.value = res.data.total || 0
+    entries.value = res.data.data.items || []
+    total.value = res.data.data.total || 0
   } catch (error) {
     showError(error)
   } finally {
@@ -135,8 +135,8 @@ const openCreateModal = () => {
 const openEditModal = async (entry: Entry) => {
   try {
     const res = await getEntry(entry.id)
-    editingEntry.value = res.data
-    formData.value = { ...res.data.values || {} }
+    editingEntry.value = res.data.data
+    formData.value = { ...res.data.data.values || {} }
     showModal.value = true
   } catch (error) {
     showError(error)
