@@ -30,7 +30,7 @@ type Config struct {
 }
 
 // SupportedAlgorithms 支持的加密算法
-var SupportedAlgorithms = []string{"aes-256-gcm", "sm4-gcm"}
+var SupportedAlgorithms = []string{"aes-256-gcm"}
 
 // SecurityConfig 安全配置
 type SecurityConfig struct {
@@ -41,8 +41,7 @@ type SecurityConfig struct {
 	Secret string `mapstructure:"secret"`
 
 	// Algorithm 加密算法
-	// 可选值：aes-256-gcm（默认）, sm4-gcm
-	// 注意：sm4-gcm 需要国密支持
+	// 可选值：aes-256-gcm（默认）
 	Algorithm string `mapstructure:"algorithm"`
 }
 
@@ -435,7 +434,7 @@ func setDefaults(v *viper.Viper) {
 // readEnvOverrides 读取环境变量覆盖
 func readEnvOverrides(v *viper.Viper) {
 	// 支持直接使用环境变量覆盖配置
-	// 格式: CONTFUL_DATABASE_HOST, CONTFUL_JWT_SECRET 等
+	// 格式: CONTFUL_DATABASE_HOST, CONTFUL_SECRET 等
 	envMappings := map[string]string{
 		"DB_HOST":          "database.host",
 		"DB_PORT":          "database.port",
@@ -447,7 +446,6 @@ func readEnvOverrides(v *viper.Viper) {
 		"REDIS_PORT":       "redis.port",
 		"REDIS_PASSWORD":   "redis.password",
 		"REDIS_DB":         "redis.db",
-		"JWT_SECRET":       "jwt.secret",
 		"SERVER_PORT":      "server.port",
 		"SECRET":           "security.secret",
 		"SECRET_ALGORITHM": "security.algorithm",

@@ -44,7 +44,7 @@ psql -h <host> -U <user> -d contful -f sql/init_pg.sql
 ```bash
 cd docker
 cp .env.example .env
-# 编辑 .env，填入 DB_HOST、DB_PASSWORD、JWT_SECRET
+# 编辑 .env，填入 DB_HOST、DB_PASSWORD、SECRET
 
 # 启动全部服务（Admin + Open API）
 docker-compose --env-file .env up -d
