@@ -29,7 +29,7 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="6" class="empty-state">{{ t('users.loading') }}</td>
+            <td colspan="6" class="text-center">{{ t('users.loading') }}</td>
           </tr>
           <tr v-else-if="users.length === 0">
             <td colspan="6" class="empty-state">
@@ -339,6 +339,11 @@ onMounted(() => {
 <style scoped>
 .users-page {
   padding: 24px;
+}
+
+.text-center {
+  text-align: center;
+  padding: 40px !important;
 }
 
 .pagination-bar {
