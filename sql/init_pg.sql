@@ -234,8 +234,7 @@ CREATE TABLE sites (
     name VARCHAR(200) NOT NULL,
     slug VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
-    logo_url TEXT,
-    favicon_url TEXT,
+    site_url TEXT,
     config JSONB NOT NULL DEFAULT '{"timezone":"Asia/Shanghai","locale":"zh-CN"}',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_by UUID,
@@ -248,8 +247,7 @@ COMMENT ON COLUMN sites.id IS '站点唯一标识符';
 COMMENT ON COLUMN sites.name IS '站点名称';
 COMMENT ON COLUMN sites.slug IS '站点别名（URL 中使用）';
 COMMENT ON COLUMN sites.description IS '站点描述';
-COMMENT ON COLUMN sites.logo_url IS '站点 Logo URL（仅用于 Console 管理界面）';
-COMMENT ON COLUMN sites.favicon_url IS '站点 Favicon URL（仅用于 Console）';
+COMMENT ON COLUMN sites.site_url IS '站点访问地址（前端展示端点）';
 COMMENT ON COLUMN sites.config IS '站点配置 JSON：timezone 时区、locale 语言等';
 COMMENT ON COLUMN sites.is_active IS '是否激活';
 -- 已删除字段：seo（应由展示端管理）、custom_domains（应在 nginx/docker 配置）、tenant_id/plan（商业版特性）
@@ -718,6 +716,7 @@ CREATE TABLE api_tokens (
     description TEXT,
     token_prefix VARCHAR(20) NOT NULL,
     token_hash VARCHAR(64) NOT NULL UNIQUE,
+    encrypted_token TEXT,
     scopes JSONB NOT NULL DEFAULT '[]',
     site_scope JSONB NOT NULL DEFAULT '[]',
     channel_scope JSONB NOT NULL DEFAULT '[]',
@@ -739,7 +738,8 @@ COMMENT ON COLUMN api_tokens.site_id IS '所属站点';
 COMMENT ON COLUMN api_tokens.name IS 'Token 名称';
 COMMENT ON COLUMN api_tokens.description IS 'Token 描述';
 COMMENT ON COLUMN api_tokens.token_prefix IS 'Token 前缀（显示用）';
-COMMENT ON COLUMN api_tokens.token_hash IS 'Token 哈希（存储用）';
+COMMENT ON COLUMN api_tokens.token_hash IS 'Token 哈希（验证用）';
+COMMENT ON COLUMN api_tokens.encrypted_token IS 'Token 密文（AES-256-GCM 加密）';
 COMMENT ON COLUMN api_tokens.scopes IS '权限范围 JSON';
 COMMENT ON COLUMN api_tokens.site_scope IS '站点权限范围 JSON';
 COMMENT ON COLUMN api_tokens.channel_scope IS '渠道权限范围 JSON';

@@ -34,6 +34,7 @@ func (h *APITokenHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		tokens.DELETE("/:id", h.Delete)
 		tokens.POST("/:id/regenerate", h.Regenerate)
 		tokens.POST("/:id/revoke", h.Revoke)
+		tokens.POST("/:id/export", h.Export)
 	}
 }
 
@@ -227,4 +228,27 @@ func (h *APITokenHandler) Revoke(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// Export 导出 Token（解密并返回完整 Token）
+func (h *APITokenHandler) Export(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 Token ID"))
+		return
+	}
+
+	token, fullToken, err := h.tokenService.Export(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, err.Error()))
+		return
+	}
+
+	// 返回包含明文 Token 的响应
+	resp := model.APITokenCreateResponse{
+		APITokenResponse: token.ToResponse(),
+		Token:            fullToken,
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(resp))
 }

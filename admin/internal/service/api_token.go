@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/contful/contful/admin/internal/model"
+	"github.com/contful/contful/admin/internal/pkg/crypto"
 	"github.com/contful/contful/admin/internal/repository"
 
 	"github.com/google/uuid"
@@ -25,12 +26,13 @@ const (
 
 // APITokenService API Token 服务
 type APITokenService struct {
-	tokenRepo *repository.APITokenRepository
+	tokenRepo   *repository.APITokenRepository
+	encryptKey  string // AES-256 加密密钥
 }
 
 // NewAPITokenService 新建服务
-func NewAPITokenService(tokenRepo *repository.APITokenRepository) *APITokenService {
-	return &APITokenService{tokenRepo: tokenRepo}
+func NewAPITokenService(tokenRepo *repository.APITokenRepository, encryptKey string) *APITokenService {
+	return &APITokenService{tokenRepo: tokenRepo, encryptKey: encryptKey}
 }
 
 // GenerateToken 生成新的 Token，返回完整 Token、Hash、前缀
@@ -53,19 +55,26 @@ func (s *APITokenService) Create(ctx context.Context, siteID, userID uuid.UUID, 
 		return nil, "", err
 	}
 
+	// 加密存储 Token
+	encryptedToken, err := crypto.Encrypt([]byte(fullToken), s.encryptKey)
+	if err != nil {
+		return nil, "", fmt.Errorf("加密 Token 失败: %w", err)
+	}
+
 	token := &model.APIToken{
-		ID:           uuid.New(),
-		SiteID:       siteID,
-		Name:         req.Name,
-		Description:  req.Description,
-		TokenPrefix:  prefix,
-		TokenHash:    tokenHash,
-		RateLimit:    60, // 默认每分钟 60 次
-		Scopes:       model.StringArray{"read"}, // 默认只读
-		SiteScope:    model.StringArray{"*"},    // 全部站点
-		ChannelScope: model.StringArray{},       // 空数组，非 nil
-		Status:       model.TokenStatusActive,
-		CreatedBy:    &userID,
+		ID:             uuid.New(),
+		SiteID:         siteID,
+		Name:           req.Name,
+		Description:    req.Description,
+		TokenPrefix:    prefix,
+		TokenHash:      tokenHash,
+		EncryptedToken: encryptedToken,
+		RateLimit:      60, // 默认每分钟 60 次
+		Scopes:         model.StringArray{"read"}, // 默认只读
+		SiteScope:      model.StringArray{"*"},    // 全部站点
+		ChannelScope:   model.StringArray{},       // 空数组，非 nil
+		Status:         model.TokenStatusActive,
+		CreatedBy:      &userID,
 	}
 
 	token.ExpiresTime = nil
@@ -178,10 +187,38 @@ func (s *APITokenService) Regenerate(ctx context.Context, id uuid.UUID) (*model.
 	if err != nil {
 		return nil, "", err
 	}
+
+	// 加密存储新 Token
+	encryptedToken, err := crypto.Encrypt([]byte(fullToken), s.encryptKey)
+	if err != nil {
+		return nil, "", fmt.Errorf("加密 Token 失败: %w", err)
+	}
+
 	token.TokenHash = tokenHash
 	token.TokenPrefix = prefix
+	token.EncryptedToken = encryptedToken
 	if err := s.tokenRepo.Update(ctx, token); err != nil {
 		return nil, "", err
 	}
 	return token, fullToken, nil
+}
+
+// Export 导出 Token（解密并返回完整 Token）
+func (s *APITokenService) Export(ctx context.Context, id uuid.UUID) (*model.APIToken, string, error) {
+	token, err := s.tokenRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if token.EncryptedToken == "" {
+		return nil, "", errors.New("token not found or not exportable")
+	}
+
+	// 解密获取完整 Token
+	fullToken, err := crypto.Decrypt(token.EncryptedToken, s.encryptKey)
+	if err != nil {
+		return nil, "", fmt.Errorf("解密 Token 失败: %w", err)
+	}
+
+	return token, string(fullToken), nil
 }

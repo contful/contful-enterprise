@@ -96,7 +96,7 @@ func main() {
 	siteService := service.NewSiteService(db, siteRepo, configRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
-	tokenService := service.NewAPITokenService(tokenRepo)
+	tokenService := service.NewAPITokenService(tokenRepo, cfg.Security.APITokenKey)
 
 	// 初始化 MFA 服务（PRE-005）
 	mfaService := service.NewMFAService(userRepo, redisClient, cfg.JWT.Secret)
@@ -248,6 +248,7 @@ func main() {
 			protected.DELETE("/tokens/:id", tokenHandler.Delete)
 			protected.POST("/tokens/:id/regenerate", tokenHandler.Regenerate)
 			protected.POST("/tokens/:id/revoke", tokenHandler.Revoke)
+			protected.POST("/tokens/:id/export", tokenHandler.Export)
 
 			// 站点配置管理（PRE-001）
 			protected.GET("/sites/:id/configs", configHandler.List)

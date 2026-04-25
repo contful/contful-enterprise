@@ -65,6 +65,7 @@ type APIToken struct {
 	Description   string       `json:"description" gorm:"type:text"`
 	TokenPrefix   string       `json:"token_prefix" gorm:"size:20;not null;index"` // ctg_ 前缀
 	TokenHash     string       `json:"-" gorm:"size:64;not null;uniqueIndex"`
+	EncryptedToken string       `json:"-" gorm:"type:text"`                           // AES-256-GCM 加密存储
 	Scopes        StringArray  `json:"scopes" gorm:"type:jsonb;default:'[]'"`         // 权限范围
 	SiteScope     StringArray  `json:"site_scope" gorm:"type:jsonb;default:'[]'"`     // 站点范围
 	ChannelScope  StringArray  `json:"channel_scope" gorm:"type:jsonb;default:'[]'"`  // 频道范围

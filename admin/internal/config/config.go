@@ -23,6 +23,17 @@ type Config struct {
 	Audit     AuditConfig     `mapstructure:"audit"`
 	MultiSite MultiSiteConfig `mapstructure:"multi_site"`
 	Features  FeaturesConfig  `mapstructure:"features"`
+	Security  SecurityConfig  `mapstructure:"security"`
+}
+
+// SecurityConfig 安全配置
+type SecurityConfig struct {
+	// APITokenKey API Token 加密密钥（AES-256-GCM）
+	// 支持任意长度字符串，会自动派生 32 字节密钥。
+	// 推荐使用 64 字符 hex（纯 0-9a-f）：openssl rand -hex 32
+	// ⚠️ 重要：变更此密钥将导致所有现有 API Token 无法解密，Open API 认证会失败！
+	// 如需变更，请先导出所有 Token，修改配置后重新生成 Token。
+	APITokenKey string `mapstructure:"api_token_key"`
 }
 
 // ServerConfig 服务配置
@@ -298,6 +309,11 @@ func (c *Config) PostLoad() {
 	if c.Logging.Output == "" {
 		c.Logging.Output = "stdout"
 	}
+
+	// Security 默认值：如果未设置 API Token 密钥，使用 JWT Secret 派生
+	if c.Security.APITokenKey == "" {
+		c.Security.APITokenKey = c.JWT.Secret
+	}
 }
 
 // GetDSN 获取 PostgreSQL DSN
@@ -399,6 +415,7 @@ func readEnvOverrides(v *viper.Viper) {
 		"REDIS_DB":       "redis.db",
 		"JWT_SECRET":     "jwt.secret",
 		"SERVER_PORT":    "server.port",
+		"API_TOKEN_KEY":  "security.api_token_key",
 	}
 
 	for envKey, configKey := range envMappings {
