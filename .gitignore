@@ -45,6 +45,10 @@ go.work
 tmp/
 temp/
 
+# 日志目录（保留目录结构，忽略日志文件）
+log/
+docker/*.log
+
 # 上传文件（开发环境）
 uploads/
 
