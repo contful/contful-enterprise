@@ -595,7 +595,9 @@
     "profileUpdateFailed": "Failed to update profile",
     "profileChangeAvatar": "Change Avatar",
     "profileAvatarSuccess": "Avatar updated successfully",
-    "profileAvatarFailed": "Failed to upload avatar"
+    "profileAvatarFailed": "Failed to upload avatar",
+    "deploymentNote": "Deployment Guide",
+    "deploymentNoteDesc": "Please refer to the official deployment documentation to complete site deployment"
   },
   "site": {
     "selectSite": "Select Site",

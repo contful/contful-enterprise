@@ -230,7 +230,7 @@ export const folderApi = {
    */
   getTree: async (): Promise<FolderResponse[]> => {
     const response = await request.get<FolderResponse[]>('/assets/folders/tree')
-    return response.data.data
+    return response.data
   },
 
   /**
@@ -239,7 +239,7 @@ export const folderApi = {
   list: async (parentId?: string): Promise<FolderResponse[]> => {
     const params = parentId ? { parent_id: parentId } : {}
     const response = await request.get<FolderResponse[]>('/assets/folders', { params })
-    return response.data.data
+    return response.data
   },
 
   /**
@@ -247,7 +247,7 @@ export const folderApi = {
    */
   get: async (id: string): Promise<FolderResponse> => {
     const response = await request.get<FolderResponse>(`/assets/folders/${id}`)
-    return response.data.data
+    return response.data
   },
 
   /**
@@ -255,7 +255,7 @@ export const folderApi = {
    */
   update: async (id: string, data: FolderUpdate): Promise<FolderResponse> => {
     const response = await request.put<FolderResponse>(`/assets/folders/${id}`, data)
-    return response.data.data
+    return response.data
   },
 
   /**

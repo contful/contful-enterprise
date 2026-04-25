@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { get, post, put, del } from '@/utils/request'
 
 // ============ ContentType API ============
 
@@ -135,52 +135,52 @@ export interface ListResponse<T> {
 
 // 创建内容类型
 export function createContentType(data: ContentTypeCreate) {
-  return request.post<{ code: number; data: ContentType }>('/content/types', data)
+  return post<ContentType>('/content/types', data)
 }
 
 // 获取内容类型列表
 export function getContentTypes(params?: { page?: number; page_size?: number }) {
-  return request.get<{ code: number; data: ListResponse<ContentType> }>('/content/types', { params })
+  return get<ListResponse<ContentType>>('/content/types', { params })
 }
 
 // 获取内容类型详情
 export function getContentType(id: string) {
-  return request.get<{ code: number; data: ContentType }>(`/content/types/${id}`)
+  return get<ContentType>(`/content/types/${id}`)
 }
 
 // 更新内容类型
 export function updateContentType(id: string, data: ContentTypeUpdate) {
-  return request.put<{ code: number; data: ContentType }>(`/content/types/${id}`, data)
+  return put<ContentType>(`/content/types/${id}`, data)
 }
 
 // 删除内容类型
 export function deleteContentType(id: string) {
-  return request.delete(`/content/types/${id}`)
+  return del(`/content/types/${id}`)
 }
 
 // ============ Field API ============
 
 // 创建字段
 export function createField(contentTypeId: string, data: FieldCreate) {
-  return request.post<{ code: number; data: Field }>(`/content/types/${contentTypeId}/fields`, data)
+  return post<Field>(`/content/types/${contentTypeId}/fields`, data)
 }
 
 // 获取字段列表
 export function getFields(contentTypeId: string) {
-  return request.get<{ code: number; data: { items: Field[] } }>(`/content/types/${contentTypeId}/fields`)
+  return get<{ items: Field[] }>(`/content/types/${contentTypeId}/fields`)
 }
 
 // 更新字段
 export function updateField(contentTypeId: string, fieldId: string, data: FieldUpdate) {
-  return request.put<{ code: number; data: Field }>(`/content/types/${contentTypeId}/fields/${fieldId}`, data)
+  return put<Field>(`/content/types/${contentTypeId}/fields/${fieldId}`, data)
 }
 
 // 删除字段
 export function deleteField(contentTypeId: string, fieldId: string) {
-  return request.delete(`/content/types/${contentTypeId}/fields/${fieldId}`)
+  return del(`/content/types/${contentTypeId}/fields/${fieldId}`)
 }
 
 // 重新排序字段
 export function reorderFields(contentTypeId: string, orders: Record<string, number>) {
-  return request.post(`/content/types/${contentTypeId}/fields/reorder`, { orders })
+  return post(`/content/types/${contentTypeId}/fields/reorder`, { orders })
 }

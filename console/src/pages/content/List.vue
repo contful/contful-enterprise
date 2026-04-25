@@ -42,6 +42,9 @@ const entryToDelete = ref<Entry | null>(null)
 const deleteLoading = ref(false)
 const publishLoading = ref<string | null>(null)
 
+// 内容类型条目数缓存
+const entryCounts = ref<Record<string, number>>({})
+
 // 分页
 const page = ref(1)
 const pageSize = ref(20)
@@ -82,10 +85,27 @@ const loadContentTypes = async () => {
   }
   try {
     const res = await getContentTypes({ page: 1, page_size: 100 })
-    contentTypes.value = res.data.data.items || []
+    contentTypes.value = res.data?.items || []
+    // 加载每个内容类型的条目数
+    await loadEntryCounts()
   } catch (error) {
     showError(error)
   }
+}
+
+// 加载每个内容类型的条目数
+const loadEntryCounts = async () => {
+  const counts: Record<string, number> = {}
+  for (const type of contentTypes.value) {
+    try {
+      // 获取该类型的所有条目（只取 total，不取 items）
+      const res = await getEntries({ content_type_id: type.id, page: 1, page_size: 1 })
+      counts[type.id] = res.data?.total || 0
+    } catch {
+      counts[type.id] = 0
+    }
+  }
+  entryCounts.value = counts
 }
 
 // 加载内容列表
@@ -108,8 +128,8 @@ const loadEntries = async () => {
       params.keyword = searchKeyword.value
     }
     const res = await getEntries(params)
-    entries.value = res.data.data.items || []
-    total.value = res.data.data.total || 0
+    entries.value = res.data?.items || []
+    total.value = res.data?.total || 0
   } catch (error) {
     showError(error)
   } finally {
@@ -393,7 +413,7 @@ onMounted(() => {
               </svg>
             </span>
             <span class="type-name">{{ type.name }}</span>
-            <span class="type-count">{{ type.field_count || 0 }}</span>
+            <span class="type-count">{{ entryCounts[type.id] || 0 }}</span>
           </button>
           <div v-if="contentTypes.length === 0" class="empty-tip">
             {{ t('content.noContentTypes') }}，<router-link to="/content/types">{{ t('content.goToCreate') }}</router-link>
@@ -548,23 +568,33 @@ onMounted(() => {
           </div>
 
           <!-- 分页 -->
-          <div class="pagination" v-if="total > pageSize">
-            <span class="pagination-info">{{ t('common.total') }} {{ total }} {{ t('common.items') }}</span>
-            <button
-              class="btn btn-secondary btn-sm"
-              :disabled="page === 1"
-              @click="page--; loadEntries()"
-            >
-              {{ t('common.prevPage') }}
-            </button>
-            <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
-            <button
-              class="btn btn-secondary btn-sm"
-              :disabled="page >= Math.ceil(total / pageSize)"
-              @click="page++; loadEntries()"
-            >
-              {{ t('common.nextPage') }}
-            </button>
+          <div class="pagination">
+            <div class="pagination-left">
+              <span class="pagination-info">{{ t('common.total') }} {{ total }} {{ t('common.items') }}</span>
+              <select v-model="pageSize" class="input page-size-select" @change="page = 1; loadEntries()">
+                <option :value="10">10 {{ t('common.perPage') }}</option>
+                <option :value="20">20 {{ t('common.perPage') }}</option>
+                <option :value="50">50 {{ t('common.perPage') }}</option>
+                <option :value="100">100 {{ t('common.perPage') }}</option>
+              </select>
+            </div>
+            <div class="pagination-right">
+              <button
+                class="btn btn-secondary btn-sm"
+                :disabled="page === 1"
+                @click="page--; loadEntries()"
+              >
+                {{ t('common.prevPage') }}
+              </button>
+              <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) || 1 }}</span>
+              <button
+                class="btn btn-secondary btn-sm"
+                :disabled="page >= Math.ceil(total / pageSize)"
+                @click="page++; loadEntries()"
+              >
+                {{ t('common.nextPage') }}
+              </button>
+            </div>
           </div>
         </template>
 
@@ -927,9 +957,24 @@ tr.selected {
 .pagination {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.pagination-left {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-top: 20px;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .pagination-info {
@@ -940,6 +985,14 @@ tr.selected {
 .pagination-current {
   font-size: 14px;
   color: var(--color-text);
+  min-width: 60px;
+  text-align: center;
+}
+
+.page-size-select {
+  width: auto;
+  padding: 4px 28px 4px 8px;
+  font-size: 13px;
 }
 
 .required {

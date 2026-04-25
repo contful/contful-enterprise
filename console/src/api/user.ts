@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { get, post, put, del } from '@/utils/request'
 
 export interface User {
   id: string
@@ -18,6 +18,13 @@ export interface UserListParams {
   status?: string
 }
 
+export interface UserListResponse {
+  items: User[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface CreateUserData {
   name: string
   email: string
@@ -34,61 +41,36 @@ export interface UpdateUserData {
 }
 
 // 获取用户列表
-export function getUsers(params: UserListParams) {
-  return request<{ items: User[]; total: number; page: number; page_size: number }>({
-    url: '/users',
-    method: 'get',
-    params,
-  })
+export function getUsers(params?: UserListParams) {
+  return get<UserListResponse>('/users', { params })
 }
 
 // 获取当前用户
 export function getCurrentUser() {
-  return request<User>({
-    url: '/users/me',
-    method: 'get',
-  })
+  return get<User>('/users/me')
 }
 
 // 获取用户详情
 export function getUser(id: string) {
-  return request<User>({
-    url: `/users/${id}`,
-    method: 'get',
-  })
+  return get<User>(`/users/${id}`)
 }
 
 // 创建用户
 export function createUser(data: CreateUserData) {
-  return request<User>({
-    url: '/users',
-    method: 'post',
-    data,
-  })
+  return post<User>('/users', data)
 }
 
 // 更新用户
 export function updateUser(id: string, data: UpdateUserData) {
-  return request<User>({
-    url: `/users/${id}`,
-    method: 'put',
-    data,
-  })
+  return put<User>(`/users/${id}`, data)
 }
 
 // 删除用户
 export function deleteUser(id: string) {
-  return request<void>({
-    url: `/users/${id}`,
-    method: 'delete',
-  })
+  return del(`/users/${id}`)
 }
 
 // 更新密码
 export function updatePassword(id: string, oldPassword: string, newPassword: string) {
-  return request<void>({
-    url: `/users/${id}/password`,
-    method: 'put',
-    data: { old_password: oldPassword, new_password: newPassword },
-  })
+  return put<void>(`/users/${id}/password`, { old_password: oldPassword, new_password: newPassword })
 }

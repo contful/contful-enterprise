@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { get, post, put, del } from '@/utils/request'
 
 // ============ Entry API ============
 
@@ -72,62 +72,62 @@ export interface ListResponse<T> {
 
 // 获取条目列表
 export function getEntries(params?: EntryListFilter) {
-  return request.get<{ code: number; data: ListResponse<Entry> }>('/content/entries', { params })
+  return get<ListResponse<Entry>>('/content/entries', { params })
 }
 
 // 获取条目详情
 export function getEntry(id: string) {
-  return request.get<{ code: number; data: Entry }>(`/content/entries/${id}`)
+  return get<Entry>(`/content/entries/${id}`)
 }
 
 // 创建条目
 export function createEntry(data: EntryCreate) {
-  return request.post<{ code: number; data: Entry }>('/content/entries', data)
+  return post<Entry>('/content/entries', data)
 }
 
 // 更新条目
 export function updateEntry(id: string, data: EntryUpdate) {
-  return request.put<{ code: number; data: Entry }>(`/content/entries/${id}`, data)
+  return put<Entry>(`/content/entries/${id}`, data)
 }
 
 // 删除条目
 export function deleteEntry(id: string) {
-  return request.delete(`/content/entries/${id}`)
+  return del(`/content/entries/${id}`)
 }
 
 // 发布条目
 export function publishEntry(id: string, data?: EntryPublish) {
-  return request.post<{ code: number; data: Entry }>(`/content/entries/${id}/publish`, data || {})
+  return post<Entry>(`/content/entries/${id}/publish`, data || {})
 }
 
 // 取消发布
 export function unpublishEntry(id: string) {
-  return request.post<{ code: number; data: Entry }>(`/content/entries/${id}/unpublish`)
+  return post<Entry>(`/content/entries/${id}/unpublish`)
 }
 
 // 获取版本历史
 export function getEntryVersions(id: string) {
-  return request.get<{ code: number; data: EntryVersion[] }>(`/content/entries/${id}/versions`)
+  return get<EntryVersion[]>(`/content/entries/${id}/versions`)
 }
 
 // ============ 批量操作 API ============
 
 // 批量删除
 export function batchDeleteEntries(ids: string[]) {
-  return request.post('/content/entries/batch-delete', { ids })
+  return post('/content/entries/batch-delete', { ids })
 }
 
 // 批量发布
 export function batchPublishEntries(ids: string[]) {
-  return request.post('/content/entries/batch-publish', { ids })
+  return post('/content/entries/batch-publish', { ids })
 }
 
 // 批量取消发布
 export function batchUnpublishEntries(ids: string[]) {
-  return request.post('/content/entries/batch-unpublish', { ids })
+  return post('/content/entries/batch-unpublish', { ids })
 }
 
 // 批量移动到归档
 export function batchArchiveEntries(ids: string[]) {
-  return request.post('/content/entries/batch-archive', { ids })
+  return post('/content/entries/batch-archive', { ids })
 }

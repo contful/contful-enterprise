@@ -596,7 +596,9 @@
     "profileUpdateFailed": "資料更新失敗",
     "profileChangeAvatar": "更換頭像",
     "profileAvatarSuccess": "頭像更新成功",
-    "profileAvatarFailed": "頭像上傳失敗"
+    "profileAvatarFailed": "頭像上傳失敗",
+    "deploymentNote": "部署說明",
+    "deploymentNoteDesc": "請參考官方部署文檔完成站點部署"
   },
   "site": {
     "selectSite": "選擇站台",

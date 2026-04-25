@@ -56,10 +56,8 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getContentTypes({ page: currentPage.value, page_size: pageSize.value })
-    if (res.data.code === 200) {
-      dataList.value = res.data.data.items || []
-      total.value = res.data.data.total || 0
-    }
+    dataList.value = res.data?.items || []
+    total.value = res.data?.total || 0
   } catch (e) {
     showError(e)
   } finally {
