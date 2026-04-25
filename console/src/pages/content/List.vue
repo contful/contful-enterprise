@@ -471,7 +471,7 @@ onMounted(() => {
                   </th>
                   <th>{{ t('common.id') }}</th>
                   <th v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
-                    {{ field.name }}
+                    {{ field.label }}
                   </th>
                   <th>{{ t('common.status') }}</th>
                   <th>{{ t('common.updatedAt') }}</th>
@@ -581,7 +581,7 @@ onMounted(() => {
         <div class="modal-body">
           <div v-for="field in selectedType?.fields" :key="field.id" class="input-group">
             <label class="input-label">
-              {{ field.name }}
+              {{ field.label }}
               <span v-if="field.required" class="required">*</span>
             </label>
             <input
@@ -589,14 +589,14 @@ onMounted(() => {
               v-model="formData[field.name]"
               type="text"
               class="input"
-              :placeholder="t('content.enterField', { fieldName: field.name })"
+              :placeholder="t('content.enterField', { fieldName: field.label })"
             />
             <textarea
               v-else-if="field.field_type === 'rich_text' || field.field_type === 'json'"
               v-model="formData[field.name]"
               class="input"
               rows="4"
-              :placeholder="t('content.enterField', { fieldName: field.name })"
+              :placeholder="t('content.enterField', { fieldName: field.label })"
             ></textarea>
             <input
               v-else-if="field.field_type === 'number'"
@@ -634,7 +634,7 @@ onMounted(() => {
               v-model="formData[field.name]"
               type="text"
               class="input"
-              :placeholder="t('content.enterField', { fieldName: field.name })"
+              :placeholder="t('content.enterField', { fieldName: field.label })"
             />
           </div>
         </div>

@@ -329,7 +329,7 @@ func (s *AuthService) ListUsers(ctx context.Context, page, pageSize int) (*model
 		Page:       page,
 		PageSize:   pageSize,
 		TotalPages: totalPages,
-		Data:       userResponses,
+		Items:      userResponses,
 	}, nil
 }
 

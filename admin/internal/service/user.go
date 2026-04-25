@@ -89,7 +89,7 @@ func (s *UserService) List(ctx context.Context, page, pageSize int) (*model.Page
 	}
 
 	return &model.PageResponse{
-		Data:     items,
+		Items:    items,
 		Total:    total,
 		Page:     page,
 		PageSize: pageSize,

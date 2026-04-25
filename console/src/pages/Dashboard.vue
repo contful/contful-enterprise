@@ -33,14 +33,14 @@ onMounted(async () => {
     ])
 
     stats.value = {
-      sites: sitesRes.data.total || 0,
-      contentTypes: typesRes.data.total || 0,
-      entries: entriesRes.data.total || 0,
-      assets: assetsRes.data.total || 0,
-      users: usersRes.data.total || 0,
+      sites: sitesRes.data.data?.total || 0,
+      contentTypes: typesRes.data.data?.total || 0,
+      entries: entriesRes.data.data?.total || 0,
+      assets: assetsRes.data.data?.total || 0,
+      users: usersRes.data.data?.total || 0,
       apiTokens: tokensRes.total || 0,
     }
-    recentEntries.value = entriesRes.data.items || []
+    recentEntries.value = entriesRes.data.data?.items || []
   } catch (error) {
     showError(error)
   } finally {
