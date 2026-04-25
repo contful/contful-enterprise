@@ -1,4 +1,7 @@
 {
+  "header": {
+    "officialSite": "Official Site"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -72,6 +75,7 @@
     "users": "Users",
     "settings": "Site Settings",
     "tokens": "Tokens",
+    "apiTokens": "API Tokens",
     "configs": "Config"
   },
   "auth": {
@@ -418,7 +422,12 @@
     "copy": "Copy",
     "description": "Description",
     "descriptionPlaceholder": "Describe the purpose of this token",
-    "year": "Year"
+    "year": "Year",
+    "viewDetail": "View Details",
+    "exportConfirm": "View Token Details",
+    "exportMsg": "Click confirm to decrypt and display the full Token value.",
+    "exportWarningDetail": "This Token will only be displayed once. Please save it securely!",
+    "exportSuccess": "Token decrypted and displayed"
   },
   "settings": {
     "title": "Settings",
@@ -427,7 +436,6 @@
     "personalProfile": "Personal Profile",
     "profileSubtitle": "Manage your personal information and account security",
     "basicInfo": "Basic Information",
-    "brand": "Brand",
     "region": "Region & Language",
     "seo": "SEO",
     "customDomain": "Custom Domain",
@@ -437,10 +445,9 @@
     "siteSlugPlaceholder": "e.g. my-blog",
     "siteDescription": "Description",
     "siteDescPlaceholder": "Optional site description",
-    "logo": "Logo",
-    "logoPlaceholder": "Upload site logo",
-    "favicon": "Favicon",
-    "faviconPlaceholder": "Upload site favicon",
+    "siteUrl": "Site URL",
+    "siteUrlPlaceholder": "https://example.com",
+    "siteUrlTip": "Public URL of your site",
     "timezone": "Timezone",
     "language": "Default Language",
     "langZhCN": "Simplified Chinese",
@@ -472,14 +479,6 @@
     "slugRequired": "Site slug is required",
     "slugFormat": "Used in API paths. Only lowercase letters, numbers, and hyphens.",
     "slugWarning": "Changing the slug will affect API routes. Please proceed with caution.",
-    "logoUrl": "Logo URL",
-    "logoUrlPlaceholder": "https://example.com/logo.png",
-    "logoTip": "Site logo image link. Recommended size 200x60.",
-    "faviconUrl": "Favicon URL",
-    "faviconUrlPlaceholder": "https://example.com/favicon.ico",
-    "faviconTip": "Browser tab icon. Recommended 32x32 or 64x64.",
-    "logoPreview": "Logo Preview",
-    "logoPreviewAlt": "Logo preview",
     "seoTip": "Configure how the site appears in search engines",
     "charCount": "{current}/{max} characters",
     "customDomainSection": "Custom Domain",
@@ -491,8 +490,6 @@
     "metaKeywords": "Meta Keywords",
     "metaDesc": "Meta Description",
     "searchPreview": "Search Preview",
-    "basicInfo": "Basic Information",
-    "brand": "Brand",
     "tzShanghai": "Asia/Shanghai (UTC+8)",
     "tzTokyo": "Asia/Tokyo (UTC+9)",
     "tzSingapore": "Asia/Singapore (UTC+8)",

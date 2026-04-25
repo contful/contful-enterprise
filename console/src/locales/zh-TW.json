@@ -1,4 +1,7 @@
 {
+  "header": {
+    "officialSite": "官網"
+  },
   "common": {
     "save": "儲存",
     "cancel": "取消",
@@ -73,6 +76,7 @@
     "users": "使用者",
     "settings": "設定",
     "tokens": "權杖",
+    "apiTokens": "API 權杖",
     "configs": "設定"
   },
   "auth": {
@@ -419,7 +423,12 @@
     "copy": "複製",
     "description": "描述",
     "descriptionPlaceholder": "描述此 Token 的用途",
-    "year": "年"
+    "year": "年",
+    "viewDetail": "查看詳情",
+    "exportConfirm": "查看 Token 詳情",
+    "exportMsg": "點擊確認後，將解密並顯示完整的 Token 值。",
+    "exportWarningDetail": "此 Token 僅展示一次，請妥善保管！",
+    "exportSuccess": "Token 已解密顯示"
   },
   "settings": {
     "title": "設定",
@@ -428,7 +437,6 @@
     "personalProfile": "個人資料",
     "profileSubtitle": "管理您的個人資訊和帳戶安全",
     "basicInfo": "基本資訊",
-    "brand": "品牌",
     "region": "區域與語言",
     "seo": "SEO",
     "customDomain": "自訂網域",
@@ -438,10 +446,9 @@
     "siteSlugPlaceholder": "例如 my-blog",
     "siteDescription": "描述",
     "siteDescPlaceholder": "站台描述，可選",
-    "logo": "Logo",
-    "logoPlaceholder": "上傳站台 Logo",
-    "favicon": "Favicon",
-    "faviconPlaceholder": "上傳站台圖示",
+    "siteUrl": "站台網址",
+    "siteUrlPlaceholder": "https://example.com",
+    "siteUrlTip": "站台的公開存取網址",
     "timezone": "時區",
     "language": "預設語言",
     "langZhCN": "簡體中文",
@@ -473,14 +480,6 @@
     "slugRequired": "站台識別碼必填",
     "slugFormat": "用於 API 路徑，只允許小寫字母、數字和連字符",
     "slugWarning": "修改 Slug 會影響 API 路徑，請謹慎操作",
-    "logoUrl": "Logo URL",
-    "logoUrlPlaceholder": "https://example.com/logo.png",
-    "logoTip": "站台 Logo 圖片連結，建議尺寸 200x60",
-    "faviconUrl": "Favicon URL",
-    "faviconUrlPlaceholder": "https://example.com/favicon.ico",
-    "faviconTip": "瀏覽器標籤頁圖示，建議 32x32 或 64x64",
-    "logoPreview": "Logo 預覽",
-    "logoPreviewAlt": "Logo 預覽",
     "seoTip": "設定站台在搜尋引擎中的展示資訊",
     "charCount": "{current}/{max} 字元",
     "customDomainSection": "自訂網域",
@@ -492,8 +491,6 @@
     "metaKeywords": "Meta 關鍵字",
     "metaDesc": "Meta 描述",
     "searchPreview": "搜尋結果預覽",
-    "basicInfo": "基本資訊",
-    "brand": "品牌設定",
     "tzShanghai": "Asia/Shanghai (UTC+8)",
     "tzTokyo": "Asia/Tokyo (UTC+9)",
     "tzSingapore": "Asia/Singapore (UTC+8)",

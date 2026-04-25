@@ -7,7 +7,7 @@ import { getMySites } from '@/api/site'
 import { apiTokenApi } from '@/api/api-token'
 import { showError } from '@/utils/request'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 
 const stats = ref({
@@ -48,12 +48,16 @@ onMounted(async () => {
   }
 })
 
-const quickActions = computed(() => [
-  { icon: 'add', label: t('dashboard.createContent'), path: '/content/entries', color: '#3b82f6' },
-  { icon: 'upload', label: t('dashboard.uploadMedia'), path: '/assets', color: '#10b981' },
-  { icon: 'schema', label: t('dashboard.manageTypes'), path: '/content/types', color: '#8b5cf6' },
-  { icon: 'token', label: t('menu.apiTokens'), path: '/tokens', color: '#f59e0b' },
-])
+const quickActions = computed(() => {
+  // 依赖 locale 以响应语言切换
+  void locale.value
+  return [
+    { icon: 'add', label: t('dashboard.createContent'), path: '/content/entries', color: '#3b82f6' },
+    { icon: 'upload', label: t('dashboard.uploadMedia'), path: '/assets', color: '#10b981' },
+    { icon: 'schema', label: t('dashboard.manageTypes'), path: '/content/types', color: '#8b5cf6' },
+    { icon: 'token', label: t('menu.apiTokens'), path: '/tokens', color: '#f59e0b' },
+  ]
+})
 
 const getStatusClass = (status: string) => {
   const map: Record<string, string> = {

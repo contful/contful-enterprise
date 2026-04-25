@@ -21,8 +21,7 @@ const form = ref({
   name: '',
   slug: '',
   description: '',
-  logo_url: '',
-  favicon_url: '',
+  site_url: '',
   config: {
     timezone: 'Asia/Shanghai',
     locale: 'zh-CN',
@@ -86,8 +85,7 @@ const loadSite = async () => {
         name: data.name || '',
         slug: data.slug || '',
         description: data.description || '',
-        logo_url: data.logo_url || '',
-        favicon_url: data.favicon_url || '',
+        site_url: data.site_url || '',
         config: (data.config as SiteConfig) || { timezone: 'Asia/Shanghai', locale: 'zh-CN' },
       }
       originalSlug.value = data.slug || ''
@@ -109,8 +107,7 @@ const handleSave = async () => {
       name: form.value.name,
       slug: form.value.slug,
       description: form.value.description,
-      logo_url: form.value.logo_url || undefined,
-      favicon_url: form.value.favicon_url || undefined,
+      site_url: form.value.site_url || undefined,
       config: form.value.config,
     })
 
@@ -184,37 +181,16 @@ onMounted(() => {
               maxlength="2000"
             ></textarea>
           </div>
-        </div>
-      </section>
-
-      <!-- 品牌设置 -->
-      <section class="settings-section">
-        <h3 class="section-title">{{ t('settings.brand') }}</h3>
-        <div class="form-grid">
           <div class="form-item">
-            <label class="form-label">{{ t('settings.logoUrl') }}</label>
+            <label class="form-label">{{ t('settings.siteUrl') }}</label>
             <input
-              v-model="form.logo_url"
+              v-model="form.site_url"
               type="url"
               class="input"
-              :placeholder="t('settings.logoUrlPlaceholder')"
+              :placeholder="t('settings.siteUrlPlaceholder')"
             />
-            <p class="form-hint">{{ t('settings.logoTip') }}</p>
+            <p class="form-hint">{{ t('settings.siteUrlTip') }}</p>
           </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('settings.faviconUrl') }}</label>
-            <input
-              v-model="form.favicon_url"
-              type="url"
-              class="input"
-              :placeholder="t('settings.faviconUrlPlaceholder')"
-            />
-            <p class="form-hint">{{ t('settings.faviconTip') }}</p>
-          </div>
-        </div>
-        <!-- Logo 预览 -->
-        <div v-if="form.logo_url" class="brand-preview">
-          <img :src="form.logo_url" :alt="t('settings.logoPreviewAlt')" class="logo-preview" @error="e => (e.target as HTMLImageElement).style.display='none'" />
         </div>
       </section>
 
@@ -389,22 +365,6 @@ onMounted(() => {
   background-position: right 12px center;
   padding-right: 32px;
   cursor: pointer;
-}
-
-.brand-preview {
-  margin-top: 12px;
-  padding: 12px;
-  background: var(--color-bg-secondary, #f5f5f5);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.logo-preview {
-  max-height: 48px;
-  max-width: 200px;
-  object-fit: contain;
 }
 
 /* Buttons */
