@@ -40,6 +40,9 @@ FROM reg.reepu.cn/library/openresty:alpine-amd64 AS runner
 
 WORKDIR /app
 
+# 创建日志和上传目录
+RUN mkdir -p /app/logs /app/uploads /var/log/nginx
+
 # 复制 Go 二进制
 COPY --from=go-builder /app/admin-api /app/admin-api
 
@@ -49,14 +52,12 @@ COPY console/dist /usr/share/nginx/html
 # 复制 Nginx 配置
 COPY docker/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 
-# 日志目录 + 上传目录
-RUN mkdir -p /var/log/nginx /app/uploads
-
 EXPOSE 9080
 
-# 同时启动 admin-api 和 openresty
+# 同时启动 admin-api 和 openresty，日志输出到 /app/logs
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'nohup /app/admin-api &' >> /app/start.sh && \
+    echo 'exec > /app/logs/admin.log 2>&1' >> /app/start.sh && \
+    echo 'nohup /app/admin-api > /app/logs/admin-api.log 2>&1 &' >> /app/start.sh && \
     echo 'sleep 2' >> /app/start.sh && \
     echo 'exec /usr/local/openresty/bin/openresty -g "daemon off;"' >> /app/start.sh && \
     chmod +x /app/start.sh

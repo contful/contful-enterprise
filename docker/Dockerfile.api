@@ -35,6 +35,9 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
 
+# 创建日志目录
+RUN mkdir -p /app/logs
+
 COPY --from=builder /app/api-server .
 
 EXPOSE 8080
@@ -42,4 +45,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -q -O- http://localhost:8080/health || exit 1
 
-CMD ["./api-server"]
+# 日志输出到 /app/logs/api.log
+CMD ["sh", "-c", "./api-server > /app/logs/api.log 2>&1"]
