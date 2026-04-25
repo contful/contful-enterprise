@@ -9,6 +9,7 @@ import {
   deleteApiToken,
   regenerateApiToken,
   revokeApiToken,
+  exportApiToken,
   type ApiToken,
 } from '@/api/api-token'
 import { showError } from '@/utils/request'
@@ -25,9 +26,11 @@ const pagination = reactive({
 const showModal = ref(false)
 const showDeleteConfirm = ref(false)
 const showRegenerateConfirm = ref(false)
+const showExportConfirm = ref(false)
 const editingToken = ref<ApiToken | null>(null)
 const tokenToDelete = ref<ApiToken | null>(null)
 const tokenToRegenerate = ref<ApiToken | null>(null)
+const tokenToExport = ref<ApiToken | null>(null)
 const newToken = ref('')
 const submitting = ref(false)
 
@@ -112,6 +115,7 @@ const handleSubmit = async () => {
         rate_limit: formData.value.rate_limit,
       })
       MessagePlugin.success(t('apiTokens.updateSuccess') || 'Token updated')
+      showModal.value = false
     } else {
       const res = await createApiToken({
         name: formData.value.name,
@@ -122,8 +126,8 @@ const handleSubmit = async () => {
       })
       newToken.value = res.token || ''
       MessagePlugin.success(t('apiTokens.createSuccess'))
+      // 不关闭弹窗，让用户看到新 Token
     }
-    showModal.value = false
     await loadTokens()
   } catch (error) {
     showError(error)
@@ -166,6 +170,9 @@ const handleRegenerate = async () => {
     const res = await regenerateApiToken(tokenToRegenerate.value.id)
     newToken.value = res.token || ''
     showRegenerateConfirm.value = false
+    // 打开主弹窗显示新 Token
+    showModal.value = true
+    editingToken.value = null
     tokenToRegenerate.value = null
     await loadTokens()
   } catch (error) {
@@ -178,6 +185,28 @@ const handleRevoke = async (token: ApiToken) => {
   try {
     await revokeApiToken(token.id)
     await loadTokens()
+  } catch (error) {
+    showError(error)
+  }
+}
+
+// 导出 Token（查看详情）
+const confirmExport = (token: ApiToken) => {
+  tokenToExport.value = token
+  showExportConfirm.value = true
+}
+
+const handleExport = async () => {
+  if (!tokenToExport.value) return
+
+  try {
+    const res = await exportApiToken(tokenToExport.value.id)
+    newToken.value = res.token || ''
+    showExportConfirm.value = false
+    showModal.value = true
+    editingToken.value = null
+    tokenToExport.value = null
+    // 注意：不需要 reload，因为 Token 未重新生成
   } catch (error) {
     showError(error)
   }
@@ -297,6 +326,17 @@ onMounted(() => {
                 <button
                   v-if="!token.revoked && !isExpired(token.expires_time)"
                   class="btn btn-secondary btn-sm"
+                  @click="confirmExport(token)"
+                  :title="t('apiTokens.viewDetail')"
+                >
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"/>
+                  </svg>
+                </button>
+                <button
+                  v-if="!token.revoked && !isExpired(token.expires_time)"
+                  class="btn btn-secondary btn-sm"
                   @click="confirmRegenerate(token)"
                   :title="t('apiTokens.regenerate')"
                 >
@@ -331,11 +371,12 @@ onMounted(() => {
     </div>
 
     <!-- 分页 -->
-    <div v-if="pagination.total > pagination.pageSize" class="pagination-bar">
+    <div v-if="tokens.length > 0" class="pagination-bar">
       <t-pagination
         v-model="pagination.current"
         :total="pagination.total"
         :page-size="pagination.pageSize"
+        :show-page-size="false"
         @change="onPageChange"
       />
     </div>
@@ -474,6 +515,23 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 查看详情确认弹窗 -->
+    <div v-if="showExportConfirm" class="modal-overlay" @click.self="showExportConfirm = false">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h3>{{ t('apiTokens.exportConfirm') }}</h3>
+        </div>
+        <div class="modal-body">
+          <p>{{ t('apiTokens.exportMsg') }}</p>
+          <p class="warning-text">{{ t('apiTokens.exportWarningDetail') }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showExportConfirm = false">{{ t('common.cancel') }}</button>
+          <button class="btn btn-primary" @click="handleExport">{{ t('common.confirm') }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -491,6 +549,17 @@ onMounted(() => {
 .token-name {
   font-weight: 500;
   color: var(--color-text);
+}
+
+.token-prefix {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--color-text-secondary);
+  background: var(--color-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+  display: inline-block;
 }
 
 .token-desc {

@@ -155,6 +155,16 @@ export const apiTokenApi = {
   revoke: async (id: string): Promise<void> => {
     await request.post(`/tokens/${id}/revoke`)
   },
+
+  /**
+   * 导出 Token（重新生成并返回，用于查看详情）
+   */
+  export: async (id: string): Promise<APITokenCreateResponse> => {
+    const response = await request.post<{ data: APITokenCreateResponse }>(
+      `/tokens/${id}/export`
+    )
+    return response.data.data
+  },
 }
 
 // 便捷导出
@@ -209,6 +219,10 @@ export const regenerateApiToken = (id: string) => {
 
 export const revokeApiToken = (id: string) => {
   return apiTokenApi.revoke(id)
+}
+
+export const exportApiToken = (id: string) => {
+  return apiTokenApi.export(id)
 }
 
 // 类型导出
