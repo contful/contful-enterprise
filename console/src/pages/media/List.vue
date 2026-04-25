@@ -326,12 +326,8 @@ onMounted(() => {
           </template>
 
           <div v-if="!loading && assets.length === 0" class="empty-state">
-            <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-              <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
-            </svg>
             <h3>{{ t('media.noMedia') }}</h3>
             <p>{{ t('media.noMediaHint') }}</p>
-            <button class="btn btn-primary" @click="showUploadModal = true">{{ t('media.uploadFirstFile') }}</button>
           </div>
         </div>
 
@@ -359,9 +355,7 @@ onMounted(() => {
                 <td colspan="6" class="text-center">{{ t('common.loading') }}</td>
               </tr>
               <tr v-else-if="assets.length === 0">
-                <td colspan="6" class="empty-state">
-                  <p>{{ t('media.noMedia') }}</p>
-                </td>
+                <td colspan="6" class="text-center">{{ t('media.noMedia') }}</td>
               </tr>
               <tr v-else v-for="asset in assets" :key="asset.id">
                 <td>

@@ -33,12 +33,8 @@
           </tr>
           <tr v-else-if="users.length === 0">
             <td colspan="6" class="empty-state">
-              <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
-              </svg>
               <h3>{{ t('users.noUsers') }}</h3>
               <p>{{ t('users.noUsersHint') }}</p>
-              <button class="btn btn-primary btn-sm" @click="openCreateDialog">{{ t('users.addUser') }}</button>
             </td>
           </tr>
           <tr v-else v-for="row in users" :key="row.id">
