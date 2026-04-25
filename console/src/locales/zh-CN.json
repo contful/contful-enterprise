@@ -2,6 +2,7 @@
   "common": {
     "save": "保存",
     "cancel": "取消",
+    "logout": "退出登录",
     "delete": "删除",
     "confirm": "确认",
     "search": "搜索",
@@ -71,8 +72,8 @@
     "media": "媒体",
     "users": "用户",
     "settings": "设置",
-    "apiTokens": "API Token",
-    "siteSettings": "站点设置"
+    "tokens": "令牌",
+    "configs": "配置"
   },
   "auth": {
     "login": "登录",
@@ -331,6 +332,10 @@
     "statusBanned": "封禁",
     "emailRequired": "邮箱必填",
     "passwordMinLength": "密码至少 {min} 位",
+    "passwordHint": "至少 8 位，包含大小写字母与数字",
+    "passwordWeak": "弱",
+    "passwordMedium": "中",
+    "passwordStrong": "强",
     "createSuccess": "用户创建成功",
     "createFailed": "创建失败",
     "emailTaken": "该邮箱已被注册",
@@ -421,6 +426,7 @@
     "subtitle": "管理您的账户和系统设置",
     "siteSettings": "站点设置",
     "personalProfile": "个人资料",
+    "profileSubtitle": "管理您的个人信息和账户安全",
     "basicInfo": "基础信息",
     "brand": "品牌",
     "region": "区域与语言",

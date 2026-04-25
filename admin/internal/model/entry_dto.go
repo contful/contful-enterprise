@@ -38,24 +38,25 @@ type EntryPublish struct {
 
 // EntryResponse 条目响应
 type EntryResponse struct {
-	ID             uuid.UUID              `json:"id"`
-	ContentTypeID  uuid.UUID              `json:"content_type_id"`
-	SiteID         uuid.UUID              `json:"site_id"`
-	Locale         string                 `json:"locale"`
-	Status         EntryStatus            `json:"status"`
-	Version        int                    `json:"version"`
-	VersionHistory []EntryVersionInfo     `json:"version_history,omitempty"`
-	PublishedTime  *time.Time             `json:"published_time,omitempty"`
-	PublishedBy    *uuid.UUID             `json:"published_by,omitempty"`
+	ID             uuid.UUID                `json:"id"`
+	ContentTypeID  uuid.UUID                `json:"content_type_id"`
+	SiteID         uuid.UUID                `json:"site_id"`
+	Locale         string                   `json:"locale"`
+	Status         EntryStatus              `json:"status"`
+	Version        int                      `json:"version"`
+	VersionHistory []EntryVersionInfo       `json:"version_history,omitempty"`
+	PublishedTime  *time.Time               `json:"published_time,omitempty"`
+	PublishedBy    *uuid.UUID               `json:"published_by,omitempty"`
 	Relations      []map[string]interface{} `json:"relations,omitempty"`
-	SEOTitle       string                 `json:"seo_title,omitempty"`
-	SEODescription string                 `json:"seo_description,omitempty"`
-	SEOKeywords    []string               `json:"seo_keywords,omitempty"`
-	SortWeight     int                    `json:"sort_weight"`
-	CreatedBy      *uuid.UUID             `json:"created_by,omitempty"`
-	CreatedTime      time.Time              `json:"created_time"`
-	UpdatedTime      time.Time              `json:"updated_time"`
-	Values         map[string]interface{} `json:"values,omitempty"`
+	SEOTitle       string                   `json:"seo_title,omitempty"`
+	SEODescription string                   `json:"seo_description,omitempty"`
+	SEOKeywords   []string                 `json:"seo_keywords,omitempty"`
+	SortWeight     int                      `json:"sort_weight"`
+	CreatedBy      *uuid.UUID               `json:"created_by,omitempty"`
+	CreatedTime    time.Time                `json:"created_time"`
+	UpdatedTime    time.Time                `json:"updated_time"`
+	Values         map[string]interface{}   `json:"values,omitempty"`
+	ContentType    *ContentTypeResponse     `json:"content_type,omitempty"`
 }
 
 // EntryVersionInfo 版本信息
@@ -142,6 +143,19 @@ func (e *Entry) ToResponse() EntryResponse {
 		}
 	}
 
+	return resp
+}
+
+// ToResponseWithType 转换为带内容类型信息的响应
+func (e *Entry) ToResponseWithType() EntryResponseWithType {
+	resp := EntryResponseWithType{
+		EntryResponse: e.ToResponse(),
+	}
+	// 填充 ContentType 信息
+	if e.ContentType != nil {
+		ct := e.ContentType.ToResponse()
+		resp.ContentType = &ct
+	}
 	return resp
 }
 

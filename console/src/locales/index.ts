@@ -5,18 +5,52 @@
 
 import { createI18n } from 'vue-i18n'
 import zhCN from './zh-CN.json'
+import zhTW from './zh-TW.json'
 import enUS from './en-US.json'
 
-export type Locale = 'zh-CN' | 'en-US'
+export type Locale = 'zh-CN' | 'zh-TW' | 'en-US'
 
 const LOCALE_KEY = 'ct_console_locale'
 
+/**
+ * 从浏览器语言推导 Locale
+ * 优先级：localStorage > navigator.language > 默认 zh-CN
+ */
+function detectLocale(): Locale {
+  // 1. 优先读取用户已保存的语言偏好
+  const saved = localStorage.getItem(LOCALE_KEY)
+  if (saved && ['zh-CN', 'zh-TW', 'en-US'].includes(saved)) {
+    return saved as Locale
+  }
+
+  // 2. 检测浏览器语言
+  const navLang = navigator.language || 'zh-CN'
+
+  if (navLang.startsWith('zh')) {
+    // 繁体中文：zh-TW / zh-HK / zh-MO / zh-SG（新加坡多为简体）
+    const region = navLang.split('-')[1]?.toUpperCase()
+    if (region && ['TW', 'HK', 'MO'].includes(region)) {
+      return 'zh-TW'
+    }
+    // 默认简体中文
+    return 'zh-CN'
+  }
+
+  if (navLang.startsWith('en')) {
+    return 'en-US'
+  }
+
+  // 3. 默认简体中文
+  return 'zh-CN'
+}
+
 export const i18n = createI18n({
   legacy: false, // 必须为 false，启用 Composition API 模式
-  locale: localStorage.getItem(LOCALE_KEY) || 'zh-CN',
+  locale: detectLocale(),
   fallbackLocale: 'zh-CN',
   messages: {
     'zh-CN': zhCN,
+    'zh-TW': zhTW,
     'en-US': enUS,
   },
 })
@@ -43,5 +77,6 @@ export function getLocale(): Locale {
  */
 export const localeOptions = [
   { value: 'zh-CN' as Locale, label: '🇨🇳 简体中文' },
+  { value: 'zh-TW' as Locale, label: '🇭🇰 繁體中文' },
   { value: 'en-US' as Locale, label: '🇺🇸 English' },
 ]

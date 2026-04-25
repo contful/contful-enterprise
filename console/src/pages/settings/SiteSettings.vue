@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useSiteStore } from '@/stores/site'
-import { getSite, updateSite, type Site, type SiteConfig, type SiteSEO } from '@/api/site'
+import { getSite, updateSite, type Site, type SiteConfig } from '@/api/site'
 import { showError } from '@/utils/request'
 
 const { t } = useI18n()
@@ -27,19 +27,10 @@ const form = ref({
     timezone: 'Asia/Shanghai',
     locale: 'zh-CN',
   } as SiteConfig,
-  seo: {
-    meta_title: '',
-    meta_description: '',
-    keywords: '',
-  } as SiteSEO,
-  custom_domains: [] as string[],
 })
 
 // 原始 slug（不可修改）
 const originalSlug = ref('')
-
-// 自定义域名输入
-const newDomain = ref('')
 
 // 时区选项（labelKey 模式）
 const timezoneOptions = [
@@ -73,16 +64,24 @@ const localeLabels = computed(() =>
 
 // ============ 加载数据 ============
 const loadSite = async () => {
-  if (!siteStore.currentSiteId) return
+  // 如果没有当前站点，先加载站点列表
+  if (!siteStore.currentSiteId) {
+    await siteStore.fetchSites()
+    // 加载后仍没有站点，无需继续
+    if (!siteStore.currentSiteId) {
+      loading.value = false
+      return
+    }
+  }
 
   loading.value = true
   try {
     const res = await getSite(siteStore.currentSiteId)
-    if (res.data.code === 200) {
-      site.value = res.data.data
+    if (res.code === 200) {
+      site.value = res.data
 
       // 填充表单
-      const data = res.data.data
+      const data = res.data
       form.value = {
         name: data.name || '',
         slug: data.slug || '',
@@ -90,8 +89,6 @@ const loadSite = async () => {
         logo_url: data.logo_url || '',
         favicon_url: data.favicon_url || '',
         config: (data.config as SiteConfig) || { timezone: 'Asia/Shanghai', locale: 'zh-CN' },
-        seo: (data.seo as SiteSEO) || { meta_title: '', meta_description: '', keywords: '' },
-        custom_domains: data.custom_domains || [],
       }
       originalSlug.value = data.slug || ''
     }
@@ -115,13 +112,11 @@ const handleSave = async () => {
       logo_url: form.value.logo_url || undefined,
       favicon_url: form.value.favicon_url || undefined,
       config: form.value.config,
-      seo: form.value.seo,
-      custom_domains: form.value.custom_domains,
     })
 
-    if (res.data.code === 200) {
-      site.value = res.data.data
-      originalSlug.value = res.data.data.slug
+    if (res.code === 200) {
+      site.value = res.data
+      originalSlug.value = res.data.slug
       MessagePlugin.success(t('settings.saved'))
     }
   } catch (error) {
@@ -129,29 +124,6 @@ const handleSave = async () => {
   } finally {
     saving.value = false
   }
-}
-
-// ============ 自定义域名 ============
-const addDomain = () => {
-  const domain = newDomain.value.trim().toLowerCase()
-  if (!domain) return
-  if (form.value.custom_domains.includes(domain)) {
-    newDomain.value = ''
-    return
-  }
-  form.value.custom_domains.push(domain)
-  newDomain.value = ''
-}
-
-const removeDomain = (index: number) => {
-  form.value.custom_domains.splice(index, 1)
-}
-
-// ============ SEO 预览 ============
-const seoPreview = () => {
-  const title = form.value.seo.meta_title || form.value.name || t('settings.defaultSiteName') || 'Site Name'
-  const desc = form.value.seo.meta_description || form.value.description || ''
-  return { title, desc }
 }
 
 // ============ 挂载 ============
@@ -269,80 +241,10 @@ onMounted(() => {
         </div>
       </section>
 
-      <!-- SEO 设置 -->
+      <!-- 提示信息 -->
       <section class="settings-section">
-        <h3 class="section-title">{{ t('settings.seo') }}</h3>
-        <p class="section-desc">{{ t('settings.seoTip') }}</p>
-        <div class="form-grid">
-          <div class="form-item">
-            <label class="form-label">{{ t('settings.metaTitle') }}</label>
-            <input
-              v-model="form.seo.meta_title"
-              type="text"
-              class="input"
-              :placeholder="t('settings.seoTitlePlaceholder')"
-              maxlength="60"
-            />
-            <p class="form-hint">{{ t('settings.charCount', { current: form.seo.meta_title.length, max: 60 }) }}</p>
-          </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('settings.metaKeywords') }}</label>
-            <input
-              v-model="form.seo.keywords"
-              type="text"
-              class="input"
-              :placeholder="t('settings.seoKeywordsPlaceholder')"
-              maxlength="200"
-            />
-            <p class="form-hint">{{ t('settings.seoKeywordsHint') }}</p>
-          </div>
-          <div class="form-item form-item-full">
-            <label class="form-label">{{ t('settings.metaDesc') }}</label>
-            <textarea
-              v-model="form.seo.meta_description"
-              class="input textarea"
-              :placeholder="t('settings.seoDescPlaceholder')"
-              rows="3"
-              maxlength="200"
-            ></textarea>
-            <p class="form-hint">{{ t('settings.charCount', { current: form.seo.meta_description.length, max: 200 }) }}</p>
-          </div>
-        </div>
-
-        <!-- SEO 预览 -->
-        <div class="seo-preview">
-          <p class="preview-label">{{ t('settings.searchPreview') }}</p>
-          <div class="google-preview">
-            <p class="preview-title">{{ seoPreview().title }}</p>
-            <p class="preview-url">{{ site?.slug || 'your-site' }}.contful.com</p>
-            <p class="preview-desc">{{ seoPreview().desc || t('settings.seoDescDefault') }}</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- 自定义域名 -->
-      <section class="settings-section">
-        <h3 class="section-title">{{ t('settings.customDomainSection') }}</h3>
-        <p class="section-desc">{{ t('settings.customDomainTip') }}</p>
-        <div class="domain-list">
-          <div v-for="(domain, index) in form.custom_domains" :key="domain" class="domain-item">
-            <span class="domain-text">{{ domain }}</span>
-            <button class="btn-remove" @click="removeDomain(index)">{{ t('settings.removeDomain') }}</button>
-          </div>
-          <div v-if="form.custom_domains.length === 0" class="domain-empty">
-            {{ t('settings.noDomains') }}
-          </div>
-        </div>
-        <div class="domain-add">
-          <input
-            v-model="newDomain"
-            type="text"
-            class="input"
-            :placeholder="t('settings.domainInput')"
-            @keydown.enter.prevent="addDomain"
-          />
-          <button class="btn btn-default" @click="addDomain">{{ t('settings.addDomain') }}</button>
-        </div>
+        <h3 class="section-title">{{ t('settings.deploymentNote') }}</h3>
+        <p class="section-desc">{{ t('settings.deploymentNoteDesc') }}</p>
       </section>
 
       <!-- 提交按钮 -->
@@ -505,107 +407,6 @@ onMounted(() => {
   object-fit: contain;
 }
 
-/* SEO Preview */
-.seo-preview {
-  margin-top: 20px;
-  padding: 16px;
-  background: var(--color-bg-secondary, #f5f5f5);
-  border-radius: 8px;
-}
-
-.preview-label {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin: 0 0 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.google-preview {
-  font-family: Arial, sans-serif;
-}
-
-.preview-title {
-  font-size: 18px;
-  color: #1a0dab;
-  margin: 0 0 2px;
-  text-decoration: underline;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.preview-url {
-  font-size: 12px;
-  color: #006621;
-  margin: 0 0 4px;
-}
-
-.preview-desc {
-  font-size: 13px;
-  color: #545454;
-  margin: 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Custom Domain */
-.domain-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.domain-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: var(--color-bg-secondary, #f5f5f5);
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-}
-
-.domain-text {
-  font-size: 14px;
-  color: var(--color-text);
-  font-family: monospace;
-}
-
-.btn-remove {
-  background: none;
-  border: none;
-  color: var(--color-error);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.btn-remove:hover {
-  background: rgba(230, 62, 62, 0.1);
-}
-
-.domain-empty {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  padding: 8px 0;
-}
-
-.domain-add {
-  display: flex;
-  gap: 8px;
-}
-
-.domain-add .input {
-  flex: 1;
-}
-
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -635,16 +436,6 @@ onMounted(() => {
 
 .btn-primary:hover:not(:disabled) {
   opacity: 0.9;
-}
-
-.btn-default {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border-color: var(--color-border);
-}
-
-.btn-default:hover:not(:disabled) {
-  background: var(--color-hover);
 }
 
 /* Form Actions */

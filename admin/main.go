@@ -241,13 +241,13 @@ func main() {
 			protected.DELETE("/assets/:id", assetHandler.Delete)
 
 			// API Token 管理
-			protected.POST("/api-tokens", tokenHandler.Create)
-			protected.GET("/api-tokens", tokenHandler.List)
-			protected.GET("/api-tokens/:id", tokenHandler.Get)
-			protected.PUT("/api-tokens/:id", tokenHandler.Update)
-			protected.DELETE("/api-tokens/:id", tokenHandler.Delete)
-			protected.POST("/api-tokens/:id/regenerate", tokenHandler.Regenerate)
-			protected.POST("/api-tokens/:id/revoke", tokenHandler.Revoke)
+			protected.POST("/tokens", tokenHandler.Create)
+			protected.GET("/tokens", tokenHandler.List)
+			protected.GET("/tokens/:id", tokenHandler.Get)
+			protected.PUT("/tokens/:id", tokenHandler.Update)
+			protected.DELETE("/tokens/:id", tokenHandler.Delete)
+			protected.POST("/tokens/:id/regenerate", tokenHandler.Regenerate)
+			protected.POST("/tokens/:id/revoke", tokenHandler.Revoke)
 
 			// 站点配置管理（PRE-001）
 			protected.GET("/sites/:id/configs", configHandler.List)

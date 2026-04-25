@@ -30,6 +30,8 @@ func (h *UserHandler) Create(c *gin.Context) {
 		switch err {
 		case service.ErrUserAlreadyExists:
 			c.JSON(http.StatusConflict, model.NewErrorResponse(model.CodeConflict, "user already exists"))
+		case service.ErrWeakPassword:
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "password must be at least 8 characters with uppercase, lowercase and numbers"))
 		default:
 			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
 		}
@@ -198,6 +200,8 @@ func (h *UserHandler) UpdatePassword(c *gin.Context) {
 		switch err {
 		case service.ErrInvalidPassword:
 			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid old password"))
+		case service.ErrWeakPassword:
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "password must be at least 8 characters with uppercase, lowercase and numbers"))
 		default:
 			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
 		}

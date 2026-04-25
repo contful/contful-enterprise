@@ -30,9 +30,9 @@ const menuItems = computed(() => [
   { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
   { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
   { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
-  { path: '/settings/api-tokens', icon: 'key', label: t('menu.apiTokens'), name: 'ApiTokens', tIcon: 'key' },
-  { path: '/settings/site-settings', icon: 'setting', label: t('menu.siteSettings'), name: 'SiteSettings', tIcon: 'setting' },
-  { path: '/settings', icon: 'settings', label: t('menu.settings'), name: 'Settings', tIcon: 'control-platform' },
+  { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
+  { path: '/configs', icon: 'tools', label: t('menu.configs'), name: 'Configs', tIcon: 'tools' },
+  { path: '/settings', icon: 'setting', label: t('menu.settings'), name: 'Settings', tIcon: 'setting' },
 ])
 
 const isActive = (path: string) => {
@@ -46,6 +46,10 @@ const handleLogout = async () => {
 }
 
 const user = computed(() => userStore.user)
+
+const goToProfile = () => {
+  router.push('/profile')
+}
 
 // 生成 slug
 const generateSlug = (name: string) => {
@@ -182,18 +186,29 @@ onMounted(async () => {
       <div class="header-spacer"></div>
       <div class="header-right">
         <LangSwitcher />
-        <div class="user-menu">
-          <div class="avatar" v-if="user">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
-          <span class="user-name" v-if="user">{{ user.nickname || user.email }}</span>
-          <t-button
-            shape="square" variant="text"
-            @click="handleLogout"
-          >
-            <template #icon>
-              <Icon name="logout" />
-            </template>
-          </t-button>
-        </div>
+        <t-dropdown trigger="click">
+          <div class="user-trigger">
+            <div class="avatar" v-if="user">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
+            <span class="user-name" v-if="user">{{ user.nickname || user.email }}</span>
+            <t-icon name="chevron-down" size="14px" style="color: var(--color-text-secondary)" />
+          </div>
+          <template #dropdown>
+            <t-dropdown-menu>
+              <t-dropdown-item class="dropdown-email-item" disabled>
+                {{ user?.email }}
+              </t-dropdown-item>
+              <t-dropdown-item @click="goToProfile">
+                <template #prefix-icon><t-icon name="user" /></template>
+                {{ t('settings.personalProfile') }}
+              </t-dropdown-item>
+              <t-dropdown-divider />
+              <t-dropdown-item theme="danger" @click="handleLogout">
+                <template #prefix-icon><t-icon name="poweroff" /></template>
+                {{ t('common.logout') }}
+              </t-dropdown-item>
+            </t-dropdown-menu>
+          </template>
+        </t-dropdown>
       </div>
     </header>
 
@@ -350,6 +365,27 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 120px;
+}
+
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.user-trigger:hover {
+  background: var(--color-hover);
+}
+
+:deep(.dropdown-email-item) {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: default;
+  pointer-events: none;
 }
 
 /* 主体区域 */

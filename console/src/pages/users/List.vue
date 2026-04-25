@@ -93,6 +93,13 @@
           <div class="input-group">
             <label class="input-label">{{ t('users.password') }} <span class="required">*</span></label>
             <input v-model="createForm.password" class="input" type="password" :placeholder="t('users.enterPassword')" />
+            <div class="password-strength">
+              <div class="strength-bar">
+                <div class="strength-fill" :class="passwordStrength.level" :style="{ width: passwordStrength.width }"></div>
+              </div>
+              <span class="strength-text" :class="passwordStrength.level">{{ passwordStrength.label }}</span>
+            </div>
+            <div class="password-hint">{{ t('users.passwordHint') }}</div>
           </div>
           <div class="input-group">
             <label class="input-label">{{ t('users.nickname') }}</label>
@@ -154,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
@@ -191,6 +198,24 @@ const createForm = reactive({
   password: '',
   nickname: '',
   is_super_admin: false,
+})
+
+// 密码强度计算
+const passwordStrength = computed(() => {
+  const pwd = createForm.password
+  if (!pwd) return { level: '', width: '0%', label: '' }
+
+  let score = 0
+  if (pwd.length >= 8) score++
+  if (pwd.length >= 12) score++
+  if (/[a-z]/.test(pwd)) score++
+  if (/[A-Z]/.test(pwd)) score++
+  if (/[0-9]/.test(pwd)) score++
+  if (/[^a-zA-Z0-9]/.test(pwd)) score++
+
+  if (score < 3) return { level: 'weak', width: '33%', label: t('users.passwordWeak') }
+  if (score < 5) return { level: 'medium', width: '66%', label: t('users.passwordMedium') }
+  return { level: 'strong', width: '100%', label: t('users.passwordStrong') }
 })
 
 // 编辑弹窗
@@ -249,6 +274,17 @@ const getStatusText = (status: string) => {
   return map[status] || status
 }
 
+/**
+ * 密码强度检查：至少8位，包含大小写字母与数字
+ */
+const checkPasswordStrength = (pwd: string): boolean => {
+  if (pwd.length < 8) return false
+  if (!/[a-z]/.test(pwd)) return false
+  if (!/[A-Z]/.test(pwd)) return false
+  if (!/[0-9]/.test(pwd)) return false
+  return true
+}
+
 const openCreateDialog = () => {
   createForm.email = ''
   createForm.password = ''
@@ -260,7 +296,7 @@ const openCreateDialog = () => {
 
 const handleCreate = async () => {
   if (!createForm.email) { createError.value = t('users.emailRequired'); return }
-  if (createForm.password.length < 8) { createError.value = t('users.passwordMinLength', { min: 8 }); return }
+  if (!checkPasswordStrength(createForm.password)) { createError.value = t('users.passwordWeak'); return }
   creating.value = true
   createError.value = ''
   try {
@@ -381,6 +417,45 @@ onMounted(() => {
   margin-top: 8px;
   font-size: 13px;
   color: var(--color-error);
+}
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  transition: width 0.3s, background-color 0.3s;
+}
+
+.strength-fill.weak { background: #f85149; }
+.strength-fill.medium { background: #e3b341; }
+.strength-fill.strong { background: #3fb950; }
+
+.strength-text {
+  font-size: 12px;
+  min-width: 36px;
+}
+
+.strength-text.weak { color: #f85149; }
+.strength-text.medium { color: #e3b341; }
+.strength-text.strong { color: #3fb950; }
+
+.password-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 
 /* Modal */

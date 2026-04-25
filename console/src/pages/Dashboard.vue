@@ -211,8 +211,8 @@ const getStatusLabel = (status: string) => {
               @click="router.push(`/content/entries?type=${entry.content_type_id}&id=${entry.id}`)"
               style="cursor: pointer;"
             >
-              <td>{{ entry.title || entry.id.slice(0, 8) }}</td>
-              <td>{{ entry.content_type_id?.slice(0, 8) || '-' }}</td>
+              <td>{{ entry.values?.find(v => v.field?.name === 'title')?.text_value || entry.id.slice(0, 8) }}</td>
+              <td>{{ entry.content_type?.name || entry.content_type_id?.slice(0, 8) || '-' }}</td>
               <td>
                 <span :class="['badge', getStatusClass(entry.status)]">
                   {{ getStatusLabel(entry.status) }}
@@ -229,12 +229,12 @@ const getStatusLabel = (status: string) => {
 
 <style scoped>
 .dashboard {
-  max-width: 1400px;
+  width: 100%;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 20px;
   margin-bottom: 24px;
 }

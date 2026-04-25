@@ -19,13 +19,6 @@ export interface APIEndpointLimits {
   requests_per_day: number
 }
 
-export interface APIUsage {
-  request_count: number
-  daily_request_count: number
-  bandwidth_used: number
-  last_request_at?: string
-}
-
 export interface APITokenResponse {
   id: string
   site_id: string
@@ -34,10 +27,10 @@ export interface APITokenResponse {
   token_prefix: string
   permissions: EndpointPermission
   rate_limits: APIEndpointLimits
-  usage: APIUsage
   expires_time?: string
   status: TokenStatus
   last_used_time?: string
+  request_count?: number
   created_by?: string
   created_time: string
   updated_time: string
@@ -85,7 +78,7 @@ export const apiTokenApi = {
    */
   create: async (data: APITokenCreate): Promise<APITokenCreateResponse> => {
     const response = await request.post<{ data: APITokenCreateResponse }>(
-      '/api-tokens',
+      '/tokens',
       data
     )
     return response.data.data
@@ -111,7 +104,7 @@ export const apiTokenApi = {
     }
 
     const response = await request.get<{ data: APITokenListResponse }>(
-      `/api-tokens?${queryParams.toString()}`
+      `/tokens?${queryParams.toString()}`
     )
 
     return response.data.data
@@ -122,7 +115,7 @@ export const apiTokenApi = {
    */
   get: async (id: string): Promise<APITokenResponse> => {
     const response = await request.get<{ data: APITokenResponse }>(
-      `/api-tokens/${id}`
+      `/tokens/${id}`
     )
     return response.data.data
   },
@@ -132,7 +125,7 @@ export const apiTokenApi = {
    */
   update: async (id: string, data: APITokenUpdate): Promise<APITokenResponse> => {
     const response = await request.put<{ data: APITokenResponse }>(
-      `/api-tokens/${id}`,
+      `/tokens/${id}`,
       data
     )
     return response.data.data
@@ -142,7 +135,7 @@ export const apiTokenApi = {
    * 删除 Token
    */
   delete: async (id: string): Promise<void> => {
-    await request.delete(`/api-tokens/${id}`)
+    await request.delete(`/tokens/${id}`)
   },
 
   /**
@@ -151,7 +144,7 @@ export const apiTokenApi = {
    */
   regenerate: async (id: string): Promise<APITokenCreateResponse> => {
     const response = await request.post<{ data: APITokenCreateResponse }>(
-      `/api-tokens/${id}/regenerate`
+      `/tokens/${id}/regenerate`
     )
     return response.data.data
   },
@@ -160,7 +153,7 @@ export const apiTokenApi = {
    * 撤销 Token
    */
   revoke: async (id: string): Promise<void> => {
-    await request.post(`/api-tokens/${id}/revoke`)
+    await request.post(`/tokens/${id}/revoke`)
   },
 }
 

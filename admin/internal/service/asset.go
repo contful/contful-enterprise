@@ -249,7 +249,7 @@ func (s *AssetService) generateSlug(name, ext string) string {
 	name = strings.ToLower(name)
 
 	// 替换特殊字符为空格
-	reg := regexp.MustCompile(`[^a-z0-9\u4e00-\u9fa5]+`)
+	reg := regexp.MustCompile(fmt.Sprintf("[^a-z0-9\u4e00-\u9fa5]+"))
 	name = reg.ReplaceAllString(name, "-")
 
 	// 去除首尾的连字符

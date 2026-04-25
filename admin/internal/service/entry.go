@@ -464,21 +464,21 @@ func (s *EntryService) parseAndValidateValues(ctx context.Context, fields []mode
 			FieldID: field.ID,
 		}
 
-		// 设置 JSONB 值
+		// 设置 JSONB 值：直接存储原始值，不再包装为 { "value": ... }
 		if value == nil {
 			entryValue.Value = nil
 		} else if str, ok := value.(string); ok {
-			// 如果是 JSON 字符串（带引号的 JSON），解析为 map 再存储
-			var jsonMap map[string]interface{}
-			if err := json.Unmarshal([]byte(str), &jsonMap); err == nil {
-				entryValue.Value = jsonMap
+			// 如果是 JSON 字符串，尝试解析后直接存储
+			var jsonValue interface{}
+			if err := json.Unmarshal([]byte(str), &jsonValue); err == nil {
+				entryValue.Value = jsonValue
 			} else {
-				// 无法解析为 JSON，存入原始字符串（单层值）
-				entryValue.Value = map[string]interface{}{"value": str}
+				// 无法解析为 JSON，直接存储字符串
+				entryValue.Value = str
 			}
 		} else {
 			// number/bool/array/object 等非 string 类型，直接存入
-			entryValue.Value = map[string]interface{}{"value": value}
+			entryValue.Value = value
 		}
 
 		// 设置辅助列（用于索引和查询）

@@ -58,24 +58,14 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 		LogoURL:     req.LogoURL,
 		FaviconURL:  req.FaviconURL,
 		IsActive:    true,
-		Plan:        "free",
 		CreatedBy:   &userID,
 	}
 
 	if req.Config != nil {
 		site.Config = *req.Config
 	}
-	if req.SEO != nil {
-		site.SEO = *req.SEO
-	}
-	if req.CustomDomains != nil {
-		site.CustomDomains = *req.CustomDomains
-	}
 	if req.IsActive != nil {
 		site.IsActive = *req.IsActive
-	}
-	if req.Plan != nil {
-		site.Plan = *req.Plan
 	}
 
 	// 事务：创建站点 + 默认角色 + site_users 关联
@@ -278,17 +268,8 @@ func (s *SiteService) Update(ctx context.Context, id uuid.UUID, req *model.SiteU
 	if req.Config != nil {
 		site.Config = *req.Config
 	}
-	if req.SEO != nil {
-		site.SEO = *req.SEO
-	}
-	if req.CustomDomains != nil {
-		site.CustomDomains = *req.CustomDomains
-	}
 	if req.IsActive != nil {
 		site.IsActive = *req.IsActive
-	}
-	if req.Plan != nil {
-		site.Plan = *req.Plan
 	}
 
 	if err := s.siteRepo.Update(ctx, site); err != nil {

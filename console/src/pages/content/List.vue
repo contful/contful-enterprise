@@ -314,6 +314,18 @@ const getStatusLabel = (status: string) => {
   return map[status] || status
 }
 
+// 格式化字段值：兼容旧数据 { value: x } 和新数据直接值
+const formatFieldValue = (value: any): string => {
+  if (value === null || value === undefined) return '-'
+  if (typeof value === 'object') {
+    // 兼容旧格式 { value: x }
+    if ('value' in value) return String(value.value)
+    // 复杂对象转 JSON 显示
+    return JSON.stringify(value)
+  }
+  return String(value)
+}
+
 // 格式化日期
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString('en-US', {
@@ -509,7 +521,7 @@ onMounted(() => {
                   </td>
                   <td class="id-cell">{{ entry.id.slice(0, 8) }}</td>
                   <td v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
-                    {{ entry.values?.[field.name] || '-' }}
+                    {{ formatFieldValue(entry.values?.[field.name]) }}
                   </td>
                   <td>
                     <span :class="['badge', getStatusClass(entry.status)]">

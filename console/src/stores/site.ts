@@ -34,8 +34,8 @@ export const useSiteStore = defineStore('site', () => {
     loading.value = true
     try {
       const res = await getMySites({ page: 1, page_size: 100 })
-      if (res.data.code === 200) {
-        sites.value = res.data.data.items || []
+      if (res.code === 200) {
+        sites.value = res.data.items || []
 
         // 如果当前没有选中站点，自动选中第一个
         if (!currentSiteId.value && sites.value.length > 0) {
@@ -62,10 +62,10 @@ export const useSiteStore = defineStore('site', () => {
   async function createAndSwitch(data: CreateSiteParams) {
     try {
       const res = await createSite(data)
-      if (res.data.code === 200) {
+      if (res.code === 200) {
         showSuccess(t('site.created'))
         // 返回新创建的站点（响应中直接包含）
-        const newSite = res.data.data
+        const newSite = res.data
         if (newSite?.id) {
           setCurrentSite(newSite.id)
         }
@@ -73,7 +73,7 @@ export const useSiteStore = defineStore('site', () => {
         fetchSites().catch(() => {})
         return { success: true }
       }
-      return { success: false, message: res.data.msg }
+      return { success: false, message: res.message }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { msg?: string } } }
       const msg = err.response?.data?.msg || t('site.createFailed') || '创建站点失败'

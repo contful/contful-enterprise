@@ -97,6 +97,7 @@ func (r *EntryRepository) ListBySite(ctx context.Context, siteID uuid.UUID, filt
 
 	offset := (page - 1) * pageSize
 	err := query.
+		Preload("ContentType").
 		Order("updated_time DESC").
 		Offset(offset).
 		Limit(pageSize).

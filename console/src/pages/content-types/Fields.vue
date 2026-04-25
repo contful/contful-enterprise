@@ -105,8 +105,8 @@ const loadFields = async () => {
     const id = route.params.id as string
     const res = await getFields(id)
     if (res.data.code === 200) {
-      fields.value = res.data.data.items
-      total.value = res.data.data.items.length
+      fields.value = res.data.data || []
+      total.value = (res.data.data || []).length
     }
   } catch {
     MessagePlugin.error(t('fields.loadFailed'))

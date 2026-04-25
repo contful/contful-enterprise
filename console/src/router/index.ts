@@ -23,6 +23,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/pages/settings/Profile.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/content/types',
     name: 'ContentTypes',
     component: () => import('@/pages/content-types/List.vue'),
@@ -55,19 +61,19 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/settings',
     name: 'Settings',
-    component: () => import('@/pages/settings/Index.vue'),
+    component: () => import('@/pages/settings/SiteSettings.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/settings/api-tokens',
+    path: '/tokens',
     name: 'ApiTokens',
     component: () => import('@/pages/settings/ApiTokens.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/settings/site-settings',
-    name: 'SiteSettings',
-    component: () => import('@/pages/settings/SiteSettings.vue'),
+    path: '/configs',
+    name: 'Configs',
+    component: () => import('@/pages/settings/Configs.vue'),
     meta: { requiresAuth: true },
   },
   {

@@ -238,11 +238,7 @@ CREATE TABLE sites (
     logo_url CLOB,
     favicon_url CLOB,
     config CLOB NOT NULL DEFAULT '{"timezone":"Asia/Shanghai","locale":"zh-CN"}',
-    seo CLOB NOT NULL DEFAULT '{}',
-    custom_domains CLOB NOT NULL DEFAULT '[]',
     is_active NUMBER(1) NOT NULL DEFAULT 1,
-    tenant_id VARCHAR(36),
-    plan VARCHAR(50) DEFAULT 'free',
     created_by VARCHAR(36),
     created_time TIMESTAMP(6) NOT NULL DEFAULT SYSDATE,
     updated_time TIMESTAMP(6) NOT NULL DEFAULT SYSDATE,
@@ -253,14 +249,11 @@ COMMENT ON COLUMN sites.id IS '站点唯一标识符';
 COMMENT ON COLUMN sites.name IS '站点名称';
 COMMENT ON COLUMN sites.slug IS '站点别名（URL 中使用）';
 COMMENT ON COLUMN sites.description IS '站点描述';
-COMMENT ON COLUMN sites.logo_url IS '站点 Logo URL';
-COMMENT ON COLUMN sites.favicon_url IS '站点 Favicon URL';
+COMMENT ON COLUMN sites.logo_url IS '站点 Logo URL（仅用于 Console 管理界面）';
+COMMENT ON COLUMN sites.favicon_url IS '站点 Favicon URL（仅用于 Console）';
 COMMENT ON COLUMN sites.config IS '站点配置 JSON：timezone 时区、locale 语言等';
-COMMENT ON COLUMN sites.seo IS 'SEO 配置 JSON：title、description、keywords 等';
-COMMENT ON COLUMN sites.custom_domains IS '自定义域名列表 JSON';
 COMMENT ON COLUMN sites.is_active IS '是否激活';
-COMMENT ON COLUMN sites.tenant_id IS '租户 ID（多租户模式使用）';
-COMMENT ON COLUMN sites.plan IS '套餐：free/pro/enterprise';
+-- 已删除字段：seo（应由展示端管理）、custom_domains（应在 nginx/docker 配置）、tenant_id/plan（商业版特性）';
 COMMENT ON COLUMN sites.created_by IS '创建者用户 ID';
 COMMENT ON COLUMN sites.created_time IS '创建时间';
 COMMENT ON COLUMN sites.updated_time IS '更新时间';
@@ -268,7 +261,6 @@ COMMENT ON COLUMN sites.deleted_time IS '软删除时间';
 
 CREATE INDEX idx_sites_slug ON sites(slug);
 CREATE INDEX idx_sites_active ON sites(is_active);
-CREATE INDEX idx_sites_tenant ON sites(tenant_id);
 
 CREATE TABLE channels (
     id VARCHAR(36) PRIMARY KEY,

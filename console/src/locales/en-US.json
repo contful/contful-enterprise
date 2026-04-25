@@ -70,9 +70,9 @@
     "contentEntries": "Content",
     "media": "Media",
     "users": "Users",
-    "settings": "Settings",
-    "apiTokens": "API Tokens",
-    "siteSettings": "Site Settings"
+    "settings": "Site Settings",
+    "tokens": "Tokens",
+    "configs": "Config"
   },
   "auth": {
     "login": "Login",
@@ -331,6 +331,10 @@
     "statusBanned": "Banned",
     "emailRequired": "Email is required",
     "passwordMinLength": "Password must be at least {min} characters",
+    "passwordHint": "At least 8 characters, containing uppercase, lowercase and numbers",
+    "passwordWeak": "Weak",
+    "passwordMedium": "Medium",
+    "passwordStrong": "Strong",
     "createSuccess": "User created successfully",
     "createFailed": "Failed to create user",
     "emailTaken": "This email is already registered",
@@ -421,6 +425,7 @@
     "subtitle": "Manage your account and system settings",
     "siteSettings": "Site Settings",
     "personalProfile": "Personal Profile",
+    "profileSubtitle": "Manage your personal information and account security",
     "basicInfo": "Basic Information",
     "brand": "Brand",
     "region": "Region & Language",

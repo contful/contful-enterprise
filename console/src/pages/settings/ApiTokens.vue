@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import {
@@ -17,6 +17,11 @@ const { t } = useI18n()
 
 const loading = ref(false)
 const tokens = ref<ApiToken[]>([])
+const pagination = reactive({
+  current: 1,
+  pageSize: 20,
+  total: 0,
+})
 const showModal = ref(false)
 const showDeleteConfirm = ref(false)
 const showRegenerateConfirm = ref(false)
@@ -51,13 +56,22 @@ const permissionLabels = computed(() =>
 const loadTokens = async () => {
   loading.value = true
   try {
-    const res = await getApiTokens({ page: 1, page_size: 100 })
-    tokens.value = res.items || []
+    const res = await getApiTokens({ page: pagination.current, page_size: pagination.pageSize })
+    // getApiTokens 返回的 res 已经是 APITokenListResponse（内部已解包 response.data.data）
+    tokens.value = res?.items || []
+    pagination.total = res?.total || 0
   } catch (error) {
     showError(error)
   } finally {
     loading.value = false
   }
+}
+
+// 分页变化
+const onPageChange = ({ current, pageSize }: { current: number; pageSize: number }) => {
+  pagination.current = current
+  pagination.pageSize = pageSize
+  loadTokens()
 }
 
 // 打开创建弹窗
@@ -106,7 +120,7 @@ const handleSubmit = async () => {
         permissions: formData.value.permissions,
         rate_limit: formData.value.rate_limit,
       })
-      newToken.value = res.data.token || ''
+      newToken.value = res.token || ''
       MessagePlugin.success(t('apiTokens.createSuccess'))
     }
     showModal.value = false
@@ -150,7 +164,7 @@ const handleRegenerate = async () => {
 
   try {
     const res = await regenerateApiToken(tokenToRegenerate.value.id)
-    newToken.value = res.data.token || ''
+    newToken.value = res.token || ''
     showRegenerateConfirm.value = false
     tokenToRegenerate.value = null
     await loadTokens()
@@ -259,18 +273,18 @@ onMounted(() => {
             <td>
               <div class="permissions">
                 <span
-                  v-for="perm in token.permissions?.slice(0, 2)"
+                  v-for="perm in (token.permissions?.content_types || []).slice(0, 2)"
                   :key="perm"
                   class="perm-badge"
                 >
                   {{ perm }}
                 </span>
-                <span v-if="(token.permissions?.length || 0) > 2" class="perm-more">
-                  +{{ token.permissions!.length - 2 }}
+                <span v-if="(token.permissions?.content_types?.length || 0) > 2" class="perm-more">
+                  +{{ token.permissions!.content_types!.length - 2 }}
                 </span>
               </div>
             </td>
-            <td>{{ token.rate_limit }}/{{ t('apiTokens.rateLimitUnit') }}</td>
+            <td>{{ token.rate_limits?.requests_per_day || 0 }}/{{ t('apiTokens.rateLimitUnit') }}</td>
             <td>{{ formatDate(token.expires_time) }}</td>
             <td>
               <span :class="['badge', getStatusClass(token)]">
@@ -314,6 +328,16 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- 分页 -->
+    <div v-if="pagination.total > pagination.pageSize" class="pagination-bar">
+      <t-pagination
+        v-model="pagination.current"
+        :total="pagination.total"
+        :page-size="pagination.pageSize"
+        @change="onPageChange"
+      />
     </div>
 
     <!-- 创建/编辑弹窗 -->
@@ -663,5 +687,12 @@ onMounted(() => {
   font-size: 13px;
   color: var(--color-error);
   margin-top: 8px;
+}
+
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
 }
 </style>

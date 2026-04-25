@@ -25,7 +25,7 @@ func NewAPITokenHandler(tokenService *service.APITokenService) *APITokenHandler 
 
 // RegisterRoutes 注册路由
 func (h *APITokenHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	tokens := rg.Group("/api-tokens")
+	tokens := rg.Group("/tokens")
 	{
 		tokens.POST("", h.Create)
 		tokens.GET("", h.List)

@@ -15,7 +15,29 @@ var (
 	ErrUserNotFound      = errors.New("user not found")
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrInvalidPassword   = errors.New("invalid password")
+	ErrWeakPassword      = errors.New("password must be at least 8 characters with uppercase, lowercase and numbers")
 )
+
+// isPasswordStrong 检查密码强度：至少8位，包含大小写字母与数字
+func isPasswordStrong(pwd string) bool {
+	if len(pwd) < 8 {
+		return false
+	}
+	hasLower := false
+	hasUpper := false
+	hasDigit := false
+	for _, c := range pwd {
+		switch {
+		case c >= 'a' && c <= 'z':
+			hasLower = true
+		case c >= 'A' && c <= 'Z':
+			hasUpper = true
+		case c >= '0' && c <= '9':
+			hasDigit = true
+		}
+	}
+	return hasLower && hasUpper && hasDigit
+}
 
 type UserService struct {
 	userRepo *repository.UserRepository
@@ -34,6 +56,11 @@ func (s *UserService) Create(ctx context.Context, req *model.CreateUserRequest) 
 	}
 	if existing != nil {
 		return nil, ErrUserAlreadyExists
+	}
+
+	// 密码强度检查
+	if !isPasswordStrong(req.Password) {
+		return nil, ErrWeakPassword
 	}
 
 	// 密码哈希
@@ -158,6 +185,11 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, oldP
 	// 验证旧密码
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
 		return ErrInvalidPassword
+	}
+
+	// 新密码强度检查
+	if !isPasswordStrong(newPassword) {
+		return ErrWeakPassword
 	}
 
 	// 新密码哈希

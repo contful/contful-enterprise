@@ -72,8 +72,8 @@ const loadAssets = async () => {
 // 加载文件夹
 const loadFolders = async () => {
   try {
-    const res = await getAssetFolders()
-    folders.value = res.data || []
+    const data = await getAssetFolders()
+    folders.value = data || []
   } catch (error) {
     showError(error)
   }
