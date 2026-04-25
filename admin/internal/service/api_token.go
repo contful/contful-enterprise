@@ -31,6 +31,7 @@ type APITokenService struct {
 }
 
 // NewAPITokenService 新建服务
+// encryptKey: 统一使用 Security.Secret
 func NewAPITokenService(tokenRepo *repository.APITokenRepository, encryptKey string) *APITokenService {
 	return &APITokenService{tokenRepo: tokenRepo, encryptKey: encryptKey}
 }

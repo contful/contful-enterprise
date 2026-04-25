@@ -51,14 +51,12 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 	}
 
 	site := &model.Site{
-		ID:          uuid.New(),
-		Name:        req.Name,
-		Slug:        req.Slug,
-		Description: req.Description,
-		LogoURL:     req.LogoURL,
-		FaviconURL:  req.FaviconURL,
-		IsActive:    true,
-		CreatedBy:   &userID,
+		ID:        uuid.New(),
+		Name:      req.Name,
+		Slug:      req.Slug,
+		SiteURL:   req.SiteURL,
+		IsActive:  true,
+		CreatedBy: &userID,
 	}
 
 	if req.Config != nil {
@@ -256,14 +254,8 @@ func (s *SiteService) Update(ctx context.Context, id uuid.UUID, req *model.SiteU
 		}
 		site.Slug = *req.Slug
 	}
-	if req.Description != nil {
-		site.Description = *req.Description
-	}
-	if req.LogoURL != nil {
-		site.LogoURL = req.LogoURL
-	}
-	if req.FaviconURL != nil {
-		site.FaviconURL = req.FaviconURL
+	if req.SiteURL != nil {
+		site.SiteURL = req.SiteURL
 	}
 	if req.Config != nil {
 		site.Config = *req.Config

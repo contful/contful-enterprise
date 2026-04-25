@@ -136,7 +136,7 @@ func (h *EntryHandler) List(c *gin.Context) {
 	}
 
 	// 转换为响应（包含 ContentType 信息）
-	items := make([]model.EntryResponse, len(entries))
+	items := make([]model.EntryResponseWithType, len(entries))
 	for i, e := range entries {
 		items[i] = e.ToResponseWithType()
 	}

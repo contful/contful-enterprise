@@ -1,7 +1,10 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"hash"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,14 +29,21 @@ type Config struct {
 	Security  SecurityConfig  `mapstructure:"security"`
 }
 
+// SupportedAlgorithms 支持的加密算法
+var SupportedAlgorithms = []string{"aes-256-gcm", "sm4-gcm"}
+
 // SecurityConfig 安全配置
 type SecurityConfig struct {
-	// APITokenKey API Token 加密密钥（AES-256-GCM）
-	// 支持任意长度字符串，会自动派生 32 字节密钥。
-	// 推荐使用 64 字符 hex（纯 0-9a-f）：openssl rand -hex 32
-	// ⚠️ 重要：变更此密钥将导致所有现有 API Token 无法解密，Open API 认证会失败！
-	// 如需变更，请先导出所有 Token，修改配置后重新生成 Token。
-	APITokenKey string `mapstructure:"api_token_key"`
+	// Secret 主密钥（统一配置）
+	// - 支持 64 字符 hex（纯 0-9a-f）：openssl rand -hex 32
+	// - 支持任意长度字符串（会自动派生 32 字节密钥）
+	// ⚠️ 重要：此密钥用于加密存储敏感数据，变更前请确保无遗留加密数据
+	Secret string `mapstructure:"secret"`
+
+	// Algorithm 加密算法
+	// 可选值：aes-256-gcm（默认）, sm4-gcm
+	// 注意：sm4-gcm 需要国密支持
+	Algorithm string `mapstructure:"algorithm"`
 }
 
 // ServerConfig 服务配置
@@ -212,12 +222,28 @@ func Get() *Config {
 
 // Validate 验证配置
 func (c *Config) Validate() error {
-	// JWT Secret 必填
-	if c.JWT.Secret == "" {
-		return fmt.Errorf("jwt.secret is required")
+	// Secret 或 JWT Secret 至少配置一个
+	if c.Security.Secret == "" && c.JWT.Secret == "" {
+		return fmt.Errorf("security.secret or jwt.secret is required")
 	}
-	if len(c.JWT.Secret) < 16 {
+
+	// JWT Secret 最小长度
+	if len(c.JWT.Secret) > 0 && len(c.JWT.Secret) < 16 {
 		return fmt.Errorf("jwt.secret must be at least 16 characters")
+	}
+
+	// 验证加密算法
+	if c.Security.Algorithm != "" {
+		valid := false
+		for _, algo := range SupportedAlgorithms {
+			if c.Security.Algorithm == algo {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return fmt.Errorf("unsupported algorithm: %s, supported: %v", c.Security.Algorithm, SupportedAlgorithms)
+		}
 	}
 
 	// 数据库配置必填
@@ -310,9 +336,17 @@ func (c *Config) PostLoad() {
 		c.Logging.Output = "stdout"
 	}
 
-	// Security 默认值：如果未设置 API Token 密钥，使用 JWT Secret 派生
-	if c.Security.APITokenKey == "" {
-		c.Security.APITokenKey = c.JWT.Secret
+	// Security 默认值
+	if c.Security.Algorithm == "" {
+		c.Security.Algorithm = "aes-256-gcm"
+	}
+
+	// 统一密钥派生：JWT/Token 加密使用 HKDF 从主密钥派生
+	if c.Security.Secret != "" {
+		// JWT 签名密钥：派生 "jwt" info
+		if c.JWT.Secret == "" {
+			c.JWT.Secret = deriveKey(c.Security.Secret, "jwt-signing", 32)
+		}
 	}
 }
 
@@ -403,19 +437,20 @@ func readEnvOverrides(v *viper.Viper) {
 	// 支持直接使用环境变量覆盖配置
 	// 格式: CONTFUL_DATABASE_HOST, CONTFUL_JWT_SECRET 等
 	envMappings := map[string]string{
-		"DB_HOST":        "database.host",
-		"DB_PORT":        "database.port",
-		"DB_USER":        "database.user",
-		"DB_PASSWORD":    "database.password",
-		"DB_NAME":        "database.name",
-		"DB_SSL_MODE":    "database.ssl_mode",
-		"REDIS_HOST":     "redis.host",
-		"REDIS_PORT":     "redis.port",
-		"REDIS_PASSWORD": "redis.password",
-		"REDIS_DB":       "redis.db",
-		"JWT_SECRET":     "jwt.secret",
-		"SERVER_PORT":    "server.port",
-		"API_TOKEN_KEY":  "security.api_token_key",
+		"DB_HOST":          "database.host",
+		"DB_PORT":          "database.port",
+		"DB_USER":          "database.user",
+		"DB_PASSWORD":      "database.password",
+		"DB_NAME":          "database.name",
+		"DB_SSL_MODE":      "database.ssl_mode",
+		"REDIS_HOST":       "redis.host",
+		"REDIS_PORT":       "redis.port",
+		"REDIS_PASSWORD":   "redis.password",
+		"REDIS_DB":         "redis.db",
+		"JWT_SECRET":       "jwt.secret",
+		"SERVER_PORT":      "server.port",
+		"SECRET":           "security.secret",
+		"SECRET_ALGORITHM": "security.algorithm",
 	}
 
 	for envKey, configKey := range envMappings {
@@ -426,6 +461,38 @@ func readEnvOverrides(v *viper.Viper) {
 }
 
 // 辅助函数
+
+// deriveKey 使用 HKDF-SHA256 从主密钥派生指定用途的密钥
+func deriveKey(master, info string, length int) string {
+	// 使用固定 salt
+	salt := []byte("contful-kdf-salt-v1")
+
+	// HKDF-Extract
+	prk := hkdfExpand(sha256.New, []byte(master), salt, nil, 32)
+
+	// HKDF-Expand
+	h := hkdfExpand(sha256.New, prk, nil, []byte(info), length)
+
+	result := make([]byte, length)
+	copy(result, h)
+	return hex.EncodeToString(result)
+}
+
+// hkdfExpand 简化的 HKDF-Expand 实现
+func hkdfExpand(prf func() hash.Hash, ikm []byte, salt, info []byte, length int) []byte {
+	h := prf()
+	h.Write(salt)
+	h.Write(ikm)
+	prk := h.Sum(nil)
+
+	h = prf()
+	h.Write(prk)
+	h.Write([]byte{1})
+	if info != nil {
+		h.Write(info)
+	}
+	return h.Sum(nil)[:length]
+}
 
 func getExt(filename string) string {
 	i := strings.LastIndex(filename, ".")

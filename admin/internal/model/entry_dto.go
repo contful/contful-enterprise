@@ -69,10 +69,10 @@ type EntryVersionInfo struct {
 
 // EntryListResponse 条目列表响应
 type EntryListResponse struct {
-	Items      []EntryResponse `json:"items"`
-	Total      int64           `json:"total"`
-	Page       int             `json:"page"`
-	PageSize   int             `json:"page_size"`
+	Items      []EntryResponseWithType `json:"items"`
+	Total      int64                  `json:"total"`
+	Page       int                    `json:"page"`
+	PageSize   int                    `json:"page_size"`
 }
 
 // EntryListFilter 条目列表过滤条件
@@ -165,8 +165,8 @@ type EntryResponseWithType struct {
 	ContentType *ContentTypeResponse `json:"content_type,omitempty"`
 }
 
-// ToResponseWithType 转换为带内容类型的响应
-func (e *Entry) ToResponseWithType(ct *ContentType) EntryResponseWithType {
+// ToResponseWithTypeWithContentType 转换为带内容类型的响应（手动传入 ContentType）
+func (e *Entry) ToResponseWithTypeWithContentType(ct *ContentType) EntryResponseWithType {
 	return EntryResponseWithType{
 		EntryResponse: e.ToResponse(),
 		ContentType:   func() *ContentTypeResponse { r := ct.ToResponse(); return &r }(),

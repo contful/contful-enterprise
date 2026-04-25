@@ -469,16 +469,20 @@ func (s *EntryService) parseAndValidateValues(ctx context.Context, fields []mode
 			entryValue.Value = nil
 		} else if str, ok := value.(string); ok {
 			// 如果是 JSON 字符串，尝试解析后直接存储
-			var jsonValue interface{}
+			var jsonValue map[string]interface{}
 			if err := json.Unmarshal([]byte(str), &jsonValue); err == nil {
 				entryValue.Value = jsonValue
 			} else {
-				// 无法解析为 JSON，直接存储字符串
-				entryValue.Value = str
+				// 无法解析为 JSON，包装为 JSONB
+				entryValue.Value = map[string]interface{}{"value": str}
 			}
 		} else {
-			// number/bool/array/object 等非 string 类型，直接存入
-			entryValue.Value = value
+			// number/bool/array/object 等非 string 类型，包装为 JSONB
+			if v, ok := value.(map[string]interface{}); ok {
+				entryValue.Value = v
+			} else {
+				entryValue.Value = map[string]interface{}{"value": value}
+			}
 		}
 
 		// 设置辅助列（用于索引和查询）

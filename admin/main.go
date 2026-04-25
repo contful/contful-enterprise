@@ -96,7 +96,7 @@ func main() {
 	siteService := service.NewSiteService(db, siteRepo, configRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
-	tokenService := service.NewAPITokenService(tokenRepo, cfg.Security.APITokenKey)
+	tokenService := service.NewAPITokenService(tokenRepo, cfg.Security.Secret)
 
 	// 初始化 MFA 服务（PRE-005）
 	mfaService := service.NewMFAService(userRepo, redisClient, cfg.JWT.Secret)
