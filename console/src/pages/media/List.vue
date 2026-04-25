@@ -286,48 +286,49 @@ onMounted(() => {
         @dragleave="isDragging = false"
         @drop.prevent="handleDrop"
       >
+        <!-- 加载中 -->
+        <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
+
+        <!-- 无数据 -->
+        <div v-else-if="assets.length === 0" class="empty-state">
+          <h3>{{ t('media.noMedia') }}</h3>
+          <p>{{ t('media.noMediaHint') }}</p>
+        </div>
+
         <!-- 网格视图 -->
-        <div v-if="viewMode === 'grid'" class="asset-grid">
-          <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
-          <template v-else>
-            <div
-              v-for="asset in assets"
-              :key="asset.id"
-              class="asset-card"
-              :class="{ selected: selectedAssets.has(asset.id) }"
-              @click="toggleSelect(asset)"
-            >
-              <div class="asset-preview">
-                <img v-if="isImage(asset)" :src="asset.url" :alt="asset.name" />
-                <div v-else class="file-icon" :class="getFileIcon(asset.mime_type || '')">
-                  <svg width="32" height="32" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M4 4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
-                  </svg>
-                </div>
-                <div class="asset-overlay">
-                  <button class="btn btn-danger btn-sm" @click.stop="confirmDelete(asset)">
-                    {{ t('common.delete') }}
-                  </button>
-                </div>
-              </div>
-              <div class="asset-info">
-                <div class="asset-name" :title="asset.name">{{ asset.name }}</div>
-                <div class="asset-meta">
-                  <span>{{ formatSize(asset.size) }}</span>
-                  <span>{{ new Date(asset.created_time).toLocaleDateString() }}</span>
-                </div>
-              </div>
-              <div v-if="selectedAssets.has(asset.id)" class="selected-badge">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+        <div v-else-if="viewMode === 'grid'" class="asset-grid">
+          <div
+            v-for="asset in assets"
+            :key="asset.id"
+            class="asset-card"
+            :class="{ selected: selectedAssets.has(asset.id) }"
+            @click="toggleSelect(asset)"
+          >
+            <div class="asset-preview">
+              <img v-if="isImage(asset)" :src="asset.url" :alt="asset.name" />
+              <div v-else class="file-icon" :class="getFileIcon(asset.mime_type || '')">
+                <svg width="32" height="32" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M4 4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
                 </svg>
               </div>
+              <div class="asset-overlay">
+                <button class="btn btn-danger btn-sm" @click.stop="confirmDelete(asset)">
+                  {{ t('common.delete') }}
+                </button>
+              </div>
             </div>
-          </template>
-
-          <div v-if="!loading && assets.length === 0" class="empty-state">
-            <h3>{{ t('media.noMedia') }}</h3>
-            <p>{{ t('media.noMediaHint') }}</p>
+            <div class="asset-info">
+              <div class="asset-name" :title="asset.name">{{ asset.name }}</div>
+              <div class="asset-meta">
+                <span>{{ formatSize(asset.size) }}</span>
+                <span>{{ new Date(asset.created_time).toLocaleDateString() }}</span>
+              </div>
+            </div>
+            <div v-if="selectedAssets.has(asset.id)" class="selected-badge">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+              </svg>
+            </div>
           </div>
         </div>
 
@@ -351,13 +352,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-if="loading">
-                <td colspan="6" class="text-center">{{ t('common.loading') }}</td>
-              </tr>
-              <tr v-else-if="assets.length === 0">
-                <td colspan="6" class="text-center">{{ t('media.noMedia') }}</td>
-              </tr>
-              <tr v-else v-for="asset in assets" :key="asset.id">
+              <tr v-for="asset in assets" :key="asset.id">
                 <td>
                   <input
                     type="checkbox"
@@ -546,6 +541,26 @@ onMounted(() => {
   border: 2px dashed var(--color-primary);
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 8px;
+  color: var(--color-text-secondary);
+}
+
+.empty-state h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.empty-state p {
+  font-size: 14px;
+}
+
 .asset-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -709,9 +724,10 @@ onMounted(() => {
 }
 
 .loading {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
   color: var(--color-text-secondary);
 }
 
