@@ -244,15 +244,9 @@ onMounted(() => {
             <td colspan="7" class="text-center">{{ t('apiTokens.loading') }}</td>
           </tr>
           <tr v-else-if="tokens.length === 0">
-            <td colspan="7" class="empty-state">
-              <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-                <path d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
-              </svg>
+            <td colspan="7" class="empty-td">
               <h3>{{ t('apiTokens.noTokens') }}</h3>
               <p>{{ t('apiTokens.noTokensHint') }}</p>
-              <button class="btn btn-primary btn-sm" @click="openCreateModal">
-                {{ t('apiTokens.createToken') }}
-              </button>
             </td>
           </tr>
           <tr v-else v-for="token in tokens" :key="token.id">
@@ -508,6 +502,23 @@ onMounted(() => {
 .text-center {
   text-align: center;
   padding: 60px !important;
+  color: var(--color-text-secondary);
+}
+
+.empty-td {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.empty-td h3 {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.empty-td p {
+  font-size: 13px;
   color: var(--color-text-secondary);
 }
 
