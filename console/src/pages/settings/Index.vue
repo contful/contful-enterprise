@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ApiTokens from './ApiTokens.vue'
-import SiteSettings from './SiteSettings.vue'
 import Configs from './Configs.vue'
 import Security from './Security.vue'
 import Profile from './Profile.vue'
 
 const { t } = useI18n()
 
-const activeTab = ref('api-tokens')
+const activeTab = ref('profile')
 </script>
 
 <template>
@@ -25,24 +23,10 @@ const activeTab = ref('api-tokens')
       <nav class="settings-nav">
         <button
           class="nav-item"
-          :class="{ active: activeTab === 'api-tokens' }"
-          @click="activeTab = 'api-tokens'"
+          :class="{ active: activeTab === 'profile' }"
+          @click="activeTab = 'profile'"
         >
-          {{ t('menu.apiTokens') }}
-        </button>
-        <button
-          class="nav-item"
-          :class="{ active: activeTab === 'site' }"
-          @click="activeTab = 'site'"
-        >
-          {{ t('menu.siteSettings') }}
-        </button>
-        <button
-          class="nav-item"
-          :class="{ active: activeTab === 'configs' }"
-          @click="activeTab = 'configs'"
-        >
-          {{ t('settings.configs') }}
+          {{ t('settings.personalProfile') }}
         </button>
         <button
           class="nav-item"
@@ -53,19 +37,17 @@ const activeTab = ref('api-tokens')
         </button>
         <button
           class="nav-item"
-          :class="{ active: activeTab === 'profile' }"
-          @click="activeTab = 'profile'"
+          :class="{ active: activeTab === 'configs' }"
+          @click="activeTab = 'configs'"
         >
-          {{ t('settings.personalProfile') }}
+          {{ t('settings.configs') }}
         </button>
       </nav>
 
       <div class="settings-content">
-        <ApiTokens v-if="activeTab === 'api-tokens'" />
-        <SiteSettings v-else-if="activeTab === 'site'" />
-        <Configs v-else-if="activeTab === 'configs'" />
+        <Profile v-if="activeTab === 'profile'" />
         <Security v-else-if="activeTab === 'security'" />
-        <Profile v-else-if="activeTab === 'profile'" />
+        <Configs v-else-if="activeTab === 'configs'" />
       </div>
     </div>
   </div>

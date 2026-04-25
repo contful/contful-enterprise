@@ -30,7 +30,9 @@ const menuItems = computed(() => [
   { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
   { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
   { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
-  { path: '/settings', icon: 'settings', label: t('menu.settings'), name: 'Settings', tIcon: 'setting' },
+  { path: '/settings/api-tokens', icon: 'key', label: t('menu.apiTokens'), name: 'ApiTokens', tIcon: 'key' },
+  { path: '/settings/site-settings', icon: 'setting', label: t('menu.siteSettings'), name: 'SiteSettings', tIcon: 'setting' },
+  { path: '/settings', icon: 'settings', label: t('menu.settings'), name: 'Settings', tIcon: 'control-platform' },
 ])
 
 const isActive = (path: string) => {

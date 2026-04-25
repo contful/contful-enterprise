@@ -59,6 +59,18 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/settings/api-tokens',
+    name: 'ApiTokens',
+    component: () => import('@/pages/settings/ApiTokens.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/settings/site-settings',
+    name: 'SiteSettings',
+    component: () => import('@/pages/settings/SiteSettings.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/users',
     name: 'Users',
     component: () => import('@/pages/users/List.vue'),
