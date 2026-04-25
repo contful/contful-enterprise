@@ -31,10 +31,21 @@ redis:
   pool_size: 100
 
 # JWT 认证（密钥在 .env 中配置）
+# jwt.secret: JWT 签名密钥，建议 32+ 字符
+# 生成方式: openssl rand -base64 32 | tr -d '=\n' | tr '/+' '_-'
 jwt:
-  secret: ""             # 必填，从 .env 读取
+  secret: "AYSr6OkSoo0Pnj-oOznbBKqX6XEdRoPzR72HrUW2blw"  # 示例密钥，请替换
   access_token_expire_minutes: 15
   refresh_token_expire_days: 7
+
+# 安全配置
+# security.api_token_key: API Token 加密密钥（AES-256-GCM）
+#   - 支持任意长度字符串（会自动派生 32 字节密钥）
+#   - 推荐使用 64 字符 hex（纯 0-9a-f）：openssl rand -hex 32
+# ⚠️ 警告：变更此密钥将导致所有现有 API Token 无法解密，Open API 认证会失败！
+#    如需变更，请先导出所有 Token，修改配置后重新生成 Token。
+security:
+  api_token_key: "0a8c6ca988b54e63c95fa34588f3bfcad1e08deca16a66001a8f8ef0977b1d8d"  # 示例密钥，请替换
 
 # 文件存储
 storage:

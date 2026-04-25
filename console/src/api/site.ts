@@ -5,8 +5,7 @@ export interface Site {
   name: string
   slug: string
   description?: string
-  logo_url?: string
-  favicon_url?: string
+  site_url?: string
   config: Record<string, any>
   is_active: boolean
   created_by?: string
@@ -39,8 +38,7 @@ export interface UpdateSiteParams {
   name?: string
   slug?: string
   description?: string
-  logo_url?: string
-  favicon_url?: string
+  site_url?: string
   config?: SiteConfig
   is_active?: boolean
 }

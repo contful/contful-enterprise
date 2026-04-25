@@ -185,6 +185,15 @@ onMounted(async () => {
       <!-- 占位，撑开左右两端的间距 -->
       <div class="header-spacer"></div>
       <div class="header-right">
+        <a
+          href="https://contful.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="header-link"
+          :title="t('header.officialSite')"
+        >
+          {{ t('header.officialSite') }}
+        </a>
         <LangSwitcher />
         <t-dropdown trigger="click">
           <div class="user-trigger">
@@ -335,6 +344,22 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+}
+
+.header-link {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.header-link:hover {
+  color: var(--color-primary);
+  background: var(--color-hover);
 }
 
 .user-menu {

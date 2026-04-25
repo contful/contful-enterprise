@@ -70,11 +70,12 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="pagination.total > pagination.pageSize" class="pagination-bar">
+    <div v-if="users.length > 0" class="pagination-bar">
       <t-pagination
         v-model="pagination.current"
         :total="pagination.total"
         :page-size="pagination.pageSize"
+        :show-page-size="false"
         @change="onPageChange"
       />
     </div>
