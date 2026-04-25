@@ -121,7 +121,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       const res = await request.get<{ user: User }>('/users/me')
       if (res.data.code === 200) {
-        setUser(res.data.data.user)
+        setUser(res.data.data as any)
       }
     } catch {
       // token 可能已过期
@@ -151,7 +151,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const updateUser = async (id: string, data: { nickname?: string; status?: string; is_super_admin?: boolean }) => {
-    const res = await request.patch<{ data: User }>(`/users/${id}`, data)
+    const res = await request.put<{ data: User }>(`/users/${id}`, data)
     return res.data
   }
 
