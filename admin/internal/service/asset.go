@@ -88,6 +88,52 @@ func (s *AssetService) SetConfigService(cs *ConfigService) {
 	s.configService = cs
 }
 
+// ServeFile 提供静态文件服务
+func (s *AssetService) ServeFile(ctx context.Context, siteID uuid.UUID, key string) (io.ReadCloser, string, error) {
+	sp, err := s.storageManager.ProviderFor(ctx, siteID)
+	if err != nil {
+		return nil, "", fmt.Errorf("获取存储驱动失败: %w", err)
+	}
+
+	// 调用存储驱动的 ServeFile 方法
+	if localProvider, ok := sp.(*storage.LocalProvider); ok {
+		return localProvider.ServeFile(ctx, key)
+	}
+
+	// 对于其他存储驱动，使用 Download 方法
+	reader, err := sp.Download(ctx, key, nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 尝试从 key 推断 MIME 类型
+	ext := filepath.Ext(key)
+	mimeType := "application/octet-stream"
+	if ext != "" {
+		// 简单的 MIME 类型映射
+		switch strings.ToLower(ext) {
+		case ".jpg", ".jpeg":
+			mimeType = "image/jpeg"
+		case ".png":
+			mimeType = "image/png"
+		case ".gif":
+			mimeType = "image/gif"
+		case ".webp":
+			mimeType = "image/webp"
+		case ".svg":
+			mimeType = "image/svg+xml"
+		case ".pdf":
+			mimeType = "application/pdf"
+		case ".mp4":
+			mimeType = "video/mp4"
+		case ".mp3":
+			mimeType = "audio/mpeg"
+		}
+	}
+
+	return reader, mimeType, nil
+}
+
 
 // Upload 上传资源
 func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, file *multipart.FileHeader, folderID *uuid.UUID, alt, title string) (*model.Asset, error) {

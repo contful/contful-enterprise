@@ -90,8 +90,8 @@ const loadContentType = async () => {
   try {
     const id = route.params.id as string
     const res = await getContentType(id)
-    if (res.data.code === 200) {
-      contentType.value = res.data.data
+    if (res.code === 200) {
+      contentType.value = res.data
     }
   } catch {
     MessagePlugin.error(t('contentTypes.loadFailed'))
@@ -104,9 +104,9 @@ const loadFields = async () => {
   try {
     const id = route.params.id as string
     const res = await getFields(id)
-    if (res.data.code === 200) {
-      fields.value = res.data.data || []
-      total.value = (res.data.data || []).length
+    if (res.code === 200) {
+      fields.value = res.data?.items || []
+      total.value = res.data?.items?.length || 0
     }
   } catch {
     MessagePlugin.error(t('fields.loadFailed'))

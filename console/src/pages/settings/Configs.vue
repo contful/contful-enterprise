@@ -89,7 +89,10 @@ async function saveEdit(cfg: SiteConfig) {
   saving.value = cfg.config_key
   editError.value = ''
   try {
-    await setConfig(siteStore.currentSiteId, cfg.config_key, editValue.value, cfg.config_type)
+    await setConfig(siteStore.currentSiteId, cfg.config_key, {
+      config_value: editValue.value,
+      config_type: cfg.config_type,
+    })
     cfg.config_value = editValue.value
     editingKey.value = null
     showSuccess(t('common.saveSuccess'))
@@ -138,12 +141,12 @@ async function handleAdd() {
   saving.value = 'add'
   addError.value = ''
   try {
-    const res = await setConfig(
-      siteStore.currentSiteId,
-      addForm.value.config_key,
-      addForm.value.config_value,
-      addForm.value.config_type,
-    )
+    const res = await setConfig(siteStore.currentSiteId, addForm.value.config_key, {
+      config_value: addForm.value.config_value,
+      config_type: addForm.value.config_type,
+      config_group: addForm.value.config_group,
+      description: addForm.value.description,
+    })
     // 添加到列表
     if (res.data) {
       configs.value.push(res.data)

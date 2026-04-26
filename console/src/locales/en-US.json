@@ -76,8 +76,7 @@
     "settings": "Site Settings",
     "tokens": "Tokens",
     "apiTokens": "API Tokens",
-    "configs": "Config",
-    "storage": "Storage"
+    "configs": "Config"
   },
   "auth": {
     "login": "Login",
@@ -673,3 +672,4 @@
     "saved": "Storage configuration saved"
   }
 }
+

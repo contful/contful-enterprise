@@ -8,29 +8,29 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/contful/contful/admin/internal/pkg/crypto"
+	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/repository"
 )
 
 var (
 	ErrConfigNotFound  = errors.New("配置不存在")
 	ErrConfigReadonly  = errors.New("配置为只读，禁止修改")
-	ErrMasterKeyEmpty  = errors.New("主密钥 CONTFUL_CONFIG_MASTER_KEY 未设置")
+	ErrCrypterEmpty    = errors.New("加密器未初始化")
 	ErrInvalidConfigType = errors.New("无效的 config_type")
 )
 
-// ConfigService 站点配置服务（含 AES-256-GCM 加解密）
+// ConfigService 站点配置服务（含加解密）
 type ConfigService struct {
-	repo      *repository.SiteConfigRepository
-	masterKey string // AES-256-GCM 主密钥
+	repo    *repository.SiteConfigRepository
+	crypter crypto.Crypter
 }
 
 // NewConfigService 新建配置服务
-// masterKey: 环境变量 CONTFUL_CONFIG_MASTER_KEY 的值
-func NewConfigService(repo *repository.SiteConfigRepository, masterKey string) *ConfigService {
+// crypter: 加密器，由 NewCrypter(algorithm, secret) 创建
+func NewConfigService(repo *repository.SiteConfigRepository, crypter crypto.Crypter) *ConfigService {
 	return &ConfigService{
-		repo:      repo,
-		masterKey: masterKey,
+		repo:    repo,
+		crypter: crypter,
 	}
 }
 
@@ -49,8 +49,8 @@ func (s *ConfigService) Get(ctx context.Context, siteID uuid.UUID, key string) (
 // Set 写入配置，自动加密（如果 is_encrypted=true）
 // updatedBy 传 nil 则不更新 updated_by 字段
 func (s *ConfigService) Set(ctx context.Context, siteID uuid.UUID, key, value string, opts *model.CreateSiteConfig, updatedBy *uuid.UUID) error {
-	if s.masterKey == "" {
-		return ErrMasterKeyEmpty
+	if s.crypter == nil {
+		return ErrCrypterEmpty
 	}
 
 	// 检查是否存在 + 只读状态
@@ -65,6 +65,7 @@ func (s *ConfigService) Set(ctx context.Context, siteID uuid.UUID, key, value st
 		ConfigKey:   key,
 		ConfigValue: value,
 		ConfigType:  opts.ConfigType,
+		ConfigGroup: opts.ConfigGroup,
 		IsEncrypted: opts.IsEncrypted,
 		IsReadonly:  opts.IsReadonly,
 		Description: opts.Description,
@@ -123,21 +124,21 @@ func (s *ConfigService) ListAll(ctx context.Context, siteID uuid.UUID) ([]model.
 	return configs, nil
 }
 
-// encrypt 调用 AES-256-GCM 加密
+// encrypt 加密
 func (s *ConfigService) encrypt(plaintext string) (string, error) {
-	return crypto.Encrypt([]byte(plaintext), s.masterKey)
+	return s.crypter.Encrypt([]byte(plaintext))
 }
 
-// decrypt 调用 AES-256-GCM 解密
+// decrypt 解密
 func (s *ConfigService) decrypt(ciphertext string) (string, error) {
-	plaintext, err := crypto.Decrypt(ciphertext, s.masterKey)
+	plaintext, err := s.crypter.Decrypt(ciphertext)
 	if err != nil {
 		return "", err
 	}
 	return string(plaintext), nil
 }
 
-// GetMasterKey 返回当前主密钥（用于 MFA 等其他服务共享）
-func (s *ConfigService) GetMasterKey() string {
-	return s.masterKey
+// GetCrypter 返回加密器（用于 MFA 等其他服务共享）
+func (s *ConfigService) GetCrypter() crypto.Crypter {
+	return s.crypter
 }

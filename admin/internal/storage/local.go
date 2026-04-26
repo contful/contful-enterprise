@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"mime"
 )
 
 // LocalProvider 本地存储驱动
@@ -110,6 +112,24 @@ func (p *LocalProvider) Stat(ctx context.Context, key string) (*ObjectInfo, erro
 		Size:      info.Size(),
 		CreatedAt: info.ModTime(),
 	}, nil
+}
+
+// ServeFile 提供静态文件服务（用于 HTTP 响应）
+func (p *LocalProvider) ServeFile(ctx context.Context, key string) (io.ReadCloser, string, error) {
+	fullPath := filepath.Join(p.rootDir, key)
+	file, err := os.Open(fullPath)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 检测 MIME 类型
+	ext := filepath.Ext(key)
+	mimeType := mime.TypeByExtension(ext)
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+
+	return file, mimeType, nil
 }
 
 func (p *LocalProvider) List(ctx context.Context, prefix string, pageSize int, _ string) ([]ObjectInfo, string, error) {

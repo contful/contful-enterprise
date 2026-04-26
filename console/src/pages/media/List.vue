@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from '@/components/Icon.vue'
 import {
   getAssets,
   getAssetFolders,
@@ -26,9 +27,23 @@ const assetToDelete = ref<Asset | null>(null)
 const selectedAssets = ref<Set<string>>(new Set())
 const uploading = ref(false)
 const uploadProgress = ref(0)
+const uploadFolderId = ref<string | null>(null) // 上传弹窗中选中的文件夹
 
 // 新建文件夹
 const newFolderName = ref('')
+
+// 打开上传弹窗
+function openUpload() {
+  uploadFolderId.value = selectedFolder.value // 默认使用当前选中的文件夹
+  showUploadModal.value = true
+}
+
+// 切换文件夹
+function selectFolder(folderId: string | null) {
+  selectedFolder.value = folderId
+  page.value = 1
+  loadAssets()
+}
 
 // 拖拽状态
 const isDragging = ref(false)
@@ -91,11 +106,12 @@ const handleUpload = async (event: Event) => {
   try {
     await createAsset({
       file,
-      folder_id: selectedFolder.value,
+      folder_id: uploadFolderId.value,
     })
     showSuccess(t('media.uploadSuccess'))
     await loadAssets()
     showUploadModal.value = false
+    uploadFolderId.value = null
   } catch (error) {
     showError(error)
   } finally {
@@ -115,11 +131,12 @@ const handleDrop = async (event: DragEvent) => {
     for (let i = 0; i < files.length; i++) {
       await createAsset({
         file: files[i],
-        folder_id: selectedFolder.value,
+        folder_id: uploadFolderId.value,
       })
     }
     await loadAssets()
     showSuccess(t('media.uploadSuccess'))
+    uploadFolderId.value = null
   } catch (error) {
     showError(error)
   } finally {
@@ -223,20 +240,51 @@ onMounted(() => {
           </svg>
           {{ t('media.newFolder') }}
         </button>
-        <button class="btn btn-primary" @click="showUploadModal = true">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10 3a1 1 0 011 1v5.586l1.707-1.707a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 9.586V4a1 1 0 011-1z"/>
-          </svg>
+        <button class="btn btn-primary" @click="openUpload">
+          <Icon name="arrow-up" />
           {{ t('media.upload') }}
         </button>
       </div>
     </div>
 
     <div class="media-layout">
-      <!-- 工具栏 -->
-      <div class="media-toolbar">
-        <div class="toolbar-left">
-          <input
+      <!-- 文件夹侧边栏 -->
+      <div class="folder-sidebar">
+        <div class="folder-header">
+          <span>{{ t('media.folders') }}</span>
+        </div>
+        <div class="folder-list">
+          <div
+            class="folder-item"
+            :class="{ active: selectedFolder === null }"
+            @click="selectFolder(null)"
+          >
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+            </svg>
+            <span>{{ t('media.allFiles') }}</span>
+          </div>
+          <template v-for="folder in folders" :key="folder.id">
+            <div
+              class="folder-item"
+              :class="{ active: selectedFolder === folder.id }"
+              @click="selectFolder(folder.id)"
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+              </svg>
+              <span>{{ folder.name }}</span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- 主内容区 -->
+      <div class="media-main">
+        <!-- 工具栏 -->
+        <div class="media-toolbar">
+          <div class="toolbar-left">
+            <input
             v-model="searchKeyword"
             type="text"
             class="input"
@@ -252,12 +300,12 @@ onMounted(() => {
             <option value="document">{{ t('media.document') }}</option>
           </select>
           <button class="btn btn-secondary btn-sm" @click="loadAssets">{{ t('media.searchBtn') }}</button>
-        </div>
-        <div class="toolbar-right">
-          <span class="selection-info" v-if="selectedAssets.size > 0">
-            {{ t('media.selectedFiles', { count: selectedAssets.size }) }}
-          </span>
-          <button
+          </div>
+          <div class="toolbar-right">
+            <span class="selection-info" v-if="selectedAssets.size > 0">
+              {{ t('media.selectedFiles', { count: selectedAssets.size }) }}
+            </span>
+            <button
             class="btn btn-secondary btn-sm"
             :class="{ active: viewMode === 'grid' }"
             @click="viewMode = 'grid'"
@@ -266,7 +314,7 @@ onMounted(() => {
               <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
             </svg>
           </button>
-          <button
+            <button
             class="btn btn-secondary btn-sm"
             :class="{ active: viewMode === 'list' }"
             @click="viewMode = 'list'"
@@ -275,8 +323,8 @@ onMounted(() => {
               <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
             </svg>
           </button>
+          </div>
         </div>
-      </div>
 
       <!-- 拖拽区域 -->
       <div
@@ -379,6 +427,7 @@ onMounted(() => {
           </table>
         </div>
       </div>
+      </div><!-- /media-main -->
 
       <!-- 分页 -->
       <div class="pagination" v-if="total > pageSize">
@@ -413,6 +462,16 @@ onMounted(() => {
           </button>
         </div>
         <div class="modal-body">
+          <!-- 文件夹选择 -->
+          <div class="form-group">
+            <label class="input-label">{{ t('media.selectFolder') || '上传到' }}</label>
+            <select v-model="uploadFolderId" class="input">
+              <option :value="null">{{ t('media.noFolder') || '根目录' }}</option>
+              <option v-for="folder in folders" :key="folder.id" :value="folder.id">
+                {{ folder.name }}
+              </option>
+            </select>
+          </div>
           <div
             class="upload-zone"
             :class="{ uploading }"
@@ -499,6 +558,62 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+/* 文件夹侧边栏 */
+.folder-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  padding-right: 16px;
+}
+
+.folder-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text);
+  transition: background 0.15s;
+}
+
+.folder-item:hover {
+  background: var(--color-bg-secondary);
+}
+
+.folder-item.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.folder-item svg {
+  flex-shrink: 0;
+}
+
+/* 主内容区 */
+.media-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .media-toolbar {

@@ -12,6 +12,8 @@ import (
 
 	"github.com/subosito/gotenv"
 	"github.com/spf13/viper"
+
+	"github.com/contful/contful/admin/internal/crypto"
 )
 
 // Config 应用配置
@@ -30,7 +32,7 @@ type Config struct {
 }
 
 // SupportedAlgorithms 支持的加密算法
-var SupportedAlgorithms = []string{"aes-256-gcm"}
+var SupportedAlgorithms = []string{crypto.AlgorithmAES, crypto.AlgorithmSM4}
 
 // SecurityConfig 安全配置
 type SecurityConfig struct {

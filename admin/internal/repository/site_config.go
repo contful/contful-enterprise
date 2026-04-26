@@ -87,6 +87,7 @@ func (r *SiteConfigRepository) Upsert(ctx context.Context, cfg *model.SiteConfig
 		Assign(model.SiteConfig{
 			ConfigValue: cfg.ConfigValue,
 			ConfigType:  cfg.ConfigType,
+			ConfigGroup: cfg.ConfigGroup,
 			IsEncrypted: cfg.IsEncrypted,
 			Description: cfg.Description,
 		}).

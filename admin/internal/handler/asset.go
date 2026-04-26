@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -224,6 +225,53 @@ func (h *AssetHandler) Delete(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// ServeFile 提供静态文件服务（支持 /uploads/* 路径访问媒体文件）
+// 该路由需要在 router 注册时放在 /assets/* 之前，因为 /uploads 是独立的路径
+func (h *AssetHandler) ServeFile(c *gin.Context) {
+	siteID, err := getSiteID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "unauthorized"))
+		return
+	}
+
+	// 获取文件路径（从 URL 参数 uploads/* 获取）
+	filePath := c.Param("filePath")
+	if filePath == "" {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "缺少文件路径"))
+		return
+	}
+
+	// 防止路径遍历攻击
+	filePath = sanitizeFilePath(filePath)
+
+	// 调用服务层获取文件
+	reader, mimeType, err := h.assetService.ServeFile(c.Request.Context(), siteID, filePath)
+	if err != nil {
+		c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "文件不存在或无法访问"))
+		return
+	}
+	defer reader.Close()
+
+	// 设置响应头
+	c.Header("Content-Type", mimeType)
+	c.Header("Cache-Control", "public, max-age=31536000") // 缓存 1 年
+
+	// 流式传输文件
+	c.DataFromReader(http.StatusOK, -1, mimeType, reader, nil)
+}
+
+// sanitizeFilePath 清理文件路径，防止路径遍历攻击
+func sanitizeFilePath(path string) string {
+	// 移除开头的 /
+	path = strings.TrimPrefix(path, "/")
+
+	// 移除潜在的路径遍历字符
+	path = strings.ReplaceAll(path, "..", "")
+	path = strings.ReplaceAll(path, "\\", "")
+
+	return path
 }
 
 // BatchDelete 批量删除

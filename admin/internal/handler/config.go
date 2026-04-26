@@ -90,8 +90,8 @@ func (h *ConfigHandler) Set(c *gin.Context) {
 			middleware.Forbidden(c, "配置为只读，禁止修改")
 			return
 		}
-		if errors.Is(err, service.ErrMasterKeyEmpty) {
-			middleware.InternalError(c, "服务器未配置主密钥 CONTFUL_CONFIG_MASTER_KEY")
+		if errors.Is(err, service.ErrCrypterEmpty) {
+			middleware.InternalError(c, "服务器未配置 SECRET，无法加密存储敏感配置")
 			return
 		}
 		middleware.InternalError(c, err.Error())

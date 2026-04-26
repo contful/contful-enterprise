@@ -19,6 +19,7 @@ import (
 	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/handler"
 	"github.com/contful/contful/admin/internal/middleware"
+	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/contful/contful/admin/internal/storage"
@@ -82,24 +83,32 @@ func main() {
 	assetRepo := repository.NewAssetRepository(db)
 	tokenRepo := repository.NewAPITokenRepository(db)
 
+	// 初始化加密器（根据配置选择算法）
+	var crypter crypto.Crypter
+	if cfg.Security.Secret != "" {
+		var err error
+		crypter, err = crypto.NewCrypter(cfg.Security.Algorithm, cfg.Security.Secret)
+		if err != nil {
+			log.Fatalf("创建加密器失败: %v", err)
+		}
+		logger.Info().Str("algorithm", cfg.Security.Algorithm).Msg("加密器已就绪")
+	} else {
+		logger.Warn().Msg("警告：SECRET 未设置，敏感数据将无法加密存储")
+	}
+
 	// 初始化 Service
 	configRepo := repository.NewSiteConfigRepository(db)
-	configService := service.NewConfigService(configRepo, os.Getenv("CONTFUL_CONFIG_MASTER_KEY"))
-	if configService.GetMasterKey() != "" {
-		logger.Info().Msg("配置中心已启用（AES-256-GCM 主密钥已加载）")
-	} else {
-		logger.Warn().Msg("警告：CONTFUL_CONFIG_MASTER_KEY 未设置，敏感配置将无法加密存储")
-	}
+	configService := service.NewConfigService(configRepo, crypter)
 
 	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
 	userService := service.NewUserService(userRepo)
 	siteService := service.NewSiteService(db, siteRepo, configRepo)
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
-	tokenService := service.NewAPITokenService(tokenRepo, cfg.Security.Secret)
+	tokenService := service.NewAPITokenService(tokenRepo, crypter)
 
 	// 初始化 MFA 服务（PRE-005）
-	mfaService := service.NewMFAService(userRepo, redisClient, cfg.JWT.Secret)
+	mfaService := service.NewMFAService(userRepo, redisClient, crypter)
 	authService.SetMFAService(mfaService)
 	logger.Info().Msg("MFA/TOTP 服务已就绪")
 
@@ -224,6 +233,8 @@ func main() {
 			protected.DELETE("/content/entries/batch-delete", entryHandler.BatchDelete)
 
 		// 媒体库
+			// 静态文件访问路由（必须在 /assets 之前，避免与 :id 路由冲突）
+			protected.GET("/uploads/*filePath", assetHandler.ServeFile)
 			protected.GET("/assets", assetHandler.List)
 			protected.POST("/assets", assetHandler.Upload)
 			// 文件夹管理（静态路径必须在 :id 之前，否则 folders 会被 :id 捕获）

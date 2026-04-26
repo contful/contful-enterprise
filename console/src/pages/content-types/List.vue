@@ -221,11 +221,10 @@ onMounted(() => {
           </tr>
           <tr v-else-if="dataList.length === 0">
             <td colspan="7" class="empty-state">
-              <h3>{{ t('contentTypes.noTypes') }}</h3>
-              <p>{{ t('contentTypes.noTypesHint') }}</p>
-              <button class="btn btn-primary btn-sm" @click="openCreateDialog">
-                {{ t('contentTypes.createTypeBtn') }}
-              </button>
+              <div class="empty-content">
+                <h3>{{ t('contentTypes.noTypes') }}</h3>
+                <p>{{ t('contentTypes.noTypesHint') }}</p>
+              </div>
             </td>
           </tr>
           <tr v-else v-for="row in dataList" :key="row.id">
@@ -342,6 +341,10 @@ onMounted(() => {
               <option value="collection">{{ t('contentTypes.kindCollection') }}</option>
               <option value="single">{{ t('contentTypes.kindSingle') }}</option>
             </select>
+            <span class="input-hint">
+              <strong>{{ t('contentTypes.kindCollection') }}：</strong>{{ t('contentTypes.kindCollectionHint') }}<br/>
+              <strong>{{ t('contentTypes.kindSingle') }}：</strong>{{ t('contentTypes.kindSingleHint') }}
+            </span>
           </div>
 
           <div class="input-group">
@@ -437,6 +440,31 @@ onMounted(() => {
 .text-center {
   text-align: center;
   padding: 40px !important;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px !important;
+}
+
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-content h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.empty-content p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
 
 .badge-primary {

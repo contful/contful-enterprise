@@ -19,7 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/contful/contful/admin/internal/pkg/crypto"
+	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/repository"
 )
 
@@ -50,16 +50,16 @@ type MFAPendingData struct {
 
 // MFAService MFA 双因子认证服务
 type MFAService struct {
-	userRepo  *repository.UserRepository
-	redis     *redis.Client
-	jwtSecret string // 用于 AES-256-GCM 密钥派生（TOTP Secret 加密）
+	userRepo *repository.UserRepository
+	redis    *redis.Client
+	crypter  crypto.Crypter
 }
 
-func NewMFAService(userRepo *repository.UserRepository, redisClient *redis.Client, jwtSecret string) *MFAService {
+func NewMFAService(userRepo *repository.UserRepository, redisClient *redis.Client, crypter crypto.Crypter) *MFAService {
 	return &MFAService{
-		userRepo:  userRepo,
-		redis:     redisClient,
-		jwtSecret: jwtSecret,
+		userRepo: userRepo,
+		redis:    redisClient,
+		crypter:  crypter,
 	}
 }
 
@@ -95,7 +95,7 @@ func (s *MFAService) Setup(ctx context.Context, userID uuid.UUID) (*model.MFASet
 	}
 
 	// 加密存储 TOTP Secret
-	encryptedSecret, err := crypto.Encrypt([]byte(secretPlain), s.jwtSecret)
+	encryptedSecret, err := s.crypter.Encrypt([]byte(secretPlain))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt TOTP secret: %w", err)
 	}
@@ -105,7 +105,7 @@ func (s *MFAService) Setup(ctx context.Context, userID uuid.UUID) (*model.MFASet
 	if err != nil {
 		return nil, err
 	}
-	encryptedCodes, err := crypto.Encrypt(codesJSON, s.jwtSecret)
+	encryptedCodes, err := s.crypter.Encrypt(codesJSON)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt recovery codes: %w", err)
 	}
@@ -304,7 +304,7 @@ func (s *MFAService) Recover(ctx context.Context, email, recoveryCode string) (*
 	if err != nil {
 		return nil, 0, err
 	}
-	encryptedCodes, err := crypto.Encrypt(codesJSON, s.jwtSecret)
+	encryptedCodes, err := s.crypter.Encrypt(codesJSON)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -347,7 +347,7 @@ func (s *MFAService) decryptTOTPSecret(encryptedSecret *string) (string, error) 
 	if encryptedSecret == nil {
 		return "", ErrMFANotSetup
 	}
-	plainBytes, err := crypto.Decrypt(*encryptedSecret, s.jwtSecret)
+	plainBytes, err := s.crypter.Decrypt(*encryptedSecret)
 	if err != nil {
 		return "", fmt.Errorf("failed to decrypt TOTP secret: %w", err)
 	}
@@ -358,7 +358,7 @@ func (s *MFAService) decryptRecoveryCodes(encryptedCodes *string) ([]model.Recov
 	if encryptedCodes == nil {
 		return nil, nil
 	}
-	plainBytes, err := crypto.Decrypt(*encryptedCodes, s.jwtSecret)
+	plainBytes, err := s.crypter.Decrypt(*encryptedCodes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt recovery codes: %w", err)
 	}

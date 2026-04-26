@@ -30,12 +30,14 @@ export function getConfig(siteId: string, key: string): Promise<{ data: SiteConf
   return request.get(`/sites/${siteId}/configs/${key}`)
 }
 
-// 设置配置
-export function setConfig(siteId: string, key: string, value: string, type = 'string'): Promise<{ data: SiteConfig }> {
-  return request.put(`/sites/${siteId}/configs/${key}`, {
-    config_value: value,
-    config_type: type,
-  })
+// 设置配置（创建或更新）
+export function setConfig(siteId: string, key: string, data: {
+  config_value: string
+  config_type?: string
+  config_group?: string
+  description?: string
+}): Promise<{ data: SiteConfig }> {
+  return request.put(`/sites/${siteId}/configs/${key}`, data)
 }
 
 // 删除配置

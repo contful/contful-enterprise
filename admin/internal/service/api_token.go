@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/contful/contful/admin/internal/pkg/crypto"
+	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/repository"
 
 	"github.com/google/uuid"
@@ -26,14 +26,14 @@ const (
 
 // APITokenService API Token 服务
 type APITokenService struct {
-	tokenRepo   *repository.APITokenRepository
-	encryptKey  string // AES-256 加密密钥
+	tokenRepo *repository.APITokenRepository
+	crypter   crypto.Crypter
 }
 
 // NewAPITokenService 新建服务
-// encryptKey: 统一使用 Security.Secret
-func NewAPITokenService(tokenRepo *repository.APITokenRepository, encryptKey string) *APITokenService {
-	return &APITokenService{tokenRepo: tokenRepo, encryptKey: encryptKey}
+// crypter: 加密器，由 NewCrypter(algorithm, secret) 创建
+func NewAPITokenService(tokenRepo *repository.APITokenRepository, crypter crypto.Crypter) *APITokenService {
+	return &APITokenService{tokenRepo: tokenRepo, crypter: crypter}
 }
 
 // GenerateToken 生成新的 Token，返回完整 Token、Hash、前缀
@@ -57,7 +57,7 @@ func (s *APITokenService) Create(ctx context.Context, siteID, userID uuid.UUID, 
 	}
 
 	// 加密存储 Token
-	encryptedToken, err := crypto.Encrypt([]byte(fullToken), s.encryptKey)
+	encryptedToken, err := s.crypter.Encrypt([]byte(fullToken))
 	if err != nil {
 		return nil, "", fmt.Errorf("加密 Token 失败: %w", err)
 	}
@@ -190,7 +190,7 @@ func (s *APITokenService) Regenerate(ctx context.Context, id uuid.UUID) (*model.
 	}
 
 	// 加密存储新 Token
-	encryptedToken, err := crypto.Encrypt([]byte(fullToken), s.encryptKey)
+	encryptedToken, err := s.crypter.Encrypt([]byte(fullToken))
 	if err != nil {
 		return nil, "", fmt.Errorf("加密 Token 失败: %w", err)
 	}
@@ -216,7 +216,7 @@ func (s *APITokenService) Export(ctx context.Context, id uuid.UUID) (*model.APIT
 	}
 
 	// 解密获取完整 Token
-	fullToken, err := crypto.Decrypt(token.EncryptedToken, s.encryptKey)
+	fullToken, err := s.crypter.Decrypt(token.EncryptedToken)
 	if err != nil {
 		return nil, "", fmt.Errorf("解密 Token 失败: %w", err)
 	}

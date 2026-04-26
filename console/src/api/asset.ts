@@ -230,7 +230,8 @@ export const folderApi = {
    */
   getTree: async (): Promise<FolderResponse[]> => {
     const response = await request.get<FolderResponse[]>('/assets/folders/tree')
-    return response.data
+    // API 返回 { code, message, data: [...] }，需要取 response.data.data
+    return response.data.data || []
   },
 
   /**
@@ -239,7 +240,8 @@ export const folderApi = {
   list: async (parentId?: string): Promise<FolderResponse[]> => {
     const params = parentId ? { parent_id: parentId } : {}
     const response = await request.get<FolderResponse[]>('/assets/folders', { params })
-    return response.data
+    // API 返回 { code, message, data: [...] }，需要取 response.data.data
+    return response.data.data || []
   },
 
   /**

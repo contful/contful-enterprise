@@ -61,7 +61,6 @@ type SiteConfigListFilter struct {
 
 // CreateSiteConfig 创建参数
 type CreateSiteConfig struct {
-	ConfigKey   string     `json:"config_key" binding:"required"`
 	ConfigValue string     `json:"config_value" binding:"required"`
 	ConfigType  ConfigType `json:"config_type"`
 	ConfigGroup ConfigGroup `json:"config_group"`

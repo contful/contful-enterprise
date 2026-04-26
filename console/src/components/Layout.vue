@@ -31,7 +31,6 @@ const menuItems = computed(() => [
   { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
   { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
   { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
-  { path: '/storage', icon: 'cloud', label: t('menu.storage'), name: 'Storage', tIcon: 'cloud' },
   { path: '/configs', icon: 'tools', label: t('menu.configs'), name: 'Configs', tIcon: 'tools' },
   { path: '/settings', icon: 'setting', label: t('menu.settings'), name: 'Settings', tIcon: 'setting' },
 ])

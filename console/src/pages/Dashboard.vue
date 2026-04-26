@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import Icon from '@/components/Icon.vue'
 import { getContentTypes, getContentEntries, getAssets, getUsers } from '@/api/api'
 import { getMySites } from '@/api/site'
 import { apiTokenApi } from '@/api/api-token'
@@ -176,7 +177,7 @@ const getStatusLabel = (status: string) => {
             <span class="action-icon" :style="{ background: action.color }">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="white">
                 <path v-if="action.icon === 'add'" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-                <path v-else-if="action.icon === 'upload'" d="M10 3a1 1 0 011 1v5.586l1.707-1.707a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 9.586V4a1 1 0 011-1zm5 10a1 1 0 100-2 1 1 0 000 2z"/>
+                <Icon v-else-if="action.icon === 'upload'" name="arrow-up" />
                 <path v-else-if="action.icon === 'schema'" d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
                 <path v-else-if="action.icon === 'token'" d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
               </svg>
@@ -273,6 +274,7 @@ const getStatusLabel = (status: string) => {
   font-size: 28px;
   font-weight: 700;
   color: var(--color-text);
+  text-align: center;
 }
 
 .stat-label {
