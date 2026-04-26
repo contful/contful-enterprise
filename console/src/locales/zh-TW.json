@@ -77,7 +77,8 @@
     "settings": "設定",
     "tokens": "權杖",
     "apiTokens": "API 權杖",
-    "configs": "設定"
+    "configs": "設定",
+    "storage": "儲存"
   },
   "auth": {
     "login": "登入",
@@ -149,7 +150,9 @@
     "slugHint": "只能包含小寫字母、數字和連字符，必須以字母開頭",
     "kind": "類型",
     "kindCollection": "集合",
+    "kindCollectionHint": "可建立多條內容，如文章、產品等",
     "kindSingle": "單條",
+    "kindSingleHint": "全站僅一條內容，如關於我們、聯繫方式等",
     "enabled": "已啟用",
     "versioning": "版本控制",
     "createSuccess": "內容類型建立成功",
@@ -308,7 +311,11 @@
     "cancel": "取消",
     "confirm": "確認",
     "totalFiles": "共 {total} 個檔案",
-    "fileTypeTip": "支援圖片、影片、音訊、文件等檔案"
+    "fileTypeTip": "支援圖片、影片、音訊、文件等檔案",
+    "folders": "資料夾",
+    "allFiles": "全部檔案",
+    "selectFolder": "上傳到",
+    "noFolder": "根目錄"
   },
   "users": {
     "title": "使用者管理",
@@ -628,5 +635,42 @@
     "lightTheme": "亮色主題",
     "langZhCN": "中文",
     "langEn": "EN"
+  },
+  "storage": {
+    "title": "儲存設定",
+    "subtitle": "管理媒體檔案的儲存驅動與存取位址",
+    "driver": "儲存驅動",
+    "driverDesc": "選擇儲存媒體檔案的後端驅動",
+    "driverLocal": "本機儲存",
+    "driverOss": "阿里雲 OSS",
+    "driverCos": "騰訊雲 COS",
+    "driverObs": "華為雲 OBS",
+    "descLocal": "檔案儲存於伺服器本機磁碟，適合開發與小型部署。",
+    "descS3": "相容 Amazon S3 協定，支援 AWS S3、MinIO、SeaweedFS 等。",
+    "descOss": "阿里雲物件儲存服務，適合部署於阿里雲的站台。",
+    "descCos": "騰訊雲物件儲存服務，適合部署於騰訊雲的站台。",
+    "descObs": "華為雲物件儲存服務，適合部署於華為雲的站台。",
+    "localConfig": "本機儲存設定",
+    "localRoot": "儲存根目錄",
+    "localRootHint": "相對於工作目錄的路徑，如 uploads",
+    "s3Config": "S3 設定",
+    "ossConfig": "阿里雲 OSS 設定",
+    "cosConfig": "騰訊雲 COS 設定",
+    "obsConfig": "華為雲 OBS 設定",
+    "bucket": "Bucket 名稱",
+    "endpoint": "Endpoint 位址",
+    "endpointHint": "留空使用雲端服務商預設位址",
+    "region": "區域（Region）",
+    "pathPrefix": "路徑前綴",
+    "pathPrefixHint": "上傳檔案的目錄前綴，如 media/",
+    "forcePathStyle": "路徑樣式",
+    "pathStyleVirtual": "虛擬託管樣式（預設）",
+    "pathStyleForce": "強制路徑樣式（MinIO 適用）",
+    "forcePathStyleHint": "MinIO 等自建 S3 服務需啟用此選項",
+    "baseUrl": "公開存取位址",
+    "baseUrlHint": "檔案的公開 URL 前綴，留空自動推斷",
+    "cosBucketHint": "格式：{bucketName}-{AppID}，如 my-bucket-1250000000",
+    "credentialNotice": "存取憑證（AccessKey / SecretKey）請在伺服器設定檔或環境變數中設定，不通過控制台設定。",
+    "saved": "儲存設定儲存成功"
   }
 }

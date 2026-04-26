@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
@@ -31,6 +31,7 @@ const menuItems = computed(() => [
   { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
   { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
   { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
+  { path: '/storage', icon: 'cloud', label: t('menu.storage'), name: 'Storage', tIcon: 'cloud' },
   { path: '/configs', icon: 'tools', label: t('menu.configs'), name: 'Configs', tIcon: 'tools' },
   { path: '/settings', icon: 'setting', label: t('menu.settings'), name: 'Settings', tIcon: 'setting' },
 ])
@@ -73,9 +74,10 @@ const copySiteId = async () => {
 }
 
 const handleNameInput = (val: string) => {
-  newSiteName.value = val
+  const name = String(val || '')
+  // 仅自动生成 slug（当 slug 为空或等于自动生成值时才更新）
   if (!newSiteSlug.value || newSiteSlug.value === generateSlug(newSiteSlug.value)) {
-    newSiteSlug.value = generateSlug(val)
+    newSiteSlug.value = generateSlug(name)
   }
 }
 
@@ -97,11 +99,17 @@ const handleCreateSite = async () => {
   })
   creating.value = false
   if (result.success) {
-    showCreateSite.value = false
-    newSiteName.value = ''
-    newSiteSlug.value = ''
-    newSiteDesc.value = ''
+    closeCreateSiteDialog()
   }
+}
+
+// 关闭创建站点弹窗
+const closeCreateSiteDialog = async () => {
+  showCreateSite.value = false
+  await nextTick()
+  newSiteName.value = ''
+  newSiteSlug.value = ''
+  newSiteDesc.value = ''
 }
 
 // 初始化时加载用户信息和站点（如果已登录）
@@ -210,8 +218,8 @@ onMounted(async () => {
                 <template #prefix-icon><t-icon name="user" /></template>
                 {{ t('settings.personalProfile') }}
               </t-dropdown-item>
-              <t-dropdown-divider />
-              <t-dropdown-item theme="danger" @click="handleLogout">
+              <t-divider />
+              <t-dropdown-item theme="error" @click="handleLogout">
                 <template #prefix-icon><t-icon name="poweroff" /></template>
                 {{ t('common.logout') }}
               </t-dropdown-item>
@@ -252,8 +260,10 @@ onMounted(async () => {
     <t-dialog
       v-model:visible="showCreateSite"
       :header="t('site.createSite')"
-      :confirm-btn="{ loading: creating, theme: 'primary' }"
-      @confirm="handleCreateSite"
+      :close-on-overlay-click="true"
+      :close-on-esc-keydown="true"
+      :destroy-on-close="false"
+      @close="closeCreateSiteDialog"
     >
       <t-form layout="vertical">
         <t-form-item :label="t('site.siteName')" required>
@@ -261,7 +271,7 @@ onMounted(async () => {
             v-model="newSiteName"
             :placeholder="t('site.siteNamePlaceholder')"
             :maxlength="200"
-            @input="handleNameInput"
+            @change="handleNameInput"
           />
         </t-form-item>
         <t-form-item :label="t('site.siteSlug')" required>
@@ -280,6 +290,12 @@ onMounted(async () => {
           />
         </t-form-item>
       </t-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <t-button variant="outline" @click="closeCreateSiteDialog">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" :loading="creating" @click="handleCreateSite">{{ t('common.create') }}</t-button>
+        </div>
+      </template>
     </t-dialog>
   </div>
 </template>
@@ -360,6 +376,12 @@ onMounted(async () => {
 .header-link:hover {
   color: var(--color-primary);
   background: var(--color-hover);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .user-menu {

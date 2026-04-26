@@ -77,7 +77,8 @@
     "settings": "设置",
     "tokens": "令牌",
     "apiTokens": "API 令牌",
-    "configs": "配置"
+    "configs": "配置",
+    "storage": "存储"
   },
   "auth": {
     "login": "登录",
@@ -149,7 +150,9 @@
     "slugHint": "只能包含小写字母、数字和连字符，必须以字母开头",
     "kind": "类型",
     "kindCollection": "集合",
+    "kindCollectionHint": "可创建多条内容，如文章、产品等",
     "kindSingle": "单条",
+    "kindSingleHint": "全站仅一条内容，如关于我们、联系方式等",
     "enabled": "已启用",
     "versioning": "版本控制",
     "createSuccess": "内容类型创建成功",
@@ -308,7 +311,11 @@
     "cancel": "取消",
     "confirm": "确认",
     "totalFiles": "共 {total} 个文件",
-    "fileTypeTip": "支持图片、视频、音频、文档等文件"
+    "fileTypeTip": "支持图片、视频、音频、文档等文件",
+    "folders": "文件夹",
+    "allFiles": "全部文件",
+    "selectFolder": "上传到",
+    "noFolder": "根目录"
   },
   "users": {
     "title": "用户管理",
@@ -628,5 +635,42 @@
     "lightTheme": "亮色主题",
     "langZhCN": "中文",
     "langEn": "EN"
+  },
+  "storage": {
+    "title": "存储配置",
+    "subtitle": "管理媒体文件的存储驱动和访问地址",
+    "driver": "存储驱动",
+    "driverDesc": "选择存储媒体文件的后端驱动",
+    "driverLocal": "本地存储",
+    "driverOss": "阿里云 OSS",
+    "driverCos": "腾讯云 COS",
+    "driverObs": "华为云 OBS",
+    "descLocal": "文件存储在服务器本地磁盘，适合开发和小规模部署。",
+    "descS3": "兼容 Amazon S3 协议，支持 AWS S3、MinIO、SeaweedFS 等。",
+    "descOss": "阿里云对象存储服务，适合在阿里云上部署的站点。",
+    "descCos": "腾讯云对象存储服务，适合在腾讯云上部署的站点。",
+    "descObs": "华为云对象存储服务，适合在华为云上部署的站点。",
+    "localConfig": "本地存储配置",
+    "localRoot": "存储根目录",
+    "localRootHint": "相对于工作目录的路径，如 uploads",
+    "s3Config": "S3 配置",
+    "ossConfig": "阿里云 OSS 配置",
+    "cosConfig": "腾讯云 COS 配置",
+    "obsConfig": "华为云 OBS 配置",
+    "bucket": "Bucket 名称",
+    "endpoint": "Endpoint 地址",
+    "endpointHint": "留空使用云服务商默认地址",
+    "region": "区域（Region）",
+    "pathPrefix": "路径前缀",
+    "pathPrefixHint": "上传文件的目录前缀，如 media/",
+    "forcePathStyle": "路径样式",
+    "pathStyleVirtual": "虚拟托管样式（默认）",
+    "pathStyleForce": "强制路径样式（MinIO 适用）",
+    "forcePathStyleHint": "MinIO 等自建 S3 服务需开启此选项",
+    "baseUrl": "公开访问地址",
+    "baseUrlHint": "文件的公开 URL 前缀，留空使用自动推断地址",
+    "cosBucketHint": "格式：{bucketName}-{AppID}，如 my-bucket-1250000000",
+    "credentialNotice": "访问凭证（AccessKey / SecretKey）请在服务器配置文件或环境变量中设置，不通过控制台配置。",
+    "saved": "存储配置保存成功"
   }
 }

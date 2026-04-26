@@ -77,6 +77,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/storage',
+    name: 'Storage',
+    component: () => import('@/pages/settings/Storage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/users',
     name: 'Users',
     component: () => import('@/pages/users/List.vue'),

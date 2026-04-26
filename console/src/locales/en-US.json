@@ -76,7 +76,8 @@
     "settings": "Site Settings",
     "tokens": "Tokens",
     "apiTokens": "API Tokens",
-    "configs": "Config"
+    "configs": "Config",
+    "storage": "Storage"
   },
   "auth": {
     "login": "Login",
@@ -148,7 +149,9 @@
     "slugHint": "Only lowercase letters, numbers, and hyphens. Must start with a letter.",
     "kind": "Kind",
     "kindCollection": "Collection",
+    "kindCollectionHint": "Allows multiple content entries, e.g. articles, products",
     "kindSingle": "Single",
+    "kindSingleHint": "Only one entry site-wide, e.g. about us, contact page",
     "enabled": "Enabled",
     "versioning": "Versioning",
     "createSuccess": "Content type created successfully",
@@ -307,7 +310,11 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "totalFiles": "{total} files total",
-    "fileTypeTip": "Supports images, videos, audio, documents and more"
+    "fileTypeTip": "Supports images, videos, audio, documents and more",
+    "folders": "Folders",
+    "allFiles": "All Files",
+    "selectFolder": "Upload to",
+    "noFolder": "Root"
   },
   "users": {
     "title": "User Management",
@@ -627,5 +634,42 @@
     "lightTheme": "Light Theme",
     "langZhCN": "Chinese",
     "langEn": "EN"
+  },
+  "storage": {
+    "title": "Storage",
+    "subtitle": "Configure the storage backend for media files",
+    "driver": "Storage Driver",
+    "driverDesc": "Select the backend driver for storing media files",
+    "driverLocal": "Local Storage",
+    "driverOss": "Alibaba Cloud OSS",
+    "driverCos": "Tencent Cloud COS",
+    "driverObs": "Huawei Cloud OBS",
+    "descLocal": "Files are stored on the server's local disk. Suitable for development and small-scale deployments.",
+    "descS3": "Amazon S3-compatible protocol. Supports AWS S3, MinIO, SeaweedFS, and more.",
+    "descOss": "Alibaba Cloud Object Storage Service. Ideal for sites hosted on Alibaba Cloud.",
+    "descCos": "Tencent Cloud Object Storage Service. Ideal for sites hosted on Tencent Cloud.",
+    "descObs": "Huawei Cloud Object Storage Service. Ideal for sites hosted on Huawei Cloud.",
+    "localConfig": "Local Storage Config",
+    "localRoot": "Storage Root",
+    "localRootHint": "Path relative to working directory, e.g. uploads",
+    "s3Config": "S3 Configuration",
+    "ossConfig": "Alibaba Cloud OSS Config",
+    "cosConfig": "Tencent Cloud COS Config",
+    "obsConfig": "Huawei Cloud OBS Config",
+    "bucket": "Bucket Name",
+    "endpoint": "Endpoint",
+    "endpointHint": "Leave blank to use the provider's default endpoint",
+    "region": "Region",
+    "pathPrefix": "Path Prefix",
+    "pathPrefixHint": "Directory prefix for uploads, e.g. media/",
+    "forcePathStyle": "Path Style",
+    "pathStyleVirtual": "Virtual Hosted Style (default)",
+    "pathStyleForce": "Force Path Style (for MinIO)",
+    "forcePathStyleHint": "Enable for self-hosted S3-compatible services like MinIO",
+    "baseUrl": "Public URL",
+    "baseUrlHint": "Public URL prefix for files. Leave blank to auto-detect",
+    "cosBucketHint": "Format: {bucketName}-{AppID}, e.g. my-bucket-1250000000",
+    "credentialNotice": "Access credentials (AccessKey / SecretKey) must be configured in the server config file or environment variables, not through the console.",
+    "saved": "Storage configuration saved"
   }
 }
