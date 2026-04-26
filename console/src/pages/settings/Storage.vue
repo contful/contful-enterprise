@@ -15,39 +15,75 @@ const saving = ref(false)
 // 当前选中驱动
 const driver = ref('local')
 
-// 各驱动配置表单
+// 本地存储表单
 const localForm = ref({ root: 'uploads', base_url: '/uploads' })
-const s3Form = ref({
+
+// 云存储统一表单（s3/oss/cos/obs 共用）
+const cloudForm = ref({
   bucket: '',
   endpoint: '',
   region: '',
+  base_url: '',
+  // s3 独有
   path_prefix: '',
   force_path_style: 'false',
-  base_url: '',
 })
-const ossForm = ref({ bucket: '', endpoint: '', region: '', base_url: '' })
-const cosForm = ref({ bucket: '', region: '', base_url: '' })
-const obsForm = ref({ bucket: '', endpoint: '', region: '', base_url: '' })
 
 const driverOptions = [
   { value: 'local', label: t('storage.driverLocal'), icon: '💾' },
-  { value: 's3', label: 'S3 / MinIO', icon: '☁️' },
-  { value: 'oss', label: t('storage.driverOss'), icon: '☁️' },
-  { value: 'cos', label: t('storage.driverCos'), icon: '☁️' },
-  { value: 'obs', label: t('storage.driverObs'), icon: '☁️' },
+  { value: 's3',   label: 'S3 / MinIO',              icon: '☁️' },
+  { value: 'oss',  label: t('storage.driverOss'),    icon: '☁️' },
+  { value: 'cos',  label: t('storage.driverCos'),    icon: '☁️' },
+  { value: 'obs',  label: t('storage.driverObs'),    icon: '☁️' },
 ]
 
-// 当前驱动说明
-const driverDesc = computed(() => {
-  const map: Record<string, string> = {
-    local: t('storage.descLocal'),
-    s3: t('storage.descS3'),
-    oss: t('storage.descOss'),
-    cos: t('storage.descCos'),
-    obs: t('storage.descObs'),
-  }
-  return map[driver.value] || ''
-})
+// 各驱动说明文案
+const driverDesc = computed(() => ({
+  local: t('storage.descLocal'),
+  s3:    t('storage.descS3'),
+  oss:   t('storage.descOss'),
+  cos:   t('storage.descCos'),
+  obs:   t('storage.descObs'),
+}[driver.value] ?? ''))
+
+// 云存储区段标题
+const cloudConfigTitle = computed(() => ({
+  s3:  t('storage.s3Config'),
+  oss: t('storage.ossConfig'),
+  cos: t('storage.cosConfig'),
+  obs: t('storage.obsConfig'),
+}[driver.value] ?? ''))
+
+// cos 无 endpoint；s3 多路径前缀和路径样式
+const showEndpoint   = computed(() => driver.value !== 'cos')
+const showS3Extra    = computed(() => driver.value === 's3')
+const isCloud        = computed(() => driver.value !== 'local')
+
+// endpoint placeholder
+const endpointPlaceholder = computed(() => ({
+  s3:  'https://s3.amazonaws.com',
+  oss: 'https://oss-cn-hangzhou.aliyuncs.com',
+  obs: 'https://obs.cn-north-4.myhuaweicloud.com',
+}[driver.value] ?? ''))
+
+// bucket placeholder
+const bucketPlaceholder = computed(() => ({
+  s3:  'my-bucket',
+  oss: 'my-oss-bucket',
+  cos: 'my-bucket-1250000000',
+  obs: 'my-obs-bucket',
+}[driver.value] ?? ''))
+
+// region placeholder
+const regionPlaceholder = computed(() => ({
+  s3:  'us-east-1',
+  oss: 'oss-cn-hangzhou',
+  cos: 'ap-guangzhou',
+  obs: 'cn-north-4',
+}[driver.value] ?? ''))
+
+// cos bucket 额外提示
+const showCosBucketHint = computed(() => driver.value === 'cos')
 
 // ============ 从配置表读取 ============
 const loadStorage = async () => {
@@ -56,40 +92,24 @@ const loadStorage = async () => {
   try {
     const res = await getConfigs(siteStore.currentSiteId)
     const configs: SiteConfig[] = res.items || []
-
     const get = (key: string) => configs.find(c => c.config_key === key)?.config_value ?? ''
 
-    // 驱动
     driver.value = get('storage.driver') || 'local'
 
     // local
-    localForm.value.root = get('storage.local.root') || 'uploads'
+    localForm.value.root     = get('storage.local.root')     || 'uploads'
     localForm.value.base_url = get('storage.local.base_url') || '/uploads'
 
-    // s3
-    s3Form.value.bucket = get('storage.s3.bucket')
-    s3Form.value.endpoint = get('storage.s3.endpoint')
-    s3Form.value.region = get('storage.s3.region')
-    s3Form.value.path_prefix = get('storage.s3.path_prefix')
-    s3Form.value.force_path_style = get('storage.s3.force_path_style') || 'false'
-    s3Form.value.base_url = get('storage.s3.base_url')
-
-    // oss
-    ossForm.value.bucket = get('storage.oss.bucket')
-    ossForm.value.endpoint = get('storage.oss.endpoint')
-    ossForm.value.region = get('storage.oss.region')
-    ossForm.value.base_url = get('storage.oss.base_url')
-
-    // cos
-    cosForm.value.bucket = get('storage.cos.bucket')
-    cosForm.value.region = get('storage.cos.region')
-    cosForm.value.base_url = get('storage.cos.base_url')
-
-    // obs
-    obsForm.value.bucket = get('storage.obs.bucket')
-    obsForm.value.endpoint = get('storage.obs.endpoint')
-    obsForm.value.region = get('storage.obs.region')
-    obsForm.value.base_url = get('storage.obs.base_url')
+    // 云存储：读取当前 driver 对应的配置
+    const d = driver.value
+    if (d !== 'local') {
+      cloudForm.value.bucket           = get(`storage.${d}.bucket`)
+      cloudForm.value.endpoint         = get(`storage.${d}.endpoint`)
+      cloudForm.value.region           = get(`storage.${d}.region`)
+      cloudForm.value.base_url         = get(`storage.${d}.base_url`)
+      cloudForm.value.path_prefix      = get('storage.s3.path_prefix')
+      cloudForm.value.force_path_style = get('storage.s3.force_path_style') || 'false'
+    }
   } catch (e: any) {
     showError(e)
   } finally {
@@ -97,56 +117,57 @@ const loadStorage = async () => {
   }
 }
 
+// 切换驱动时重新读取该驱动对应的已存配置（如果有）
+const handleDriverChange = async (val: string) => {
+  driver.value = val
+  if (val === 'local' || !siteStore.currentSiteId) return
+  try {
+    const res = await getConfigs(siteStore.currentSiteId)
+    const configs: SiteConfig[] = res.items || []
+    const get = (key: string) => configs.find(c => c.config_key === key)?.config_value ?? ''
+    cloudForm.value.bucket           = get(`storage.${val}.bucket`)
+    cloudForm.value.endpoint         = get(`storage.${val}.endpoint`)
+    cloudForm.value.region           = get(`storage.${val}.region`)
+    cloudForm.value.base_url         = get(`storage.${val}.base_url`)
+    cloudForm.value.path_prefix      = get('storage.s3.path_prefix')
+    cloudForm.value.force_path_style = get('storage.s3.force_path_style') || 'false'
+  } catch { /* ignore */ }
+}
+
 // ============ 保存配置 ============
 const handleSave = async () => {
   if (!siteStore.currentSiteId || saving.value) return
   saving.value = true
-
   try {
     const siteId = siteStore.currentSiteId
     const updates: [string, string][] = [['storage.driver', driver.value]]
 
     if (driver.value === 'local') {
       updates.push(
-        ['storage.local.root', localForm.value.root],
+        ['storage.local.root',     localForm.value.root],
         ['storage.local.base_url', localForm.value.base_url],
       )
-    } else if (driver.value === 's3') {
+    } else {
+      const d = driver.value
       updates.push(
-        ['storage.s3.bucket', s3Form.value.bucket],
-        ['storage.s3.endpoint', s3Form.value.endpoint],
-        ['storage.s3.region', s3Form.value.region],
-        ['storage.s3.path_prefix', s3Form.value.path_prefix],
-        ['storage.s3.force_path_style', s3Form.value.force_path_style],
-        ['storage.s3.base_url', s3Form.value.base_url],
+        [`storage.${d}.bucket`,   cloudForm.value.bucket],
+        [`storage.${d}.region`,   cloudForm.value.region],
+        [`storage.${d}.base_url`, cloudForm.value.base_url],
       )
-    } else if (driver.value === 'oss') {
-      updates.push(
-        ['storage.oss.bucket', ossForm.value.bucket],
-        ['storage.oss.endpoint', ossForm.value.endpoint],
-        ['storage.oss.region', ossForm.value.region],
-        ['storage.oss.base_url', ossForm.value.base_url],
-      )
-    } else if (driver.value === 'cos') {
-      updates.push(
-        ['storage.cos.bucket', cosForm.value.bucket],
-        ['storage.cos.region', cosForm.value.region],
-        ['storage.cos.base_url', cosForm.value.base_url],
-      )
-    } else if (driver.value === 'obs') {
-      updates.push(
-        ['storage.obs.bucket', obsForm.value.bucket],
-        ['storage.obs.endpoint', obsForm.value.endpoint],
-        ['storage.obs.region', obsForm.value.region],
-        ['storage.obs.base_url', obsForm.value.base_url],
-      )
+      if (showEndpoint.value) {
+        updates.push([`storage.${d}.endpoint`, cloudForm.value.endpoint])
+      }
+      if (showS3Extra.value) {
+        updates.push(
+          ['storage.s3.path_prefix',      cloudForm.value.path_prefix],
+          ['storage.s3.force_path_style', cloudForm.value.force_path_style],
+        )
+      }
     }
 
-    // 批量提交
     for (const [key, value] of updates) {
       await setConfig(siteId, key, { config_value: value })
     }
-
     showSuccess(t('storage.saved'))
   } catch (e: any) {
     showError(e)
@@ -156,8 +177,6 @@ const handleSave = async () => {
 }
 
 onMounted(loadStorage)
-
-// 切换站点后重新加载
 watch(() => siteStore.currentSiteId, () => { loadStorage() })
 </script>
 
@@ -194,7 +213,7 @@ watch(() => siteStore.currentSiteId, () => { loadStorage() })
             :key="opt.value"
             class="driver-card"
             :class="{ active: driver === opt.value }"
-            @click="driver = opt.value"
+            @click="handleDriverChange(opt.value)"
           >
             <span class="driver-icon">{{ opt.icon }}</span>
             <span class="driver-label">{{ opt.label }}</span>
@@ -221,129 +240,60 @@ watch(() => siteStore.currentSiteId, () => { loadStorage() })
         </div>
       </section>
 
-      <!-- S3 配置 -->
-      <section v-if="driver === 's3'" class="settings-section">
-        <h3 class="section-title">{{ t('storage.s3Config') }}</h3>
+      <!-- 云存储统一配置（s3 / oss / cos / obs） -->
+      <section v-if="isCloud" class="settings-section">
+        <h3 class="section-title">{{ cloudConfigTitle }}</h3>
+
         <!-- 凭证提示 -->
         <div class="credential-notice">
           <span class="notice-icon">🔑</span>
           <span>{{ t('storage.credentialNotice') }}</span>
         </div>
+
         <div class="form-grid">
+          <!-- Bucket -->
           <div class="form-item">
             <label class="form-label">{{ t('storage.bucket') }} <span class="required">*</span></label>
-            <input v-model="s3Form.bucket" type="text" class="input" placeholder="my-bucket" />
+            <input v-model="cloudForm.bucket" type="text" class="input" :placeholder="bucketPlaceholder" />
+            <p v-if="showCosBucketHint" class="form-hint">{{ t('storage.cosBucketHint') }}</p>
           </div>
+
+          <!-- Region -->
           <div class="form-item">
             <label class="form-label">{{ t('storage.region') }}</label>
-            <input v-model="s3Form.region" type="text" class="input" placeholder="us-east-1" />
+            <input v-model="cloudForm.region" type="text" class="input" :placeholder="regionPlaceholder" />
           </div>
-          <div class="form-item form-item-full">
+
+          <!-- Endpoint（cos 不显示） -->
+          <div v-if="showEndpoint" class="form-item form-item-full">
             <label class="form-label">{{ t('storage.endpoint') }}</label>
-            <input v-model="s3Form.endpoint" type="text" class="input" placeholder="https://s3.amazonaws.com" />
+            <input v-model="cloudForm.endpoint" type="text" class="input" :placeholder="endpointPlaceholder" />
             <p class="form-hint">{{ t('storage.endpointHint') }}</p>
           </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.pathPrefix') }}</label>
-            <input v-model="s3Form.path_prefix" type="text" class="input" placeholder="media/" />
-            <p class="form-hint">{{ t('storage.pathPrefixHint') }}</p>
-          </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.baseUrl') }}</label>
-            <input v-model="s3Form.base_url" type="text" class="input" placeholder="https://cdn.example.com" />
-            <p class="form-hint">{{ t('storage.baseUrlHint') }}</p>
-          </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.forcePathStyle') }}</label>
-            <select v-model="s3Form.force_path_style" class="input select">
-              <option value="false">{{ t('storage.pathStyleVirtual') }}</option>
-              <option value="true">{{ t('storage.pathStyleForce') }}</option>
-            </select>
-            <p class="form-hint">{{ t('storage.forcePathStyleHint') }}</p>
-          </div>
-        </div>
-      </section>
 
-      <!-- 阿里云 OSS 配置 -->
-      <section v-if="driver === 'oss'" class="settings-section">
-        <h3 class="section-title">{{ t('storage.ossConfig') }}</h3>
-        <div class="credential-notice">
-          <span class="notice-icon">🔑</span>
-          <span>{{ t('storage.credentialNotice') }}</span>
-        </div>
-        <div class="form-grid">
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.bucket') }} <span class="required">*</span></label>
-            <input v-model="ossForm.bucket" type="text" class="input" placeholder="my-oss-bucket" />
-          </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.region') }}</label>
-            <input v-model="ossForm.region" type="text" class="input" placeholder="oss-cn-hangzhou" />
-          </div>
-          <div class="form-item form-item-full">
-            <label class="form-label">{{ t('storage.endpoint') }}</label>
-            <input v-model="ossForm.endpoint" type="text" class="input" placeholder="https://oss-cn-hangzhou.aliyuncs.com" />
-            <p class="form-hint">{{ t('storage.endpointHint') }}</p>
-          </div>
+          <!-- 公开访问 URL -->
           <div class="form-item form-item-full">
             <label class="form-label">{{ t('storage.baseUrl') }}</label>
-            <input v-model="ossForm.base_url" type="text" class="input" placeholder="https://your-bucket.oss-cn-hangzhou.aliyuncs.com" />
+            <input v-model="cloudForm.base_url" type="text" class="input" placeholder="https://cdn.example.com" />
             <p class="form-hint">{{ t('storage.baseUrlHint') }}</p>
           </div>
-        </div>
-      </section>
 
-      <!-- 腾讯云 COS 配置 -->
-      <section v-if="driver === 'cos'" class="settings-section">
-        <h3 class="section-title">{{ t('storage.cosConfig') }}</h3>
-        <div class="credential-notice">
-          <span class="notice-icon">🔑</span>
-          <span>{{ t('storage.credentialNotice') }}</span>
-        </div>
-        <div class="form-grid">
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.bucket') }} <span class="required">*</span></label>
-            <input v-model="cosForm.bucket" type="text" class="input" placeholder="my-bucket-1250000000" />
-            <p class="form-hint">{{ t('storage.cosBucketHint') }}</p>
-          </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.region') }} <span class="required">*</span></label>
-            <input v-model="cosForm.region" type="text" class="input" placeholder="ap-guangzhou" />
-          </div>
-          <div class="form-item form-item-full">
-            <label class="form-label">{{ t('storage.baseUrl') }}</label>
-            <input v-model="cosForm.base_url" type="text" class="input" placeholder="https://my-bucket-1250000000.cos.ap-guangzhou.myqcloud.com" />
-            <p class="form-hint">{{ t('storage.baseUrlHint') }}</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- 华为云 OBS 配置 -->
-      <section v-if="driver === 'obs'" class="settings-section">
-        <h3 class="section-title">{{ t('storage.obsConfig') }}</h3>
-        <div class="credential-notice">
-          <span class="notice-icon">🔑</span>
-          <span>{{ t('storage.credentialNotice') }}</span>
-        </div>
-        <div class="form-grid">
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.bucket') }} <span class="required">*</span></label>
-            <input v-model="obsForm.bucket" type="text" class="input" placeholder="my-obs-bucket" />
-          </div>
-          <div class="form-item">
-            <label class="form-label">{{ t('storage.region') }}</label>
-            <input v-model="obsForm.region" type="text" class="input" placeholder="cn-north-4" />
-          </div>
-          <div class="form-item form-item-full">
-            <label class="form-label">{{ t('storage.endpoint') }}</label>
-            <input v-model="obsForm.endpoint" type="text" class="input" placeholder="https://obs.cn-north-4.myhuaweicloud.com" />
-            <p class="form-hint">{{ t('storage.endpointHint') }}</p>
-          </div>
-          <div class="form-item form-item-full">
-            <label class="form-label">{{ t('storage.baseUrl') }}</label>
-            <input v-model="obsForm.base_url" type="text" class="input" placeholder="https://my-obs-bucket.obs.cn-north-4.myhuaweicloud.com" />
-            <p class="form-hint">{{ t('storage.baseUrlHint') }}</p>
-          </div>
+          <!-- S3 独有：路径前缀 + 路径样式 -->
+          <template v-if="showS3Extra">
+            <div class="form-item">
+              <label class="form-label">{{ t('storage.pathPrefix') }}</label>
+              <input v-model="cloudForm.path_prefix" type="text" class="input" placeholder="media/" />
+              <p class="form-hint">{{ t('storage.pathPrefixHint') }}</p>
+            </div>
+            <div class="form-item">
+              <label class="form-label">{{ t('storage.forcePathStyle') }}</label>
+              <select v-model="cloudForm.force_path_style" class="input select">
+                <option value="false">{{ t('storage.pathStyleVirtual') }}</option>
+                <option value="true">{{ t('storage.pathStyleForce') }}</option>
+              </select>
+              <p class="form-hint">{{ t('storage.forcePathStyleHint') }}</p>
+            </div>
+          </template>
         </div>
       </section>
 
@@ -435,7 +385,6 @@ watch(() => siteStore.currentSiteId, () => { loadStorage() })
   color: var(--color-text);
   transition: all 0.15s;
   min-width: 120px;
-  position: relative;
 }
 
 .driver-card:hover {
@@ -451,14 +400,8 @@ watch(() => siteStore.currentSiteId, () => { loadStorage() })
   font-weight: 500;
 }
 
-.driver-icon {
-  font-size: 16px;
-}
-
-.driver-label {
-  flex: 1;
-}
-
+.driver-icon { font-size: 16px; }
+.driver-label { flex: 1; }
 .driver-check {
   font-size: 13px;
   color: var(--color-primary);
