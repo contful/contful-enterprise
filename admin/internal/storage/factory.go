@@ -3,7 +3,10 @@ package storage
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
+
+	"github.com/spf13/viper"
 )
 
 // ProviderFactory 存储驱动工厂
@@ -51,7 +54,10 @@ type ProviderConfig struct {
 	BaseURL  string
 	RootDir  string
 
-	// 认证字段（从 site_configs 加密字段读取）
+	// 上传限制
+	MaxUploadSize int64 // bytes
+
+	// 认证字段（从环境变量读取）
 	AccessKey string
 	SecretKey string
 
@@ -59,9 +65,52 @@ type ProviderConfig struct {
 	PathPrefix     string
 	ForcePathStyle bool // MinIO 需要开启
 
-	// 阿里云 OSS 特有
-	STSToken string // RAM 临时凭证
-
 	// 自定义元数据
 	Custom map[string]string
+}
+
+// NewFromViper 从 viper 配置（config.yaml）和环境变量创建 StorageProvider。
+// 这是推荐的全局初始化方式，不依赖 site_configs 表。
+func NewFromViper(ctx context.Context) (StorageProvider, *ProviderConfig, error) {
+	driver := viper.GetString("storage.driver")
+	if driver == "" {
+		driver = "local"
+	}
+
+	cfg := &ProviderConfig{
+		RootDir:        viper.GetString("storage.upload_dir"),
+		MaxUploadSize:  viper.GetInt64("storage.max_upload_size_mb") * 1024 * 1024,
+		Bucket:         viper.GetString(fmt.Sprintf("storage.%s.bucket", driver)),
+		Endpoint:       viper.GetString(fmt.Sprintf("storage.%s.endpoint", driver)),
+		Region:         viper.GetString(fmt.Sprintf("storage.%s.region", driver)),
+		BaseURL:        viper.GetString(fmt.Sprintf("storage.%s.base_url", driver)),
+		PathPrefix:     viper.GetString("storage.s3.path_prefix"),
+		ForcePathStyle: viper.GetBool("storage.s3.force_path_style"),
+		AccessKey:      os.Getenv(fmt.Sprintf("STORAGE_%s_ACCESS_KEY", normalizeEnvKey(driver))),
+		SecretKey:      os.Getenv(fmt.Sprintf("STORAGE_%s_SECRET_KEY", normalizeEnvKey(driver))),
+	}
+
+	if cfg.RootDir == "" {
+		cfg.RootDir = "./uploads"
+	}
+
+	provider, err := NewFromConfig(ctx, driver, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return provider, cfg, nil
+}
+
+// normalizeEnvKey 将驱动名转为环境变量大写下划线格式
+// 例如: "s3" -> "S3", "oss" -> "OSS", "cos" -> "COS"
+func normalizeEnvKey(driver string) string {
+	// 特殊处理 cos -> COS（本身就是大写）
+	switch driver {
+	case "cos":
+		return "COS"
+	case "oss", "obs", "s3":
+		return driver
+	default:
+		return driver
+	}
 }

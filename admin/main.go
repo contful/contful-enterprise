@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/audit_callback"
@@ -112,15 +113,14 @@ func main() {
 	authService.SetMFAService(mfaService)
 	logger.Info().Msg("MFA/TOTP 服务已就绪")
 
-	// 初始化存储驱动（支持 per-site 动态切换）
-	storageConfigSvc := service.NewStorageConfigService(configService)
-	storageManager := storage.NewStorageManager(
-		storageConfigSvc.BuildStorageConfigFunc(),
-		0, // 0 = 不过期缓存（配置变更后主动 Invalidate）
-	)
-	logger.Info().Msg("存储管理器已就绪（支持 per-site 动态存储驱动切换）")
+	// 初始化存储驱动（从 config.yaml + 环境变量读取，全局共用）
+	storageProvider, _, err := storage.NewFromViper(ctx)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("初始化存储驱动失败")
+	}
+	logger.Info().Str("driver", viper.GetString("storage.driver")).Msg("存储驱动已就绪（全局单例）")
 
-	assetService := service.NewAssetService(assetRepo, storageManager)
+	assetService := service.NewAssetService(assetRepo, storageProvider)
 	assetService.SetConfigService(configService)
 
 	// 初始化 Handler

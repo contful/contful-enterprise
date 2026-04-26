@@ -71,15 +71,15 @@ var audioExtensions = map[string]bool{
 // AssetService 资源服务
 type AssetService struct {
 	assetRepo       *repository.AssetRepository
-	storageManager  *storage.StorageManager
+	storageProvider storage.StorageProvider
 	configService   *ConfigService // 可选，用于数据签名
 }
 
-// NewAssetService 新建服务（使用 StorageManager 支持 per-site 动态存储驱动）
-func NewAssetService(assetRepo *repository.AssetRepository, storageManager *storage.StorageManager) *AssetService {
+// NewAssetService 新建服务（注入全局 StorageProvider）
+func NewAssetService(assetRepo *repository.AssetRepository, storageProvider storage.StorageProvider) *AssetService {
 	return &AssetService{
-		assetRepo:      assetRepo,
-		storageManager: storageManager,
+		assetRepo:       assetRepo,
+		storageProvider: storageProvider,
 	}
 }
 
@@ -90,18 +90,13 @@ func (s *AssetService) SetConfigService(cs *ConfigService) {
 
 // ServeFile 提供静态文件服务
 func (s *AssetService) ServeFile(ctx context.Context, siteID uuid.UUID, key string) (io.ReadCloser, string, error) {
-	sp, err := s.storageManager.ProviderFor(ctx, siteID)
-	if err != nil {
-		return nil, "", fmt.Errorf("获取存储驱动失败: %w", err)
-	}
-
 	// 调用存储驱动的 ServeFile 方法
-	if localProvider, ok := sp.(*storage.LocalProvider); ok {
+	if localProvider, ok := s.storageProvider.(*storage.LocalProvider); ok {
 		return localProvider.ServeFile(ctx, key)
 	}
 
 	// 对于其他存储驱动，使用 Download 方法
-	reader, err := sp.Download(ctx, key, nil)
+	reader, err := s.storageProvider.Download(ctx, key, nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -186,14 +181,8 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 		filename,
 	)
 
-	// 按站点获取存储驱动（动态切换）
-	sp, err := s.storageManager.ProviderFor(ctx, siteID)
-	if err != nil {
-		return nil, fmt.Errorf("获取存储驱动失败: %w", err)
-	}
-
 	// 上传到存储驱动
-	objectInfo, err := sp.Upload(ctx, storageKey, bytes.NewReader(data), file.Size, &storage.WriteOptions{
+	objectInfo, err := s.storageProvider.Upload(ctx, storageKey, bytes.NewReader(data), file.Size, &storage.WriteOptions{
 		ContentType: mimeType,
 	})
 	if err != nil {
@@ -219,7 +208,7 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 		Title:         title,
 		Visibility:    model.AssetVisibilityPrivate,
 		FileHash:      fileHash,
-		Disk:          sp.Name(),
+		Disk:          s.storageProvider.Name(),
 		CreatedBy:     &userID,
 	}
 
@@ -238,7 +227,7 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 	// 保存到数据库
 	if err := s.assetRepo.Create(ctx, asset); err != nil {
 		// 删除已上传的文件（回滚）
-		_ = sp.Delete(ctx, storageKey)
+		_ = s.storageProvider.Delete(ctx, storageKey)
 		return nil, fmt.Errorf("保存资源记录失败: %w", err)
 	}
 
@@ -411,11 +400,8 @@ func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	// 按站点获取存储驱动并删除文件
-	sp, err := s.storageManager.ProviderFor(ctx, asset.SiteID)
-	if err == nil {
-		_ = sp.Delete(ctx, asset.Path) // 不阻塞 DB 删除
-	}
+	// 删除存储文件（不阻塞 DB 删除）
+	_ = s.storageProvider.Delete(ctx, asset.Path)
 
 	// 删除数据库记录
 	return s.assetRepo.Delete(ctx, id)
@@ -423,19 +409,14 @@ func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
 
 // BatchDelete 批量删除
 func (s *AssetService) BatchDelete(ctx context.Context, ids []uuid.UUID) error {
-	// 先查所有资产获取路径和站点
+	// 先查所有资产获取路径
 	assets, _ := s.assetRepo.GetByIDs(ctx, ids)
-
-	// 按 siteID 分组，每组获取对应 provider
-	bySite := make(map[uuid.UUID][]string)
+	var allPaths []string
 	for _, a := range assets {
-		bySite[a.SiteID] = append(bySite[a.SiteID], a.Path)
+		allPaths = append(allPaths, a.Path)
 	}
-	for siteID, paths := range bySite {
-		sp, err := s.storageManager.ProviderFor(ctx, siteID)
-		if err == nil {
-			_ = sp.DeleteMulti(ctx, paths)
-		}
+	if len(allPaths) > 0 {
+		_ = s.storageProvider.DeleteMulti(ctx, allPaths)
 	}
 
 	return s.assetRepo.BatchDelete(ctx, ids)
