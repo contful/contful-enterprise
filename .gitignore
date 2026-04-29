@@ -27,9 +27,8 @@ vendor/
 
 # 构建产物
 dist/
-build/
+build/                  # Go 编译产物（二进制文件）
 *.exe
-*.exe~
 *.dll
 *.so
 *.dylib
@@ -44,14 +43,10 @@ go.work
 *.tmp
 tmp/
 temp/
-
-# 日志目录（保留目录结构，忽略日志文件）
-log/
-docker/*.log
+log/                    # 日志目录
 
 # 上传文件（开发环境）
-uploads/
-docker/conf/config.yml
+uploads/                # 用户上传文件
 
 # 测试覆盖率
 coverage/
@@ -62,15 +57,6 @@ coverage/
 .parcel-cache/
 .vitepress/cache/
 
-# 二进制文件
-admin/admin-server
-admin/admin-server-*
-admin/admin-*
-openapi/openapi
-openapi/openapi-*
-openapi/api-server
-openapi/openapi-server
-
-# 服务日志
-admin/*.log
-openapi/*.log
+# Docker
+docker/*.log
+docker/conf/config.yml  # 实际配置文件（不提交）
