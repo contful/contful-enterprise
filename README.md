@@ -15,76 +15,102 @@
 
 ```
 contful/
-├── admin/        # Admin API 服务（:9080）
-├── openapi/      # Open API 服务（:8080）
-├── console/      # Vue 3 控制台（:3000）
-├── sql/          # 数据库初始化 SQL
-├── docker/       # Docker 配置
-└── shell/        # 构建脚本
+├── admin/            # Admin API 服务（:9080）
+├── openapi/          # Open API 服务（:8080）
+├── console/          # Vue 3 控制台（:3000）
+├── sql/              # 数据库初始化 SQL
+├── docker/           # Docker 配置（Dockerfile + docker-compose.yaml）
+├── shell/            # 构建脚本
+├── build/            # 编译产物（.gitignore）
+├── logs/             # 日志文件（.gitignore）
+└── uploads/           # 用户上传（.gitignore）
 ```
 
 ## 快速开始
 
 ### 前置条件
+
 - PostgreSQL 18
 - Valkey 9+
+- Go 1.22+
+- Node.js 18+
 
-### 1. 初始化数据库
-
-```bash
-# 创建数据库（PostgreSQL）
-psql -h <host> -U <user> -c "CREATE DATABASE contful;"
-
-# 导入初始化 SQL
-psql -h <host> -U <user> -d contful -f sql/init_pg.sql
-
-# 或达梦 DM8 版本
-# sql init_dm.sql
-```
-
-### 2. Docker 启动
+### 方式一：Docker 部署
 
 ```bash
-cd docker
-cp .env.example .env
-# 编辑 .env，填入 DB_HOST、DB_PASSWORD、SECRET
+# 1. 构建镜像
+./shell/build-image.sh
 
-# 启动全部服务（Admin + Open API）
-docker-compose --env-file .env up -d
+# 2. 配置（首次）
+cp docker/conf/config.yml.console.example docker/conf/config.yml
+cp docker/conf/config.yml.open.example docker/conf/config.yml
+# 编辑配置文件，填入数据库密码等
+
+# 3. 启动服务
+docker-compose -f docker/docker-compose.yaml up -d
 
 # 访问
 #   管理后台:  http://localhost         (Console + Admin API)
 #   Open API: http://localhost:8080/   (直连)
 ```
 
-### 3. 水平扩展 Open API
+### 方式二：本地开发
 
 ```bash
-# 扩展 Open API 到 3 个实例
-docker-compose --env-file .env up -d --scale openapi=3
+# 1. 启动数据库和缓存（使用远程或 Docker 本地）
+# Docker 本地启动：
+docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
+docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
-# 生产环境建议在 Open API 前加 Nginx/HAProxy 负载均衡
+# 2. 构建
+./shell/build.sh
+
+# 3. 启动服务
+./shell/dev.sh start
+
+# 访问
+#   管理后台:  http://localhost:3000   (Console + Admin API :9080)
+#   Open API: http://localhost:8080/
 ```
 
-### 4. 本地开发启动
+### 方式三：分别启动
 
 ```bash
-# PostgreSQL 编译版本（推荐）
-cd admin && go build -tags=pg -o admin_pg . && ./admin_pg    # Admin API (:9080)
+# 构建
+./shell/build.sh console    # 构建 Console（Admin API + 前端）
+./shell/build.sh openapi    # 构建 Open API
 
-# 达梦 DM8 编译版本（可选）
-cd admin && go build -tags=dm -o admin_dm . && ./admin_dm
+# 单独启动某个服务
+./shell/dev.sh logs admin   # 查看 Admin API 日志
+./shell/dev.sh status       # 查看服务状态
+./shell/dev.sh stop         # 停止所有服务
+```
 
-cd openapi && go build -o openapi . && ./openapi               # Open API (:8080)
-cd console && npm run dev                                      # Console (:3000)
+## 脚本说明
+
+| 脚本 | 用途 |
+|------|------|
+| `./shell/build-image.sh` | 构建 Docker 镜像（用于部署） |
+| `./shell/build.sh` | 本地编译（生成 build/ 目录产物） |
+| `./shell/dev.sh` | 本地开发启动（编译 + 运行） |
+
+### 构建参数
+
+```bash
+# PostgreSQL 版本（默认）
+DB_TYPE=pg ./shell/build-image.sh
+
+# 达梦 DM8 版本
+DB_TYPE=dm ./shell/build-image.sh
 ```
 
 ## 服务说明
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| contful-admin | 80 | 管理后台（OpenResty → Console SPA + /admin/ 代理） |
-| contful-api | 8080 | Open API，可水平扩展 |
+| Console | 3000 | Vue 管理后台（开发模式） / 80（Docker） |
+| Admin API | 9080 | 管理后台 API |
+| Open API | 8080 | 内容 API，可水平扩展 |
 
 ## 站点默认配置
 
