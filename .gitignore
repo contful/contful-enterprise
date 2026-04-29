@@ -51,6 +51,7 @@ docker/*.log
 
 # 上传文件（开发环境）
 uploads/
+docker/conf/config.yml
 
 # 测试覆盖率
 coverage/
@@ -60,5 +61,16 @@ coverage/
 .cache/
 .parcel-cache/
 .vitepress/cache/
+
+# 二进制文件
 admin/admin-server
 admin/admin-server-*
+admin/admin-*
+openapi/openapi
+openapi/openapi-*
+openapi/api-server
+openapi/openapi-server
+
+# 服务日志
+admin/*.log
+openapi/*.log

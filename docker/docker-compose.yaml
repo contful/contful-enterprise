@@ -2,56 +2,43 @@
 # Contful Docker 编排配置
 # =============================================================================
 #
-# 前置条件:
-#   1. 将 sql/init_pg.sql 导入到 PostgreSQL
-#   2. cp .env.example .env，填入数据库/Redis/安全配置信息
-#   3. 已构建镜像:
-#      docker build -t contful/console:pg -f docker/Dockerfile.console ..
-#      docker build -t contful/api:pg -f docker/Dockerfile.api ..
+# 快速启动:
+#   1. 构建镜像（从项目根目录）：
+#      ./shell/build-image.sh
+#      # 或指定数据库类型：
+#      DB_TYPE=dm ./shell/build-image.sh
 #
-# 启动:
-#   docker-compose --env-file .env up -d
+#   2. 复制配置模板：
+#      cp docker/conf/config.yml.console.example docker/conf/config.yml
+#      cp docker/conf/config.yml.open.example docker/conf/config.yml
+#   3. 编辑配置文件，修改密码等敏感信息
+#   4. 启动服务：
+#      docker-compose up -d
 #
 # 访问:
 #   - 管理后台: http://localhost            (OpenResty → Console SPA + /admin/ 代理)
-#   - Open API: http://localhost:8080/      (直连)
+#   - Open API:  http://localhost:8080/    (直连)
+#
+# 镜像说明:
+#   - contful/console:pg   # Admin API + Console SPA（PostgreSQL 版本）
+#   - contful/openapi:pg   # Open API 服务（PostgreSQL 版本）
 #
 # 水平扩展 Open API:
-#   docker-compose --env-file .env up -d --scale api=3
-#
-# 日志:
-#   - 容器日志通过 docker logs 查看
-#   - 应用日志挂载到 ./log/ 目录（需创建目录）
+#   docker-compose up -d --scale openapi=3
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # Admin 服务（Console SPA + Admin API，OpenResty 对外 :80 :443）
-  # 容器内 Admin API 监听 9080，由 nginx 反向代理
+  # Console 服务（Console SPA + Admin API，OpenResty 对外 :80 :443）
   # ---------------------------------------------------------------------------
-  admin:
-    image: contful/console:pg
-    container_name: contful-console
-    ports:
-      - "80:80"
-      - "443:443"
-    env_file:
-      - ./docker/.env
-    environment:
-      - SERVER_PORT=${ADMIN_SERVER_PORT:-9080}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - DB_SSL_MODE=${DB_SSL_MODE}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SECRET=${SECRET}
-      - SECRET_ALGORITHM=${SECRET_ALGORITHM}
-      - UPLOAD_DIR=${UPLOAD_DIR}
-      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB}
+  console:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.console
+    volumes:
+      - ./conf/config.yml:/app/config.yml:ro
+      - ./uploads:/app/uploads
+      - ./log:/app/logs
     healthcheck:
       test: ["CMD", "wget", "-q", "-O-", "http://localhost:80/health"]
       interval: 30s
@@ -59,34 +46,24 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
-    volumes:
-      - contful-uploads:/app/uploads
-      - ./log:/app/logs
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - postgres
+      - redis
 
   # ---------------------------------------------------------------------------
   # Open API 服务（无状态，可水平扩展）
-  # 容器内监听 8080，宿主机映射 8080
   # ---------------------------------------------------------------------------
-  api:
-    image: contful/api:pg
-    container_name: contful-api
-    ports:
-      - "8080:8080"
-    env_file:
-      - ./docker/.env
-    environment:
-      - SERVER_PORT=${API_SERVER_PORT:-8080}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - DB_SSL_MODE=${DB_SSL_MODE}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - UPLOAD_DIR=${UPLOAD_DIR}
-      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB}
+  openapi:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.open
+    volumes:
+      - ./conf/config.yml:/app/config.yml:ro
+      - ./uploads:/app/uploads
+      - ./log:/app/logs
     healthcheck:
       test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/health"]
       interval: 30s
@@ -94,9 +71,49 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 数据库
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: contful-secret
+      POSTGRES_DB: contful
     volumes:
-      - contful-uploads:/app/uploads
-      - ./log:/app/logs
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+
+  # ---------------------------------------------------------------------------
+  # Redis 缓存
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
 
 volumes:
-  contful-uploads:
+  postgres_data:
+  redis_data:
