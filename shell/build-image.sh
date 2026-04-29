@@ -108,7 +108,7 @@ build_openapi() {
     log_info "构建 Open API 镜像 (DB_TYPE=$DB_TYPE)..."
 
     local tag="${OPENAPI_IMAGE}:${DB_TYPE}"
-    local dockerfile="$PROJECT_DIR/docker/Dockerfile.open"
+    local dockerfile="$PROJECT_DIR/docker/Dockerfile.openapi"
 
     if [ ! -f "$dockerfile" ]; then
         log_error "Dockerfile 不存在: $dockerfile"
