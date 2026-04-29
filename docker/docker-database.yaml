@@ -1,0 +1,65 @@
+# =============================================================================
+# Contful 本地数据库 Docker 编排
+# =============================================================================
+#
+# 用途：仅启动 PostgreSQL 和 Valkey（用于本地开发）
+#
+# 使用:
+#   docker-compose -f docker/docker-database.yaml up -d
+#
+# 停止:
+#   docker-compose -f docker/docker-database.yaml down
+#
+# 端口:
+#   PostgreSQL: 5432
+#   Valkey: 6379
+#
+# 默认账号:
+#   PostgreSQL: postgres / contful-secret
+#   Valkey: 无密码
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 数据库
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:18-alpine
+    container_name: contful-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: contful-secret
+      POSTGRES_DB: contful
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+
+  # ---------------------------------------------------------------------------
+  # Valkey 缓存（Redis 兼容）
+  # ---------------------------------------------------------------------------
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: contful-valkey
+    command: valkey-server --appendonly yes
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  valkey_data:
