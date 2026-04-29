@@ -21,10 +21,10 @@ type LocalProvider struct {
 // NewLocalProvider 创建本地存储驱动
 func NewLocalProvider(_ context.Context, cfg *ProviderConfig) (StorageProvider, error) {
 	if cfg.RootDir == "" {
-		cfg.RootDir = "/app/uploads"
+		cfg.RootDir = "./uploads"
 	}
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "http://localhost:8080/assets"
+		cfg.BaseURL = "/assets"
 	}
 	// 确保目录存在
 	if err := os.MkdirAll(cfg.RootDir, 0755); err != nil {

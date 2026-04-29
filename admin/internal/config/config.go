@@ -90,9 +90,22 @@ type JWTConfig struct {
 
 // StorageConfig 文件存储配置
 type StorageConfig struct {
-	UploadDir         string   `mapstructure:"upload_dir"`
-	MaxUploadSizeMB   int64    `mapstructure:"max_upload_size_mb"`
-	AllowedExtensions []string `mapstructure:"allowed_extensions"`
+	Driver           string `mapstructure:"driver"`
+	UploadDir        string `mapstructure:"upload_dir"`
+	MaxUploadSizeMB  int64  `mapstructure:"max_upload_size_mb"`
+	BaseURL          string `mapstructure:"base_url"`
+	AllowedExtensions []string  `mapstructure:"allowed_extensions"`
+	Oss              CloudStorageConfig `mapstructure:"oss"`
+}
+
+// CloudStorageConfig 云存储配置（阿里云 OSS / 腾讯云 COS / 华为云 OBS / AWS S3 / MinIO）
+type CloudStorageConfig struct {
+	Bucket         string `mapstructure:"bucket"`
+	Endpoint       string `mapstructure:"endpoint"`
+	Region         string `mapstructure:"region"`
+	BaseURL        string `mapstructure:"base_url"`
+	PathPrefix     string `mapstructure:"path_prefix"`
+	ForcePathStyle bool   `mapstructure:"force_path_style"`
 }
 
 // CORSConfig CORS 配置
@@ -411,8 +424,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("jwt.refresh_token_expire_days", 7)
 
 	// 存储
+	v.SetDefault("storage.driver", "local")
 	v.SetDefault("storage.upload_dir", "./uploads")
 	v.SetDefault("storage.max_upload_size_mb", 10)
+	v.SetDefault("storage.base_url", "/assets")
 
 	// CORS
 	v.SetDefault("cors.allow_credentials", true)
@@ -451,6 +466,11 @@ func readEnvOverrides(v *viper.Viper) {
 		"SERVER_PORT":      "server.port",
 		"SECRET":           "security.secret",
 		"SECRET_ALGORITHM": "security.algorithm",
+		// 存储配置
+		"STORAGE_DRIVER":            "storage.driver",
+		"STORAGE_UPLOAD_DIR":       "storage.upload_dir",
+		"STORAGE_MAX_UPLOAD_SIZE_MB": "storage.max_upload_size_mb",
+		"STORAGE_BASE_URL":         "storage.base_url",
 	}
 
 	for envKey, configKey := range envMappings {

@@ -20,8 +20,8 @@
 #   - Open API:  http://localhost:8080/    (直连)
 #
 # 镜像说明:
-#   - contful/console:pg   # Admin API + Console SPA（PostgreSQL 版本）
-#   - contful/openapi:pg   # Open API 服务（PostgreSQL 版本）
+#   - contful/console:pg-latest   # Admin API + Console SPA（PostgreSQL 版本）
+#   - contful/openapi:pg-latest   # Open API 服务（PostgreSQL 版本）
 #
 # 水平扩展 Open API:
 #   docker-compose up -d --scale openapi=3
@@ -32,9 +32,7 @@ services:
   # Console 服务（Console SPA + Admin API，OpenResty 对外 :80 :443）
   # ---------------------------------------------------------------------------
   console:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.console
+    image: contful/console:pg-latest
     volumes:
       - ./conf/config.yml:/app/config.yml:ro
       - ./uploads:/app/uploads
@@ -49,17 +47,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    depends_on:
-      - postgres
-      - redis
 
   # ---------------------------------------------------------------------------
   # Open API 服务（无状态，可水平扩展）
   # ---------------------------------------------------------------------------
   openapi:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.open
+    image: contful/openapi:pg-latest
     volumes:
       - ./conf/config.yml:/app/config.yml:ro
       - ./uploads:/app/uploads
@@ -73,47 +66,4 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    depends_on:
-      - postgres
-      - redis
 
-  # ---------------------------------------------------------------------------
-  # PostgreSQL 数据库
-  # ---------------------------------------------------------------------------
-  postgres:
-    image: postgres:18-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: contful-secret
-      POSTGRES_DB: contful
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
-
-  # ---------------------------------------------------------------------------
-  # Redis 缓存
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-
-volumes:
-  postgres_data:
-  redis_data:

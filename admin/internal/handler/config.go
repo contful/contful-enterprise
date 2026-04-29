@@ -98,7 +98,7 @@ func (h *ConfigHandler) Set(c *gin.Context) {
 		return
 	}
 
-	middleware.OK(c, gin.H{"key": key, "message": "配置已保存"})
+	middleware.OK(c, gin.H{"key": key, "msg": "配置已保存"})
 }
 
 // Delete 删除配置
@@ -124,7 +124,7 @@ func (h *ConfigHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	middleware.OK(c, gin.H{"key": key, "message": "配置已删除"})
+	middleware.OK(c, gin.H{"key": key, "msg": "配置已删除"})
 }
 
 // getSiteID 从 URL 参数或请求头获取 siteID

@@ -656,18 +656,20 @@
     "ossConfig": "阿里云 OSS 配置",
     "cosConfig": "腾讯云 COS 配置",
     "obsConfig": "华为云 OBS 配置",
-    "bucket": "Bucket 名称",
-    "endpoint": "Endpoint 地址",
-    "endpointHint": "留空使用云服务商默认地址",
-    "region": "区域（Region）",
-    "pathPrefix": "路径前缀",
-    "pathPrefixHint": "上传文件的目录前缀，如 media/",
-    "forcePathStyle": "路径样式",
-    "pathStyleVirtual": "虚拟托管样式（默认）",
-    "pathStyleForce": "强制路径样式（MinIO 适用）",
-    "forcePathStyleHint": "MinIO 等自建 S3 服务需开启此选项",
-    "baseUrl": "公开访问地址",
-    "baseUrlHint": "文件的公开 URL 前缀，留空使用自动推断地址",
+    "cloudConfig": {
+      "bucket": "Bucket 名称",
+      "endpoint": "Endpoint 地址",
+      "endpointHint": "留空使用云服务商默认地址",
+      "region": "区域（Region）",
+      "pathPrefix": "路径前缀",
+      "pathPrefixHint": "上传文件的目录前缀，如 media/",
+      "forcePathStyle": "路径样式",
+      "pathStyleVirtual": "虚拟托管样式（默认）",
+      "pathStyleForce": "强制路径样式（MinIO 适用）",
+      "forcePathStyleHint": "MinIO 等自建 S3 服务需开启此选项",
+      "baseUrl": "公开访问地址",
+      "baseUrlHint": "文件的公开 URL 前缀，留空使用自动推断地址"
+    }
   }
 }
 

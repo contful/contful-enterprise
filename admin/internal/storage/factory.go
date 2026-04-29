@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/spf13/viper"
+	"github.com/contful/contful/admin/internal/config"
 )
 
 // ProviderFactory 存储驱动工厂
@@ -69,25 +69,34 @@ type ProviderConfig struct {
 	Custom map[string]string
 }
 
-// NewFromViper 从 viper 配置（config.yaml）和环境变量创建 StorageProvider。
-// 这是推荐的全局初始化方式，不依赖 site_configs 表。
-func NewFromViper(ctx context.Context) (StorageProvider, *ProviderConfig, error) {
-	driver := viper.GetString("storage.driver")
+// NewStorage 从全局配置创建 StorageProvider。
+// 使用 config.Load() 读取的配置，不依赖 site_configs 表。
+func NewStorage(ctx context.Context, appCfg *config.Config) (StorageProvider, *ProviderConfig, error) {
+	driver := appCfg.Storage.Driver
 	if driver == "" {
 		driver = "local"
 	}
 
 	cfg := &ProviderConfig{
-		RootDir:        viper.GetString("storage.upload_dir"),
-		MaxUploadSize:  viper.GetInt64("storage.max_upload_size_mb") * 1024 * 1024,
-		Bucket:         viper.GetString(fmt.Sprintf("storage.%s.bucket", driver)),
-		Endpoint:       viper.GetString(fmt.Sprintf("storage.%s.endpoint", driver)),
-		Region:         viper.GetString(fmt.Sprintf("storage.%s.region", driver)),
-		BaseURL:        viper.GetString(fmt.Sprintf("storage.%s.base_url", driver)),
-		PathPrefix:     viper.GetString("storage.s3.path_prefix"),
-		ForcePathStyle: viper.GetBool("storage.s3.force_path_style"),
-		AccessKey:      os.Getenv(fmt.Sprintf("STORAGE_%s_ACCESS_KEY", normalizeEnvKey(driver))),
-		SecretKey:      os.Getenv(fmt.Sprintf("STORAGE_%s_SECRET_KEY", normalizeEnvKey(driver))),
+		RootDir:       appCfg.Storage.UploadDir,
+		MaxUploadSize: appCfg.Storage.GetMaxUploadSize(),
+	}
+
+	// 根据驱动类型读取对应配置
+	switch driver {
+	case "local", "s3", "oss", "cos", "obs":
+		cfg.BaseURL = appCfg.Storage.BaseURL
+		if driver != "local" {
+			cfg.Bucket =         appCfg.Storage.Oss.Bucket
+			cfg.Endpoint =       appCfg.Storage.Oss.Endpoint
+			cfg.Region =         appCfg.Storage.Oss.Region
+			cfg.PathPrefix =     appCfg.Storage.Oss.PathPrefix
+			cfg.ForcePathStyle = appCfg.Storage.Oss.ForcePathStyle
+			cfg.AccessKey =      os.Getenv(fmt.Sprintf("STORAGE_%s_ACCESS_KEY", normalizeEnvKey(driver)))
+			cfg.SecretKey =      os.Getenv(fmt.Sprintf("STORAGE_%s_SECRET_KEY", normalizeEnvKey(driver)))
+		}
+	default:
+		return nil, nil, fmt.Errorf("未知的存储驱动: %s，可用驱动: local/s3/oss/cos/obs", driver)
 	}
 
 	if cfg.RootDir == "" {

@@ -1,5 +1,6 @@
 # Go binary
 admin
+admin_pg
 *.exe
 *.dll
 *.so
@@ -17,4 +18,8 @@ vendor/
 # IDE
 .idea/
 *.swp
+
+# 本地配置（含敏感信息）
+conf/config.yaml
+internal/config.yaml
 *.swo

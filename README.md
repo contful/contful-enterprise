@@ -15,12 +15,12 @@
 
 ```
 contful/
-├── admin/        # Admin API 服务
-├── open/         # Open API 服务
-├── console/      # Vue 3 控制台
+├── admin/        # Admin API 服务（:9080）
+├── openapi/      # Open API 服务（:8080）
+├── console/      # Vue 3 控制台（:3000）
 ├── sql/          # 数据库初始化 SQL
 ├── docker/       # Docker 配置
-└── website/      # 官网 & 文档 (VitePress)
+└── shell/        # 构建脚本
 ```
 
 ## 快速开始
@@ -37,6 +37,9 @@ psql -h <host> -U <user> -c "CREATE DATABASE contful;"
 
 # 导入初始化 SQL
 psql -h <host> -U <user> -d contful -f sql/init_pg.sql
+
+# 或达梦 DM8 版本
+# sql init_dm.sql
 ```
 
 ### 2. Docker 启动
@@ -58,7 +61,7 @@ docker-compose --env-file .env up -d
 
 ```bash
 # 扩展 Open API 到 3 个实例
-docker-compose --env-file .env up -d --scale api=3
+docker-compose --env-file .env up -d --scale openapi=3
 
 # 生产环境建议在 Open API 前加 Nginx/HAProxy 负载均衡
 ```
@@ -66,9 +69,14 @@ docker-compose --env-file .env up -d --scale api=3
 ### 4. 本地开发启动
 
 ```bash
-cd admin && go run .                    # Admin API (:8080)
-cd open && go run .                     # Open API (:8080)
-cd console && yarn dev                   # Console (:3000)
+# PostgreSQL 编译版本（推荐）
+cd admin && go build -tags=pg -o admin_pg . && ./admin_pg    # Admin API (:9080)
+
+# 达梦 DM8 编译版本（可选）
+cd admin && go build -tags=dm -o admin_dm . && ./admin_dm
+
+cd openapi && go build -o openapi . && ./openapi               # Open API (:8080)
+cd console && npm run dev                                      # Console (:3000)
 ```
 
 ## 服务说明

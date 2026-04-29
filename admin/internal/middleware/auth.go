@@ -37,16 +37,16 @@ func JWTAuth(getter claimsGetter) gin.HandlerFunc {
 		authHeader := c.GetHeader(AuthorizationHeader)
 		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    "UNAUTHORIZED",
-				"message": "missing authorization header",
+				"code": 401,
+				"msg":  "missing authorization header",
 			})
 			return
 		}
 
 		if !strings.HasPrefix(authHeader, BearerPrefix) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    "UNAUTHORIZED",
-				"message": "invalid authorization format",
+				"code": 401,
+				"msg":  "invalid authorization format",
 			})
 			return
 		}
@@ -57,14 +57,14 @@ func JWTAuth(getter claimsGetter) gin.HandlerFunc {
 		if err != nil {
 			if err == jwt.ErrTokenExpired {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-					"code":    "UNAUTHORIZED",
-					"message": "token expired",
+					"code": 401,
+					"msg":  "token expired",
 				})
 				return
 			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    "UNAUTHORIZED",
-				"message": "invalid token",
+				"code": 401,
+				"msg":  "invalid token",
 			})
 			return
 		}
@@ -91,8 +91,8 @@ func SuperAdminOnly() gin.HandlerFunc {
 		claimsVal, exists := c.Get(ClaimsContextKey)
 		if !exists {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    "UNAUTHORIZED",
-				"message": "unauthorized",
+				"code": 401,
+				"msg":  "unauthorized",
 			})
 			return
 		}
@@ -100,8 +100,8 @@ func SuperAdminOnly() gin.HandlerFunc {
 		claims, ok := claimsVal.(*Claims)
 		if !ok || !claims.IsSuperAdmin {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"code":    "FORBIDDEN",
-				"message": "super admin only",
+				"code": 403,
+				"msg":  "super admin only",
 			})
 			return
 		}

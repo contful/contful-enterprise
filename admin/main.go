@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/audit_callback"
@@ -114,11 +113,11 @@ func main() {
 	logger.Info().Msg("MFA/TOTP 服务已就绪")
 
 	// 初始化存储驱动（从 config.yaml + 环境变量读取，全局共用）
-	storageProvider, _, err := storage.NewFromViper(ctx)
+	storageProvider, _, err := storage.NewStorage(ctx, cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("初始化存储驱动失败")
 	}
-	logger.Info().Str("driver", viper.GetString("storage.driver")).Msg("存储驱动已就绪（全局单例）")
+	logger.Info().Str("driver", cfg.Storage.Driver).Msg("存储驱动已就绪（全局单例）")
 
 	assetService := service.NewAssetService(assetRepo, storageProvider)
 	assetService.SetConfigService(configService)
@@ -233,8 +232,8 @@ func main() {
 			protected.DELETE("/content/entries/batch-delete", entryHandler.BatchDelete)
 
 		// 媒体库
-			// 静态文件访问路由（必须在 /assets 之前，避免与 :id 路由冲突）
-			protected.GET("/uploads/*filePath", assetHandler.ServeFile)
+			// 静态文件访问（nginx 直连，Go 兜底）
+			protected.GET("/assets/files/*filePath", assetHandler.ServeFile)
 			protected.GET("/assets", assetHandler.List)
 			protected.POST("/assets", assetHandler.Upload)
 			// 文件夹管理（静态路径必须在 :id 之前，否则 folders 会被 :id 捕获）

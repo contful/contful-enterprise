@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/repository"
@@ -255,5 +254,5 @@ func (h *IntegrityHandler) handleError(c *gin.Context, err error) {
 	if c.Writer.Written() {
 		return
 	}
-	c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": err.Error()})
+	middleware.InternalError(c, err.Error())
 }

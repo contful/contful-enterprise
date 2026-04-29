@@ -184,6 +184,7 @@ const handleSubmit = async () => {
     }
     closeModal()
     loadEntries()
+    loadEntryCounts() // 刷新左侧内容类型统计
   } catch (error) {
     showError(error)
   } finally {
@@ -226,6 +227,7 @@ const handleDelete = async () => {
     entryToDelete.value = null
     showSuccess(t('content.deleteSuccess'))
     loadEntries()
+    loadEntryCounts() // 刷新左侧内容类型统计
   } catch (error) {
     showError(error)
   } finally {
@@ -291,6 +293,7 @@ const executeBatchAction = async () => {
     selectedIds.value.clear()
     selectedIds.value = new Set()
     loadEntries()
+    loadEntryCounts() // 刷新左侧内容类型统计
   } catch (error) {
     showError(error)
   } finally {

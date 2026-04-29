@@ -667,7 +667,7 @@
     "pathStyleForce": "強制路徑樣式（MinIO 適用）",
     "forcePathStyleHint": "MinIO 等自建 S3 服務需啟用此選項",
     "baseUrl": "公開存取位址",
-    "baseUrlHint": "檔案的公開 URL 前綴，留空自動推斷",
+    "baseUrlHint": "檔案的公開 URL 前綴，留空自動推斷"
   }
 }
 

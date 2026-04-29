@@ -43,13 +43,6 @@ func (h *ContentTypeHandler) RegisterRoutes(rg *gin.RouterGroup) {
 }
 
 // Create 创建内容类型
-// @Summary 创建内容类型
-// @Tags ContentTypes
-// @Accept json
-// @Produce json
-// @Param request body model.ContentTypeCreate true "创建请求"
-// @Success 201 {object} model.Response{data=model.ContentTypeResponse}
-// @Router /admin/v1/content/types [post]
 func (h *ContentTypeHandler) Create(c *gin.Context) {
 	var req model.ContentTypeCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -73,12 +66,6 @@ func (h *ContentTypeHandler) Create(c *gin.Context) {
 }
 
 // Get 获取内容类型
-// @Summary 获取内容类型
-// @Tags ContentTypes
-// @Produce json
-// @Param id path string true "内容类型ID"
-// @Success 200 {object} model.Response{data=model.ContentTypeResponse}
-// @Router /admin/v1/content/types/{id} [get]
 func (h *ContentTypeHandler) Get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -97,13 +84,6 @@ func (h *ContentTypeHandler) Get(c *gin.Context) {
 }
 
 // List 列出内容类型
-// @Summary 列出内容类型
-// @Tags ContentTypes
-// @Produce json
-// @Param page query int false "页码" default(1)
-// @Param page_size query int false "每页数量" default(20)
-// @Success 200 {object} model.Response{data=model.ContentTypeListResponse}
-// @Router /admin/v1/content/types [get]
 func (h *ContentTypeHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
@@ -119,14 +99,6 @@ func (h *ContentTypeHandler) List(c *gin.Context) {
 }
 
 // Update 更新内容类型
-// @Summary 更新内容类型
-// @Tags ContentTypes
-// @Accept json
-// @Produce json
-// @Param id path string true "内容类型ID"
-// @Param request body model.ContentTypeUpdate true "更新请求"
-// @Success 200 {object} model.Response{data=model.ContentTypeResponse}
-// @Router /admin/v1/content/types/{id} [put]
 func (h *ContentTypeHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -151,11 +123,6 @@ func (h *ContentTypeHandler) Update(c *gin.Context) {
 }
 
 // Delete 删除内容类型
-// @Summary 删除内容类型
-// @Tags ContentTypes
-// @Param id path string true "内容类型ID"
-// @Success 204
-// @Router /admin/v1/content/types/{id} [delete]
 func (h *ContentTypeHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
