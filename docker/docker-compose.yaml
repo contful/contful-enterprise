@@ -3,28 +3,21 @@
 # =============================================================================
 #
 # 快速启动:
-#   1. 构建镜像（从项目根目录）：
-#      ./shell/build-image.sh
-#      # 或指定数据库类型：
-#      DB_TYPE=dm ./shell/build-image.sh
-#
-#   2. 复制配置模板：
-#      cp docker/conf/config.yml.console.example docker/conf/config.yml
-#      cp docker/conf/config.yml.open.example docker/conf/config.yml
-#   3. 编辑配置文件，修改密码等敏感信息
-#   4. 启动服务：
-#      docker-compose up -d
+#   1. 在 contful/ 目录编辑配置文件：
+#      - conf/console.yaml   # Console 服务配置
+#      - conf/openapi.yaml  # Open API 服务配置
+#   2. 启动服务：
+#      docker-compose -f docker/docker-compose.yaml up -d
 #
 # 访问:
-#   - 管理后台: http://localhost            (OpenResty → Console SPA + /admin/ 代理)
-#   - Open API:  http://localhost:8080/    (直连)
+#   - 管理后台: http://localhost     (Console SPA + Admin API)
+#   - Open API:  http://localhost:8080
 #
-# 镜像说明:
-#   - contful/console:pg-latest   # Admin API + Console SPA（PostgreSQL 版本）
-#   - contful/openapi:pg-latest   # Open API 服务（PostgreSQL 版本）
+# 日志查看:
+#   docker logs -f contful-console
+#   docker exec contful-console cat /app/logs/admin-api.log
+#   docker exec contful-console cat /app/logs/access.log
 #
-# 水平扩展 Open API:
-#   docker-compose up -d --scale openapi=3
 # =============================================================================
 
 services:
@@ -32,11 +25,9 @@ services:
   # Console 服务（Console SPA + Admin API，OpenResty 对外 :80 :443）
   # ---------------------------------------------------------------------------
   console:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.console
+    image: contful/console:pg-amd64-latest
     volumes:
-      - ./conf/config.yml:/app/config.yml:ro
+      - ../conf/console.yaml:/app/config.yml:ro
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     healthcheck:
@@ -49,16 +40,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "9080:9080"
 
   # ---------------------------------------------------------------------------
   # Open API 服务（无状态，可水平扩展）
   # ---------------------------------------------------------------------------
   openapi:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.openapi
+    image: contful/openapi:pg-amd64-latest
     volumes:
-      - ./conf/config.yml:/app/config.yml:ro
+      - ../conf/openapi.yaml:/app/config.yml:ro
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     healthcheck:

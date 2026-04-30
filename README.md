@@ -28,6 +28,17 @@ contful/
 
 ## 快速开始
 
+### 默认账号
+
+首次部署后使用以下账号登录管理后台：
+
+| 字段 | 值 |
+|------|-----|
+| 邮箱 | `admin@contful.com` |
+| 密码 | `contful@com` |
+
+> ⚠️ **安全提示**：首次登录后请立即修改密码。
+
 ### 前置条件
 
 - PostgreSQL 18
@@ -38,13 +49,14 @@ contful/
 ### 方式一：Docker 部署
 
 ```bash
-# 1. 构建镜像
-./shell/build-image.sh
+# 1. 构建镜像（在 contful/ 目录执行）
+docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
+docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
 
-# 2. 配置（首次）
-cp docker/conf/config.yml.console.example docker/conf/config.yml
-cp docker/conf/config.yml.open.example docker/conf/config.yml
-# 编辑配置文件，填入数据库密码等
+# 2. 编辑配置文件
+#    - conf/console.yaml   # Console 服务配置
+#    - conf/openapi.yaml   # Open API 服务配置
+#    配置文件中已预置默认值，只需修改数据库密码等敏感信息
 
 # 3. 启动服务
 docker-compose -f docker/docker-compose.yaml up -d
@@ -54,15 +66,19 @@ docker-compose -f docker/docker-compose.yaml up -d
 #   Open API: http://localhost:8080/   (直连)
 ```
 
+> **提示**：构建命令在 `contful/` 目录执行，构建上下文为当前目录。
+
 ### 方式二：本地开发
 
 ```bash
-# 1. 启动数据库和缓存（使用远程或 Docker 本地）
-# Docker 本地启动：
+# 1. 复制环境变量配置
+cp conf/.env.example .env
+
+# 2. 启动数据库和缓存（使用远程或 Docker 本地）
 docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
 docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
-# 2. 构建
+# 3. 构建
 ./shell/build.sh
 
 # 3. 启动服务
@@ -98,11 +114,19 @@ docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
 ```bash
 # PostgreSQL 版本（默认）
-DB_TYPE=pg ./shell/build-image.sh
+docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
+docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
 
 # 达梦 DM8 版本
-DB_TYPE=dm ./shell/build-image.sh
+docker build -f docker/Dockerfile.console -t contful/console:dm --build-arg DB_TYPE=dm .
+docker build -f docker/Dockerfile.openapi -t contful/openapi:dm --build-arg DB_TYPE=dm .
+
+# ARM64 平台
+docker build -f docker/Dockerfile.console -t contful/console:pg-arm64 --platform linux/arm64 .
+docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform linux/arm64 .
 ```
+
+> **注意**：构建命令在 `contful/` 目录执行。使用 `--platform` 参数交叉编译时，`TARGETOS` 和 `TARGETARCH` 会自动适配。
 
 ## 服务说明
 

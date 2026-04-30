@@ -15,7 +15,7 @@
 #   Valkey: 6379
 #
 # 默认账号:
-#   PostgreSQL: postgres / contful-secret
+#   PostgreSQL: postgres / CHANGE_ME（本地开发时请修改密码）
 #   Valkey: 无密码
 #
 # =============================================================================
@@ -29,7 +29,7 @@ services:
     container_name: contful-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: contful-secret
+      POSTGRES_PASSWORD: CHANGE_ME
       POSTGRES_DB: contful
     volumes:
       - postgres_data:/var/lib/postgresql/data

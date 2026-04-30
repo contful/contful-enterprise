@@ -12,10 +12,10 @@ server:
 
 # 数据库（敏感信息在 .env 中配置）
 database:
-  host: localhost
+  host: postgres
   port: 5432
   user: postgres
-  password: ""           # 从 .env 读取
+  password: CHANGE_ME
   name: contful
   ssl_mode: disable
   max_open_conns: 100
@@ -24,9 +24,9 @@ database:
 
 # Redis（密码在 .env 中配置）
 redis:
-  host: localhost
+  host: valkey
   port: 6379
-  password: ""           # 从 .env 读取
+  password: ""
   db: 0
   pool_size: 100
 
