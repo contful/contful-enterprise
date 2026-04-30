@@ -1,33 +1,63 @@
 # =============================================================================
 # Contful Open API 镜像
 # =============================================================================
+#
+# 构建上下文: contful/ 目录（Dockerfile 的父目录）
+# 构建命令需在 contful/ 目录执行，或使用完整路径指定构建上下文
+#
+# 镜像加速（可选）:
+#   国内用户可在 Docker Desktop 中配置 registry-mirrors:
+#   https://docker.1ms.run
+#   或设置 apk 镜像源（见各阶段 RUN 命令）
+#
 # 构建参数:
 #   --build-arg DB_TYPE=pg   # PostgreSQL（默认）
 #   --build-arg DB_TYPE=dm   # 达梦 DM8
 #
-# 构建:
-#   docker build -f docker/Dockerfile.open -t contful/openapi:pg .
-#   docker build -f docker/Dockerfile.open -t contful/openapi:dm --build-arg DB_TYPE=dm .
+# 平台支持:
+#   自动根据构建主机平台选择 GOARCH（amd64/arm64）
+#   可通过 --build-arg TARGETOS/TARGETARCH 覆盖
+#
+# 构建示例（推荐在 contful/ 目录执行）:
+#   docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
+#   docker build -f docker/Dockerfile.openapi -t contful/openapi:dm --build-arg DB_TYPE=dm .
+#   docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform linux/arm64 .
+#
+# 或从父目录执行（指定构建上下文为 contful/）:
+#   docker build -f contful/docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest contful/
+#
 # =============================================================================
 
 # ---- Stage 1: Go 编译 ----
 FROM golang:1.25-alpine AS builder
 
 ARG DB_TYPE=pg
+# 自动获取构建平台
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
+# 使用阿里云 Alpine 镜像源加速 apk
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
-RUN apk add --no-cache git
+RUN apk add --no-cache upx
 
 COPY openapi/go.mod openapi/go.sum ./
 ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY openapi/ .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/openapi-server .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/openapi-server .
+
+# UPX 压缩（可减少 50-60% 体积）
+RUN upx --best /app/openapi-server && rm -f /usr/bin/upx
 
 # ---- Stage 2: 运行 ----
 FROM alpine:latest AS runner
+
+# 使用阿里云 Alpine 镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
@@ -36,7 +66,11 @@ RUN apk add --no-cache ca-certificates tzdata
 # 创建日志目录
 RUN mkdir -p /app/logs
 
+# 复制 Go 二进制
 COPY --from=builder /app/openapi-server .
+
+# 复制默认配置文件（运行时可通过挂载或环境变量覆盖）
+COPY conf/openapi.yaml /app/config.yml
 
 EXPOSE 8080
 

@@ -1,63 +1,132 @@
 # =============================================================================
 # Contful Console 镜像（Admin API + Console 前端）
 # =============================================================================
+#
+# 构建上下文: contful/ 目录（Dockerfile 的父目录）
+# 构建命令需在 contful/ 目录执行，或使用完整路径指定构建上下文
+#
+# 镜像加速（可选）:
+#   国内用户可在 Docker Desktop 中配置 registry-mirrors:
+#   https://docker.1ms.run
+#   或设置 apk 镜像源（见各阶段 RUN 命令）
+#
 # 构建参数:
 #   --build-arg DB_TYPE=pg   # PostgreSQL（默认）
 #   --build-arg DB_TYPE=dm   # 达梦 DM8
 #
-# 构建:
-#   docker build -f docker/Dockerfile.console -t contful/console:pg .
+# 平台支持:
+#   自动根据构建主机平台选择 GOARCH（amd64/arm64）
+#   可通过 --build-arg TARGETOS/TARGETARCH 覆盖
+#
+# 构建示例（推荐在 contful/ 目录执行）:
+#   docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
 #   docker build -f docker/Dockerfile.console -t contful/console:dm --build-arg DB_TYPE=dm .
 #
-# 前置条件:
-#   console/ 目录已执行 yarn install && yarn build
-#   (前端产物在 console/dist/)
+# 或从父目录执行（指定构建上下文为 contful/）:
+#   docker build -f contful/docker/Dockerfile.console -t contful/console:pg-amd64-latest contful/
+#
+# 部署模式（通过 CONTFUL_MODE 环境变量选择）:
+#   console (默认)   - 同时运行 Console SPA (nginx :80) + Admin API (内部 :9080)
+#   api              - 仅运行 Admin API (:9080)
+#
+#   docker run -p 80:80 -p 9080:9080 contful/console              # 全功能
+#   docker run -e CONTFUL_MODE=api -p 9080:9080 contful/console   # 仅 API
+#
 # =============================================================================
 
 # ---- Stage 1: Go Admin API 编译 ----
 FROM golang:1.25-alpine AS go-builder
 
 ARG DB_TYPE=pg
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
+# 使用阿里云 Alpine 镜像源加速 apk
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
-RUN apk add --no-cache git
+RUN apk add --no-cache upx
 
 COPY admin/go.mod admin/go.sum ./
 ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY admin/ .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/admin-api .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/admin-api .
 
-# ---- Stage 2: OpenResty 运行 ----
-FROM openresty/openresty:alpine AS runner
+# UPX 压缩（可减少 50-60% 体积）
+RUN upx --best /app/admin-api && rm -f /usr/bin/upx
+
+# ---- Stage 2: 前端构建 ----
+FROM node:22-alpine AS frontend-builder
+
+# 前端使用 /admin/api/v1（nginx 反向代理，无需端口）
+ARG API_BASE_URL=/admin/api/v1
+
+# 使用阿里云 npm 镜像
+RUN npm config set registry https://registry.npmmirror.com && \
+    corepack enable && \
+    yarn config set registry https://registry.npmmirror.com
 
 WORKDIR /app
 
-# 创建日志和上传目录
+COPY console/package.json console/yarn.lock* ./
+RUN yarn install
+
+COPY console/ .
+ENV VITE_API_BASE_URL=${API_BASE_URL}
+RUN yarn build
+
+# ---- Stage 3: OpenResty 运行 ----
+FROM openresty/openresty:alpine AS runner
+
+# 使用阿里云 Alpine 镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+WORKDIR /app
+
+RUN apk add --no-cache supervisor
+
 RUN mkdir -p /app/logs /app/uploads /var/log/nginx
 
 # 复制 Go 二进制
 COPY --from=go-builder /app/admin-api /app/admin-api
 
-# 复制前端静态文件（需先在本地 yarn build）
-COPY console/dist /usr/share/nginx/html
+# 复制前端静态文件（从前端构建 stage）
+COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 
 # 复制 Nginx 配置
-COPY docker/conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 
-EXPOSE 9080
+# 复制默认配置文件（运行时可通过挂载或环境变量覆盖）
+COPY conf/console.yaml /app/config.yml
 
-# 同时启动 admin-api 和 openresty，日志输出到 /app/logs
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'exec > /app/logs/admin.log 2>&1' >> /app/start.sh && \
-    echo 'nohup /app/admin-api > /app/logs/admin-api.log 2>&1 &' >> /app/start.sh && \
-    echo 'sleep 2' >> /app/start.sh && \
-    echo 'exec /usr/local/openresty/bin/openresty -g "daemon off;"' >> /app/start.sh && \
-    chmod +x /app/start.sh
+# Create smart entrypoint script
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'set -e' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
+    echo 'MODE="${CONTFUL_MODE:-console}"' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
+    echo 'echo "[Entrypoint] Starting Contful Console in mode: $MODE"' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
+    echo '# Always start Admin API' >> /app/entrypoint.sh && \
+    echo 'echo "[Entrypoint] Starting Admin API on :9080..."' >> /app/entrypoint.sh && \
+    echo '/app/admin-api > /app/logs/admin-api.log 2>&1 &' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
+    echo '# Start nginx only in console mode' >> /app/entrypoint.sh && \
+    echo 'if [ "$MODE" = "console" ]; then' >> /app/entrypoint.sh && \
+    echo '    echo "[Entrypoint] Starting Console SPA on :80..."' >> /app/entrypoint.sh && \
+    echo '    exec /usr/local/openresty/bin/openresty -g "daemon off;"' >> /app/entrypoint.sh && \
+    echo 'else' >> /app/entrypoint.sh && \
+    echo '    echo "[Entrypoint] API mode: nginx skipped"' >> /app/entrypoint.sh && \
+    echo '    wait' >> /app/entrypoint.sh && \
+    echo 'fi' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD wget -q -O- http://localhost:80/health || exit 1
+EXPOSE 80 443
 
-CMD ["/app/start.sh"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q -O- http://localhost:9080/health || exit 1
+
+ENTRYPOINT ["/app/entrypoint.sh"]
