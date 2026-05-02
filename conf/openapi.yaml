@@ -22,9 +22,9 @@ database:
   max_idle_conns: 10
   conn_max_lifetime: 3600
 
-# 安全配置
+# 安全配置（需与 console.yaml 保持一致，用于数据加密）
 security:
-  secret: f717305460370e37991e5615e54561ed7f28a190bef24e69304f85f87e784d16
+  secret: ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
   algorithm: aes-256-gcm
 
 # Redis
