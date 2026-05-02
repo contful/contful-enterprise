@@ -2,12 +2,23 @@
 # Contful Docker 编排配置
 # =============================================================================
 #
-# 快速启动:
-#   1. 在 contful/ 目录编辑配置文件：
-#      - conf/console.yaml   # Console 服务配置
-#      - conf/openapi.yaml  # Open API 服务配置
+# 两种配置模式:
+#
+# 模式1: 环境变量模式（推荐）
+#   - 不需要挂载配置文件
+#   - 所有配置通过环境变量传递
+#   - 适合容器编排系统（K8s、Swarm）
+#
+# 模式2: 配置文件模式
+#   - 挂载 conf/console.yaml / conf/openapi.yaml
+#   - 适合需要自定义复杂配置的场景
+#
+# 快速启动（环境变量模式）:
+#   1. 在 contful/ 目录创建 .env 文件：
+#      cp .env.example .env
+#      # 编辑 .env，填入 DB_PASSWORD、REDIS_PASSWORD、SECRET
 #   2. 启动服务：
-#      docker-compose -f docker/docker-compose.yaml up -d
+#      docker-compose -f docker/docker-compose.yaml --env-file .env up -d
 #
 # 访问:
 #   - 管理后台: http://localhost     (Console SPA + Admin API)
@@ -26,12 +37,28 @@ services:
   # ---------------------------------------------------------------------------
   console:
     image: contful/console:pg-amd64-latest
+    # 环境变量模式（推荐）
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=contful
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SECRET=${SECRET}
+      # 可选配置
+      # - CONTFUL_MODE=api  # 仅启动 API，不启动 nginx
+      # - LOG_LEVEL=debug
+    # 配置文件模式（取消注释可覆盖环境变量）
+    # volumes:
+    #   - ../conf/console.yaml:/app/config.yml:ro
     volumes:
-      - ../conf/console.yaml:/app/config.yml:ro
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://localhost:80/health"]
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:9080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -47,8 +74,24 @@ services:
   # ---------------------------------------------------------------------------
   openapi:
     image: contful/openapi:pg-amd64-latest
+    # 环境变量模式（推荐）
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=contful
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SECRET=${SECRET}
+      # 可选配置
+      # - CONTFUL_SERVER_PORT=8080
+      # - LOG_LEVEL=debug
+    # 配置文件模式（取消注释可覆盖环境变量）
+    # volumes:
+    #   - ../conf/openapi.yaml:/app/config.yml:ro
     volumes:
-      - ../conf/openapi.yaml:/app/config.yml:ro
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     healthcheck:

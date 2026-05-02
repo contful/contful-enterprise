@@ -10,21 +10,26 @@ server:
   write_timeout: 60
   shutdown_timeout: 30
 
-# 数据库（敏感信息在 .env 中配置）
+# 数据库
 database:
   host: postgres
   port: 5432
   user: postgres
-  password: CHANGE_ME
+  password: ""  # Set via DB_PASSWORD env var
   name: contful
   ssl_mode: disable
   max_open_conns: 100
   max_idle_conns: 10
   conn_max_lifetime: 3600
 
-# Redis（密码在 .env 中配置）
+# 安全配置
+security:
+  secret: f717305460370e37991e5615e54561ed7f28a190bef24e69304f85f87e784d16
+  algorithm: aes-256-gcm
+
+# Redis
 redis:
-  host: valkey
+  host: redis
   port: 6379
   password: ""
   db: 0
@@ -41,7 +46,33 @@ logging:
   format: json
   output: stdout
 
-# 限流配置
-rate_limit:
+# CORS 配置
+cors:
+  allowed_origins:
+    - "*"
+  allowed_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed_headers:
+    - "*"
+  allow_credentials: true
+  max_age: 86400
+
+# 审计日志
+audit:
   enabled: true
-  requests_per_minute: 100
+  log_all_requests: false
+
+# 多站点配置
+multi_site:
+  enabled: true
+  default_site_id: ""
+
+# 特性开关
+features:
+  version_history: true
+  api_tokens: true
+  media_library: true

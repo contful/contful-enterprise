@@ -86,7 +86,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
-RUN apk add --no-cache supervisor
+RUN apk add --no-cache supervisor gettext
 
 RUN mkdir -p /app/logs /app/uploads /var/log/nginx
 
@@ -102,27 +102,9 @@ COPY conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 # 复制默认配置文件（运行时可通过挂载或环境变量覆盖）
 COPY conf/console.yaml /app/config.yml
 
-# Create smart entrypoint script
-RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
-    echo 'set -e' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo 'MODE="${CONTFUL_MODE:-console}"' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo 'echo "[Entrypoint] Starting Contful Console in mode: $MODE"' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo '# Always start Admin API' >> /app/entrypoint.sh && \
-    echo 'echo "[Entrypoint] Starting Admin API on :9080..."' >> /app/entrypoint.sh && \
-    echo '/app/admin-api > /app/logs/admin-api.log 2>&1 &' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo '# Start nginx only in console mode' >> /app/entrypoint.sh && \
-    echo 'if [ "$MODE" = "console" ]; then' >> /app/entrypoint.sh && \
-    echo '    echo "[Entrypoint] Starting Console SPA on :80..."' >> /app/entrypoint.sh && \
-    echo '    exec /usr/local/openresty/bin/openresty -g "daemon off;"' >> /app/entrypoint.sh && \
-    echo 'else' >> /app/entrypoint.sh && \
-    echo '    echo "[Entrypoint] API mode: nginx skipped"' >> /app/entrypoint.sh && \
-    echo '    wait' >> /app/entrypoint.sh && \
-    echo 'fi' >> /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
+# Copy entrypoint script (supports dual mode: env vars or mounted config)
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 80 443
 

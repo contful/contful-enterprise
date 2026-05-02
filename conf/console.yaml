@@ -37,7 +37,7 @@ database:
 
 # Redis 配置
 redis:
-  host: valkey
+  host: redis
   port: 6379
   password: ""
   db: 0
@@ -45,7 +45,7 @@ redis:
 
 # 安全配置（生成密钥: openssl rand -hex 32）
 security:
-  secret: CHANGE_ME_USE_OPENSSL_RAND_HEX_32
+  secret: ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
   algorithm: aes-256-gcm  # aes-256-gcm（默认）/ sm4-gcm（国密）
 
 # JWT 配置（自动从 security.secret 派生，如需单独配置可取消注释）
