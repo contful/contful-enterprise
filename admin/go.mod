@@ -3,9 +3,7 @@
 
 module github.com/contful/contful/admin
 
-go 1.24
-
-toolchain go1.24.5
+go 1.25.0
 
 require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.4.1
@@ -14,17 +12,18 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.1
 	github.com/gin-gonic/gin v1.9.1
-	github.com/godoes/gorm-dameng v0.7.2
+	github.com/godoes/gorm-dameng v0.5.0
 	github.com/golang-jwt/jwt/v5 v5.2.3
 	github.com/google/uuid v1.4.0
 	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.25.9+incompatible
 	github.com/pquerna/otp v1.5.0
-	github.com/redis/go-redis/v9 v9.4.0
+	github.com/redis/go-redis/v9 v9.6.3
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/viper v1.18.2
 	github.com/subosito/gotenv v1.6.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.73
-	golang.org/x/crypto v0.18.0
+	github.com/tjfoc/gmsm v1.4.1
+	golang.org/x/crypto v0.36.0
 	gorm.io/driver/postgres v1.5.4
 	gorm.io/gorm v1.30.1
 )
@@ -62,7 +61,8 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgx/v5 v5.4.3 // indirect
+	github.com/jackc/pgx/v5 v5.5.4 // indirect
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -82,16 +82,16 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
