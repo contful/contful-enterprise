@@ -61,19 +61,23 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates tzdata gettext
+RUN apk add --no-cache ca-certificates tzdata gettext su-exec
 
-# 创建日志目录
+# 创建非 root 用户运行容器（安全最佳实践）
+RUN addgroup -S contful && adduser -S contful -G contful
 RUN mkdir -p /app/logs
+RUN chown -R contful:contful /app
+
+WORKDIR /app
 
 # 复制 Go 二进制
-COPY --from=builder /app/openapi-server .
+COPY --chown=contful:contful --from=builder /app/openapi-server .
 
 # 复制默认配置文件（运行时可通过挂载或环境变量覆盖）
-COPY conf/openapi.yaml /app/config.yml
+COPY --chown=contful:contful conf/openapi.yaml /app/config.yml
 
 # Copy entrypoint script (supports dual mode: env vars or mounted config)
-COPY docker/entrypoint.sh /app/entrypoint.sh
+COPY --chown=contful:contful docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8080

@@ -86,24 +86,29 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
-RUN apk add --no-cache supervisor gettext
+RUN apk add --no-cache supervisor gettext su-exec
 
 RUN mkdir -p /app/logs /app/uploads /var/log/nginx
 
+# 创建非 root 用户运行容器（安全最佳实践）
+RUN addgroup -S contful && adduser -S contful -G contful
+RUN chown -R contful:contful /app /var/log/nginx /usr/local/openresty/nginx/logs
+USER contful
+
 # 复制 Go 二进制
-COPY --from=go-builder /app/admin-api /app/admin-api
+COPY --chown=contful:contful --from=go-builder /app/admin-api /app/admin-api
 
 # 复制前端静态文件（从前端构建 stage）
-COPY --from=frontend-builder /app/dist /usr/share/nginx/html
+COPY --chown=contful:contful --from=frontend-builder /app/dist /usr/share/nginx/html
 
 # 复制 Nginx 配置
-COPY conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY --chown=contful:contful conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 
 # 复制默认配置文件（运行时可通过挂载或环境变量覆盖）
-COPY conf/console.yaml /app/config.yml
+COPY --chown=contful:contful conf/console.yaml /app/config.yml
 
 # Copy entrypoint script (supports dual mode: env vars or mounted config)
-COPY docker/entrypoint.sh /app/entrypoint.sh
+COPY --chown=contful:contful docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 80 443

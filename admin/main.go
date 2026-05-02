@@ -142,6 +142,9 @@ func main() {
 	r.Use(gin.Recovery())
 	// CORS 由部署环境统一处理（反向代理/API 网关）
 
+	// 初始化限流中间件（使用共享的 Redis Client）
+	rateLimiter := middleware.NewRateLimiter(redisClient)
+
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -166,13 +169,14 @@ func main() {
 	// API 路由组
 	api := r.Group("/admin/api/v1")
 	{
-		// 公开路由
+		// 公开路由（限流保护）
 		auth := api.Group("/auth")
+		auth.Use(rateLimiter.LoginRateLimit()) // 登录限流：5次/分钟/IP
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
-			// MFA 登录步骤 2（无需 JWT）
+			// MFA 登录步骤 2（无需 JWT，但受限流保护）
 			auth.POST("/mfa/verify", mfaHandler.Verify)
 			auth.POST("/mfa/recover", mfaHandler.Recover)
 		}

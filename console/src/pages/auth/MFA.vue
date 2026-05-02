@@ -117,12 +117,22 @@ const recoveryCode = ref('')
 const mfaToken = ref('')
 
 onMounted(() => {
-  mfaToken.value = (route.query.mfa_token as string) || ''
+  // 从 sessionStorage 读取敏感信息（避免出现在 URL 中）
+  mfaToken.value = sessionStorage.getItem('mfa_token') || ''
+  const email = sessionStorage.getItem('mfa_email') || ''
+  
   if (!mfaToken.value) {
     // 没有 mfa_token，跳回登录
     router.replace('/login')
   }
+  
+  // 清理：MFA 验证完成后应清除 sessionStorage
 })
+
+// Recovery Code 恢复需要 email
+const getEmailFromSession = () => {
+  return sessionStorage.getItem('mfa_email') || ''
+}
 
 const handleLoginSuccess = async (data: { access_token: string; refresh_token: string; user: any }) => {
   setAccessToken(data.access_token)
@@ -165,13 +175,21 @@ const onRecover = async () => {
   if (!recoveryCode.value.trim()) return
   loading.value = true
   try {
-    // Recovery Code 恢复需要 email（从 query 传入）
-    const email = (route.query.email as string) || ''
+    // Recovery Code 恢复需要 email（从 sessionStorage 读取）
+    const email = getEmailFromSession()
+    if (!email) {
+      MessagePlugin.error(t('auth.mfaEmailMissing'))
+      router.replace('/login')
+      return
+    }
     const res = await request.post('/auth/mfa/recover', {
       email,
       recovery_code: recoveryCode.value.trim(),
     })
     if (res.data.code === 200) {
+      // 验证成功，清除 sessionStorage
+      sessionStorage.removeItem('mfa_token')
+      sessionStorage.removeItem('mfa_email')
       await handleLoginSuccess(res.data.data)
     } else {
       MessagePlugin.error(res.data.message || t('auth.mfaInvalidCode'))

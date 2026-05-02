@@ -13,6 +13,17 @@
 
 set -e
 
+# 确保 /app/logs 和 /app/uploads 有写权限（非 root 用户支持）
+mkdir -p /app/logs /app/uploads
+if [ "$(id -u)" != "0" ]; then
+    # 非 root 用户：确保目录可写
+    if [ -w /app/logs ]; then
+        : # 已经有写权限
+    else
+        echo "[Entrypoint] WARNING: /app/logs not writable, logs may fail"
+    fi
+fi
+
 # 检测服务类型
 if [ -f "/app/admin-api" ]; then
     SERVICE_TYPE="console"
@@ -29,6 +40,44 @@ fi
 MODE="${CONTFUL_MODE:-console}"
 
 echo "[Entrypoint] Contful starting (service: $SERVICE_TYPE, mode: $MODE)"
+
+# =========================================================================
+# 环境变量校验（确保必填项存在且有效）
+# =========================================================================
+validate_environment() {
+    local errors=0
+
+    # 检查 SECRET（JWT 签名密钥）
+    if [ -z "$SECRET" ]; then
+        echo "[Entrypoint] ERROR: SECRET environment variable is required"
+        errors=$((errors + 1))
+    elif [ ${#SECRET} -lt 32 ]; then
+        echo "[Entrypoint] ERROR: SECRET must be at least 32 characters for security"
+        errors=$((errors + 1))
+    fi
+
+    # 检查数据库连接（环境变量模式必需）
+    if [ -n "$DB_HOST" ] || [ -n "$DB_PASSWORD" ] || [ -n "$SECRET" ]; then
+        # 使用环境变量模式
+        if [ -z "$DB_HOST" ]; then
+            echo "[Entrypoint] ERROR: DB_HOST is required in environment variable mode"
+            errors=$((errors + 1))
+        fi
+        if [ -z "$DB_PASSWORD" ]; then
+            echo "[Entrypoint] ERROR: DB_PASSWORD is required in environment variable mode"
+            errors=$((errors + 1))
+        fi
+    fi
+
+    if [ $errors -gt 0 ]; then
+        echo "[Entrypoint] ERROR: $errors validation error(s), exiting"
+        exit 1
+    fi
+
+    echo "[Entrypoint] Environment validation passed"
+}
+
+validate_environment
 
 # 生成 YAML 配置文件（环境变量模式）
 generate_config() {
@@ -128,21 +177,30 @@ fi
 echo "[Entrypoint] Config location: /app/config.yml"
 echo "[Entrypoint] Database: ${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-contful}"
 
-# 根据服务类型启动
+# 根据服务类型启动（使用 su-exec 以非 root 用户运行 Go 二进制）
 start_service() {
     local binary="$1"
     local port="$2"
     local log_file="$3"
 
     echo "[Entrypoint] Starting $binary on :$port..."
-    /app/$binary > /app/logs/$log_file 2>&1 &
+    # 使用 su-exec 以非 root 用户运行（如果可用）
+    if command -v su-exec >/dev/null 2>&1 && [ "$(id -u)" = "0" ]; then
+        # 已配置 su-exec 且当前以 root 运行：以 contful 用户启动
+        # 日志由 entrypoint 以 root 写入，二进制以 contful 用户运行
+        su-exec contful /app/$binary > /app/logs/$log_file 2>&1 &
+    else
+        # 回退：以当前用户运行
+        /app/$binary > /app/logs/$log_file 2>&1 &
+    fi
 }
 
 case "$SERVICE_TYPE" in
     "console")
+        # Go 二进制使用非 root 用户运行（安全）
         start_service "admin-api" "$SERVICE_PORT" "admin-api.log"
 
-        # 仅在 console 模式启动 nginx
+        # 仅在 console 模式启动 nginx（nginx 需 root 绑定 80 端口，启动后会降权）
         if [ "$MODE" = "console" ]; then
             echo "[Entrypoint] Starting Console SPA on :80..."
             exec /usr/local/openresty/bin/openresty -g "daemon off;"

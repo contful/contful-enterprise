@@ -110,13 +110,12 @@ const onLogin = async () => {
   const result = await userStore.login(loginForm.email, loginForm.password)
   if (result.success) {
     if ((result as any).mfa_required) {
-      // 跳转 MFA 验证页，携带 mfa_token 和 email
+      // 使用 sessionStorage 传递敏感 token（不出现在 URL 中）
+      sessionStorage.setItem('mfa_token', (result as any).mfa_token)
+      sessionStorage.setItem('mfa_email', loginForm.email)
       router.push({
         path: '/mfa',
-        query: {
-          mfa_token: (result as any).mfa_token,
-          email: loginForm.email,
-        },
+        // 不再通过 query 传递敏感信息
       })
     } else {
       MessagePlugin.success(t('auth.loginSuccess'))

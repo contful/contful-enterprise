@@ -13,24 +13,24 @@ import (
 // EntryCreate 创建条目请求
 type EntryCreate struct {
 	ContentTypeID  uuid.UUID              `json:"content_type_id" binding:"required"`
-	Locale         string                 `json:"locale"`
+	Locale         string                 `json:"locale" binding:"omitempty,max=20"`
 	Values         map[string]interface{} `json:"values"`
-	SEOTitle       string                 `json:"seo_title"`
-	SEODescription string                 `json:"seo_description"`
-	SEOKeywords    []string               `json:"seo_keywords"`
+	SEOTitle       string                 `json:"seo_title" binding:"omitempty,max=255"`
+	SEODescription string                 `json:"seo_description" binding:"omitempty,max=5000"`
+	SEOKeywords    []string               `json:"seo_keywords" binding:"omitempty,max=50,dive,max=100"`
 	SortWeight     int                    `json:"sort_weight"`
 }
 
 // EntryUpdate 更新条目请求
 type EntryUpdate struct {
-	Locale         *string                `json:"locale"`
+	Locale         *string                `json:"locale" binding:"omitempty,max=20"`
 	Status         *EntryStatus           `json:"status"`
 	Values         map[string]interface{} `json:"values"`
-	SEOTitle       *string                `json:"seo_title"`
-	SEODescription *string                `json:"seo_description"`
-	SEOKeywords    []string               `json:"seo_keywords"`
+	SEOTitle       *string                `json:"seo_title" binding:"omitempty,max=255"`
+	SEODescription *string                `json:"seo_description" binding:"omitempty,max=5000"`
+	SEOKeywords    []string               `json:"seo_keywords" binding:"omitempty,max=50,dive,max=100"`
 	SortWeight     *int                   `json:"sort_weight"`
-	ChangeSummary  string                 `json:"change_summary"` // 版本变更说明
+	ChangeSummary  string                 `json:"change_summary" binding:"omitempty,max=500"`
 }
 
 // EntryPublish 发布条目请求
