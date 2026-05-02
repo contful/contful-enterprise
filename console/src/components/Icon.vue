@@ -1,4 +1,8 @@
 <script setup lang="ts">
+
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * 简化图标组件 - SVG 高级用法
  * 替代 <t-icon name="xxx" />，统一使用 <Icon name="xxx" size="xx" />

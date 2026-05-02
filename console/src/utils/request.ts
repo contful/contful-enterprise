@@ -1,3 +1,6 @@
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Contful Console - HTTP Client
  * 基于 Axios 封装，统一处理 Admin API 请求

@@ -1,5 +1,5 @@
-// Package crypto 提供加解密工具，支持多种算法（AES-256-GCM、SM4-GCM）。
-// 通过 NewCrypter(algorithm, secret) 创建加密器。
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
 package crypto
 
 import "errors"

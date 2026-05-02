@@ -1,3 +1,6 @@
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'

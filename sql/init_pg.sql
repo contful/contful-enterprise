@@ -1,3 +1,6 @@
+-- Copyright © 2026-present reepu.com
+-- SPDX-License-Identifier: Apache-2.0
+
 -- =============================================================================
 -- Contful - Headless CMS 数据库初始化脚本
 -- 版本: v1.0.0

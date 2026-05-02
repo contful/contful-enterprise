@@ -1,3 +1,6 @@
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 // Asset 类型别名
 export type Asset = {
   id: string

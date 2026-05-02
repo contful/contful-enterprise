@@ -162,6 +162,10 @@
 </template>
 
 <script setup lang="ts">
+
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'

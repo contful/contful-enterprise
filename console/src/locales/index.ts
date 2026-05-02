@@ -1,3 +1,6 @@
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Contful Console — i18n 配置
  * 技术栈: vue-i18n v9 (Composition API 模式)

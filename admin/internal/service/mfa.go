@@ -1,4 +1,5 @@
-// Package service MFA（多因子认证）服务 — TOTP + Recovery Code
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
 package service
 
 import (

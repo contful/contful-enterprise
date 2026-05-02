@@ -1,3 +1,6 @@
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request, { setAccessToken, getAccessToken, setRefreshToken, clearRefreshToken } from '@/utils/request'

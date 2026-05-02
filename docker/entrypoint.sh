@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# Copyright © 2026-present reepu.com
+# SPDX-License-Identifier: Apache-2.0
+
 # =============================================================================
 # Contful Entrypoint - 双模式支持
 # 模式1: 环境变量模式 - 通过环境变量配置所有参数

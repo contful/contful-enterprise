@@ -1,4 +1,5 @@
-// Package storage 提供存储驱动抽象，支持 local / OSS / S3 / COS / OBS 多后端。
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
 package storage
 
 import (

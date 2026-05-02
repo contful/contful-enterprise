@@ -20,6 +20,10 @@
 </template>
 
 <script setup lang="ts">
+
+// Copyright © 2026-present reepu.com
+// SPDX-License-Identifier: Apache-2.0
+
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { i18n, localeOptions, setLocale, type Locale } from '@/locales'
