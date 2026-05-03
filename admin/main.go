@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-contrib/cors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
@@ -28,6 +27,28 @@ import (
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/contful/contful/admin/internal/storage"
 )
+
+// corsMiddleware 自定义 CORS 中间件（本地开发用，生产环境由反向代理处理）
+// 反射 Origin，支持带 Authorization 等自定义请求头的跨域请求
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if origin := c.GetHeader("Origin"); origin != "" {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		} else {
+			c.Header("Access-Control-Allow-Origin", "*")
+		}
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-CSRF-Token")
+		c.Header("Access-Control-Expose-Headers", "Content-Length")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	}
+}
 
 func main() {
 	// 初始化配置
@@ -143,16 +164,8 @@ func main() {
 	r.Use(gin.Recovery())
 
 	// CORS 中间件（本地开发需要，生产环境由反向代理处理）
-	// 本地开发不限制跨域，允许所有来源和所有常用请求头
-	corsCfg := cors.Config{
-		AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: false,
-		MaxAge:           86400 * time.Second,
-	}
-	r.Use(cors.New(corsCfg))
+	// 自定义中间件：反射 Origin，支持带鉴权头的请求
+	r.Use(corsMiddleware())
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
