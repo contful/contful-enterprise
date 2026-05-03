@@ -143,15 +143,14 @@ func main() {
 	r.Use(gin.Recovery())
 
 	// CORS 中间件（本地开发需要，生产环境由反向代理处理）
+	// 本地开发不限制跨域，允许所有来源和所有常用请求头
 	corsCfg := cors.Config{
-		AllowOrigins:     cfg.CORS.AllowedOrigins,
-		AllowMethods:     cfg.CORS.AllowedMethods,
-		AllowHeaders:     cfg.CORS.AllowedHeaders,
-		AllowCredentials: cfg.CORS.AllowCredentials,
-		MaxAge:           time.Duration(cfg.CORS.MaxAge) * time.Second,
-	}
-	if len(cfg.CORS.AllowedOrigins) == 1 && cfg.CORS.AllowedOrigins[0] == "*" {
-		corsCfg.AllowAllOrigins = true
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: false,
+		MaxAge:           86400 * time.Second,
 	}
 	r.Use(cors.New(corsCfg))
 
