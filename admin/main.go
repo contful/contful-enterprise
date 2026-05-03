@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/cors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
@@ -140,7 +141,19 @@ func main() {
 	// 初始化 Gin
 	r := gin.New()
 	r.Use(gin.Recovery())
-	// CORS 由部署环境统一处理（反向代理/API 网关）
+
+	// CORS 中间件（本地开发需要，生产环境由反向代理处理）
+	corsCfg := cors.Config{
+		AllowOrigins:     cfg.CORS.AllowedOrigins,
+		AllowMethods:     cfg.CORS.AllowedMethods,
+		AllowHeaders:     cfg.CORS.AllowedHeaders,
+		AllowCredentials: cfg.CORS.AllowCredentials,
+		MaxAge:           time.Duration(cfg.CORS.MaxAge) * time.Second,
+	}
+	if len(cfg.CORS.AllowedOrigins) == 1 && cfg.CORS.AllowedOrigins[0] == "*" {
+		corsCfg.AllowAllOrigins = true
+	}
+	r.Use(cors.New(corsCfg))
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

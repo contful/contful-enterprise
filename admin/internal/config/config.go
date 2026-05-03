@@ -432,6 +432,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("storage.base_url", "/assets")
 
 	// CORS
+	v.SetDefault("cors.allowed_headers", []string{"Content-Type", "Authorization", "X-Requested-With"})
 	v.SetDefault("cors.allow_credentials", true)
 	v.SetDefault("cors.max_age", 86400)
 
