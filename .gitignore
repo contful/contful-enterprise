@@ -61,3 +61,6 @@ coverage/
 docker/*.log
 docker/conf/config.yml  # 实际配置文件（不提交）
 audit-report-*.md
+logs/admin.pid
+logs/console.pid
+logs/openapi.pid
