@@ -3,7 +3,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import request, { setAccessToken, getAccessToken, setRefreshToken, clearRefreshToken } from '@/utils/request'
+import request, { setAccessToken, getAccessToken, logout as clearAuthSession, initializeSession } from '@/utils/request'
 import { useSiteStore } from '@/stores/site'
 
 interface User {
@@ -64,8 +64,8 @@ export const useUserStore = defineStore('user', () => {
 
         // 正常登录
         const loginData = data as LoginResponse
+        // 只存储 AccessToken（内存），RefreshToken 已由后端写入 HttpOnly Cookie
         setAccessToken(loginData.access_token)
-        setRefreshToken(loginData.refresh_token)
         setUser(loginData.user)
 
         // 登录成功后自动加载站点列表
@@ -109,8 +109,8 @@ export const useUserStore = defineStore('user', () => {
     } catch {
       // ignore
     }
-    setAccessToken(null)
-    clearRefreshToken()
+    // 清除内存中的 AccessToken 和 Cookie 中的 RefreshToken
+    clearAuthSession()
     clearUser()
 
     // 登出时清除站点状态
@@ -119,7 +119,15 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const fetchUser = async () => {
-    if (!getAccessToken()) return
+    // 如果没有 AccessToken，尝试从 Cookie 刷新恢复会话
+    if (!getAccessToken()) {
+      const restored = await initializeSession()
+      if (!restored) {
+        // 无法恢复，跳转登录
+        logout()
+        return
+      }
+    }
 
     try {
       const res = await request.get<{ user: User }>('/users/me')

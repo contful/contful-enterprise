@@ -97,7 +97,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
-import request, { setAccessToken, setRefreshToken } from '@/utils/request'
+import request, { setAccessToken } from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { useSiteStore } from '@/stores/site'
 
@@ -134,9 +134,9 @@ const getEmailFromSession = () => {
   return sessionStorage.getItem('mfa_email') || ''
 }
 
-const handleLoginSuccess = async (data: { access_token: string; refresh_token: string; user: any }) => {
+const handleLoginSuccess = async (data: { access_token: string; user: any }) => {
+  // 只存储 AccessToken（内存），RefreshToken 已由后端写入 HttpOnly Cookie
   setAccessToken(data.access_token)
-  setRefreshToken(data.refresh_token)
   if (data.user) {
     userStore.setUser(data.user)
   }

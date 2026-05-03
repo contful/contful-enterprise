@@ -5,57 +5,151 @@
  * Contful Console - HTTP Client
  * 基于 Axios 封装，统一处理 Admin API 请求
  *
- * Token 存储策略（简化版，无 Refresh Token 轮换）：
- * - AccessToken：JWT，存 localStorage + 内存变量，15min 有效
- * - RefreshToken：hex token，存 localStorage（无 HttpOnly），7d 有效
+ * Token 存储策略（安全增强版）：
+ * - AccessToken：JWT，存内存（页面刷新丢失），15min 有效
+ * - RefreshToken：HttpOnly Cookie（JS 无法访问，XSS 无法窃取），7d 有效
  *
- * 所有 token 均通过 localStorage 持久化，页面刷新后仍可用。
+ * 安全改进：
+ * - RefreshToken 不再存 localStorage，移到 HttpOnly Cookie
+ * - 实现刷新竞态处理，防止多个并发请求同时触发刷新
+ * - 页面初始化时自动从 Cookie 刷新获取 AccessToken
  */
 
 import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 import { MessagePlugin } from 'tdesign-vue-next'
 import router from '@/router'
 
-// ── Token 内存缓存 ──────────────────────────────────────────────────────────
+// ── Token 内存缓存（仅内存，刷新页面丢失）─────────────────────────────────────
 let accessToken: string | null = null
 
-// ── localStorage Key ────────────────────────────────────────────────────────
-const ACCESS_TOKEN_KEY = 'ct_access_token'
-const REFRESH_TOKEN_KEY = 'ct_refresh_token'
+// ── 刷新竞态控制 ─────────────────────────────────────────────────────────────
+let isRefreshing = false
+let refreshPromise: Promise<string> | null = null
 
-// ── Access Token 读写 ────────────────────────────────────────────────────────
+// ── Cookie Key ─────────────────────────────────────────────────────────────────
+const REFRESH_TOKEN_COOKIE = 'refresh_token'
+
+// ── 从 HttpOnly Cookie 读取 refresh_token ─────────────────────────────────────
+function getRefreshTokenFromCookie(): string | null {
+  const match = document.cookie.match(new RegExp(`${REFRESH_TOKEN_COOKIE}=([^;]+)`))
+  return match ? match[1] : null
+}
+
+// ── 清除 refresh_token Cookie ─────────────────────────────────────────────────
+function clearRefreshTokenCookie(): void {
+  document.cookie = `${REFRESH_TOKEN_COOKIE}=; Max-Age=0; Path=/`
+}
+
+// ── Access Token 读写（仅内存，无 localStorage）────────────────────────────────
 export function getAccessToken(): string | null {
   return accessToken
 }
 
 export function setAccessToken(token: string | null): void {
   accessToken = token
-  if (token) {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token)
-  } else {
-    localStorage.removeItem(ACCESS_TOKEN_KEY)
+}
+
+// ── JWT 解码（提取 exp 字段）──────────────────────────────────────────────────
+function decodeJWT(token: string): { exp: number } | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(atob(parts[1]))
+    return payload
+  } catch {
+    return null
   }
 }
 
-// ── Refresh Token 读写（localStorage 明文存储）───────────────────────────────
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
+// ── 检查 AccessToken 是否过期 ─────────────────────────────────────────────────
+function isAccessTokenExpired(token: string | null): boolean {
+  if (!token) return true
+  const payload = decodeJWT(token)
+  if (!payload || !payload.exp) return true
+  // 提前 30 秒认为过期，避免时间误差
+  return Date.now() >= (payload.exp * 1000 - 30000)
 }
 
-export function setRefreshToken(token: string | null): void {
-  if (token) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token)
-  } else {
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
+// ── 执行刷新（内部使用）────────────────────────────────────────────────────────
+async function doRefresh(): Promise<string> {
+  const cookieToken = getRefreshTokenFromCookie()
+  if (!cookieToken) {
+    throw new Error('no refresh token')
+  }
+
+  const res = await axios.post(
+    `${import.meta.env.VITE_API_BASE_URL || '/admin/api/v1'}/auth/refresh`,
+    {},
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // 重要：不设置 Authorization Header，让后端从 Cookie 读取
+    }
+  )
+
+  const data = res.data as API.Response<{ access_token: string; refresh_token: string }>
+
+  if (data.code === 200 && data.data?.access_token) {
+    // AccessToken 存内存
+    accessToken = data.data.access_token
+    return data.data.access_token
+  }
+
+  throw new Error('refresh failed')
+}
+
+// ── 获取有效的 AccessToken（带竞态处理）────────────────────────────────────────
+async function getValidAccessToken(): Promise<string | null> {
+  const token = accessToken
+
+  // Token 有效且未过期，直接返回
+  if (token && !isAccessTokenExpired(token)) {
+    return token
+  }
+
+  // 无 Token 或已过期，触发刷新
+  if (!isRefreshing) {
+    isRefreshing = true
+    try {
+      refreshPromise = doRefresh()
+      const newToken = await refreshPromise
+      return newToken
+    } catch {
+      // 刷新失败
+      return null
+    } finally {
+      isRefreshing = false
+      refreshPromise = null
+    }
+  }
+
+  // 已有刷新在进行中，等待结果
+  if (refreshPromise) {
+    try {
+      return await refreshPromise
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+// ── 页面初始化：自动从 Cookie 刷新获取 AccessToken ────────────────────────────
+export async function initializeSession(): Promise<boolean> {
+  const cookieToken = getRefreshTokenFromCookie()
+  if (!cookieToken) {
+    return false
+  }
+
+  try {
+    await doRefresh() // doRefresh 内部会设置 accessToken
+    return true
+  } catch {
+    return false
   }
 }
-
-export function clearRefreshToken(): void {
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
-}
-
-// ── 初始化：从 localStorage 恢复 Access Token ──────────────────────────────
-setAccessToken(localStorage.getItem(ACCESS_TOKEN_KEY))
 
 // ── Axios 实例 ─────────────────────────────────────────────────────────────
 const request = axios.create({
@@ -63,11 +157,11 @@ const request = axios.create({
   timeout: 30_000,
 })
 
-// ── 请求拦截器：附加 Authorization + X-Site-ID ───────────────────────────────
+// ── 请求拦截器：附加 Authorization + X-Site-ID ────────────────────────────────
 request.interceptors.request.use(
-  (config) => {
-    // 优先用内存中的 token（最新）
-    const token = accessToken || localStorage.getItem(ACCESS_TOKEN_KEY)
+  async (config) => {
+    // 获取有效 Token（自动刷新过期 Token）
+    const token = await getValidAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -81,7 +175,7 @@ request.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// ── 响应拦截器：401 自动 Refresh ───────────────────────────────────────────
+// ── 响应拦截器：401 自动处理 ────────────────────────────────────────────────
 request.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -91,59 +185,42 @@ request.interceptors.response.use(
     if (!error.response || error.response.status !== 401 || originalRequest._retry) {
       return Promise.reject(error)
     }
+
+    // 标记已重试，防止死循环
     originalRequest._retry = true
 
-    const refreshToken = getRefreshToken()
-    if (!refreshToken) {
-      redirectToLogin()
-      return Promise.reject(error)
-    }
-
+    // 尝试刷新获取新 Token
     try {
-      // 调用 Refresh 接口，返回新的 access_token + refresh_token
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || '/admin/api/v1'}/auth/refresh`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${refreshToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-
-      const data = res.data as API.Response<{ access_token: string; refresh_token: string }>
-
-      if (data.code === 200 && data.data) {
-        // 更新 AccessToken（内存 + localStorage）
-        setAccessToken(data.data.access_token)
-        // 更新 RefreshToken（localStorage）
-        setRefreshToken(data.data.refresh_token)
-
+      const newToken = await getValidAccessToken()
+      if (newToken) {
         // 重发被 401 拦截的原请求
-        originalRequest.headers.Authorization = `Bearer ${data.data.access_token}`
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
         return request(originalRequest)
-      } else {
-        // Refresh 也失败，说明 Refresh Token 失效
-        redirectToLogin()
       }
     } catch {
-      // Refresh 请求本身出错（网络问题等），跳登录
-      redirectToLogin()
+      // 刷新失败
     }
 
+    // 刷新失败，跳转登录
+    redirectToLogin()
     return Promise.reject(error)
   }
 )
 
 // ── 跳转登录 ────────────────────────────────────────────────────────────────
 function redirectToLogin() {
-  setAccessToken(null)
-  clearRefreshToken()
+  accessToken = null
+  clearRefreshTokenCookie()
   router.push('/login')
 }
 
-// ── 通用 GET/POST/PUT/DELETE ────────────────────────────────────────────────
+// ── 登出（供外部调用）────────────────────────────────────────────────────────
+export function logout() {
+  accessToken = null
+  clearRefreshTokenCookie()
+}
+
+// ── 通用 GET/POST/PUT/DELETE ───────────────────────────────────────────────
 export function get<T = unknown>(url: string, config?: AxiosRequestConfig) {
   return request.get<API.Response<T>>(url, config).then((res) => res.data)
 }

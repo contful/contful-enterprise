@@ -81,6 +81,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// 如果返回的是 MFA Required 响应，不需要设置 Cookie
+	if mfaResp, ok := resp.(*model.MFARequiredResponse); ok && mfaResp.MFARequired {
+		c.JSON(http.StatusOK, model.NewSuccessResponse(mfaResp))
+		return
+	}
+
+	// 设置 RefreshToken 到 HttpOnly Cookie（安全增强）
+	if loginResp, ok := resp.(*model.LoginResponse); ok && loginResp.RefreshToken != "" {
+		// SetCookie(name, value, maxAge, path, domain, secure, httpOnly)
+		c.SetSameSite(http.SameSiteStrictMode) // 先设置 SameSite
+		c.SetCookie("refresh_token", loginResp.RefreshToken, 604800, "/", "", true, true) // HttpOnly + Secure + SameSite=Strict
+	}
+
 	c.JSON(http.StatusOK, model.NewSuccessResponse(resp))
 }
 // Refresh 刷新 Token
@@ -104,9 +117,15 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	newAccessToken, newRefreshToken, err := h.authService.Refresh(c.Request.Context(), refreshToken)
 	if err != nil {
+		// 刷新失败时清除 Cookie
+		c.SetCookie("refresh_token", "", -1, "/", "", true, true)
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid refresh token"))
 		return
 	}
+
+	// 新 RefreshToken 也写入 HttpOnly Cookie（Token 轮换）
+	c.SetSameSite(http.SameSiteStrictMode) // 先设置 SameSite
+	c.SetCookie("refresh_token", newRefreshToken, 604800, "/", "", true, true) // HttpOnly + Secure + SameSite=Strict
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(model.RefreshResponse{
 		AccessToken:  newAccessToken,

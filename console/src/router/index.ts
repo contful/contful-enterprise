@@ -4,7 +4,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getAccessToken } from '@/utils/request'
+import { getAccessToken, initializeSession } from '@/utils/request'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -95,7 +95,15 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach(async (to, _from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false
-  const token = getAccessToken()
+  let token = getAccessToken()
+
+  // 如果没有 AccessToken，尝试从 Cookie 刷新恢复会话
+  if (requiresAuth && !token) {
+    const restored = await initializeSession()
+    if (restored) {
+      token = getAccessToken()
+    }
+  }
 
   if (requiresAuth && !token) {
     next('/login')
