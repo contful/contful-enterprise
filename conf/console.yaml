@@ -89,21 +89,6 @@ storage:
   #   bucket: your-bucket
   #   endpoint: obs.myhwclouds.com
 
-# CORS 配置（前端直连 Admin API:9080）
-cors:
-  allowed_origins:
-    - "*"
-  allowed_methods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
-    - OPTIONS
-  allowed_headers:
-    - "*"
-  allow_credentials: true
-  max_age: 86400
-
 # 日志配置
 logging:
   level: info             # debug / info / warn / error

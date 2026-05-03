@@ -46,21 +46,6 @@ logging:
   format: json
   output: stdout
 
-# CORS 配置
-cors:
-  allowed_origins:
-    - "*"
-  allowed_methods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
-    - OPTIONS
-  allowed_headers:
-    - "*"
-  allow_credentials: true
-  max_age: 86400
-
 # 审计日志
 audit:
   enabled: true
