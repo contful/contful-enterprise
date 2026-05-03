@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-contrib/cors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
@@ -142,17 +141,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	// CORS 中间件（本地开发需要，生产环境由反向代理处理）
-	// AllowOriginFunc: 允许所有来源，同时支持 AllowCredentials（比 AllowAllOrigins 安全）
-	corsCfg := cors.Config{
-		AllowOriginFunc:  func(origin string) bool { return true },
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           86400,
-	}
-	r.Use(cors.New(corsCfg))
+	// 注：CORS 由部署环境的反向代理（nginx）处理，不需要在这里注册中间件
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
