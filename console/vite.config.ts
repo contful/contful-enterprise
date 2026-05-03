@@ -46,6 +46,14 @@ export default defineConfig({
       '/admin/api': {
         target: 'http://localhost:9080',
         changeOrigin: true,
+        // 在代理响应中追加 CORS 头，确保浏览器能通过预检
+        onProxyRes(proxyRes, req) {
+          const origin = (req.headers.origin as string) || ''
+          proxyRes.headers['access-control-allow-origin'] = origin
+          proxyRes.headers['access-control-allow-credentials'] = 'true'
+          proxyRes.headers['access-control-allow-headers'] = 'Authorization, Content-Type, X-Requested-With'
+          proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+        },
       },
     },
   },
