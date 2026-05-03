@@ -246,20 +246,19 @@ start_openapi() {
     cd "$OPENAPI_DIR"
     go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/openapi-server" .
 
-    # 设置环境变量
-    export CONTFUL_SERVER_PORT="$OPENAPI_PORT"
-    export CONTFUL_DB_HOST="${DB_HOST:-localhost}"
-    export CONTFUL_DB_PORT="${DB_PORT:-5432}"
-    export CONTFUL_DB_USER="${DB_USER:-postgres}"
-    export CONTFUL_DB_PASSWORD="${DB_PASSWORD}"
-    export CONTFUL_DB_NAME="${DB_NAME:-contful}"
-    export CONTFUL_REDIS_HOST="${REDIS_HOST:-localhost}"
-    export CONTFUL_REDIS_PORT="${REDIS_PORT:-6379}"
-    export CONTFUL_REDIS_PASSWORD="${REDIS_PASSWORD}"
-    export CONTFUL_STORAGE_UPLOAD_DIR="$UPLOAD_DIR"
-
-    # 后台运行
-    nohup "$BUILD_DIR/openapi-server" > "$LOG_DIR/openapi.log" 2>&1 &
+    # 后台运行（直接传入环境变量，避免被 .env 的 SERVER_PORT 污染）
+    nohup env \
+        SERVER_PORT="$OPENAPI_PORT" \
+        DB_HOST="${DB_HOST:-localhost}" \
+        DB_PORT="${DB_PORT:-5432}" \
+        DB_USER="${DB_USER:-postgres}" \
+        DB_PASSWORD="${DB_PASSWORD}" \
+        DB_NAME="${DB_NAME:-contful}" \
+        REDIS_HOST="${REDIS_HOST:-localhost}" \
+        REDIS_PORT="${REDIS_PORT:-6379}" \
+        REDIS_PASSWORD="${REDIS_PASSWORD}" \
+        STORAGE_UPLOAD_DIR="$UPLOAD_DIR" \
+        "$BUILD_DIR/openapi-server" > "$LOG_DIR/openapi.log" 2>&1 &
     echo $! > "$LOG_DIR/openapi.pid"
 
     # 等待启动
