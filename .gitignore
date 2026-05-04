@@ -64,3 +64,5 @@ audit-report-*.md
 logs/admin.pid
 logs/console.pid
 logs/openapi.pid
+console/package-lock.json
+console/yarn.lock
