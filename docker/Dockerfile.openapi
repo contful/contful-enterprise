@@ -73,10 +73,10 @@ WORKDIR /app
 # 复制 Go 二进制
 COPY --chown=contful:contful --from=builder /app/openapi-server .
 
-# 复制默认配置文件（运行时可通过挂载或环境变量覆盖）
+# 复制默认配置文件（Go 程序会自动用环境变量覆盖）
 COPY --chown=contful:contful conf/openapi.yaml /app/config.yml
 
-# Copy entrypoint script (supports dual mode: env vars or mounted config)
+# Copy entrypoint script
 COPY --chown=contful:contful docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 

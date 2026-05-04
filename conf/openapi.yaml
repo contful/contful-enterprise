@@ -1,33 +1,45 @@
+# =============================================================================
 # Contful Open API 配置
-# 敏感信息（密码、密钥）通过 .env 文件配置
-# 环境变量可覆盖配置，格式：CONTFUL_OPEN_xxx
+# 服务: openapi-server (Token 认证, 对外 API)
+# =============================================================================
+#
+# 配置优先级:
+#   1. 环境变量（DB_HOST 等，见 readEnvOverrides）
+#   2. 本文件中的值
+#
+# 说明:
+#   - secret 需与 console.yaml 保持一致（用于加解密 API Token）
+#   - 无 JWT / CORS / 特性开关等 admin 专属配置
+#
+# =============================================================================
 
 # 服务配置
 server:
-  port: "8080"
+  port: 8080
   mode: release
   read_timeout: 60
   write_timeout: 60
   shutdown_timeout: 30
 
-# 数据库
+# 数据库配置
 database:
+  type: postgres
   host: postgres
   port: 5432
   user: postgres
-  password: ""  # Set via DB_PASSWORD env var
+  password: CHANGE_ME
   name: contful
   ssl_mode: disable
   max_open_conns: 100
   max_idle_conns: 10
   conn_max_lifetime: 3600
 
-# 安全配置（需与 console.yaml 保持一致，用于数据加密）
+# 安全配置（需与 console.yaml 保持一致，用于加解密数据）
 security:
   secret: ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
   algorithm: aes-256-gcm
 
-# Redis
+# Redis 配置（用于缓存、Token 验证）
 redis:
   host: redis
   port: 6379
@@ -35,10 +47,19 @@ redis:
   db: 0
   pool_size: 100
 
-# 文件存储
+# 文件存储配置（只读，供 API 返回文件 URL）
 storage:
+  driver: local
   upload_dir: ./uploads
   max_upload_size_mb: 10
+  base_url: /uploads
+  allowed_extensions:
+    - .jpg
+    - .jpeg
+    - .png
+    - .gif
+    - .webp
+    - .pdf
 
 # 日志配置
 logging:
@@ -46,18 +67,7 @@ logging:
   format: json
   output: stdout
 
-# 审计日志
-audit:
+# 公开 API 限流（按 IP 限流）
+rate_limit:
   enabled: true
-  log_all_requests: false
-
-# 多站点配置
-multi_site:
-  enabled: true
-  default_site_id: ""
-
-# 特性开关
-features:
-  version_history: true
-  api_tokens: true
-  media_library: true
+  requests_per_minute: 100

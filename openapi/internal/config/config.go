@@ -111,12 +111,7 @@ func Load(configPaths ...string) (*Config, error) {
 		v.AddConfigPath(path)
 	}
 
-	// 环境变量支持
-	v.SetEnvPrefix("CONTFUL_OPEN")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
-
-	// 读取环境变量覆盖
+	// 读取环境变量覆盖（通过 readEnvOverrides 统一处理）
 	readEnvOverrides(v)
 
 	// 设置默认值
@@ -313,17 +308,24 @@ func setDefaults(v *viper.Viper) {
 // readEnvOverrides 读取环境变量覆盖
 func readEnvOverrides(v *viper.Viper) {
 	envMappings := map[string]string{
-		"DB_HOST":         "database.host",
-		"DB_PORT":         "database.port",
-		"DB_USER":         "database.user",
-		"DB_PASSWORD":     "database.password",
-		"DB_NAME":         "database.name",
-		"DB_SSL_MODE":     "database.ssl_mode",
-		"REDIS_HOST":      "redis.host",
-		"REDIS_PORT":      "redis.port",
-		"REDIS_PASSWORD":  "redis.password",
-		"REDIS_DB":        "redis.db",
-		"SERVER_PORT":     "server.port",
+		"DB_HOST":               "database.host",
+		"DB_PORT":               "database.port",
+		"DB_USER":               "database.user",
+		"DB_PASSWORD":           "database.password",
+		"DB_NAME":               "database.name",
+		"DB_SSL_MODE":           "database.ssl_mode",
+		"REDIS_HOST":            "redis.host",
+		"REDIS_PORT":            "redis.port",
+		"REDIS_PASSWORD":        "redis.password",
+		"REDIS_DB":              "redis.db",
+		"SERVER_PORT":           "server.port",
+		"SECRET":                "security.secret",
+		"SECRET_ALGORITHM":     "security.algorithm",
+		"STORAGE_DRIVER":        "storage.driver",
+		"STORAGE_UPLOAD_DIR":    "storage.upload_dir",
+		"STORAGE_MAX_UPLOAD_SIZE_MB": "storage.max_upload_size_mb",
+		"STORAGE_BASE_URL":      "storage.base_url",
+		"LOG_LEVEL":             "logging.level",
 	}
 
 	for envKey, configKey := range envMappings {

@@ -1,16 +1,17 @@
 # =============================================================================
-# Contful 配置文件
+# Contful Console (Admin API) 配置
+# 服务: admin-api (JWT 认证, 管理后台 API)
 # =============================================================================
 #
-# 使用说明:
-#   1. 复制此文件为 config.yml
-#   2. 修改配置项（删除注释或保持 # 开头为注释）
-#   3. 配置会自动加载
+# 配置优先级:
+#   1. 环境变量（DB_HOST 等，见 readEnvOverrides）
+#   2. 本文件中的值
+#   3. Go 代码中的内置默认值
 #
-# 配置优先级（从高到低）:
-#   1. 环境变量 (CONTFUL_xxx)
-#   2. config.yml 中的值
-#   3. 此文件中的默认值
+# 使用说明:
+#   镜像内置此文件为 /app/config.yml
+#   运行时可通过挂载 /app/config.yml 覆盖
+#   或通过环境变量覆盖单个配置项
 #
 # =============================================================================
 
@@ -35,7 +36,7 @@ database:
   max_idle_conns: 10
   conn_max_lifetime: 3600
 
-# Redis 配置
+# Redis 配置（用于缓存、会话、限流）
 redis:
   host: redis
   port: 6379
@@ -44,19 +45,19 @@ redis:
   pool_size: 100
 
 # 安全配置（生成密钥: openssl rand -hex 32）
+# 用于加密存储的敏感字段（API Token、Webhook 密钥等）
 security:
   secret: ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
   algorithm: aes-256-gcm  # aes-256-gcm（默认）/ sm4-gcm（国密）
 
-# JWT 配置（自动从 security.secret 派生，如需单独配置可取消注释）
-# jwt:
-#   secret: your_jwt_secret_here
-#   access_token_expire_minutes: 15
-#   refresh_token_expire_days: 7
+# JWT 配置（Admin 登录鉴权，从 security.secret 自动派生）
+jwt:
+  access_token_expire_minutes: 15
+  refresh_token_expire_days: 7
 
 # 文件存储配置
 storage:
-  driver: local           # local / s3 / oss / cos / obs
+  driver: local           # local / s3 / oss / cos / obs / minio
   upload_dir: ./uploads
   max_upload_size_mb: 10
   base_url: /uploads
@@ -71,8 +72,7 @@ storage:
     - .docx
     - .xls
     - .xlsx
-
-  # 云存储凭证（切换到 s3/oss/cos/obs 驱动时取消注释并填入）
+  # 云存储凭证（切换 driver 时取消注释）
   # oss:
   #   bucket: your-bucket
   #   endpoint: oss-cn-hangzhou.aliyuncs.com
@@ -95,12 +95,12 @@ logging:
   format: json            # json / text
   output: stdout          # stdout / stderr / 文件路径
 
-# 审计日志
+# 审计日志（记录管理操作）
 audit:
   enabled: true
   log_all_requests: false
 
-# 多站点配置
+# 多站点配置（SaaS 多租户）
 multi_site:
   enabled: true
   default_site_id: ""

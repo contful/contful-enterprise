@@ -36,7 +36,7 @@ services:
   # Console 服务（Console SPA + Admin API，OpenResty 对外 :80 :443）
   # ---------------------------------------------------------------------------
   console:
-    image: contful/console:pg-amd64-latest
+    image: contful/console:pg-latest
     # 环境变量模式（推荐）
     environment:
       - DB_HOST=postgres
@@ -47,8 +47,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SECRET=${SECRET}
       # 可选配置
+      # - SECRET=ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
       # - CONTFUL_MODE=api  # 仅启动 API，不启动 nginx
       # - LOG_LEVEL=debug
     # 配置文件模式（取消注释可覆盖环境变量）
@@ -73,7 +73,7 @@ services:
   # Open API 服务（无状态，可水平扩展）
   # ---------------------------------------------------------------------------
   openapi:
-    image: contful/openapi:pg-amd64-latest
+    image: contful/openapi:pg-latest
     # 环境变量模式（推荐）
     environment:
       - DB_HOST=postgres
@@ -84,8 +84,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SECRET=${SECRET}
       # 可选配置
+      # - SECRET=ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
       # - CONTFUL_SERVER_PORT=8080
       # - LOG_LEVEL=debug
     # 配置文件模式（取消注释可覆盖环境变量）

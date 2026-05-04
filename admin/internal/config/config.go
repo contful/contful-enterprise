@@ -181,12 +181,7 @@ func Load(configPaths ...string) (*Config, error) {
 		v.AddConfigPath(path)
 	}
 
-	// 环境变量支持
-	v.SetEnvPrefix("CONTFUL")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
-
-	// 读取环境变量覆盖
+	// 读取环境变量覆盖（通过 readEnvOverrides 统一处理）
 	readEnvOverrides(v)
 
 	// 设置默认值
