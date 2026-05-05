@@ -86,13 +86,25 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
-RUN apk add --no-cache supervisor gettext su-exec
+# 只安装 su-exec（进程切换），去掉 supervisor(Python) 和 gettext（模板替换）
+RUN apk add --no-cache su-exec
 
-RUN mkdir -p /app/logs /app/uploads /var/log/nginx
-
-# 创建非 root 用户运行容器（安全最佳实践）
-RUN addgroup -S contful && adduser -S contful -G contful
-RUN chown -R contful:contful /app /var/log/nginx /usr/local/openresty/nginx
+# 合并：创建用户 + 目录 + 权限（减少 Docker 层）
+# nginx 运行需要这些临时目录，预先创建
+RUN addgroup -S contful \
+    && adduser -S contful -G contful \
+    && mkdir -p /app/logs /app/uploads /var/log/nginx \
+    && mkdir -p /usr/local/openresty/nginx/client_body_temp \
+               /usr/local/openresty/nginx/proxy_temp \
+               /usr/local/openresty/nginx/fastcgi_temp \
+               /usr/local/openresty/nginx/uwsgi_temp \
+               /usr/local/openresty/nginx/scgi_temp \
+    && chown -R contful:contful /app /var/log/nginx \
+    && chown -R contful:contful /usr/local/openresty/nginx/client_body_temp \
+                             /usr/local/openresty/nginx/proxy_temp \
+                             /usr/local/openresty/nginx/fastcgi_temp \
+                             /usr/local/openresty/nginx/uwsgi_temp \
+                             /usr/local/openresty/nginx/scgi_temp
 USER contful
 
 # 复制 Go 二进制
