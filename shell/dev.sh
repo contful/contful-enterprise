@@ -35,6 +35,17 @@
 
 set -e
 
+# =============================================================================
+# Go 环境配置（确保 go 命令可用）
+# =============================================================================
+export GOROOT="${GOROOT:-/usr/local/go}"
+export GOPATH="${GOPATH:-$HOME/Developer/golang}"
+export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
+
+# Go 国内代理配置（加速 go mod download / go build）
+export GOPROXY=https://goproxy.cn,direct
+export GOSUMDB=off
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -90,8 +101,15 @@ ensure_dirs() {
     mkdir -p "$BUILD_DIR" "$LOG_DIR" "$UPLOAD_DIR"
 }
 
-# 加载 .env 文件（如果存在）
+# 加载 .env 文件（如果不存在则从模板复制）
 load_env() {
+    if [ ! -f "$PROJECT_DIR/.env" ]; then
+        if [ -f "$PROJECT_DIR/conf/env.example" ]; then
+            log_info "未找到 .env 文件，从模板复制..."
+            cp "$PROJECT_DIR/conf/env.example" "$PROJECT_DIR/.env"
+            log_warn "已复制 .env 模板，请编辑 $PROJECT_DIR/.env 补充配置"
+        fi
+    fi
     if [ -f "$PROJECT_DIR/.env" ]; then
         log_info "加载 .env 配置..."
         set -a
@@ -200,7 +218,7 @@ start_admin() {
     export CONTFUL_REDIS_HOST="${REDIS_HOST:-localhost}"
     export CONTFUL_REDIS_PORT="${REDIS_PORT:-6379}"
     export CONTFUL_REDIS_PASSWORD="${REDIS_PASSWORD}"
-    export CONTFUL_SECRET="${SECRET:-dev-secret-change-in-production}"
+    export SECRET="${SECRET:-}"
     export CONTFUL_LOG_LEVEL="${LOG_LEVEL:-info}"
     export CONTFUL_STORAGE_UPLOAD_DIR="$UPLOAD_DIR"
 

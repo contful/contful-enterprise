@@ -109,6 +109,7 @@ func main() {
 	ctService := service.NewContentTypeService(contentTypeRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, contentTypeRepo, fieldRepo)
 	tokenService := service.NewAPITokenService(tokenRepo, crypter)
+	cacheService := service.NewCacheService(redisClient)
 
 	// 初始化 MFA 服务（PRE-005）
 	mfaService := service.NewMFAService(userRepo, redisClient, crypter)
@@ -136,6 +137,7 @@ func main() {
 	tokenHandler := handler.NewAPITokenHandler(tokenService)
 	configHandler := handler.NewConfigHandler(configService)
 	integrityHandler := handler.NewIntegrityHandler(entryRepo, assetRepo, auditRepo, configService)
+	cacheHandler := handler.NewCacheHandler(cacheService)
 
 	// 初始化 Gin
 	r := gin.New()
@@ -273,6 +275,9 @@ func main() {
 			// 数据完整性验签（PRE-004）
 			protected.GET("/integrity/verify", integrityHandler.Verify)
 			protected.POST("/integrity/verify/batch", integrityHandler.BatchVerify)
+
+			// 缓存管理
+			protected.POST("/cache/invalidate", cacheHandler.InvalidateSite)
 		}
 	}
 

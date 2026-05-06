@@ -163,13 +163,14 @@ func Load(configPaths ...string) (*Config, error) {
 	}
 
 	// 设置配置名和类型
-	v.SetConfigName("config")
+	v.SetConfigName("console")
 	v.SetConfigType("yaml")
 
 	// 添加配置搜索路径（优先级从低到高）
 	searchPaths := []string{
 		".",
-		"./config",
+		"./conf",
+		"../conf",
 		"/etc/contful/",
 		"$HOME/.contful/",
 	}

@@ -11,7 +11,8 @@ import Layout from '@/components/Layout.vue'
 
 const { t } = useI18n()
 const route = useRoute()
-const isLoginPage = computed(() => route.path === '/login')
+// 不需要 Layout 的认证类页面
+const isAuthPage = computed(() => ['/login', '/mfa'].includes(route.path))
 
 // =============================================================================
 // MX-002-2: 全局网络状态监听
@@ -41,7 +42,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Layout v-if="!isLoginPage">
+  <Layout v-if="!isAuthPage">
     <router-view />
   </Layout>
   <router-view v-else />

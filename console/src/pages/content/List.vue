@@ -23,6 +23,7 @@ import {
   batchDeleteEntries,
   batchPublishEntries,
   batchUnpublishEntries,
+  invalidateCache,
   type Entry,
   type EntryCreate,
   type EntryUpdate,
@@ -71,6 +72,9 @@ const batchLoading = ref(false)
 const showBatchConfirm = ref(false)
 const batchAction = ref<'delete' | 'publish' | 'unpublish'>('delete')
 const batchActionLabel = ref('')
+
+// 缓存状态
+const cacheLoading = ref(false)
 
 // 计算属性
 const isAllSelected = computed(() => {
@@ -315,6 +319,19 @@ const getBatchConfirmText = () => {
   return t('content.batchActionMsg', { action, count })
 }
 
+// 清除缓存
+const handleClearCache = async () => {
+  cacheLoading.value = true
+  try {
+    const res = await invalidateCache()
+    showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
+  } catch (error) {
+    showError(error)
+  } finally {
+    cacheLoading.value = false
+  }
+}
+
 // 清除搜索
 const clearSearch = () => {
   searchKeyword.value = ''
@@ -473,6 +490,16 @@ onMounted(() => {
             </div>
 
             <div class="toolbar-right">
+              <!-- 清除缓存 -->
+              <button
+                class="btn btn-secondary btn-sm"
+                :disabled="cacheLoading"
+                :title="t('content.clearCacheHint')"
+                @click="handleClearCache"
+              >
+                <span v-if="cacheLoading" class="btn-spinner"></span>
+                {{ cacheLoading ? t('common.processing') : t('content.clearCache') }}
+              </button>
               <!-- 批量操作 -->
               <div v-if="hasSelected" class="batch-actions">
                 <span class="selected-count">{{ t('common.selectedCount', { count: selectedCount }) }}</span>

@@ -261,7 +261,10 @@
     "enterNumber": "請輸入數字",
     "select": "請選擇",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "clearCache": "清除快取",
+    "clearCacheHint": "清除 OpenAPI 內容快取",
+    "cacheCleared": "已清除 {count} 筆快取記錄"
   },
   "media": {
     "title": "媒體庫",

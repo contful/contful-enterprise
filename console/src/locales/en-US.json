@@ -260,7 +260,10 @@
     "enterNumber": "Enter a number",
     "select": "Select",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "clearCache": "Clear Cache",
+    "clearCacheHint": "Clear OpenAPI content cache",
+    "cacheCleared": "Cleared {count} cache entries"
   },
   "media": {
     "title": "Media Library",

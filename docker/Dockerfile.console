@@ -93,7 +93,7 @@ RUN apk add --no-cache su-exec
 # nginx 运行需要这些临时目录，预先创建
 RUN addgroup -S contful \
     && adduser -S contful -G contful \
-    && mkdir -p /app/logs /app/uploads /var/log/nginx \
+    && mkdir -p /app/logs /app/uploads /app/conf /var/log/nginx \
     && mkdir -p /usr/local/openresty/nginx/client_body_temp \
                /usr/local/openresty/nginx/proxy_temp \
                /usr/local/openresty/nginx/fastcgi_temp \
@@ -117,7 +117,7 @@ COPY --chown=contful:contful --from=frontend-builder /app/dist /usr/share/nginx/
 COPY --chown=contful:contful conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 
 # 复制默认配置文件（Go 程序会自动用环境变量覆盖）
-COPY --chown=contful:contful conf/console.yaml /app/config.yml
+COPY --chown=contful:contful conf/console.yaml /app/conf/console.yaml
 
 # Copy entrypoint script
 COPY --chown=contful:contful docker/entrypoint.sh /app/entrypoint.sh

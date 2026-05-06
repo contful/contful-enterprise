@@ -113,7 +113,17 @@ export function getEntryVersions(id: string) {
   return get<EntryVersion[]>(`/content/entries/${id}/versions`)
 }
 
-// ============ 批量操作 API ============
+// ============ 缓存 API ============
+
+export interface CacheInvalidateResponse {
+  message: string
+  deleted: number
+}
+
+// 清除内容缓存
+export function invalidateCache() {
+  return post<CacheInvalidateResponse>('/cache/invalidate')
+}
 
 // 批量删除
 export function batchDeleteEntries(ids: string[]) {

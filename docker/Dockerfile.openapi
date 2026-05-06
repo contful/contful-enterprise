@@ -65,7 +65,7 @@ RUN apk add --no-cache ca-certificates tzdata gettext su-exec
 
 # 创建非 root 用户运行容器（安全最佳实践）
 RUN addgroup -S contful && adduser -S contful -G contful
-RUN mkdir -p /app/logs
+RUN mkdir -p /app/logs /app/conf
 RUN chown -R contful:contful /app
 
 WORKDIR /app
@@ -74,7 +74,7 @@ WORKDIR /app
 COPY --chown=contful:contful --from=builder /app/openapi-server .
 
 # 复制默认配置文件（Go 程序会自动用环境变量覆盖）
-COPY --chown=contful:contful conf/openapi.yaml /app/config.yml
+COPY --chown=contful:contful conf/openapi.yaml /app/conf/openapi.yaml
 
 # Copy entrypoint script
 COPY --chown=contful:contful docker/entrypoint.sh /app/entrypoint.sh

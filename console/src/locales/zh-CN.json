@@ -261,7 +261,10 @@
     "enterNumber": "请输入数字",
     "select": "请选择",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "clearCache": "清除缓存",
+    "clearCacheHint": "清除 OpenAPI 内容缓存",
+    "cacheCleared": "已清除 {count} 条缓存记录"
   },
   "media": {
     "title": "媒体库",

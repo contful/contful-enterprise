@@ -39,7 +39,6 @@ const currentLocaleLabel = computed(() => {
 function switchLocale(locale: Locale) {
   if (locale === currentLocale.value) return
   setLocale(locale)
-  location.reload()
 }
 </script>
 

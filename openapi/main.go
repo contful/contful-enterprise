@@ -69,9 +69,12 @@ func main() {
 	tokenRepo := repository.NewAPITokenRepository(db)
 	tokenSvc := service.NewAPITokenService(tokenRepo)
 
+	// 初始化缓存服务
+	cacheSvc := service.NewCacheService(rdb)
+
 	entryRepo := repository.NewEntryRepository(db)
 	ctRepo := repository.NewContentTypeRepository(db)
-	entrySvc := service.NewEntryService(entryRepo, ctRepo)
+	entrySvc := service.NewEntryService(entryRepo, ctRepo, cacheSvc)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)

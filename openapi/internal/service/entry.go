@@ -1,5 +1,6 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
+
 package service
 
 import (
@@ -7,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/contful/contful/openapi/internal/repository"
@@ -21,15 +23,17 @@ var ErrEntryNotFound = errors.New("entry not found")
 
 // EntryService Open API 内容读取服务
 type EntryService struct {
-	entryRepo *repository.EntryRepository
-	ctRepo    *repository.ContentTypeRepository
+	entryRepo  *repository.EntryRepository
+	ctRepo     *repository.ContentTypeRepository
+	cacheSvc   *CacheService
 }
 
 // NewEntryService 创建 EntryService
-func NewEntryService(entryRepo *repository.EntryRepository, ctRepo *repository.ContentTypeRepository) *EntryService {
+func NewEntryService(entryRepo *repository.EntryRepository, ctRepo *repository.ContentTypeRepository, cacheSvc *CacheService) *EntryService {
 	return &EntryService{
 		entryRepo: entryRepo,
 		ctRepo:    ctRepo,
+		cacheSvc:  cacheSvc,
 	}
 }
 
@@ -53,13 +57,23 @@ type EntryListResponse struct {
 
 // ListBySlug 通过内容类型 slug 列出已发布条目
 func (s *EntryService) ListBySlug(ctx context.Context, siteID uuid.UUID, slug string, locale string, sortField, sortOrder string, page, pageSize int) (*EntryListResponse, error) {
-	// 1. 通过 slug 找内容类型
+	// 1. 尝试从缓存获取
+	cacheKey := s.cacheSvc.GetEntryListKey(siteID, slug, locale, sortField, sortOrder, page, pageSize)
+	if cachedData, err := s.cacheSvc.Get(ctx, cacheKey); err == nil && cachedData != nil {
+		var resp EntryListResponse
+		if err := json.Unmarshal(cachedData, &resp); err == nil {
+			log.Printf("[Cache] Hit: %s", cacheKey)
+			return &resp, nil
+		}
+	}
+
+	// 2. 通过 slug 找内容类型
 	ct, err := s.ctRepo.FindBySlug(ctx, siteID, slug)
 	if err != nil {
 		return nil, ErrContentTypeNotFound
 	}
 
-	// 2. 查询已发布条目
+	// 3. 查询已发布条目
 	filter := repository.EntryListFilter{
 		Locale:    locale,
 		SortField: sortField,
@@ -70,23 +84,40 @@ func (s *EntryService) ListBySlug(ctx context.Context, siteID uuid.UUID, slug st
 		return nil, fmt.Errorf("query entries failed: %w", err)
 	}
 
-	// 3. 组装响应
+	// 4. 组装响应
 	items := make([]EntryItem, len(entries))
 	for i, e := range entries {
 		items[i] = flattenEntry(e)
 	}
 
-	return &EntryListResponse{
+	resp := &EntryListResponse{
 		Items:    items,
 		Total:    total,
 		Page:     page,
 		PageSize: pageSize,
-	}, nil
+	}
+
+	// 5. 写入缓存
+	if err := s.cacheSvc.Set(ctx, cacheKey, resp); err != nil {
+		log.Printf("[Cache] Set failed: %v", err)
+	}
+
+	return resp, nil
 }
 
 // GetByID 获取单个已发布条目
 func (s *EntryService) GetByID(ctx context.Context, siteID uuid.UUID, slug string, entryID uuid.UUID) (*EntryItem, error) {
-	// 验证 slug 对应的内容类型存在
+	// 1. 尝试从缓存获取
+	cacheKey := s.cacheSvc.GetEntryDetailKey(siteID, slug, entryID)
+	if cachedData, err := s.cacheSvc.Get(ctx, cacheKey); err == nil && cachedData != nil {
+		var item EntryItem
+		if err := json.Unmarshal(cachedData, &item); err == nil {
+			log.Printf("[Cache] Hit: %s", cacheKey)
+			return &item, nil
+		}
+	}
+
+	// 2. 验证 slug 对应的内容类型存在
 	_, err := s.ctRepo.FindBySlug(ctx, siteID, slug)
 	if err != nil {
 		return nil, ErrContentTypeNotFound
@@ -98,6 +129,12 @@ func (s *EntryService) GetByID(ctx context.Context, siteID uuid.UUID, slug strin
 	}
 
 	item := flattenEntry(*entry)
+
+	// 3. 写入缓存
+	if err := s.cacheSvc.Set(ctx, cacheKey, item); err != nil {
+		log.Printf("[Cache] Set failed: %v", err)
+	}
+
 	return &item, nil
 }
 
