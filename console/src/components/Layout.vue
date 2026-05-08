@@ -13,6 +13,7 @@ import { showError, showSuccess } from '@/utils/request'
 import LangSwitcher from './LangSwitcher.vue'
 
 const { t } = useI18n()
+const version = '1.0.0'
 
 const router = useRouter()
 const route = useRoute()
@@ -30,13 +31,12 @@ const creating = ref(false)
 
 const menuItems = computed(() => [
   { path: '/', icon: 'dashboard', label: t('menu.dashboard'), name: 'Dashboard', tIcon: 'dashboard' },
-  { path: '/content/types', icon: 'schema', label: t('menu.contentTypes'), name: 'ContentTypes', tIcon: 'server' },
+  { path: '/sites', icon: 'layers', label: t('menu.sites'), name: 'Sites', tIcon: 'layers' },
+  { path: '/content/schemas', icon: 'schema', label: t('menu.contentSchemas'), name: 'ContentSchemas', tIcon: 'server' },
   { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
   { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
   { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
   { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
-  { path: '/configs', icon: 'tools', label: t('menu.configs'), name: 'Configs', tIcon: 'tools' },
-  { path: '/settings', icon: 'setting', label: t('menu.settings'), name: 'Settings', tIcon: 'setting' },
 ])
 
 const isActive = (path: string) => {
@@ -173,24 +173,6 @@ onMounted(async () => {
               </template>
             </t-button>
           </t-tooltip>
-          <t-button
-            v-if="siteStore.currentSiteId"
-            shape="square" variant="text"
-            size="small"
-            :title="t('site.createNewSite')"
-            @click="showCreateSite = true"
-          >
-            <template #icon>
-              <Icon name="add" />
-            </template>
-          </t-button>
-          <t-button
-            v-else-if="siteStore.sites.length === 0 && userStore.isLoggedIn"
-            variant="outline" size="small"
-            @click="showCreateSite = true"
-          >
-            {{ t('site.createSite') }}
-          </t-button>
       </div>
       </div>
       <!-- 占位，撑开左右两端的间距 -->
@@ -249,6 +231,9 @@ onMounted(async () => {
             <span class="nav-label">{{ item.label }}</span>
           </router-link>
         </nav>
+        <div class="sidebar-footer">
+          <span class="version-text">v{{ version }}</span>
+        </div>
       </aside>
 
       <!-- 主内容区 -->
@@ -462,6 +447,17 @@ onMounted(async () => {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
+}
+
+.sidebar-footer {
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.version-text {
+  font-size: 12px;
+  color: #64748b;
 }
 
 .nav-item {

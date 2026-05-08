@@ -88,17 +88,17 @@ func (s *APITokenService) ValidateToken(ctx context.Context, rawToken string) (*
 			allowWrite = true
 		}
 	}
-	// SiteScope：["*"] 表示全站，否则为指定 content type slug 列表
-	var contentTypes []string
+	// SiteScope：["*"] 表示全站，否则为指定 content schema slug 列表
+	var contentSchemas []string
 	if len(token.SiteScope) == 1 && token.SiteScope[0] == "*" {
-		contentTypes = []string{"*"}
+		contentSchemas = []string{"*"}
 	} else {
-		contentTypes = token.SiteScope
+		contentSchemas = token.SiteScope
 	}
 	perm := model.TokenPermission{
-		AllowRead:    allowRead,
-		AllowWrite:   allowWrite,
-		ContentTypes: contentTypes,
+		AllowRead:     allowRead,
+		AllowWrite:    allowWrite,
+		ContentSchemas: contentSchemas,
 	}
 
 	rateCfg := model.RateLimitConfig{
@@ -124,7 +124,7 @@ func (s *APITokenService) ValidateToken(ctx context.Context, rawToken string) (*
 // CheckScope 检查 Token 是否有权限访问指定内容和操作
 func (s *APITokenService) CheckScope(tc *model.TokenContext, contentSlug string, method string) bool {
 	// 检查内容类型权限
-	types := tc.Permissions.ContentTypes
+	types := tc.Permissions.ContentSchemas
 	isWildcard := len(types) == 1 && types[0] == "*"
 
 	if !isWildcard {

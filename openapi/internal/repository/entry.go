@@ -77,7 +77,7 @@ func (EntryValue) TableName() string {
 // Entry 内容条目
 type Entry struct {
 	ID            uuid.UUID    `gorm:"type:uuid;primaryKey"`
-	ContentTypeID uuid.UUID    `gorm:"type:uuid;not null;index"`
+	ContentSchemaID uuid.UUID `gorm:"column:schema_id;type:uuid;not null;index"`
 	SiteID        uuid.UUID    `gorm:"type:uuid;not null;index"`
 	Locale        string       `gorm:"size:20;not null;default:'zh-CN'"`
 	Status        string       `gorm:"type:entry_status;not null;default:'draft'"`
@@ -110,7 +110,7 @@ func (r *EntryRepository) ListPublished(ctx context.Context, siteID, contentType
 
 	query := r.db.WithContext(ctx).Model(&Entry{}).
 		Where("site_id = ?", siteID).
-		Where("content_type_id = ?", contentTypeID).
+		Where("schema_id = ?", contentTypeID).
 		Where("status = ?", "published").
 		Where("deleted_time IS NULL")
 

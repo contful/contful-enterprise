@@ -7,7 +7,7 @@ import { get, post, put, del } from '@/utils/request'
 
 export interface Entry {
   id: string
-  content_type_id: string
+  schema_id: string
   site_id: string
   locale: string
   status: 'draft' | 'published' | 'archived'
@@ -33,7 +33,7 @@ export interface EntryVersion {
 }
 
 export interface EntryCreate {
-  content_type_id: string
+  schema_id: string
   locale?: string
   values?: Record<string, any>
   seo_title?: string
@@ -58,7 +58,7 @@ export interface EntryPublish {
 }
 
 export interface EntryListFilter {
-  content_type_id?: string
+  schema_id?: string
   status?: 'draft' | 'published' | 'archived'
   locale?: string
   keyword?: string

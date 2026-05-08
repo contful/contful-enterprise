@@ -20,7 +20,7 @@ const (
 // Entry 内容条目
 type Entry struct {
 	ID             uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	ContentTypeID  uuid.UUID  `json:"content_type_id" gorm:"type:uuid;not null;index"`
+	ContentSchemaID  uuid.UUID  `json:"schema_id" gorm:"column:schema_id;type:uuid;not null;index"`
 	SiteID         uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
 	Locale         string     `json:"locale" gorm:"size:20;not null;default:'zh-CN'"`
 	Status         EntryStatus `json:"status" gorm:"type:entry_status;not null;default:'draft'"`
@@ -40,7 +40,7 @@ type Entry struct {
 	DataSignature    JSONB      `json:"data_signature" gorm:"type:jsonb"` // 数据完整性签名
 
 	// 关联
-	ContentType *ContentType    `json:"content_type,omitempty" gorm:"foreignKey:ContentTypeID;references:ID"`
+	ContentSchema *ContentSchema    `json:"content_schema,omitempty" gorm:"foreignKey:schema_id;references:ID"`
 	Values      []EntryValue    `json:"values,omitempty" gorm:"foreignKey:EntryID;references:ID"`
 }
 

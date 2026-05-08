@@ -320,8 +320,8 @@ start_console() {
         npm install
     fi
 
-    # 设置 API 地址
-    export VITE_API_BASE_URL="http://localhost:$ADMIN_PORT/admin/api/v1"
+    # 不设置 VITE_API_BASE_URL，使用相对路径 /admin/api/v1
+    # 请求会通过 Vite 代理转发到 http://localhost:9080，避免 CORS 问题
 
     # 后台运行
     log_info "启动 Vite 开发服务器..."

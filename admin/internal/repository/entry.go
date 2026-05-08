@@ -57,7 +57,7 @@ func (r *EntryRepository) GetByIDWithValues(ctx context.Context, id uuid.UUID) (
 func (r *EntryRepository) GetByIDWithType(ctx context.Context, id uuid.UUID) (*model.Entry, error) {
 	var entry model.Entry
 	err := r.db.WithContext(ctx).
-		Preload("ContentType", func(db *gorm.DB) *gorm.DB {
+		Preload("ContentSchema", func(db *gorm.DB) *gorm.DB {
 			return db.Preload("Fields", func(db *gorm.DB) *gorm.DB {
 				return db.Order("sort_order ASC")
 			})
@@ -82,8 +82,8 @@ func (r *EntryRepository) ListBySite(ctx context.Context, siteID uuid.UUID, filt
 
 	// 应用过滤条件
 	if filter != nil {
-		if filter.ContentTypeID != nil {
-			query = query.Where("content_type_id = ?", *filter.ContentTypeID)
+		if filter.ContentSchemaID != nil {
+			query = query.Where("schema_id = ?", *filter.ContentSchemaID)
 		}
 		if filter.Status != nil {
 			query = query.Where("status = ?", *filter.Status)
@@ -99,7 +99,7 @@ func (r *EntryRepository) ListBySite(ctx context.Context, siteID uuid.UUID, filt
 
 	offset := (page - 1) * pageSize
 	err := query.
-		Preload("ContentType").
+		Preload("ContentSchema").
 		Order("updated_time DESC").
 		Offset(offset).
 		Limit(pageSize).
@@ -111,13 +111,13 @@ func (r *EntryRepository) ListBySite(ctx context.Context, siteID uuid.UUID, filt
 	return entries, total, nil
 }
 
-// ListByContentType 列出内容类型的条目
-func (r *EntryRepository) ListByContentType(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
+// ListByContentSchema 列出内容类型的条目
+func (r *EntryRepository) ListByContentSchema(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
 	var entries []model.Entry
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&model.Entry{}).
-		Where("site_id = ? AND content_type_id = ?", siteID, contentTypeID)
+		Where("site_id = ? AND schema_id = ?", siteID, contentTypeID)
 
 	// 应用过滤条件
 	if filter != nil {
@@ -178,11 +178,11 @@ func (r *EntryRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&model.Entry{}, "id = ?", id).Error
 }
 
-// CountByContentType 统计内容类型的条目数量
-func (r *EntryRepository) CountByContentType(ctx context.Context, contentTypeID uuid.UUID) (int64, error) {
+// CountByContentSchema 统计内容类型的条目数量
+func (r *EntryRepository) CountByContentSchema(ctx context.Context, contentTypeID uuid.UUID) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&model.Entry{}).
-		Where("content_type_id = ?", contentTypeID).
+		Where("schema_id = ?", contentTypeID).
 		Count(&count).Error
 	return count, err
 }

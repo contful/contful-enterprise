@@ -112,9 +112,9 @@ func (h *EntryHandler) List(c *gin.Context) {
 
 	// 解析过滤参数
 	filter := &model.EntryListFilter{}
-	if ctID := c.Query("content_type_id"); ctID != "" {
+	if ctID := c.Query("schema_id"); ctID != "" {
 		if id, err := uuid.Parse(ctID); err == nil {
-			filter.ContentTypeID = &id
+			filter.ContentSchemaID = &id
 		}
 	}
 	if status := c.Query("status"); status != "" {
@@ -137,7 +137,7 @@ func (h *EntryHandler) List(c *gin.Context) {
 		return
 	}
 
-	// 转换为响应（包含 ContentType 信息）
+	// 转换为响应（包含 ContentSchema 信息）
 	items := make([]model.EntryResponseWithType, len(entries))
 	for i, e := range entries {
 		items[i] = e.ToResponseWithType()
@@ -323,7 +323,7 @@ func (h *EntryHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrEntryNotFound):
 		middleware.NotFound(c, "entry not found")
-	case errors.Is(err, service.ErrContentTypeNotFound):
+	case errors.Is(err, service.ErrContentSchemaNotFound):
 		middleware.BadRequest(c, "content type not found")
 	default:
 		middleware.InternalError(c, err.Error())

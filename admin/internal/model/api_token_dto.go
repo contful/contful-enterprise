@@ -27,8 +27,8 @@ type APITokenUpdate struct {
 
 // EndpointPermission 权限配置（与前端 EndpointPermission 对应）
 type EndpointPermission struct {
-	ContentTypes []string `json:"content_types,omitempty"`
-	Endpoints    []APIEndpoint `json:"endpoints,omitempty"`
+	ContentSchemas []string       `json:"schemas,omitempty"`
+	Endpoints      []APIEndpoint  `json:"endpoints,omitempty"`
 }
 
 // APIEndpoint API 端点
@@ -90,7 +90,7 @@ func (t *APIToken) ToResponse() APITokenResponse {
 		Description:   t.Description,
 		TokenPrefix:   t.TokenPrefix,
 		Permissions:   EndpointPermission{
-			ContentTypes: []string(t.Scopes),
+			ContentSchemas: []string(t.Scopes),
 		},
 		RateLimits: APIEndpointLimits{
 			RequestsPerMinute: t.RateLimit / 60,

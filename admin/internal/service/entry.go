@@ -17,30 +17,30 @@ import (
 // EntryService 条目服务
 type EntryService struct {
 	entryRepo       *repository.EntryRepository
-	contentTypeRepo *repository.ContentTypeRepository
+	contentSchemaRepo *repository.SchemaRepository
 	fieldRepo       *repository.FieldRepository
 }
 
 // NewEntryService 新建服务
 func NewEntryService(
 	entryRepo *repository.EntryRepository,
-	contentTypeRepo *repository.ContentTypeRepository,
+	contentSchemaRepo *repository.SchemaRepository,
 	fieldRepo *repository.FieldRepository,
 ) *EntryService {
 	return &EntryService{
 		entryRepo:       entryRepo,
-		contentTypeRepo: contentTypeRepo,
+		contentSchemaRepo: contentSchemaRepo,
 		fieldRepo:       fieldRepo,
 	}
 }
 
 // Create 创建条目
 func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, req *model.EntryCreate, integritySvc *IntegrityService) (*model.Entry, error) {
-	// 验证内容类型存在
-	contentType, err := s.contentTypeRepo.GetByIDWithFields(ctx, req.ContentTypeID)
+	// 验证内容模型存在
+	contentSchema, err := s.contentSchemaRepo.GetByIDWithFields(ctx, req.ContentSchemaID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrContentTypeNotFound
+			return nil, ErrContentSchemaNotFound
 		}
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 	// 创建条目
 	entry := &model.Entry{
 		ID:             uuid.New(),
-		ContentTypeID:  req.ContentTypeID,
+		ContentSchemaID:  req.ContentSchemaID,
 		SiteID:         siteID,
 		Locale:         locale,
 		Status:         model.EntryStatusDraft,
@@ -62,7 +62,7 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 		VersionHistory: model.JSONArray{},
 		SortWeight:     req.SortWeight,
 		CreatedBy:      userID,
-		ContentType:    contentType,
+		ContentSchema:    contentSchema,
 	}
 
 	// 设置 SEO
@@ -85,7 +85,7 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 
 		// 解析并验证字段值
 		if len(req.Values) > 0 {
-			values, err := s.parseAndValidateValues(ctx, contentType.Fields, entry.ID, req.Values)
+			values, err := s.parseAndValidateValues(ctx, contentSchema.Fields, entry.ID, req.Values)
 			if err != nil {
 				return err
 			}
@@ -146,8 +146,8 @@ func (s *EntryService) List(ctx context.Context, siteID uuid.UUID, filter *model
 	var total int64
 	var err error
 
-	if filter != nil && filter.ContentTypeID != nil {
-		entries, total, err = s.entryRepo.ListByContentType(ctx, siteID, *filter.ContentTypeID, filter, page, pageSize)
+	if filter != nil && filter.ContentSchemaID != nil {
+		entries, total, err = s.entryRepo.ListByContentSchema(ctx, siteID, *filter.ContentSchemaID, filter, page, pageSize)
 	} else {
 		entries, total, err = s.entryRepo.ListBySite(ctx, siteID, filter, page, pageSize)
 	}
@@ -170,8 +170,8 @@ func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uui
 		return nil, ErrEntryNotFound
 	}
 
-	// 获取内容类型
-	contentType, err := s.contentTypeRepo.GetByIDWithFields(ctx, entry.ContentTypeID)
+	// 获取内容模型
+	contentSchema, err := s.contentSchemaRepo.GetByIDWithFields(ctx, entry.ContentSchemaID)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uui
 			}
 
 			// 解析并验证新值
-			values, err := s.parseAndValidateValues(ctx, contentType.Fields, entry.ID, req.Values)
+			values, err := s.parseAndValidateValues(ctx, contentSchema.Fields, entry.ID, req.Values)
 			if err != nil {
 				return err
 			}
@@ -274,12 +274,12 @@ func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uu
 		return nil, ErrEntryNotFound
 	}
 
-	// 获取内容类型（用于签名检查）
-	contentType, err := s.contentTypeRepo.GetByIDWithFields(ctx, entry.ContentTypeID)
+	// 获取内容模型（用于签名检查）
+	contentSchema, err := s.contentSchemaRepo.GetByIDWithFields(ctx, entry.ContentSchemaID)
 	if err != nil {
 		return nil, err
 	}
-	entry.ContentType = contentType
+	entry.ContentSchema = contentSchema
 
 	// 更新版本历史
 	now := time.Now()
@@ -537,5 +537,5 @@ func (s *EntryService) setAuxiliaryValue(entryValue *model.EntryValue, field *mo
 // 错误定义
 var (
 	ErrEntryNotFound = errors.New("entry not found")
-	// ErrContentTypeNotFound 定义在 content_type.go 中
+	// ErrContentSchemaNotFound 定义在 content_type.go 中
 )

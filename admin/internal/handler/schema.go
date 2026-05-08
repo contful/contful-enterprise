@@ -15,38 +15,38 @@ import (
 	"github.com/google/uuid"
 )
 
-// ContentTypeHandler 内容类型处理器
-type ContentTypeHandler struct {
-	ctService *service.ContentTypeService
+// SchemaHandler 内容模型处理器
+type SchemaHandler struct {
+	csService *service.SchemaService
 }
 
-// NewContentTypeHandler 新建处理器
-func NewContentTypeHandler(ctService *service.ContentTypeService) *ContentTypeHandler {
-	return &ContentTypeHandler{ctService: ctService}
+// NewSchemaHandler 新建处理器
+func NewSchemaHandler(csService *service.SchemaService) *SchemaHandler {
+	return &SchemaHandler{csService: csService}
 }
 
 // RegisterRoutes 注册路由
-func (h *ContentTypeHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	contentTypes := rg.Group("/content/types")
+func (h *SchemaHandler) RegisterRoutes(rg *gin.RouterGroup) {
+	contentSchemas := rg.Group("/content/schemas")
 	{
-		contentTypes.POST("", h.Create)
-		contentTypes.GET("", h.List)
-		contentTypes.GET("/:id", h.Get)
-		contentTypes.PUT("/:id", h.Update)
-		contentTypes.DELETE("/:id", h.Delete)
+		contentSchemas.POST("", h.Create)
+		contentSchemas.GET("", h.List)
+		contentSchemas.GET("/:id", h.Get)
+		contentSchemas.PUT("/:id", h.Update)
+		contentSchemas.DELETE("/:id", h.Delete)
 
 		// 字段管理
-		contentTypes.POST("/:id/fields", h.CreateField)
-		contentTypes.GET("/:id/fields", h.ListFields)
-		contentTypes.PUT("/:id/fields/:fieldId", h.UpdateField)
-		contentTypes.DELETE("/:id/fields/:fieldId", h.DeleteField)
-		contentTypes.POST("/:id/fields/reorder", h.ReorderFields)
+		contentSchemas.POST("/:id/fields", h.CreateField)
+		contentSchemas.GET("/:id/fields", h.ListFields)
+		contentSchemas.PUT("/:id/fields/:fieldId", h.UpdateField)
+		contentSchemas.DELETE("/:id/fields/:fieldId", h.DeleteField)
+		contentSchemas.POST("/:id/fields/reorder", h.ReorderFields)
 	}
 }
 
-// Create 创建内容类型
-func (h *ContentTypeHandler) Create(c *gin.Context) {
-	var req model.ContentTypeCreate
+// Create 创建内容模型
+func (h *SchemaHandler) Create(c *gin.Context) {
+	var req model.ContentSchemaCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		middleware.BadRequest(c, err.Error())
 		return
@@ -58,7 +58,7 @@ func (h *ContentTypeHandler) Create(c *gin.Context) {
 	// 获取用户 ID
 	userID, _ := middleware.GetUserID(c)
 
-	resp, err := h.ctService.Create(c.Request.Context(), siteID, userID, &req)
+	resp, err := h.csService.Create(c.Request.Context(), siteID, userID, &req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -67,8 +67,8 @@ func (h *ContentTypeHandler) Create(c *gin.Context) {
 	middleware.Created(c, resp)
 }
 
-// Get 获取内容类型
-func (h *ContentTypeHandler) Get(c *gin.Context) {
+// Get 获取内容模型
+func (h *SchemaHandler) Get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
@@ -76,7 +76,7 @@ func (h *ContentTypeHandler) Get(c *gin.Context) {
 	}
 
 	siteID := middleware.GetSiteID(c)
-	resp, err := h.ctService.Get(c.Request.Context(), siteID, id)
+	resp, err := h.csService.Get(c.Request.Context(), siteID, id)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -85,13 +85,13 @@ func (h *ContentTypeHandler) Get(c *gin.Context) {
 	middleware.OK(c, resp)
 }
 
-// List 列出内容类型
-func (h *ContentTypeHandler) List(c *gin.Context) {
+// List 列出内容模型
+func (h *SchemaHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 
 	siteID := middleware.GetSiteID(c)
-	resp, err := h.ctService.List(c.Request.Context(), siteID, page, pageSize)
+	resp, err := h.csService.List(c.Request.Context(), siteID, page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -100,22 +100,22 @@ func (h *ContentTypeHandler) List(c *gin.Context) {
 	middleware.OK(c, resp)
 }
 
-// Update 更新内容类型
-func (h *ContentTypeHandler) Update(c *gin.Context) {
+// Update 更新内容模型
+func (h *SchemaHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return
 	}
 
-	var req model.ContentTypeUpdate
+	var req model.ContentSchemaUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		middleware.BadRequest(c, err.Error())
 		return
 	}
 
 	siteID := middleware.GetSiteID(c)
-	resp, err := h.ctService.Update(c.Request.Context(), siteID, id, &req)
+	resp, err := h.csService.Update(c.Request.Context(), siteID, id, &req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -124,8 +124,8 @@ func (h *ContentTypeHandler) Update(c *gin.Context) {
 	middleware.OK(c, resp)
 }
 
-// Delete 删除内容类型
-func (h *ContentTypeHandler) Delete(c *gin.Context) {
+// Delete 删除内容模型
+func (h *SchemaHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
@@ -133,7 +133,7 @@ func (h *ContentTypeHandler) Delete(c *gin.Context) {
 	}
 
 	siteID := middleware.GetSiteID(c)
-	if err := h.ctService.Delete(c.Request.Context(), siteID, id); err != nil {
+	if err := h.csService.Delete(c.Request.Context(), siteID, id); err != nil {
 		h.handleError(c, err)
 		return
 	}
@@ -144,7 +144,7 @@ func (h *ContentTypeHandler) Delete(c *gin.Context) {
 // ============ Field 操作 ============
 
 // CreateField 创建字段
-func (h *ContentTypeHandler) CreateField(c *gin.Context) {
+func (h *SchemaHandler) CreateField(c *gin.Context) {
 	contentTypeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid content type id format")
@@ -158,7 +158,7 @@ func (h *ContentTypeHandler) CreateField(c *gin.Context) {
 	}
 
 	siteID := middleware.GetSiteID(c)
-	resp, err := h.ctService.CreateField(c.Request.Context(), siteID, contentTypeID, &req)
+	resp, err := h.csService.CreateField(c.Request.Context(), siteID, contentTypeID, &req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -168,7 +168,7 @@ func (h *ContentTypeHandler) CreateField(c *gin.Context) {
 }
 
 // ListFields 列出字段
-func (h *ContentTypeHandler) ListFields(c *gin.Context) {
+func (h *SchemaHandler) ListFields(c *gin.Context) {
 	contentTypeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid content type id format")
@@ -176,7 +176,7 @@ func (h *ContentTypeHandler) ListFields(c *gin.Context) {
 	}
 
 	siteID := middleware.GetSiteID(c)
-	fields, err := h.ctService.ListFields(c.Request.Context(), siteID, contentTypeID)
+	fields, err := h.csService.ListFields(c.Request.Context(), siteID, contentTypeID)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -186,7 +186,7 @@ func (h *ContentTypeHandler) ListFields(c *gin.Context) {
 }
 
 // UpdateField 更新字段
-func (h *ContentTypeHandler) UpdateField(c *gin.Context) {
+func (h *SchemaHandler) UpdateField(c *gin.Context) {
 	fieldID, err := uuid.Parse(c.Param("fieldId"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid field id format")
@@ -200,7 +200,7 @@ func (h *ContentTypeHandler) UpdateField(c *gin.Context) {
 	}
 
 	siteID := middleware.GetSiteID(c)
-	resp, err := h.ctService.UpdateField(c.Request.Context(), siteID, fieldID, &req)
+	resp, err := h.csService.UpdateField(c.Request.Context(), siteID, fieldID, &req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -210,7 +210,7 @@ func (h *ContentTypeHandler) UpdateField(c *gin.Context) {
 }
 
 // DeleteField 删除字段
-func (h *ContentTypeHandler) DeleteField(c *gin.Context) {
+func (h *SchemaHandler) DeleteField(c *gin.Context) {
 	fieldID, err := uuid.Parse(c.Param("fieldId"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid field id format")
@@ -218,7 +218,7 @@ func (h *ContentTypeHandler) DeleteField(c *gin.Context) {
 	}
 
 	siteID := middleware.GetSiteID(c)
-	if err := h.ctService.DeleteField(c.Request.Context(), siteID, fieldID); err != nil {
+	if err := h.csService.DeleteField(c.Request.Context(), siteID, fieldID); err != nil {
 		h.handleError(c, err)
 		return
 	}
@@ -227,7 +227,7 @@ func (h *ContentTypeHandler) DeleteField(c *gin.Context) {
 }
 
 // ReorderFields 重新排序字段
-func (h *ContentTypeHandler) ReorderFields(c *gin.Context) {
+func (h *SchemaHandler) ReorderFields(c *gin.Context) {
 	contentTypeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid content type id format")
@@ -243,7 +243,7 @@ func (h *ContentTypeHandler) ReorderFields(c *gin.Context) {
 	}
 
 	siteID := middleware.GetSiteID(c)
-	if err := h.ctService.ReorderFields(c.Request.Context(), siteID, contentTypeID, req.Orders); err != nil {
+	if err := h.csService.ReorderFields(c.Request.Context(), siteID, contentTypeID, req.Orders); err != nil {
 		h.handleError(c, err)
 		return
 	}
@@ -252,9 +252,9 @@ func (h *ContentTypeHandler) ReorderFields(c *gin.Context) {
 }
 
 // handleError 处理错误
-func (h *ContentTypeHandler) handleError(c *gin.Context, err error) {
+func (h *SchemaHandler) handleError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, service.ErrContentTypeNotFound):
+	case errors.Is(err, service.ErrContentSchemaNotFound):
 		middleware.NotFound(c, "content type not found")
 	case errors.Is(err, service.ErrSlugAlreadyExists):
 		middleware.Conflict(c, "slug already exists")

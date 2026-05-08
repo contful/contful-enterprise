@@ -83,7 +83,7 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 			Description: "站点所有者，拥有全部权限",
 			IsSystem:    true,
 			Permissions: []string{
-				"content_type:read", "content_type:write", "content_type:delete",
+				"content_schema:read", "content_schema:write", "content_schema:delete",
 				"entry:read", "entry:write", "entry:delete", "entry:publish",
 				"asset:read", "asset:write", "asset:delete",
 				"media:read", "media:write", "media:delete",
@@ -107,7 +107,7 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 			Description: "编辑者，可管理内容和媒体",
 			IsSystem:    true,
 			Permissions: []string{
-				"content_type:read", "content_type:write",
+				"content_schema:read", "content_schema:write",
 				"entry:read", "entry:write", "entry:publish",
 				"asset:read", "asset:write",
 				"media:read", "media:write",
@@ -281,15 +281,12 @@ func (s *SiteService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.siteRepo.Delete(ctx, id)
 }
 
-// initDefaultConfigs 初始化新站点的默认配置
+// initDefaultConfigs 初始化新站点的默认配置（仅 integrity，分组配置由全局 config.yaml 控制）
 func (s *SiteService) initDefaultConfigs(tx *gorm.DB, siteID uuid.UUID) error {
 	configs := []model.SiteConfig{
-		{SiteID: siteID, ConfigKey: "storage.driver", ConfigValue: "local", ConfigType: "string", ConfigGroup: "storage", IsEncrypted: false, IsReadonly: false, Description: "存储驱动类型: local/oss/cos/obs/s3"},
-		{SiteID: siteID, ConfigKey: "storage.local.root", ConfigValue: "uploads", ConfigType: "string", ConfigGroup: "storage", IsEncrypted: false, IsReadonly: false, Description: "本地存储根目录"},
-		{SiteID: siteID, ConfigKey: "storage.local.base_url", ConfigValue: "/uploads", ConfigType: "string", ConfigGroup: "storage", IsEncrypted: false, IsReadonly: false, Description: "本地存储访问路径"},
-		{SiteID: siteID, ConfigKey: "integrity.enabled", ConfigValue: "false", ConfigType: "boolean", ConfigGroup: "integrity", IsEncrypted: false, IsReadonly: false, Description: "是否启用数据签名"},
-		{SiteID: siteID, ConfigKey: "integrity.algorithm", ConfigValue: "HMAC-SHA256", ConfigType: "string", ConfigGroup: "integrity", IsEncrypted: false, IsReadonly: false, Description: "签名算法"},
-		{SiteID: siteID, ConfigKey: "integrity.signing_key", ConfigValue: "", ConfigType: "encrypted", ConfigGroup: "integrity", IsEncrypted: true, IsReadonly: false, Description: "签名密钥（AES-256-GCM 加密存储）"},
+		{SiteID: siteID, ConfigKey: "integrity.enabled", ConfigValue: "false", ConfigType: "boolean", ConfigGroup: "integrity", IsEncrypted: false, IsReadonly: false, Description: "是否启用数据签名验证"},
+		{SiteID: siteID, ConfigKey: "integrity.algorithm", ConfigValue: "HMAC-SHA256", ConfigType: "string", ConfigGroup: "integrity", IsEncrypted: false, IsReadonly: false, Description: "签名算法（HMAC-SHA256）"},
+		{SiteID: siteID, ConfigKey: "integrity.signing_key", ConfigValue: "", ConfigType: "string", ConfigGroup: "integrity", IsEncrypted: false, IsReadonly: false, Description: "数据签名密钥（填入后启用签名，留空则不启用）"},
 	}
 	for _, cfg := range configs {
 		if err := tx.Create(&cfg).Error; err != nil {

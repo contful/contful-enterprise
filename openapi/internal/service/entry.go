@@ -15,8 +15,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// ErrContentTypeNotFound 内容类型不存在
-var ErrContentTypeNotFound = errors.New("content type not found")
+// ErrContentSchemaNotFound 内容模型不存在
+var ErrContentSchemaNotFound = errors.New("content schema not found")
 
 // ErrEntryNotFound 条目不存在
 var ErrEntryNotFound = errors.New("entry not found")
@@ -24,15 +24,15 @@ var ErrEntryNotFound = errors.New("entry not found")
 // EntryService Open API 内容读取服务
 type EntryService struct {
 	entryRepo  *repository.EntryRepository
-	ctRepo     *repository.ContentTypeRepository
+	csRepo     *repository.ContentSchemaRepository
 	cacheSvc   *CacheService
 }
 
 // NewEntryService 创建 EntryService
-func NewEntryService(entryRepo *repository.EntryRepository, ctRepo *repository.ContentTypeRepository, cacheSvc *CacheService) *EntryService {
+func NewEntryService(entryRepo *repository.EntryRepository, csRepo *repository.ContentSchemaRepository, cacheSvc *CacheService) *EntryService {
 	return &EntryService{
 		entryRepo: entryRepo,
-		ctRepo:    ctRepo,
+		csRepo:    csRepo,
 		cacheSvc:  cacheSvc,
 	}
 }
@@ -68,9 +68,9 @@ func (s *EntryService) ListBySlug(ctx context.Context, siteID uuid.UUID, slug st
 	}
 
 	// 2. 通过 slug 找内容类型
-	ct, err := s.ctRepo.FindBySlug(ctx, siteID, slug)
+	ct, err := s.csRepo.FindBySlug(ctx, siteID, slug)
 	if err != nil {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 
 	// 3. 查询已发布条目
@@ -118,9 +118,9 @@ func (s *EntryService) GetByID(ctx context.Context, siteID uuid.UUID, slug strin
 	}
 
 	// 2. 验证 slug 对应的内容类型存在
-	_, err := s.ctRepo.FindBySlug(ctx, siteID, slug)
+	_, err := s.csRepo.FindBySlug(ctx, siteID, slug)
 	if err != nil {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 
 	entry, err := s.entryRepo.GetPublishedByID(ctx, siteID, entryID)

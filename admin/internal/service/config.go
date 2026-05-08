@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	ErrConfigNotFound  = errors.New("配置不存在")
-	ErrConfigReadonly  = errors.New("配置为只读，禁止修改")
-	ErrCrypterEmpty    = errors.New("加密器未初始化")
+	ErrConfigNotFound    = errors.New("配置不存在")
+	ErrConfigReadonly    = errors.New("配置为只读，禁止修改")
+	ErrCrypterEmpty      = errors.New("加密器未初始化")
 	ErrInvalidConfigType = errors.New("无效的 config_type")
 )
 

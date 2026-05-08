@@ -73,8 +73,12 @@ func main() {
 	cacheSvc := service.NewCacheService(rdb)
 
 	entryRepo := repository.NewEntryRepository(db)
-	ctRepo := repository.NewContentTypeRepository(db)
-	entrySvc := service.NewEntryService(entryRepo, ctRepo, cacheSvc)
+	csRepo := repository.NewContentSchemaRepository(db)
+	entrySvc := service.NewEntryService(entryRepo, csRepo, cacheSvc)
+
+	// 站点配置服务（仅 default 分组，用于单页面内容配置）
+	scRepo := repository.NewSiteConfigRepository(db)
+	configSvc := service.NewConfigService(scRepo)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)
@@ -123,7 +127,7 @@ func main() {
 
 		resp, err := entrySvc.ListBySlug(c.Request.Context(), tc.SiteID, slug, locale, sortField, sortOrder, page, pageSize)
 		if err != nil {
-			if err == service.ErrContentTypeNotFound {
+			if err == service.ErrContentSchemaNotFound {
 				c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "content type not found"))
 				return
 			}
@@ -151,7 +155,7 @@ func main() {
 
 		item, err := entrySvc.GetByID(c.Request.Context(), tc.SiteID, slug, entryID)
 		if err != nil {
-			if err == service.ErrContentTypeNotFound || err == service.ErrEntryNotFound {
+			if err == service.ErrContentSchemaNotFound || err == service.ErrEntryNotFound {
 				c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "not found"))
 				return
 			}
@@ -167,6 +171,31 @@ func main() {
 			"message": "write API coming in M2",
 			"slug":    c.Param("slug"),
 		}))
+	})
+
+	// 站点配置路由（仅 default 分组，需 Token 认证）
+	// GET /api/v1/configs/:key — 获取指定 key 的配置值
+	api.GET("/configs/:key", func(c *gin.Context) {
+		tc := middleware.GetTokenContext(c)
+		if tc == nil {
+			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "unauthorized"))
+			return
+		}
+		key := c.Param("key")
+		if key == "" {
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "key is required"))
+			return
+		}
+		value, err := configSvc.GetValue(c.Request.Context(), tc.SiteID, key)
+		if err != nil {
+			if err == service.ErrConfigNotFound {
+				c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "config not found"))
+				return
+			}
+			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+			return
+		}
+		c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"key": key, "value": value}))
 	})
 
 	// 启动服务

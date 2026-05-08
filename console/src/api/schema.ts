@@ -3,9 +3,9 @@
 
 import { get, post, put, del } from '@/utils/request'
 
-// ============ ContentType API ============
+// ============ ContentSchema API ============
 
-export interface ContentType {
+export interface ContentSchema {
   id: string
   site_id: string
   name: string
@@ -30,7 +30,7 @@ export interface ContentType {
 
 export interface Field {
   id: string
-  content_type_id: string
+  schema_id: string
   name: string
   label: string
   description: string
@@ -76,7 +76,7 @@ export const FIELD_TYPES: Record<FieldType, { labelKey: string; icon: string }> 
   password: { labelKey: 'fieldTypes.password', icon: 'lock' },
 }
 
-export interface ContentTypeCreate {
+export interface ContentSchemaCreate {
   name: string
   slug: string
   description?: string
@@ -89,7 +89,7 @@ export interface ContentTypeCreate {
   sort_order?: number
 }
 
-export interface ContentTypeUpdate {
+export interface ContentSchemaUpdate {
   name?: string
   slug?: string
   description?: string
@@ -136,54 +136,54 @@ export interface ListResponse<T> {
   page_size: number
 }
 
-// 创建内容类型
-export function createContentType(data: ContentTypeCreate) {
-  return post<ContentType>('/content/types', data)
+// 创建内容模型
+export function createContentSchema(data: ContentSchemaCreate) {
+  return post<ContentSchema>('/content/schemas', data)
 }
 
-// 获取内容类型列表
-export function getContentTypes(params?: { page?: number; page_size?: number }) {
-  return get<ListResponse<ContentType>>('/content/types', { params })
+// 获取内容模型列表
+export function getContentSchemas(params?: { page?: number; page_size?: number }) {
+  return get<ListResponse<ContentSchema>>('/content/schemas', { params })
 }
 
-// 获取内容类型详情
-export function getContentType(id: string) {
-  return get<ContentType>(`/content/types/${id}`)
+// 获取内容模型详情
+export function getContentSchema(id: string) {
+  return get<ContentSchema>(`/content/schemas/${id}`)
 }
 
-// 更新内容类型
-export function updateContentType(id: string, data: ContentTypeUpdate) {
-  return put<ContentType>(`/content/types/${id}`, data)
+// 更新内容模型
+export function updateContentSchema(id: string, data: ContentSchemaUpdate) {
+  return put<ContentSchema>(`/content/schemas/${id}`, data)
 }
 
-// 删除内容类型
-export function deleteContentType(id: string) {
-  return del(`/content/types/${id}`)
+// 删除内容模型
+export function deleteContentSchema(id: string) {
+  return del(`/content/schemas/${id}`)
 }
 
 // ============ Field API ============
 
 // 创建字段
-export function createField(contentTypeId: string, data: FieldCreate) {
-  return post<Field>(`/content/types/${contentTypeId}/fields`, data)
+export function createField(schemaId: string, data: FieldCreate) {
+  return post<Field>(`/content/schemas/${schemaId}/fields`, data)
 }
 
 // 获取字段列表
-export function getFields(contentTypeId: string) {
-  return get<{ items: Field[] }>(`/content/types/${contentTypeId}/fields`)
+export function getFields(schemaId: string) {
+  return get<{ items: Field[] }>(`/content/schemas/${schemaId}/fields`)
 }
 
 // 更新字段
-export function updateField(contentTypeId: string, fieldId: string, data: FieldUpdate) {
-  return put<Field>(`/content/types/${contentTypeId}/fields/${fieldId}`, data)
+export function updateField(schemaId: string, fieldId: string, data: FieldUpdate) {
+  return put<Field>(`/content/schemas/${schemaId}/fields/${fieldId}`, data)
 }
 
 // 删除字段
-export function deleteField(contentTypeId: string, fieldId: string) {
-  return del(`/content/types/${contentTypeId}/fields/${fieldId}`)
+export function deleteField(schemaId: string, fieldId: string) {
+  return del(`/content/schemas/${schemaId}/fields/${fieldId}`)
 }
 
 // 重新排序字段
-export function reorderFields(contentTypeId: string, orders: Record<string, number>) {
-  return post(`/content/types/${contentTypeId}/fields/reorder`, { orders })
+export function reorderFields(schemaId: string, orders: Record<string, number>) {
+  return post(`/content/schemas/${schemaId}/fields/reorder`, { orders })
 }

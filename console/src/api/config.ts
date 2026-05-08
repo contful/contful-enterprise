@@ -1,7 +1,7 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import request from '@/utils/request'
+import { get as requestGet, put as requestPut, del as requestDel } from '@/utils/request'
 
 export interface SiteConfig {
   id: string
@@ -18,19 +18,14 @@ export interface SiteConfig {
   updated_by?: string
 }
 
-export interface ConfigListResponse {
-  items: SiteConfig[]
-  total: number
-}
-
 // 按分组列出配置
-export function getConfigs(siteId: string): Promise<ConfigListResponse> {
-  return request.get(`/sites/${siteId}/configs`)
+export function getConfigs(siteId: string): Promise<SiteConfig[]> {
+  return requestGet<SiteConfig[]>(`/sites/${siteId}/configs`).then((res) => res.data || [])
 }
 
 // 读取单个配置
 export function getConfig(siteId: string, key: string): Promise<{ data: SiteConfig }> {
-  return request.get(`/sites/${siteId}/configs/${key}`)
+  return requestGet(`/sites/${siteId}/configs/${key}`)
 }
 
 // 设置配置（创建或更新）
@@ -40,10 +35,10 @@ export function setConfig(siteId: string, key: string, data: {
   config_group?: string
   description?: string
 }): Promise<{ data: SiteConfig }> {
-  return request.put(`/sites/${siteId}/configs/${key}`, data)
+  return requestPut(`/sites/${siteId}/configs/${key}`, data)
 }
 
 // 删除配置
 export function deleteConfig(siteId: string, key: string): Promise<void> {
-  return request.delete(`/sites/${siteId}/configs/${key}`)
+  return requestDel(`/sites/${siteId}/configs/${key}`)
 }

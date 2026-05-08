@@ -5,12 +5,15 @@
 
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSiteStore } from '@/stores/site'
+import { useRoute } from 'vue-router'
 import { getConfigs, setConfig, deleteConfig, type SiteConfig } from '@/api/config'
 import { showSuccess, showError } from '@/utils/request'
 
 const { t } = useI18n()
-const siteStore = useSiteStore()
+const route = useRoute()
+
+// 从路由参数获取 siteId
+const siteId = computed(() => route.params.siteId as string)
 
 // ============ 状态 ============
 const loading = ref(false)
@@ -33,20 +36,15 @@ const filteredConfigs = computed(() => {
   return configs.value.filter(c => c.config_group === activeGroup.value)
 })
 
-// 按 key 分组展示
-const grouped = computed(() => {
-  const map = new Map<string, SiteConfig[]>()
-  for (const c of filteredConfigs.value) {
-    const list = map.get(c.config_key) || []
-    list.push(c)
-    map.set(c.config_key, list)
-  }
-  return map
+// ============ 编辑弹窗 ============
+const showEditModal = ref(false)
+const editForm = ref({
+  config_key: '',
+  config_value: '',
+  config_type: '',
+  description: '',
+  is_readonly: false,
 })
-
-// ============ 编辑状态 ============
-const editingKey = ref<string | null>(null)
-const editValue = ref('')
 const editError = ref('')
 
 // 新增弹窗
@@ -55,18 +53,17 @@ const addForm = ref({
   config_key: '',
   config_value: '',
   config_type: 'string',
-  config_group: 'default',
   description: '',
 })
 const addError = ref('')
 
 // ============ 加载数据 ============
 async function loadConfigs() {
-  if (!siteStore.currentSiteId) return
+  if (!siteId.value) return
   loading.value = true
   try {
-    const res = await getConfigs(siteStore.currentSiteId)
-    configs.value = res.items || []
+    const res = await getConfigs(siteId.value)
+    configs.value = res || []
   } catch (e: any) {
     showError(e)
   } finally {
@@ -77,28 +74,29 @@ async function loadConfigs() {
 // ============ 编辑 ============
 function startEdit(cfg: SiteConfig) {
   if (cfg.is_readonly) return
-  editingKey.value = cfg.config_key
-  editValue.value = cfg.config_value
+  editForm.value = {
+    config_key: cfg.config_key,
+    config_value: cfg.config_value,
+    config_type: cfg.config_type,
+    description: cfg.description,
+    is_readonly: cfg.is_readonly,
+  }
   editError.value = ''
+  showEditModal.value = true
 }
 
-function cancelEdit() {
-  editingKey.value = null
-  editValue.value = ''
-  editError.value = ''
-}
-
-async function saveEdit(cfg: SiteConfig) {
-  if (!siteStore.currentSiteId || saving.value) return
-  saving.value = cfg.config_key
+async function saveEdit() {
+  if (!siteId.value || !saving.value) return
   editError.value = ''
   try {
-    await setConfig(siteStore.currentSiteId, cfg.config_key, {
-      config_value: editValue.value,
-      config_type: cfg.config_type,
+    await setConfig(siteId.value, editForm.value.config_key, {
+      config_value: editForm.value.config_value,
+      config_type: editForm.value.config_type,
     })
-    cfg.config_value = editValue.value
-    editingKey.value = null
+    // 更新列表中的值
+    const cfg = configs.value.find(c => c.config_key === editForm.value.config_key)
+    if (cfg) cfg.config_value = editForm.value.config_value
+    showEditModal.value = false
     showSuccess(t('common.saveSuccess'))
   } catch (e: any) {
     editError.value = e.message || String(e)
@@ -109,11 +107,11 @@ async function saveEdit(cfg: SiteConfig) {
 
 // ============ 删除 ============
 async function handleDelete(cfg: SiteConfig) {
-  if (!siteStore.currentSiteId || deleting.value || cfg.is_readonly) return
+  if (!siteId.value || deleting.value || cfg.config_group === 'integrity') return
   if (!confirm(t('settings.confirmDelete', { key: cfg.config_key }))) return
   deleting.value = cfg.config_key
   try {
-    await deleteConfig(siteStore.currentSiteId, cfg.config_key)
+    await deleteConfig(siteId.value, cfg.config_key)
     configs.value = configs.value.filter(c => c.id !== cfg.id)
     showSuccess(t('common.deleteSuccess'))
   } catch (e: any) {
@@ -129,7 +127,6 @@ function openAdd() {
     config_key: '',
     config_value: '',
     config_type: 'string',
-    config_group: activeGroup.value === 'all' ? 'default' : activeGroup.value,
     description: '',
   }
   addError.value = ''
@@ -137,7 +134,7 @@ function openAdd() {
 }
 
 async function handleAdd() {
-  if (!siteStore.currentSiteId) return
+  if (!siteId.value) return
   if (!addForm.value.config_key.trim()) {
     addError.value = t('settings.keyRequired')
     return
@@ -145,10 +142,10 @@ async function handleAdd() {
   saving.value = 'add'
   addError.value = ''
   try {
-    const res = await setConfig(siteStore.currentSiteId, addForm.value.config_key, {
+    const res = await setConfig(siteId.value, addForm.value.config_key, {
       config_value: addForm.value.config_value,
       config_type: addForm.value.config_type,
-      config_group: addForm.value.config_group,
+      config_group: 'default',
       description: addForm.value.description,
     })
     // 添加到列表
@@ -195,9 +192,9 @@ onMounted(loadConfigs)
         <h1 class="page-title">{{ t('settings.configs') }}</h1>
         <p class="page-subtitle">{{ t('settings.configsSubtitle') }}</p>
       </div>
-      <button class="btn btn-primary" @click="openAdd">
+      <t-button theme="primary" @click="openAdd">
         {{ t('settings.addConfig') }}
-      </button>
+      </t-button>
     </div>
 
     <!-- 分组切换 -->
@@ -221,7 +218,7 @@ onMounted(loadConfigs)
     <!-- 空状态 -->
     <div v-else-if="filteredConfigs.length === 0" class="state-empty">
       <p>{{ t('settings.noConfigs') }}</p>
-      <button class="btn btn-default" @click="openAdd">{{ t('settings.addFirstConfig') }}</button>
+      <t-button variant="outline" @click="openAdd">{{ t('settings.addFirstConfig') }}</t-button>
     </div>
 
     <!-- 配置列表 -->
@@ -233,7 +230,7 @@ onMounted(loadConfigs)
             <th>{{ t('settings.value') }}</th>
             <th>{{ t('settings.type') }}</th>
             <th>{{ t('settings.description') }}</th>
-            <th style="width: 100px">{{ t('settings.actions') }}</th>
+            <th style="width: 120px">{{ t('settings.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -245,49 +242,31 @@ onMounted(loadConfigs)
                 <span v-if="cfg.is_readonly" class="badge badge-warning">{{ t('settings.readonly') }}</span>
               </td>
               <td class="cell-value">
-                <!-- 编辑状态 -->
-                <template v-if="editingKey === cfg.config_key">
-                  <div class="edit-row">
-                    <textarea
-                      v-model="editValue"
-                      class="input"
-                      :rows="cfg.config_type === 'json' ? 4 : 1"
-                      style="width: 300px"
-                    />
-                    <div class="edit-actions">
-                      <button class="btn btn-sm btn-primary" :disabled="saving === cfg.config_key" @click="saveEdit(cfg)">
-                        {{ t('common.save') }}
-                      </button>
-                      <button class="btn btn-sm btn-default" @click="cancelEdit">{{ t('common.cancel') }}</button>
-                    </div>
-                    <p v-if="editError" class="field-error">{{ editError }}</p>
-                  </div>
-                </template>
-                <!-- 只读/加密 -->
-                <template v-else>
-                  <span class="value-text" :class="{ 'value-masked': cfg.is_encrypted }">{{ formatValue(cfg) }}</span>
-                </template>
+                <span class="value-text" :class="{ 'value-masked': cfg.is_encrypted }">{{ formatValue(cfg) }}</span>
               </td>
               <td><span class="type-label">{{ typeLabel(cfg.config_type) }}</span></td>
               <td class="cell-desc">{{ cfg.description || '—' }}</td>
               <td>
                 <div class="row-actions">
-                  <button
+                  <t-button
                     v-if="!cfg.is_readonly"
-                    class="btn btn-sm btn-default"
+                    variant="outline"
+                    size="small"
                     :disabled="!!saving"
                     @click="startEdit(cfg)"
                   >
                     {{ t('common.edit') }}
-                  </button>
-                  <button
-                    v-if="!cfg.is_readonly"
-                    class="btn btn-sm btn-danger"
+                  </t-button>
+                  <t-button
+                    v-if="cfg.config_group !== 'integrity'"
+                    theme="danger"
+                    variant="outline"
+                    size="small"
                     :disabled="deleting === cfg.config_key"
                     @click="handleDelete(cfg)"
                   >
                     {{ t('common.delete') }}
-                  </button>
+                  </t-button>
                 </div>
               </td>
             </tr>
@@ -312,20 +291,14 @@ onMounted(loadConfigs)
             <label>{{ t('settings.value') }}</label>
             <textarea v-model="addForm.config_value" class="input" rows="3" :placeholder="t('settings.valuePlaceholder')" />
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>{{ t('settings.type') }}</label>
-              <select v-model="addForm.config_type" class="input">
-                <option value="string">{{ t('settings.typeString') }}</option>
-                <option value="number">{{ t('settings.typeNumber') }}</option>
-                <option value="boolean">{{ t('settings.typeBoolean') }}</option>
-                <option value="json">{{ t('settings.typeJson') }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>{{ t('settings.group') }}</label>
-              <input v-model="addForm.config_group" class="input" :placeholder="t('settings.groupPlaceholder')" />
-            </div>
+          <div class="form-group">
+            <label>{{ t('settings.type') }}</label>
+            <select v-model="addForm.config_type" class="input">
+              <option value="string">{{ t('settings.typeString') }}</option>
+              <option value="number">{{ t('settings.typeNumber') }}</option>
+              <option value="boolean">{{ t('settings.typeBoolean') }}</option>
+              <option value="json">{{ t('settings.typeJson') }}</option>
+            </select>
           </div>
           <div class="form-group">
             <label>{{ t('settings.description') }}</label>
@@ -334,10 +307,46 @@ onMounted(loadConfigs)
           <p v-if="addError" class="field-error">{{ addError }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-default" @click="showAddModal = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="!!saving" @click="handleAdd">
+          <t-button variant="outline" @click="showAddModal = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" :disabled="!!saving" :loading="!!saving" @click="handleAdd">
             {{ t('common.create') }}
-          </button>
+          </t-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ t('common.edit') }}: {{ editForm.config_key }}</h3>
+          <button class="modal-close" @click="showEditModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>{{ t('settings.type') }}</label>
+            <span class="type-label">{{ typeLabel(editForm.config_type) }}</span>
+          </div>
+          <div class="form-group">
+            <label>{{ t('settings.value') }}</label>
+            <textarea
+              v-model="editForm.config_value"
+              class="input"
+              :rows="editForm.config_type === 'json' ? 6 : 3"
+              :placeholder="t('settings.valuePlaceholder')"
+            />
+          </div>
+          <div class="form-group">
+            <label>{{ t('settings.description') }}</label>
+            <p class="desc-text">{{ editForm.description || '—' }}</p>
+          </div>
+          <p v-if="editError" class="field-error">{{ editError }}</p>
+        </div>
+        <div class="modal-footer">
+          <t-button variant="outline" @click="showEditModal = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" :disabled="!!saving" :loading="!!saving" @click="saveEdit">
+            {{ t('common.save') }}
+          </t-button>
         </div>
       </div>
     </div>
@@ -347,6 +356,21 @@ onMounted(loadConfigs)
 <style scoped>
 .configs-page {
   height: 100%;
+}
+
+/* 表格行高统一 */
+:deep(.table) td,
+:deep(.table) th {
+  vertical-align: top !important;
+  padding: 10px 12px !important;
+}
+
+:deep(.table) td {
+  min-height: 48px !important;
+}
+
+:deep(.table) .row-actions {
+  white-space: nowrap;
 }
 
 .group-tabs {
@@ -419,15 +443,10 @@ onMounted(loadConfigs)
   font-style: italic;
 }
 
-.edit-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 4px;
+.desc-text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
 }
 
 .cell-desc {

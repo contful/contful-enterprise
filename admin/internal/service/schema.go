@@ -16,29 +16,29 @@ import (
 	"gorm.io/gorm"
 )
 
-// ContentTypeService 内容类型服务
-type ContentTypeService struct {
-	ctRepo    *repository.ContentTypeRepository
+// SchemaService 内容模型服务
+type SchemaService struct {
+	csRepo    *repository.SchemaRepository
 	fieldRepo *repository.FieldRepository
 	logger    zerolog.Logger
 }
 
-// NewContentTypeService 新建服务
-func NewContentTypeService(
-	ctRepo *repository.ContentTypeRepository,
+// NewSchemaService 新建服务
+func NewSchemaService(
+	csRepo *repository.SchemaRepository,
 	fieldRepo *repository.FieldRepository,
 	logger zerolog.Logger,
-) *ContentTypeService {
-	return &ContentTypeService{
-		ctRepo:    ctRepo,
+) *SchemaService {
+	return &SchemaService{
+		csRepo:    csRepo,
 		fieldRepo: fieldRepo,
 		logger:    logger,
 	}
 }
 
-// 创建内容类型错误
+// 创建内容模型错误
 var (
-	ErrContentTypeNotFound = errors.New("content type not found")
+	ErrContentSchemaNotFound = errors.New("content type not found")
 	ErrSlugAlreadyExists   = errors.New("slug already exists")
 	ErrInvalidSlug         = errors.New("invalid slug format")
 	ErrCannotChangeKind    = errors.New("cannot change content type kind after creation")
@@ -47,8 +47,8 @@ var (
 // slug 正则：只允许字母、数字、连字符
 var slugRegex = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
-// Create 创建内容类型
-func (s *ContentTypeService) Create(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, req *model.ContentTypeCreate) (*model.ContentTypeResponse, error) {
+// Create 创建内容模型
+func (s *SchemaService) Create(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, req *model.ContentSchemaCreate) (*model.ContentSchemaResponse, error) {
 	// 验证 slug 格式
 	slug := strings.ToLower(strings.TrimSpace(req.Slug))
 	if !slugRegex.MatchString(slug) {
@@ -56,7 +56,7 @@ func (s *ContentTypeService) Create(ctx context.Context, siteID uuid.UUID, userI
 	}
 
 	// 检查 slug 是否已存在
-	exists, err := s.ctRepo.ExistsSlug(ctx, siteID, slug, nil)
+	exists, err := s.csRepo.ExistsSlug(ctx, siteID, slug, nil)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("check slug exists failed")
 		return nil, err
@@ -65,8 +65,8 @@ func (s *ContentTypeService) Create(ctx context.Context, siteID uuid.UUID, userI
 		return nil, ErrSlugAlreadyExists
 	}
 
-	// 创建内容类型
-	ct := &model.ContentType{
+	// 创建内容模型
+	ct := &model.ContentSchema{
 		ID:                   uuid.New(),
 		SiteID:               siteID,
 		Name:                 strings.TrimSpace(req.Name),
@@ -91,18 +91,18 @@ func (s *ContentTypeService) Create(ctx context.Context, siteID uuid.UUID, userI
 		}
 	}
 
-	if err := s.ctRepo.Create(ctx, ct); err != nil {
-		s.logger.Error().Err(err).Msg("create content type failed")
+	if err := s.csRepo.Create(ctx, ct); err != nil {
+		s.logger.Error().Err(err).Msg("create content schema failed")
 		return nil, err
 	}
 
 	s.logger.Info().
-		Str("content_type", ct.Name).
+		Str("content_schema", ct.Name).
 		Str("slug", ct.Slug).
 		Str("kind", string(ct.Kind)).
-		Msg("content type created")
+		Msg("content schema created")
 
-	result, err := s.ctRepo.GetByIDWithFields(ctx, ct.ID)
+	result, err := s.csRepo.GetByIDWithFields(ctx, ct.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -110,27 +110,27 @@ func (s *ContentTypeService) Create(ctx context.Context, siteID uuid.UUID, userI
 	return &resp, nil
 }
 
-// Get 获取内容类型
-func (s *ContentTypeService) Get(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.ContentTypeResponse, error) {
-	ct, err := s.ctRepo.GetByIDWithFields(ctx, id)
+// Get 获取内容模型
+func (s *SchemaService) Get(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.ContentSchemaResponse, error) {
+	ct, err := s.csRepo.GetByIDWithFields(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrContentTypeNotFound
+			return nil, ErrContentSchemaNotFound
 		}
 		return nil, err
 	}
 
 	// 验证站点 ID
 	if ct.SiteID != siteID {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 
 	resp := ct.ToResponse()
 	return &resp, nil
 }
 
-// List 列出内容类型
-func (s *ContentTypeService) List(ctx context.Context, siteID uuid.UUID, page, pageSize int) (*model.ContentTypeListResponse, error) {
+// List 列出内容模型
+func (s *SchemaService) List(ctx context.Context, siteID uuid.UUID, page, pageSize int) (*model.ContentSchemaListResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -138,17 +138,17 @@ func (s *ContentTypeService) List(ctx context.Context, siteID uuid.UUID, page, p
 		pageSize = 20
 	}
 
-	cts, total, err := s.ctRepo.ListBySite(ctx, siteID, page, pageSize)
+	cts, total, err := s.csRepo.ListBySite(ctx, siteID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]model.ContentTypeResponse, len(cts))
+	items := make([]model.ContentSchemaResponse, len(cts))
 	for i, ct := range cts {
 		items[i] = ct.ToResponse()
 	}
 
-	return &model.ContentTypeListResponse{
+	return &model.ContentSchemaListResponse{
 		Items:    items,
 		Total:    total,
 		Page:     page,
@@ -156,19 +156,19 @@ func (s *ContentTypeService) List(ctx context.Context, siteID uuid.UUID, page, p
 	}, nil
 }
 
-// Update 更新内容类型
-func (s *ContentTypeService) Update(ctx context.Context, siteID uuid.UUID, id uuid.UUID, req *model.ContentTypeUpdate) (*model.ContentTypeResponse, error) {
-	ct, err := s.ctRepo.GetByID(ctx, id)
+// Update 更新内容模型
+func (s *SchemaService) Update(ctx context.Context, siteID uuid.UUID, id uuid.UUID, req *model.ContentSchemaUpdate) (*model.ContentSchemaResponse, error) {
+	ct, err := s.csRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrContentTypeNotFound
+			return nil, ErrContentSchemaNotFound
 		}
 		return nil, err
 	}
 
 	// 验证站点 ID
 	if ct.SiteID != siteID {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 
 	// 不能修改 kind
@@ -183,7 +183,7 @@ func (s *ContentTypeService) Update(ctx context.Context, siteID uuid.UUID, id uu
 		if !slugRegex.MatchString(slug) {
 			return nil, ErrInvalidSlug
 		}
-		exists, err := s.ctRepo.ExistsSlug(ctx, siteID, slug, &id)
+		exists, err := s.csRepo.ExistsSlug(ctx, siteID, slug, &id)
 		if err != nil {
 			return nil, err
 		}
@@ -222,12 +222,12 @@ func (s *ContentTypeService) Update(ctx context.Context, siteID uuid.UUID, id uu
 		ct.SortOrder = *req.SortOrder
 	}
 
-	if err := s.ctRepo.Update(ctx, ct); err != nil {
+	if err := s.csRepo.Update(ctx, ct); err != nil {
 		return nil, err
 	}
 
 	// 获取完整信息
-	result, err := s.ctRepo.GetByIDWithFields(ctx, id)
+	result, err := s.csRepo.GetByIDWithFields(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -236,30 +236,30 @@ func (s *ContentTypeService) Update(ctx context.Context, siteID uuid.UUID, id uu
 	return &resp, nil
 }
 
-// Delete 删除内容类型
-func (s *ContentTypeService) Delete(ctx context.Context, siteID uuid.UUID, id uuid.UUID) error {
-	ct, err := s.ctRepo.GetByID(ctx, id)
+// Delete 删除内容模型
+func (s *SchemaService) Delete(ctx context.Context, siteID uuid.UUID, id uuid.UUID) error {
+	ct, err := s.csRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrContentTypeNotFound
+			return ErrContentSchemaNotFound
 		}
 		return err
 	}
 
 	// 验证站点 ID
 	if ct.SiteID != siteID {
-		return ErrContentTypeNotFound
+		return ErrContentSchemaNotFound
 	}
 
-	// 删除内容类型（字段会自动级联删除）
-	if err := s.ctRepo.Delete(ctx, id); err != nil {
+	// 删除内容模型（字段会自动级联删除）
+	if err := s.csRepo.Delete(ctx, id); err != nil {
 		return err
 	}
 
 	s.logger.Info().
-		Str("content_type", ct.Name).
+		Str("content_schema", ct.Name).
 		Str("id", id.String()).
-		Msg("content type deleted")
+		Msg("content schema deleted")
 
 	return nil
 }
@@ -267,17 +267,17 @@ func (s *ContentTypeService) Delete(ctx context.Context, siteID uuid.UUID, id uu
 // ============ Field 操作 ============
 
 // CreateField 创建字段
-func (s *ContentTypeService) CreateField(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, req *model.FieldCreate) (*model.FieldResponse, error) {
-	// 验证内容类型存在且属于该站点
-	ct, err := s.ctRepo.GetByID(ctx, contentTypeID)
+func (s *SchemaService) CreateField(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, req *model.FieldCreate) (*model.FieldResponse, error) {
+	// 验证内容模型存在且属于该站点
+	ct, err := s.csRepo.GetByID(ctx, contentTypeID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrContentTypeNotFound
+			return nil, ErrContentSchemaNotFound
 		}
 		return nil, err
 	}
 	if ct.SiteID != siteID {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 
 	// 验证字段名格式（只能字母、数字、下划线）
@@ -304,7 +304,7 @@ func (s *ContentTypeService) CreateField(ctx context.Context, siteID uuid.UUID, 
 
 	field := &model.Field{
 		ID:            uuid.New(),
-		ContentTypeID: contentTypeID,
+		ContentSchemaID: contentTypeID,
 		Name:          name,
 		Label:         strings.TrimSpace(req.Label),
 		Description:   req.Description,
@@ -323,7 +323,7 @@ func (s *ContentTypeService) CreateField(ctx context.Context, siteID uuid.UUID, 
 	s.logger.Info().
 		Str("field", field.Name).
 		Str("type", field.FieldType).
-		Str("content_type", ct.Name).
+		Str("content_schema", ct.Name).
 		Msg("field created")
 
 	resp := field.ToResponse()
@@ -331,20 +331,20 @@ func (s *ContentTypeService) CreateField(ctx context.Context, siteID uuid.UUID, 
 }
 
 // ListFields 列出字段
-func (s *ContentTypeService) ListFields(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID) ([]model.FieldResponse, error) {
-	// 验证内容类型
-	ct, err := s.ctRepo.GetByID(ctx, contentTypeID)
+func (s *SchemaService) ListFields(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID) ([]model.FieldResponse, error) {
+	// 验证内容模型
+	ct, err := s.csRepo.GetByID(ctx, contentTypeID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrContentTypeNotFound
+			return nil, ErrContentSchemaNotFound
 		}
 		return nil, err
 	}
 	if ct.SiteID != siteID {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 
-	fields, err := s.fieldRepo.ListByContentType(ctx, contentTypeID)
+	fields, err := s.fieldRepo.ListByContentSchema(ctx, contentTypeID)
 	if err != nil {
 		return nil, err
 	}
@@ -357,19 +357,19 @@ func (s *ContentTypeService) ListFields(ctx context.Context, siteID uuid.UUID, c
 }
 
 // UpdateField 更新字段
-func (s *ContentTypeService) UpdateField(ctx context.Context, siteID uuid.UUID, fieldID uuid.UUID, req *model.FieldUpdate) (*model.FieldResponse, error) {
+func (s *SchemaService) UpdateField(ctx context.Context, siteID uuid.UUID, fieldID uuid.UUID, req *model.FieldUpdate) (*model.FieldResponse, error) {
 	field, err := s.fieldRepo.GetByID(ctx, fieldID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 验证内容类型
-	ct, err := s.ctRepo.GetByID(ctx, field.ContentTypeID)
+	// 验证内容模型
+	ct, err := s.csRepo.GetByID(ctx, field.ContentSchemaID)
 	if err != nil {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 	if ct.SiteID != siteID {
-		return nil, ErrContentTypeNotFound
+		return nil, ErrContentSchemaNotFound
 	}
 
 	// 检查字段名冲突
@@ -378,7 +378,7 @@ func (s *ContentTypeService) UpdateField(ctx context.Context, siteID uuid.UUID, 
 		if !isValidFieldName(name) {
 			return nil, errors.New("invalid field name format")
 		}
-		exists, err := s.fieldRepo.ExistsName(ctx, field.ContentTypeID, name, &fieldID)
+		exists, err := s.fieldRepo.ExistsName(ctx, field.ContentSchemaID, name, &fieldID)
 		if err != nil {
 			return nil, err
 		}
@@ -423,33 +423,33 @@ func (s *ContentTypeService) UpdateField(ctx context.Context, siteID uuid.UUID, 
 }
 
 // DeleteField 删除字段
-func (s *ContentTypeService) DeleteField(ctx context.Context, siteID uuid.UUID, fieldID uuid.UUID) error {
+func (s *SchemaService) DeleteField(ctx context.Context, siteID uuid.UUID, fieldID uuid.UUID) error {
 	field, err := s.fieldRepo.GetByID(ctx, fieldID)
 	if err != nil {
 		return err
 	}
 
-	// 验证内容类型
-	ct, err := s.ctRepo.GetByID(ctx, field.ContentTypeID)
+	// 验证内容模型
+	ct, err := s.csRepo.GetByID(ctx, field.ContentSchemaID)
 	if err != nil {
-		return ErrContentTypeNotFound
+		return ErrContentSchemaNotFound
 	}
 	if ct.SiteID != siteID {
-		return ErrContentTypeNotFound
+		return ErrContentSchemaNotFound
 	}
 
 	return s.fieldRepo.Delete(ctx, fieldID)
 }
 
 // ReorderFields 重新排序字段
-func (s *ContentTypeService) ReorderFields(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, orders map[uuid.UUID]int) error {
-	// 验证内容类型
-	ct, err := s.ctRepo.GetByID(ctx, contentTypeID)
+func (s *SchemaService) ReorderFields(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, orders map[uuid.UUID]int) error {
+	// 验证内容模型
+	ct, err := s.csRepo.GetByID(ctx, contentTypeID)
 	if err != nil {
-		return ErrContentTypeNotFound
+		return ErrContentSchemaNotFound
 	}
 	if ct.SiteID != siteID {
-		return ErrContentTypeNotFound
+		return ErrContentSchemaNotFound
 	}
 
 	return s.fieldRepo.ReorderFields(ctx, orders)

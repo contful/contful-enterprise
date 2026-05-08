@@ -78,10 +78,15 @@ cp conf/.env.example .env
 docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
 docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
+# 2. 初始化数据库
+psql -h <host> -U <user> -d contful -f sql/init_pg.sql
+
+# 达梦数据库使用 init_dm.sql
+
 # 3. 构建
 ./shell/build.sh
 
-# 3. 启动服务
+# 4. 启动服务
 ./shell/dev.sh start
 
 # 访问

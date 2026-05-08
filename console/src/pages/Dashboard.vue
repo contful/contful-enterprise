@@ -7,7 +7,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/Icon.vue'
-import { getContentTypes, getContentEntries, getAssets, getUsers } from '@/api/api'
+import { getContentSchemas, getContentEntries, getAssets, getUsers } from '@/api/api'
 import { getMySites } from '@/api/site'
 import { apiTokenApi } from '@/api/api-token'
 import { showError } from '@/utils/request'
@@ -17,7 +17,7 @@ const router = useRouter()
 
 const stats = ref({
   sites: 0,
-  contentTypes: 0,
+  schemas: 0,
   entries: 0,
   assets: 0,
   users: 0,
@@ -30,7 +30,7 @@ onMounted(async () => {
   try {
     const [sitesRes, typesRes, entriesRes, assetsRes, usersRes, tokensRes] = await Promise.all([
       getMySites({ page: 1, page_size: 1 }),
-      getContentTypes({ page: 1, page_size: 1 }),
+      getContentSchemas({ page: 1, page_size: 1 }),
       getContentEntries({ page: 1, page_size: 5 }),
       getAssets({ page: 1, page_size: 1 }),
       getUsers({ page: 1, page_size: 1 }),
@@ -39,7 +39,7 @@ onMounted(async () => {
 
     stats.value = {
       sites: sitesRes.data?.total || 0,
-      contentTypes: typesRes.data?.total || 0,
+      schemas: typesRes.data?.total || 0,
       entries: entriesRes.data?.total || 0,
       assets: assetsRes.data?.total || 0,
       users: usersRes.data?.total || 0,
@@ -59,7 +59,7 @@ const quickActions = computed(() => {
   return [
     { icon: 'add', label: t('dashboard.createContent'), path: '/content/entries', color: '#3b82f6' },
     { icon: 'upload', label: t('dashboard.uploadMedia'), path: '/assets', color: '#10b981' },
-    { icon: 'schema', label: t('dashboard.manageTypes'), path: '/content/types', color: '#8b5cf6' },
+    { icon: 'schema', label: t('dashboard.manageTypes'), path: '/content/schemas', color: '#8b5cf6' },
     { icon: 'token', label: t('menu.apiTokens'), path: '/tokens', color: '#f59e0b' },
   ]
 })
@@ -118,15 +118,15 @@ const getStatusLabel = (status: string) => {
         </div>
       </div>
 
-      <div class="stat-card" @click="router.push('/content/types')">
+      <div class="stat-card" @click="router.push('/content/schemas')">
         <div class="stat-icon" style="background: #f3e8ff; color: #8b5cf6;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
           </svg>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ stats.contentTypes }}</div>
-          <div class="stat-label">{{ t('dashboard.contentTypes') }}</div>
+          <div class="stat-value">{{ stats.schemas }}</div>
+          <div class="stat-label">{{ t('dashboard.schemas') }}</div>
         </div>
       </div>
 
@@ -154,7 +154,7 @@ const getStatusLabel = (status: string) => {
         </div>
       </div>
 
-      <div class="stat-card" @click="router.push('/settings')">
+      <div class="stat-card" @click="router.push('/sites')">
         <div class="stat-icon" style="background: #fce7f3; color: #ec4899;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
@@ -181,7 +181,7 @@ const getStatusLabel = (status: string) => {
             <span class="action-icon" :style="{ background: action.color }">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="white">
                 <path v-if="action.icon === 'add'" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-                <Icon v-else-if="action.icon === 'upload'" name="arrow-up" />
+                <Icon v-else-if="action.icon === 'upload'" name="arrow-up" style="color: white" />
                 <path v-else-if="action.icon === 'schema'" d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
                 <path v-else-if="action.icon === 'token'" d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
               </svg>
@@ -200,9 +200,9 @@ const getStatusLabel = (status: string) => {
         <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
         <div v-else-if="recentEntries.length === 0" class="empty-state">
           <p>{{ t('dashboard.noContent') }}</p>
-          <button class="btn btn-primary btn-sm" @click="router.push('/content/entries')">
+          <t-button theme="primary" size="small" @click="router.push('/content/entries')">
             {{ t('dashboard.createFirstContent') }}
-          </button>
+          </t-button>
         </div>
         <table v-else class="table">
           <thead>
@@ -217,11 +217,11 @@ const getStatusLabel = (status: string) => {
             <tr
               v-for="entry in recentEntries"
               :key="entry.id"
-              @click="router.push(`/content/entries?type=${entry.content_type_id}&id=${entry.id}`)"
+              @click="router.push(`/content/entries?type=${entry.schema_id}&id=${entry.id}`)"
               style="cursor: pointer;"
             >
               <td>{{ entry.values?.find(v => v.field?.name === 'title')?.text_value || entry.id.slice(0, 8) }}</td>
-              <td>{{ entry.content_type?.name || entry.content_type_id?.slice(0, 8) || '-' }}</td>
+              <td>{{ entry.content_schema?.name || entry.schema_id?.slice(0, 8) || '-' }}</td>
               <td>
                 <span :class="['badge', getStatusClass(entry.status)]">
                   {{ getStatusLabel(entry.status) }}

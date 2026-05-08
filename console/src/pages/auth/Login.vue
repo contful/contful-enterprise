@@ -1,16 +1,16 @@
 <template>
-  <div class="login-container">
-    <t-card class="login-card">
+  <div class="auth-container">
+    <t-card class="auth-card">
       <template #header>
-        <div class="login-header">
+        <div class="auth-header">
           <img
             :src="logoUrl"
             alt="Contful"
-            class="login-logo"
+            class="auth-logo"
             role="heading"
             aria-level="1"
           />
-          <p class="login-subtitle">{{ t('auth.openSource') }} Headless CMS</p>
+          <p class="auth-subtitle">{{ t('auth.openSource') }} Headless CMS</p>
         </div>
       </template>
 
@@ -63,8 +63,8 @@
       </t-form>
 
       <template #footer>
-        <div class="login-footer">
-          <span class="copyright">© 2026 Contful. Powered by <a href="https://reepu.com" target="_blank" rel="noopener">reepu</a></span>
+        <div class="auth-footer">
+          <span class="auth-copyright">© 2026 Contful. Powered by <a href="https://reepu.com" target="_blank" rel="noopener">reepu</a></span>
         </div>
       </template>
     </t-card>
@@ -128,54 +128,5 @@ const onLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(200,240,255,0.7) 0%, rgba(180,240,200,0.6) 50%, rgba(220,255,210,0.7) 100%);
-  padding: 20px;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 420px;
-}
-
-.login-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 20px 0;
-  width: 100%;
-}
-
-.login-logo {
-  height: 48px;
-  width: auto;
-  object-fit: contain;
-}
-
-.login-subtitle {
-  font-size: 14px;
-  color: var(--td-text-color-secondary);
-  margin: 0;
-}
-
-.login-footer {
-  text-align: center;
-  padding: 16px 0;
-}
-
-.copyright {
-  font-size: 12px;
-  color: var(--td-text-color-secondary);
-}
-
-.copyright a {
-  color: var(--td-brand-color);
-  text-decoration: none;
-}
+/* 仅页面特有样式，通用样式已抽取到 src/styles/auth.css */
 </style>

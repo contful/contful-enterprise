@@ -238,16 +238,14 @@ onMounted(() => {
         <p class="page-subtitle">{{ t('media.subtitle') }}</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" @click="showNewFolderModal = true">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-          </svg>
+        <t-button variant="outline" @click="showNewFolderModal = true">
+          <template #icon><t-icon name="folder-add" /></template>
           {{ t('media.newFolder') }}
-        </button>
-        <button class="btn btn-primary" @click="openUpload">
+        </t-button>
+        <t-button theme="primary" @click="openUpload">
           <Icon name="arrow-up" />
           {{ t('media.upload') }}
-        </button>
+        </t-button>
       </div>
     </div>
 
@@ -303,30 +301,28 @@ onMounted(() => {
             <option value="audio">{{ t('media.audio') }}</option>
             <option value="document">{{ t('media.document') }}</option>
           </select>
-          <button class="btn btn-secondary btn-sm" @click="loadAssets">{{ t('media.searchBtn') }}</button>
+          <t-button variant="outline" size="small" @click="loadAssets">{{ t('media.searchBtn') }}</t-button>
           </div>
           <div class="toolbar-right">
             <span class="selection-info" v-if="selectedAssets.size > 0">
               {{ t('media.selectedFiles', { count: selectedAssets.size }) }}
             </span>
-            <button
-            class="btn btn-secondary btn-sm"
-            :class="{ active: viewMode === 'grid' }"
+            <t-button
+            variant="outline"
+            size="small"
+            :theme="viewMode === 'grid' ? 'primary' : 'default'"
             @click="viewMode = 'grid'"
           >
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-            </svg>
-          </button>
-            <button
-            class="btn btn-secondary btn-sm"
-            :class="{ active: viewMode === 'list' }"
+            <template #icon><t-icon name="layout-grid" /></template>
+          </t-button>
+            <t-button
+            variant="outline"
+            size="small"
+            :theme="viewMode === 'list' ? 'primary' : 'default'"
             @click="viewMode = 'list'"
           >
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
-            </svg>
-          </button>
+            <template #icon><t-icon name="view-list" /></template>
+          </t-button>
           </div>
         </div>
 
@@ -364,9 +360,9 @@ onMounted(() => {
                 </svg>
               </div>
               <div class="asset-overlay">
-                <button class="btn btn-danger btn-sm" @click.stop="confirmDelete(asset)">
+                <t-button theme="danger" size="small" @click.stop="confirmDelete(asset)">
                   {{ t('common.delete') }}
-                </button>
+                </t-button>
               </div>
             </div>
             <div class="asset-info">
@@ -424,7 +420,7 @@ onMounted(() => {
                 <td>{{ formatSize(asset.size) }}</td>
                 <td>{{ new Date(asset.created_time).toLocaleDateString() }}</td>
                 <td>
-                  <button class="btn btn-secondary btn-sm" @click="confirmDelete(asset)">{{ t('common.delete') }}</button>
+                  <t-button variant="outline" size="small" @click="confirmDelete(asset)">{{ t('common.delete') }}</t-button>
                 </td>
               </tr>
             </tbody>
@@ -436,21 +432,23 @@ onMounted(() => {
       <!-- 分页 -->
       <div class="pagination" v-if="total > pageSize">
         <span class="pagination-info">{{ t('media.totalFiles', { total }) }}</span>
-        <button
-          class="btn btn-secondary btn-sm"
+        <t-button
+          variant="outline"
+          size="small"
           :disabled="page === 1"
           @click="page--; loadAssets()"
         >
           {{ t('media.prevPage') }}
-        </button>
+        </t-button>
         <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
-        <button
-          class="btn btn-secondary btn-sm"
+        <t-button
+          variant="outline"
+          size="small"
           :disabled="page >= Math.ceil(total / pageSize)"
           @click="page++; loadAssets()"
         >
           {{ t('media.nextPage') }}
-        </button>
+        </t-button>
       </div>
     </div>
 
@@ -523,8 +521,8 @@ onMounted(() => {
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showNewFolderModal = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" @click="handleCreateFolder">{{ t('common.create') }}</button>
+          <t-button variant="outline" @click="showNewFolderModal = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" @click="handleCreateFolder">{{ t('common.create') }}</t-button>
         </div>
       </div>
     </div>
@@ -539,8 +537,8 @@ onMounted(() => {
           <p>{{ t('media.deleteFileMsg') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-danger" @click="handleDelete">{{ t('common.delete') }}</button>
+          <t-button variant="outline" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="danger" @click="handleDelete">{{ t('common.delete') }}</t-button>
         </div>
       </div>
     </div>
@@ -643,12 +641,6 @@ onMounted(() => {
   font-size: 13px;
   color: var(--color-primary);
   margin-right: 12px;
-}
-
-.btn.active {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
 }
 
 .drop-zone {

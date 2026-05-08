@@ -9,9 +9,9 @@ import { useI18n } from 'vue-i18n'
 import { useSiteStore } from '@/stores/site'
 import { showError, showSuccess } from '@/utils/request'
 import {
-  getContentTypes,
-  type ContentType,
-} from '@/api/content-type'
+  getContentSchemas,
+  type ContentSchema,
+} from '@/api/schema'
 import {
   getEntries,
   getEntry,
@@ -37,9 +37,9 @@ const siteStore = useSiteStore()
 // 状态
 const loading = ref(false)
 const submitting = ref(false)
-const contentTypes = ref<ContentType[]>([])
+const contentSchemas = ref<ContentSchema[]>([])
 const entries = ref<Entry[]>([])
-const selectedType = ref<ContentType | null>(null)
+const selectedType = ref<ContentSchema | null>(null)
 const showModal = ref(false)
 const showDeleteConfirm = ref(false)
 const editingEntry = ref<Entry | null>(null)
@@ -85,15 +85,15 @@ const selectedCount = computed(() => selectedIds.value.size)
 const hasSelected = computed(() => selectedIds.value.size > 0)
 
 // 加载内容类型
-const loadContentTypes = async () => {
+const loadContentSchemas = async () => {
   // 检查是否有当前站点
   if (!siteStore.currentSiteId) {
-    contentTypes.value = []
+    contentSchemas.value = []
     return
   }
   try {
-    const res = await getContentTypes({ page: 1, page_size: 100 })
-    contentTypes.value = res.data?.items || []
+    const res = await getContentSchemas({ page: 1, page_size: 100 })
+    contentSchemas.value = res.data?.items || []
     // 加载每个内容类型的条目数
     await loadEntryCounts()
   } catch (error) {
@@ -104,10 +104,10 @@ const loadContentTypes = async () => {
 // 加载每个内容类型的条目数
 const loadEntryCounts = async () => {
   const counts: Record<string, number> = {}
-  for (const type of contentTypes.value) {
+  for (const type of contentSchemas.value) {
     try {
       // 获取该类型的所有条目（只取 total，不取 items）
-      const res = await getEntries({ content_type_id: type.id, page: 1, page_size: 1 })
+      const res = await getEntries({ schema_id: type.id, page: 1, page_size: 1 })
       counts[type.id] = res.data?.total || 0
     } catch {
       counts[type.id] = 0
@@ -125,7 +125,7 @@ const loadEntries = async () => {
     const params: any = {
       page: page.value,
       page_size: pageSize.value,
-      content_type_id: selectedType.value.id,
+      schema_id: selectedType.value.id,
       sort_field: sortField.value,
       sort_order: sortOrder.value,
     }
@@ -146,7 +146,7 @@ const loadEntries = async () => {
 }
 
 // 选择内容类型
-const selectType = (type: ContentType) => {
+const selectType = (type: ContentSchema) => {
   selectedType.value = type
   page.value = 1
   loadEntries()
@@ -187,7 +187,7 @@ const handleSubmit = async () => {
       await updateEntry(editingEntry.value.id, { values: formData.value } as any)
       showSuccess(t('content.updateSuccess'))
     } else {
-      await createEntry({ content_type_id: selectedType.value.id, values: formData.value } as any)
+      await createEntry({ schema_id: selectedType.value.id, values: formData.value } as any)
       showSuccess(t('content.createSuccess'))
     }
     closeModal()
@@ -384,13 +384,13 @@ const formatDate = (date: string) => {
 // 监听内容类型变化
 watch(() => route.query.type, (newType) => {
   if (newType) {
-    const type = contentTypes.value.find(t => t.id === newType)
+    const type = contentSchemas.value.find(t => t.id === newType)
     if (type) selectType(type)
   }
 }, { immediate: true })
 
 onMounted(() => {
-  loadContentTypes()
+  loadContentSchemas()
 })
 </script>
 
@@ -412,7 +412,7 @@ onMounted(() => {
           </svg>
           <h3>{{ t('site.noSiteTitle') || '暂无站点' }}</h3>
           <p>{{ t('site.noSiteHint') || '请先创建一个站点，才能管理内容' }}</p>
-          <button class="btn btn-primary" @click="router.push('/')">{{ t('site.goToCreate') || '返回首页创建站点' }}</button>
+          <t-button theme="primary" @click="router.push('/')">{{ t('site.goToCreate') || '返回首页创建站点' }}</t-button>
         </div>
       </div>
 
@@ -421,11 +421,11 @@ onMounted(() => {
       <!-- 侧边：内容类型列表 -->
       <aside class="type-sidebar">
         <div class="sidebar-header">
-          <h3>{{ t('contentTypes.title') }}</h3>
+          <h3>{{ t('contentSchemas.title') }}</h3>
         </div>
         <div class="type-list">
           <button
-            v-for="type in contentTypes"
+            v-for="type in contentSchemas"
             :key="type.id"
             class="type-item"
             :class="{ active: selectedType?.id === type.id }"
@@ -439,8 +439,8 @@ onMounted(() => {
             <span class="type-name">{{ type.name }}</span>
             <span class="type-count">{{ entryCounts[type.id] || 0 }}</span>
           </button>
-          <div v-if="contentTypes.length === 0" class="empty-tip">
-            {{ t('content.noContentTypes') }}，<router-link to="/content/types">{{ t('content.goToCreate') }}</router-link>
+          <div v-if="contentSchemas.length === 0" class="empty-tip">
+            {{ t('content.noContentSchemas') }}，<router-link to="/content/schemas">{{ t('content.goToCreate') }}</router-link>
           </div>
         </div>
       </aside>
@@ -484,41 +484,40 @@ onMounted(() => {
                 <option value="published_time">{{ t('content.sortByPublished') }}</option>
                 <option value="sort_weight">{{ t('content.sortByWeight') }}</option>
               </select>
-              <button class="btn btn-secondary btn-sm" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; loadEntries()">
+              <t-button variant="outline" size="small" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; loadEntries()">
                 {{ sortOrder === 'asc' ? t('content.asc') : t('content.desc') }}
-              </button>
+              </t-button>
             </div>
 
             <div class="toolbar-right">
               <!-- 清除缓存 -->
-              <button
-                class="btn btn-secondary btn-sm"
+              <t-button
+                variant="outline"
+                size="small"
                 :disabled="cacheLoading"
                 :title="t('content.clearCacheHint')"
+                :loading="cacheLoading"
                 @click="handleClearCache"
               >
-                <span v-if="cacheLoading" class="btn-spinner"></span>
-                {{ cacheLoading ? t('common.processing') : t('content.clearCache') }}
-              </button>
+                {{ t('content.clearCache') }}
+              </t-button>
               <!-- 批量操作 -->
               <div v-if="hasSelected" class="batch-actions">
                 <span class="selected-count">{{ t('common.selectedCount', { count: selectedCount }) }}</span>
-                <button class="btn btn-secondary btn-sm" :disabled="batchLoading" @click="confirmBatchAction('publish')">
+                <t-button variant="outline" size="small" :disabled="batchLoading" @click="confirmBatchAction('publish')">
                   {{ t('content.batchPublish') }}
-                </button>
-                <button class="btn btn-secondary btn-sm" :disabled="batchLoading" @click="confirmBatchAction('unpublish')">
+                </t-button>
+                <t-button variant="outline" size="small" :disabled="batchLoading" @click="confirmBatchAction('unpublish')">
                   {{ t('content.batchUnpublish') }}
-                </button>
-                <button class="btn btn-danger btn-sm" :disabled="batchLoading" @click="confirmBatchAction('delete')">
+                </t-button>
+                <t-button theme="danger" variant="outline" size="small" :disabled="batchLoading" @click="confirmBatchAction('delete')">
                   {{ t('content.batchDelete') }}
-                </button>
+                </t-button>
               </div>
-              <button class="btn btn-primary" @click="openCreateModal">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-                </svg>
+              <t-button theme="primary" @click="openCreateModal">
+                <template #icon><t-icon name="add" /></template>
                 {{ t('content.createEntry') }}
-              </button>
+              </t-button>
             </div>
           </div>
 
@@ -560,9 +559,9 @@ onMounted(() => {
                     </div>
                     <p class="empty-title">{{ t('content.noContent') }}</p>
                     <p class="empty-desc">{{ t('content.createFirst') }}</p>
-                    <button class="btn btn-primary" @click="openCreateModal">
+                    <t-button theme="primary" @click="openCreateModal">
                       {{ t('content.createFirstEntry') }}
-                    </button>
+                    </t-button>
                   </td>
                 </tr>
                 <tr v-else v-for="entry in entries" :key="entry.id" :class="{ selected: selectedIds.has(entry.id) }">
@@ -584,17 +583,17 @@ onMounted(() => {
                   </td>
                   <td>{{ formatDate(entry.updated_time) }}</td>
                   <td class="actions-cell">
-                    <button class="btn btn-secondary btn-sm" :disabled="publishLoading === entry.id" @click="openEditModal(entry)">{{ t('common.edit') }}</button>
-                    <button
-                      class="btn btn-sm"
-                      :class="entry.status === 'published' ? 'btn-secondary' : 'btn-primary'"
+                    <t-button variant="outline" size="small" :disabled="publishLoading === entry.id" @click="openEditModal(entry)">{{ t('common.edit') }}</t-button>
+                    <t-button
+                      :theme="entry.status === 'published' ? 'default' : 'primary'"
+                      size="small"
                       :disabled="publishLoading === entry.id"
+                      :loading="publishLoading === entry.id"
                       @click="handlePublish(entry)"
                     >
-                      <span v-if="publishLoading === entry.id" class="btn-spinner"></span>
                       {{ entry.status === 'published' ? t('content.unpublish') : t('content.publish') }}
-                    </button>
-                    <button class="btn btn-danger btn-sm" :disabled="deleteLoading" @click="confirmDelete(entry)">{{ t('common.delete') }}</button>
+                    </t-button>
+                    <t-button theme="danger" variant="outline" size="small" :disabled="deleteLoading" @click="confirmDelete(entry)">{{ t('common.delete') }}</t-button>
                   </td>
                 </tr>
               </tbody>
@@ -613,21 +612,23 @@ onMounted(() => {
               </select>
             </div>
             <div class="pagination-right">
-              <button
-                class="btn btn-secondary btn-sm"
+              <t-button
+                variant="outline"
+                size="small"
                 :disabled="page === 1"
                 @click="page--; loadEntries()"
               >
                 {{ t('common.prevPage') }}
-              </button>
+              </t-button>
               <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) || 1 }}</span>
-              <button
-                class="btn btn-secondary btn-sm"
+              <t-button
+                variant="outline"
+                size="small"
                 :disabled="page >= Math.ceil(total / pageSize)"
                 @click="page++; loadEntries()"
               >
                 {{ t('common.nextPage') }}
-              </button>
+              </t-button>
             </div>
           </div>
         </template>
@@ -715,11 +716,10 @@ onMounted(() => {
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal" :disabled="submitting">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="submitting" @click="handleSubmit">
-            <span v-if="submitting" class="btn-spinner"></span>
+          <t-button variant="outline" @click="closeModal" :disabled="submitting">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" :disabled="submitting" :loading="submitting" @click="handleSubmit">
             {{ submitting ? t('common.processing') : (editingEntry ? t('common.save') : t('common.create')) }}
-          </button>
+          </t-button>
         </div>
       </div>
     </div>
@@ -734,11 +734,10 @@ onMounted(() => {
           <p>{{ t('content.confirmDelete') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false" :disabled="deleteLoading">{{ t('common.cancel') }}</button>
-          <button class="btn btn-danger" :disabled="deleteLoading" @click="handleDelete">
-            <span v-if="deleteLoading" class="btn-spinner"></span>
+          <t-button variant="outline" @click="showDeleteConfirm = false" :disabled="deleteLoading">{{ t('common.cancel') }}</t-button>
+          <t-button theme="danger" :disabled="deleteLoading" :loading="deleteLoading" @click="handleDelete">
             {{ deleteLoading ? t('common.deleting') : t('common.delete') }}
-          </button>
+          </t-button>
         </div>
       </div>
     </div>
@@ -753,16 +752,15 @@ onMounted(() => {
           <p>{{ getBatchConfirmText() }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showBatchConfirm = false" :disabled="batchLoading">{{ t('common.cancel') }}</button>
-          <button
-            class="btn"
-            :class="batchAction === 'delete' ? 'btn-danger' : 'btn-primary'"
+          <t-button variant="outline" @click="showBatchConfirm = false" :disabled="batchLoading">{{ t('common.cancel') }}</t-button>
+          <t-button
+            :theme="batchAction === 'delete' ? 'danger' : 'primary'"
             :disabled="batchLoading"
+            :loading="batchLoading"
             @click="executeBatchAction"
           >
-            <span v-if="batchLoading" class="btn-spinner"></span>
             {{ batchLoading ? t('common.processing') : batchActionLabel }}
-          </button>
+          </t-button>
         </div>
       </div>
     </div>

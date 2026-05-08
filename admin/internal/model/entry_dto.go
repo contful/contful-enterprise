@@ -12,7 +12,7 @@ import (
 
 // EntryCreate 创建条目请求
 type EntryCreate struct {
-	ContentTypeID  uuid.UUID              `json:"content_type_id" binding:"required"`
+	ContentSchemaID  uuid.UUID              `json:"schema_id" binding:"required"`
 	Locale         string                 `json:"locale" binding:"omitempty,max=20"`
 	Values         map[string]interface{} `json:"values"`
 	SEOTitle       string                 `json:"seo_title" binding:"omitempty,max=255"`
@@ -41,7 +41,7 @@ type EntryPublish struct {
 // EntryResponse 条目响应
 type EntryResponse struct {
 	ID             uuid.UUID                `json:"id"`
-	ContentTypeID  uuid.UUID                `json:"content_type_id"`
+	ContentSchemaID  uuid.UUID                `json:"schema_id"`
 	SiteID         uuid.UUID                `json:"site_id"`
 	Locale         string                   `json:"locale"`
 	Status         EntryStatus              `json:"status"`
@@ -58,7 +58,7 @@ type EntryResponse struct {
 	CreatedTime    time.Time                `json:"created_time"`
 	UpdatedTime    time.Time                `json:"updated_time"`
 	Values         map[string]interface{}   `json:"values,omitempty"`
-	ContentType    *ContentTypeResponse     `json:"content_type,omitempty"`
+	ContentSchema    *ContentSchemaResponse     `json:"content_schema,omitempty"`
 }
 
 // EntryVersionInfo 版本信息
@@ -79,7 +79,7 @@ type EntryListResponse struct {
 
 // EntryListFilter 条目列表过滤条件
 type EntryListFilter struct {
-	ContentTypeID *uuid.UUID   `json:"content_type_id"`
+	ContentSchemaID *uuid.UUID   `json:"schema_id"`
 	Status        *EntryStatus `json:"status"`
 	Locale        *string      `json:"locale"`
 	Keyword       *string      `json:"keyword"`         // 搜索标题或内容
@@ -91,7 +91,7 @@ type EntryListFilter struct {
 func (e *Entry) ToResponse() EntryResponse {
 	resp := EntryResponse{
 		ID:             e.ID,
-		ContentTypeID:  e.ContentTypeID,
+		ContentSchemaID:  e.ContentSchemaID,
 		SiteID:         e.SiteID,
 		Locale:         e.Locale,
 		Status:         e.Status,
@@ -153,10 +153,10 @@ func (e *Entry) ToResponseWithType() EntryResponseWithType {
 	resp := EntryResponseWithType{
 		EntryResponse: e.ToResponse(),
 	}
-	// 填充 ContentType 信息
-	if e.ContentType != nil {
-		ct := e.ContentType.ToResponse()
-		resp.ContentType = &ct
+	// 填充 ContentSchema 信息
+	if e.ContentSchema != nil {
+		ct := e.ContentSchema.ToResponse()
+		resp.ContentSchema = &ct
 	}
 	return resp
 }
@@ -164,14 +164,14 @@ func (e *Entry) ToResponseWithType() EntryResponseWithType {
 // EntryResponseWithType 带内容类型信息的响应
 type EntryResponseWithType struct {
 	EntryResponse
-	ContentType *ContentTypeResponse `json:"content_type,omitempty"`
+	ContentSchema *ContentSchemaResponse `json:"content_schema,omitempty"`
 }
 
-// ToResponseWithTypeWithContentType 转换为带内容类型的响应（手动传入 ContentType）
-func (e *Entry) ToResponseWithTypeWithContentType(ct *ContentType) EntryResponseWithType {
+// ToResponseWithTypeWithContentSchema 转换为带内容类型的响应（手动传入 ContentSchema）
+func (e *Entry) ToResponseWithTypeWithContentSchema(ct *ContentSchema) EntryResponseWithType {
 	return EntryResponseWithType{
 		EntryResponse: e.ToResponse(),
-		ContentType:   func() *ContentTypeResponse { r := ct.ToResponse(); return &r }(),
+		ContentSchema:   func() *ContentSchemaResponse { r := ct.ToResponse(); return &r }(),
 	}
 }
 

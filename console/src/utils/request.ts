@@ -109,6 +109,7 @@ async function getValidAccessToken(): Promise<string | null> {
   }
 
   // 无 Token 或已过期，触发刷新
+  // 注意：必须先设置 isRefreshing=true，再设置 refreshPromise，防止竞态
   if (!isRefreshing) {
     isRefreshing = true
     try {

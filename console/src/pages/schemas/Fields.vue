@@ -23,18 +23,18 @@ import {
   Dialog,
 } from 'tdesign-vue-next'
 import {
-  getContentType,
+  getContentSchema,
   getFields,
   createField,
   updateField,
   deleteField,
   reorderFields,
-  type ContentType,
+  type ContentSchema,
   type Field,
   type FieldCreate,
   type FieldUpdate,
   FIELD_TYPES,
-} from '@/api/content-type'
+} from '@/api/schema'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -42,7 +42,7 @@ const router = useRouter()
 
 // 状态
 const loading = ref(false)
-const contentType = ref<ContentType | null>(null)
+const schema = ref<ContentSchema | null>(null)
 const fields = ref<Field[]>([])
 const total = ref(0)
 
@@ -90,20 +90,20 @@ const generateLabel = () => {
 }
 
 // 加载内容类型详情
-const loadContentType = async () => {
+const loadContentSchema = async (silent = false) => {
   try {
     const id = route.params.id as string
-    const res = await getContentType(id)
+    const res = await getContentSchema(id)
     if (res.code === 200) {
-      contentType.value = res.data
+      schema.value = res.data
     }
   } catch {
-    MessagePlugin.error(t('contentTypes.loadFailed'))
+    if (!silent) MessagePlugin.error(t('contentSchemas.loadFailed'))
   }
 }
 
 // 加载字段列表
-const loadFields = async () => {
+const loadFields = async (silent = false) => {
   loading.value = true
   try {
     const id = route.params.id as string
@@ -113,7 +113,7 @@ const loadFields = async () => {
       total.value = res.data?.items?.length || 0
     }
   } catch {
-    MessagePlugin.error(t('fields.loadFailed'))
+    if (!silent) MessagePlugin.error(t('fields.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -187,18 +187,18 @@ const getFieldTypeLabel = (type: string) => {
 
 // 返回列表
 const goBack = () => {
-  router.push('/content/types')
+  router.push('/content/schemas')
 }
 
 onMounted(() => {
-  loadContentType()
-  loadFields()
+  loadContentSchema(true)
+  loadFields(true)
 })
 
 // 监听路由变化
 watch(() => route.params.id, () => {
   if (route.params.id) {
-    loadContentType()
+    loadContentSchema()
     loadFields()
   }
 })
@@ -214,10 +214,10 @@ watch(() => route.params.id, () => {
           {{ t('common.back') }}
         </Button>
         <div class="title-info">
-          <h1>{{ contentType?.name || t('common.loading') }}</h1>
+          <h1>{{ schema?.name || t('common.loading') }}</h1>
           <p class="subtitle">
-            <span class="slug">{{ contentType?.slug }}</span>
-            <span class="kind">{{ contentType?.kind === 'collection' ? t('contentTypes.kindCollection') : t('contentTypes.kindSingle') }}</span>
+            <span class="slug">{{ schema?.slug }}</span>
+            <span class="kind">{{ schema?.kind === 'collection' ? t('contentSchemas.kindCollection') : t('contentSchemas.kindSingle') }}</span>
           </p>
         </div>
       </div>

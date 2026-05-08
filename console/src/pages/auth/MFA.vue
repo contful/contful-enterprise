@@ -1,9 +1,9 @@
 <template>
-  <div class="login-container">
-    <t-card class="login-card">
+  <div class="auth-container">
+    <t-card class="auth-card">
       <template #header>
-        <div class="login-header">
-          <img :src="logoUrl" alt="Contful" class="login-logo" />
+        <div class="auth-header">
+          <img :src="logoUrl" alt="Contful" class="auth-logo" />
           <h2 class="mfa-title">
             {{ showRecovery ? t('auth.mfaRecoveryTitle') : t('auth.mfaVerifyTitle') }}
           </h2>
@@ -15,20 +15,20 @@
 
       <!-- TOTP 验证 -->
       <div v-if="!showRecovery" class="mfa-form">
-        <t-input
-          v-model="totpCode"
-          :placeholder="t('auth.mfaCodePlaceholder')"
-          size="large"
-          maxlength="6"
-          :autofocus="true"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          @keyup.enter="onVerify"
-        >
-          <template #prefix-icon>
-            <t-icon name="lock-on" />
-          </template>
-        </t-input>
+        <div @keyup.enter.native="onVerify">
+          <t-input
+            v-model="totpCode"
+            :placeholder="t('auth.mfaCodePlaceholder')"
+            size="large"
+            maxlength="6"
+            :autofocus="true"
+            inputmode="numeric"
+          >
+            <template #prefix-icon>
+              <t-icon name="lock-on" />
+            </template>
+          </t-input>
+        </div>
 
         <t-button
           theme="primary"
@@ -50,17 +50,18 @@
 
       <!-- Recovery Code 恢复 -->
       <div v-else class="mfa-form">
-        <t-input
-          v-model="recoveryCode"
-          :placeholder="t('auth.mfaRecoveryPlaceholder')"
-          size="large"
-          :autofocus="true"
-          @keyup.enter="onRecover"
-        >
-          <template #prefix-icon>
-            <t-icon name="key" />
-          </template>
-        </t-input>
+        <div @keyup.enter.native="onRecover">
+          <t-input
+            v-model="recoveryCode"
+            :placeholder="t('auth.mfaRecoveryPlaceholder')"
+            size="large"
+            :autofocus="true"
+          >
+            <template #prefix-icon>
+              <t-icon name="key" />
+            </template>
+          </t-input>
+        </div>
 
         <t-button
           theme="primary"
@@ -80,8 +81,8 @@
       </div>
 
       <template #footer>
-        <div class="login-footer">
-          <span class="copyright">© 2026 Contful. Powered by <a href="https://reepu.com" target="_blank" rel="noopener">reepu</a></span>
+        <div class="auth-footer">
+          <span class="auth-copyright">© 2026 Contful. Powered by <a href="https://reepu.com" target="_blank" rel="noopener">reepu</a></span>
         </div>
       </template>
     </t-card>
@@ -207,33 +208,7 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(200,240,255,0.7) 0%, rgba(180,240,200,0.6) 50%, rgba(220,255,210,0.7) 100%);
-  padding: 20px;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 420px;
-}
-
-.login-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0 8px;
-}
-
-.login-logo {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
-}
+/* 仅 MFA 页面特有样式，通用样式已抽取到 src/styles/auth.css */
 
 .mfa-title {
   font-size: 20px;
@@ -268,20 +243,5 @@ const goBack = () => {
 
 .mfa-links a:hover {
   text-decoration: underline;
-}
-
-.login-footer {
-  text-align: center;
-  padding: 16px 0;
-}
-
-.copyright {
-  font-size: 12px;
-  color: var(--td-text-color-secondary);
-}
-
-.copyright a {
-  color: var(--td-brand-color);
-  text-decoration: none;
 }
 </style>

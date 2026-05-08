@@ -15,11 +15,11 @@ import (
 
 // Config Open API 配置
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	Storage  StorageConfig  `mapstructure:"storage"`
-	Logging  LoggingConfig  `mapstructure:"logging"`
+	Server    ServerConfig     `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	Storage   StorageConfig   `mapstructure:"storage"`
+	Logging   LoggingConfig   `mapstructure:"logging"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 }
 
@@ -320,8 +320,6 @@ func readEnvOverrides(v *viper.Viper) {
 		"REDIS_PASSWORD":        "redis.password",
 		"REDIS_DB":              "redis.db",
 		"SERVER_PORT":           "server.port",
-		"SECRET":                "security.secret",
-		"SECRET_ALGORITHM":     "security.algorithm",
 		"STORAGE_DRIVER":        "storage.driver",
 		"STORAGE_UPLOAD_DIR":    "storage.upload_dir",
 		"STORAGE_MAX_UPLOAD_SIZE_MB": "storage.max_upload_size_mb",

@@ -6,12 +6,10 @@
         <h1 class="page-title">{{ t('users.title') }}</h1>
         <p class="page-subtitle">{{ t('users.subtitle') }}</p>
       </div>
-      <button class="btn btn-primary" @click="openCreateDialog">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-        </svg>
+      <t-button theme="primary" @click="openCreateDialog">
+        <template #icon><t-icon name="add" /></template>
         {{ t('users.addUser') }}
-      </button>
+      </t-button>
     </div>
 
     <!-- 用户列表 -->
@@ -55,13 +53,14 @@
             <td>{{ formatDate(row.created_time) }}</td>
             <td>
               <div style="display:flex;gap:8px;">
-                <button class="btn btn-secondary btn-sm" @click="openEditDialog(row)">{{ t('common.edit') }}</button>
-                <button
-                  class="btn btn-sm"
-                  :class="row.is_super_admin ? 'btn-secondary' : 'btn-danger'"
+                <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
+                <t-button
+                  theme="danger"
+                  variant="outline"
+                  size="small"
                   :disabled="row.is_super_admin"
                   @click="handleDelete(row)"
-                >{{ t('common.delete') }}</button>
+                >{{ t('common.delete') }}</t-button>
               </div>
             </td>
           </tr>
@@ -113,10 +112,10 @@
           <p v-if="createError" class="form-error">{{ createError }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="createVisible = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="creating" @click="handleCreate">
+          <t-button variant="outline" @click="createVisible = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" :disabled="creating" :loading="creating" @click="handleCreate">
             {{ creating ? t('common.creating') : t('common.create') }}
-          </button>
+          </t-button>
         </div>
       </div>
     </div>
@@ -151,10 +150,10 @@
           <p v-if="editError" class="form-error">{{ editError }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="editVisible = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="updating" @click="handleUpdate">
+          <t-button variant="outline" @click="editVisible = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" :disabled="updating" :loading="updating" @click="handleUpdate">
             {{ updating ? t('common.saving') : t('common.save') }}
-          </button>
+          </t-button>
         </div>
       </div>
     </div>

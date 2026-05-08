@@ -906,15 +906,18 @@ CREATE TABLE IF NOT EXISTS site_configs (
     updated_by      CHAR(36)
 );
 
-COMMENT ON TABLE site_configs IS '站点配置中心';
-COMMENT ON COLUMN site_configs.id IS '主键 UUID';
-COMMENT ON COLUMN site_configs.site_id IS '所属站点';
-COMMENT ON COLUMN site_configs.config_key IS '配置键（snake_case）';
-COMMENT ON COLUMN site_configs.config_value IS '配置值（加密字段存密文）';
-COMMENT ON COLUMN site_configs.config_type IS '值类型：string/number/boolean/json/encrypted';
-COMMENT ON COLUMN site_configs.config_group IS '分组：default/storage/mail/oauth/payment/feature/integrity';
+COMMENT ON TABLE site_configs IS '站点配置（key-value 存储）';
+COMMENT ON COLUMN site_configs.id IS '配置 ID';
+COMMENT ON COLUMN site_configs.site_id IS '所属站点 ID';
+COMMENT ON COLUMN site_configs.config_key IS '配置键（如 site.about）';
+COMMENT ON COLUMN site_configs.config_value IS '配置值（JSON 字符串）';
+COMMENT ON COLUMN site_configs.config_type IS '值类型: string | number | boolean | json';
+COMMENT ON COLUMN site_configs.config_group IS '分组: default（单页面内容）| integrity（签名配置）';
 COMMENT ON COLUMN site_configs.is_encrypted IS '是否加密存储';
-COMMENT ON COLUMN site_configs.is_readonly IS '只读标记（系统配置）';
+COMMENT ON COLUMN site_configs.is_readonly IS '是否只读（系统配置禁止修改）';
+COMMENT ON COLUMN site_configs.created_time IS '创建时间';
+COMMENT ON COLUMN site_configs.updated_time IS '更新时间';
+COMMENT ON COLUMN site_configs.updated_by IS '最后更新人';
 
 CREATE UNIQUE INDEX uk_dm_site_config_key ON site_configs(site_id, config_key);
 CREATE INDEX idx_dm_site_configs_site_id ON site_configs(site_id);

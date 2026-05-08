@@ -6,73 +6,121 @@
       <p class="page-subtitle">{{ t('settings.profileSubtitle') }}</p>
     </div>
 
-    <!-- 头像区域 -->
-    <div class="card avatar-section">
-      <div class="avatar-container">
-        <t-avatar size="80px" :image="userStore.user?.avatar_url || undefined">
-          <template #icon>
-            <t-icon name="user" />
-          </template>
-        </t-avatar>
-        <div class="avatar-info">
-          <h3 class="user-name">{{ userStore.user?.nickname || userStore.user?.email || 'User' }}</h3>
-          <p class="user-email">{{ userStore.user?.email }}</p>
-          <div class="avatar-actions">
-            <t-upload
-              :action="uploadUrl"
-              :headers="uploadHeaders"
-              :format-response="formatUploadResponse"
-              accept="image/*"
-              theme="file-input"
-              @success="onAvatarUploadSuccess"
-              @fail="onAvatarUploadFail"
-            >
-              <t-button size="small" variant="outline">
-                <template #icon><t-icon name="upload" /></template>
-                {{ t('settings.profileChangeAvatar') }}
-              </t-button>
-            </t-upload>
+    <!-- 第一行：两列布局 -->
+    <div class="profile-grid">
+      <!-- 左列：账号信息 -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ t('settings.profileAccountInfo') }}</h3>
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">{{ t('settings.profileUserId') }}</span>
+            <span class="info-value">{{ userStore.user?.id || '-' }}</span>
+            <t-button size="small" variant="text" @click="copyUserId">
+              <t-icon name="file-copy" />
+            </t-button>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ t('settings.profileStatus') }}</span>
+            <t-tag v-if="userStore.user?.status === 'active'" theme="success" variant="light">
+              {{ t('settings.profileStatusActive') }}
+            </t-tag>
+            <t-tag v-else theme="warning" variant="light">
+              {{ userStore.user?.status }}
+            </t-tag>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ t('settings.profileRole') }}</span>
+            <t-tag v-if="userStore.user?.is_super_admin" theme="danger" variant="light">
+              {{ t('settings.profileSuperAdmin') }}
+            </t-tag>
+            <t-tag v-else theme="primary" variant="light">
+              {{ t('settings.profileUser') }}
+            </t-tag>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ t('settings.profileMFA') }}</span>
+            <t-tag v-if="userStore.user?.mfa_enabled" theme="success" variant="light">
+              {{ t('settings.mfaEnabled') }}
+            </t-tag>
+            <t-tag v-else theme="default" variant="light">
+              {{ t('settings.mfaDisabled') }}
+            </t-tag>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ t('settings.profileCreatedAt') }}</span>
+            <span class="info-value">{{ formatTime(userStore.user?.created_time) }}</span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 基本信息 -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{{ t('settings.profileBasicInfo') }}</h3>
+      <!-- 右列：基本信息 + 头像 -->
+      <div class="right-column">
+        <!-- 头像 + 基本信息 -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{{ t('settings.profileBasicInfo') }}</h3>
+          </div>
+          <div class="basic-info-layout">
+            <!-- 头像 -->
+            <div class="avatar-col">
+              <div class="avatar-wrapper" @click="triggerAvatarUpload">
+                <t-avatar size="80px" :image="userStore.user?.avatar_url || undefined">
+                  <template #icon>
+                    <t-icon name="user" />
+                  </template>
+                </t-avatar>
+                <div class="avatar-overlay">
+                  <t-icon name="upload" />
+                </div>
+              </div>
+              <input
+                ref="avatarInputRef"
+                type="file"
+                accept="image/*"
+                style="display:none"
+                @change="onAvatarFileChange"
+              />
+              <span class="avatar-hint">{{ t('settings.profileClickToChange') }}</span>
+            </div>
+            <!-- 基本信息表单 -->
+            <div class="basic-form-col">
+              <t-form
+                :data="profileForm"
+                :rules="profileRules"
+                @submit="onUpdateProfile"
+                label-align="right"
+                :label-width="100"
+              >
+                <t-form-item :label="t('settings.profileNickname')" name="nickname">
+                  <t-input
+                    v-model="profileForm.nickname"
+                    :placeholder="t('settings.profileNicknamePlaceholder')"
+                    clearable
+                  />
+                </t-form-item>
+                <t-form-item :label="t('settings.profileEmail')" name="email">
+                  <t-input
+                    v-model="profileForm.email"
+                    :placeholder="t('auth.emailPlaceholder')"
+                    clearable
+                    :disabled="true"
+                  />
+                  <template #tips>
+                    <span class="form-tip">{{ t('settings.profileEmailImmutable') }}</span>
+                  </template>
+                </t-form-item>
+                <t-form-item>
+                  <t-button theme="primary" type="submit" :loading="profileLoading">
+                    {{ t('common.save') }}
+                  </t-button>
+                </t-form-item>
+              </t-form>
+            </div>
+          </div>
+        </div>
       </div>
-      <t-form
-        :data="profileForm"
-        :rules="profileRules"
-        @submit="onUpdateProfile"
-        label-align="right"
-        :label-width="120"
-      >
-        <t-form-item :label="t('settings.profileNickname')" name="nickname">
-          <t-input
-            v-model="profileForm.nickname"
-            :placeholder="t('settings.profileNicknamePlaceholder')"
-            clearable
-          />
-        </t-form-item>
-        <t-form-item :label="t('settings.profileEmail')" name="email">
-          <t-input
-            v-model="profileForm.email"
-            :placeholder="t('auth.emailPlaceholder')"
-            clearable
-            :disabled="true"
-          />
-          <template #tips>
-            <span class="form-tip">{{ t('settings.profileEmailImmutable') }}</span>
-          </template>
-        </t-form-item>
-        <t-form-item>
-          <t-button theme="primary" type="submit" :loading="profileLoading">
-            {{ t('common.save') }}
-          </t-button>
-        </t-form-item>
-      </t-form>
     </div>
 
     <!-- 修改密码 -->
@@ -270,53 +318,6 @@
         style="margin-top: 12px;"
       />
     </t-dialog>
-
-    <!-- 账号信息 -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{{ t('settings.profileAccountInfo') }}</h3>
-      </div>
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="info-label">{{ t('settings.profileUserId') }}</span>
-          <span class="info-value">{{ userStore.user?.id || '-' }}</span>
-          <t-button size="small" variant="text" @click="copyUserId">
-            <t-icon name="file-copy" />
-          </t-button>
-        </div>
-        <div class="info-item">
-          <span class="info-label">{{ t('settings.profileStatus') }}</span>
-          <t-tag v-if="userStore.user?.status === 'active'" theme="success" variant="light">
-            {{ t('settings.profileStatusActive') }}
-          </t-tag>
-          <t-tag v-else theme="warning" variant="light">
-            {{ userStore.user?.status }}
-          </t-tag>
-        </div>
-        <div class="info-item">
-          <span class="info-label">{{ t('settings.profileRole') }}</span>
-          <t-tag v-if="userStore.user?.is_super_admin" theme="danger" variant="light">
-            {{ t('settings.profileSuperAdmin') }}
-          </t-tag>
-          <t-tag v-else theme="primary" variant="light">
-            {{ t('settings.profileUser') }}
-          </t-tag>
-        </div>
-        <div class="info-item">
-          <span class="info-label">{{ t('settings.profileMFA') }}</span>
-          <t-tag v-if="userStore.user?.mfa_enabled" theme="success" variant="light">
-            {{ t('settings.mfaEnabled') }}
-          </t-tag>
-          <t-tag v-else theme="default" variant="light">
-            {{ t('settings.mfaDisabled') }}
-          </t-tag>
-        </div>
-        <div class="info-item">
-          <span class="info-label">{{ t('settings.profileCreatedAt') }}</span>
-          <span class="info-value">{{ formatTime(userStore.user?.created_time) }}</span>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -335,9 +336,51 @@ const { t } = useI18n()
 const userStore = useUserStore()
 
 // 头像上传
-const uploadUrl = import.meta.env.VITE_API_URL + '/admin/api/v1/users/me/avatar'
-const uploadHeaders = {
-  Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+const uploadUrl = '/admin/api/v1/users/me/avatar'
+
+// 头像上传 refs
+const avatarInputRef = ref<HTMLInputElement | null>(null)
+
+const triggerAvatarUpload = () => {
+  avatarInputRef.value?.click()
+}
+
+const onAvatarFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const xhr = new XMLHttpRequest()
+  xhr.open('POST', uploadUrl, true)
+  xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('access_token')}`)
+
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      const res = JSON.parse(xhr.responseText)
+      if (res.code === 200) {
+        MessagePlugin.success(t('settings.profileAvatarSuccess'))
+        if (userStore.user && res.data?.avatar_url) {
+          userStore.user.avatar_url = res.data.avatar_url
+        }
+      } else {
+        MessagePlugin.error(res.message || t('settings.profileAvatarFailed'))
+      }
+    } else {
+      MessagePlugin.error(t('settings.profileAvatarFailed'))
+    }
+    // 清空 input，允许重复选择同一文件
+    target.value = ''
+  }
+
+  xhr.onerror = () => {
+    MessagePlugin.error(t('settings.profileAvatarFailed'))
+    target.value = ''
+  }
+
+  xhr.send(formData)
 }
 
 // 基本信息
@@ -588,30 +631,6 @@ const onResetPasswordForm = () => {
   passwordForm.confirm_password = ''
 }
 
-// 头像上传成功
-const formatUploadResponse = (res: any) => {
-  return {
-    ...res,
-    response: res,
-  }
-}
-
-const onAvatarUploadSuccess = (context: any) => {
-  const res = context.response?.response
-  if (res?.code === 200) {
-    MessagePlugin.success(t('settings.profileAvatarSuccess'))
-    if (userStore.user && res.data?.avatar_url) {
-      userStore.user.avatar_url = res.data.avatar_url
-    }
-  } else {
-    MessagePlugin.error(res?.message || t('settings.profileAvatarFailed'))
-  }
-}
-
-const onAvatarUploadFail = (context: any) => {
-  MessagePlugin.error(context?.response?.message || t('settings.profileAvatarFailed'))
-}
-
 // 复制 User ID
 const copyUserId = () => {
   if (userStore.user?.id) {
@@ -646,6 +665,90 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* 第一行两列布局 */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.right-column > .card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.right-column > .card > .card-header {
+  flex-shrink: 0;
+}
+
+.right-column > .card > .basic-info-layout {
+  flex: 1;
+}
+
+/* 头像 + 基本信息 横向布局 */
+.basic-info-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.avatar-wrapper :deep(.t-avatar) {
+  transition: opacity 0.2s;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: white;
+  font-size: 20px;
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-hint {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--td-text-color-secondary);
+}
+
+.basic-form-col {
+  flex: 1;
+  min-width: 0;
 }
 
 .page-header {
@@ -687,39 +790,6 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--td-text-color-secondary);
   margin: 0;
-}
-
-/* 头像区域 */
-.avatar-section {
-  padding: 32px;
-}
-
-.avatar-container {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.avatar-info {
-  flex: 1;
-}
-
-.user-name {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--td-text-color-primary);
-  margin: 0 0 4px;
-}
-
-.user-email {
-  font-size: 14px;
-  color: var(--td-text-color-secondary);
-  margin: 0 0 12px;
-}
-
-.avatar-actions {
-  display: flex;
-  gap: 8px;
 }
 
 /* 表单提示 */

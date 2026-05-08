@@ -25,7 +25,7 @@ DROP TRIGGER IF EXISTS update_channels_updated_time ON channels;
 DROP TRIGGER IF EXISTS update_locales_updated_time ON locales;
 DROP TRIGGER IF EXISTS update_site_roles_updated_time ON site_roles;
 DROP TRIGGER IF EXISTS update_site_users_updated_time ON site_users;
-DROP TRIGGER IF EXISTS update_content_types_updated_time ON content_types;
+DROP TRIGGER IF EXISTS update_schemas_updated_time ON schemas;
 DROP TRIGGER IF EXISTS update_fields_updated_time ON fields;
 DROP TRIGGER IF EXISTS update_entries_updated_time ON entries;
 DROP TRIGGER IF EXISTS update_entry_values_updated_time ON entry_values;
@@ -44,7 +44,7 @@ DROP TABLE IF EXISTS entry_versions CASCADE;
 DROP TABLE IF EXISTS entry_values CASCADE;
 DROP TABLE IF EXISTS entries CASCADE;
 DROP TABLE IF EXISTS fields CASCADE;
-DROP TABLE IF EXISTS content_types CASCADE;
+DROP TABLE IF EXISTS schemas CASCADE;
 DROP TABLE IF EXISTS site_users CASCADE;
 DROP TABLE IF EXISTS site_roles CASCADE;
 DROP TABLE IF EXISTS locales CASCADE;
@@ -59,7 +59,7 @@ DROP FUNCTION IF EXISTS update_updated_time_column();
 -- 删除枚举类型
 DROP TYPE IF EXISTS user_status;
 DROP TYPE IF EXISTS entry_status;
-DROP TYPE IF EXISTS content_type_kind;
+DROP TYPE IF EXISTS schema_kind;
 DROP TYPE IF EXISTS field_type;
 DROP TYPE IF EXISTS asset_type;
 DROP TYPE IF EXISTS asset_status;
@@ -74,7 +74,7 @@ DROP TYPE IF EXISTS audit_type;
 
 CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended');
 CREATE TYPE entry_status AS ENUM ('draft', 'published', 'archived');
-CREATE TYPE content_type_kind AS ENUM ('collection', 'single');
+CREATE TYPE schema_kind AS ENUM ('collection', 'single');
 CREATE TYPE field_type AS ENUM (
     'text', 'rich_text', 'number', 'boolean', 'date', 'datetime',
     'email', 'url', 'json', 'media', 'relation', 'enum', 'password'
@@ -85,7 +85,7 @@ CREATE TYPE audit_type AS ENUM ('auth', 'content', 'media', 'settings', 'user', 
 
 COMMENT ON TYPE user_status IS '用户账户状态：active=正常、inactive=未激活、suspended=已停用';
 COMMENT ON TYPE entry_status IS '内容条目状态：draft=草稿、published=已发布、archived=已归档';
-COMMENT ON TYPE content_type_kind IS '内容模型类型：collection=集合（如文章列表）、single=单页（如关于页面）';
+COMMENT ON TYPE schema_kind IS '内容模型类型：collection=集合（如文章列表）、single=单页（如关于页面）';
 COMMENT ON TYPE field_type IS '字段类型：text=文本、rich_text=富文本、number=数字、boolean=布尔、date=日期、datetime=时间、email=邮箱、url=链接、json=JSON、media=媒体、relation=关联、enum=枚举、password=密码';
 COMMENT ON TYPE token_status IS 'API Token 状态：active=有效、expired=已过期、revoked=已撤销';
 COMMENT ON TYPE audit_level IS '审计日志级别：debug=调试、info=信息、warn=警告、error=错误';
@@ -393,13 +393,13 @@ CREATE INDEX idx_site_users_role ON site_users(role_id);
 -- 3. 内容模型层
 -- =============================================================================
 
-CREATE TABLE content_types (
+CREATE TABLE schemas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
     name VARCHAR(200) NOT NULL,
     slug VARCHAR(100) NOT NULL,
     description TEXT,
-    kind content_type_kind NOT NULL DEFAULT 'collection',
+    kind schema_kind NOT NULL DEFAULT 'collection',
     display_config JSONB NOT NULL DEFAULT '{}',
     api_config JSONB NOT NULL DEFAULT '{"publicRead":false,"publicWrite":false}',
     preview_config JSONB NOT NULL DEFAULT '{}',
@@ -413,33 +413,33 @@ CREATE TABLE content_types (
     deleted_time TIMESTAMPTZ,
     UNIQUE(site_id, slug)
 );
-COMMENT ON TABLE content_types IS '内容模型表：定义内容的结构（类似 WordPress 的自定义内容类型）';
-COMMENT ON COLUMN content_types.id IS '内容模型唯一标识符';
-COMMENT ON COLUMN content_types.site_id IS '所属站点';
-COMMENT ON COLUMN content_types.name IS '模型名称';
-COMMENT ON COLUMN content_types.slug IS '模型别名（API 中使用）';
-COMMENT ON COLUMN content_types.description IS '模型描述';
-COMMENT ON COLUMN content_types.kind IS '类型：collection=集合、single=单页';
-COMMENT ON COLUMN content_types.display_config IS '前端显示配置 JSON';
-COMMENT ON COLUMN content_types.api_config IS 'API 配置 JSON：publicRead/publicWrite 等';
-COMMENT ON COLUMN content_types.preview_config IS '预览配置 JSON';
-COMMENT ON COLUMN content_types.versioning_enabled IS '是否启用版本历史';
-COMMENT ON COLUMN content_types.draft_autosave_interval IS '草稿自动保存间隔（秒）';
-COMMENT ON COLUMN content_types.is_active IS '是否启用';
-COMMENT ON COLUMN content_types.sort_order IS '排序权重';
-COMMENT ON COLUMN content_types.created_by IS '创建者';
-COMMENT ON COLUMN content_types.created_time IS '创建时间';
-COMMENT ON COLUMN content_types.updated_time IS '更新时间';
-COMMENT ON COLUMN content_types.deleted_time IS '软删除时间';
+COMMENT ON TABLE schemas IS '内容模型表：定义内容的结构（类似 WordPress 的自定义内容类型）';
+COMMENT ON COLUMN schemas.id IS '内容模型唯一标识符';
+COMMENT ON COLUMN schemas.site_id IS '所属站点';
+COMMENT ON COLUMN schemas.name IS '模型名称';
+COMMENT ON COLUMN schemas.slug IS '模型别名（API 中使用）';
+COMMENT ON COLUMN schemas.description IS '模型描述';
+COMMENT ON COLUMN schemas.kind IS '类型：collection=集合、single=单页';
+COMMENT ON COLUMN schemas.display_config IS '前端显示配置 JSON';
+COMMENT ON COLUMN schemas.api_config IS 'API 配置 JSON：publicRead/publicWrite 等';
+COMMENT ON COLUMN schemas.preview_config IS '预览配置 JSON';
+COMMENT ON COLUMN schemas.versioning_enabled IS '是否启用版本历史';
+COMMENT ON COLUMN schemas.draft_autosave_interval IS '草稿自动保存间隔（秒）';
+COMMENT ON COLUMN schemas.is_active IS '是否启用';
+COMMENT ON COLUMN schemas.sort_order IS '排序权重';
+COMMENT ON COLUMN schemas.created_by IS '创建者';
+COMMENT ON COLUMN schemas.created_time IS '创建时间';
+COMMENT ON COLUMN schemas.updated_time IS '更新时间';
+COMMENT ON COLUMN schemas.deleted_time IS '软删除时间';
 
-CREATE INDEX idx_content_types_site ON content_types(site_id);
-CREATE INDEX idx_content_types_slug ON content_types(slug);
-CREATE INDEX idx_content_types_active ON content_types(is_active);
-CREATE INDEX idx_content_types_kind ON content_types(kind);
+CREATE INDEX idx_schemas_site ON schemas(site_id);
+CREATE INDEX idx_schemas_slug ON schemas(slug);
+CREATE INDEX idx_schemas_active ON schemas(is_active);
+CREATE INDEX idx_schemas_kind ON schemas(kind);
 
 CREATE TABLE fields (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    content_type_id UUID NOT NULL REFERENCES content_types(id) ON DELETE CASCADE,
+    schema_id UUID NOT NULL REFERENCES schemas(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     label VARCHAR(200) NOT NULL,
     description TEXT,
@@ -453,11 +453,11 @@ CREATE TABLE fields (
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_time TIMESTAMPTZ,
-    UNIQUE(content_type_id, name)
+    UNIQUE(schema_id, name)
 );
 COMMENT ON TABLE fields IS '字段表：内容模型的字段定义';
 COMMENT ON COLUMN fields.id IS '字段唯一标识符';
-COMMENT ON COLUMN fields.content_type_id IS '所属内容模型';
+COMMENT ON COLUMN fields.schema_id IS '所属内容模型';
 COMMENT ON COLUMN fields.name IS '字段名（代码中使用）';
 COMMENT ON COLUMN fields.label IS '字段显示标签';
 COMMENT ON COLUMN fields.description IS '字段描述';
@@ -472,8 +472,8 @@ COMMENT ON COLUMN fields.created_time IS '创建时间';
 COMMENT ON COLUMN fields.updated_time IS '更新时间';
 COMMENT ON COLUMN fields.deleted_time IS '软删除时间';
 
-CREATE INDEX idx_fields_content_type ON fields(content_type_id);
-CREATE INDEX idx_fields_sort ON fields(content_type_id, sort_order);
+CREATE INDEX idx_fields_content_schema ON fields(schema_id);
+CREATE INDEX idx_fields_sort ON fields(schema_id, sort_order);
 
 -- =============================================================================
 -- 4. 内容条目层
@@ -481,7 +481,7 @@ CREATE INDEX idx_fields_sort ON fields(content_type_id, sort_order);
 
 CREATE TABLE entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    content_type_id UUID NOT NULL REFERENCES content_types(id) ON DELETE CASCADE,
+    schema_id UUID NOT NULL REFERENCES schemas(id) ON DELETE CASCADE,
     site_id UUID NOT NULL REFERENCES sites(id),
     locale VARCHAR(20) NOT NULL DEFAULT 'zh-CN',
     status entry_status NOT NULL DEFAULT 'draft',
@@ -498,11 +498,11 @@ CREATE TABLE entries (
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_time TIMESTAMPTZ,
-    UNIQUE(content_type_id, locale, id)
+    UNIQUE(schema_id, locale, id)
 );
 COMMENT ON TABLE entries IS '内容条目表：实际的内容数据';
 COMMENT ON COLUMN entries.id IS '条目唯一标识符';
-COMMENT ON COLUMN entries.content_type_id IS '所属内容模型';
+COMMENT ON COLUMN entries.schema_id IS '所属内容模型';
 COMMENT ON COLUMN entries.site_id IS '所属站点';
 COMMENT ON COLUMN entries.locale IS '语言/地区代码';
 COMMENT ON COLUMN entries.status IS '状态：draft/published/archived';
@@ -520,12 +520,12 @@ COMMENT ON COLUMN entries.created_time IS '创建时间';
 COMMENT ON COLUMN entries.updated_time IS '更新时间';
 COMMENT ON COLUMN entries.deleted_time IS '软删除时间';
 
-CREATE INDEX idx_entries_type ON entries(content_type_id);
+CREATE INDEX idx_entries_type ON entries(schema_id);
 CREATE INDEX idx_entries_site ON entries(site_id);
 CREATE INDEX idx_entries_locale ON entries(locale);
 CREATE INDEX idx_entries_status ON entries(status);
 CREATE INDEX idx_entries_published ON entries(published_time DESC) WHERE status = 'published';
-CREATE INDEX idx_entries_sort ON entries(content_type_id, sort_weight);
+CREATE INDEX idx_entries_sort ON entries(schema_id, sort_weight);
 CREATE INDEX idx_entries_created_by ON entries(created_by);
 CREATE INDEX idx_entries_deleted ON entries(deleted_time) WHERE deleted_time IS NULL;
 
@@ -773,7 +773,7 @@ CREATE TABLE webhooks (
     name VARCHAR(200) NOT NULL,
     description TEXT,
     trigger_events JSONB NOT NULL DEFAULT '[]',
-    content_type_ids JSONB,
+    schema_ids JSONB,
     url TEXT NOT NULL,
     http_method VARCHAR(10) NOT NULL DEFAULT 'POST',
     headers JSONB NOT NULL DEFAULT '{}',
@@ -795,7 +795,7 @@ COMMENT ON COLUMN webhooks.site_id IS '所属站点';
 COMMENT ON COLUMN webhooks.name IS 'Webhook 名称';
 COMMENT ON COLUMN webhooks.description IS '描述';
 COMMENT ON COLUMN webhooks.trigger_events IS '触发事件列表 JSON';
-COMMENT ON COLUMN webhooks.content_type_ids IS '关联的内容模型 ID 列表';
+COMMENT ON COLUMN webhooks.schema_ids IS '关联的内容模型 ID 列表';
 COMMENT ON COLUMN webhooks.url IS '回调 URL';
 COMMENT ON COLUMN webhooks.http_method IS 'HTTP 方法';
 COMMENT ON COLUMN webhooks.headers IS '自定义请求头 JSON';
@@ -848,7 +848,7 @@ CREATE INDEX idx_webhook_deliveries_created ON webhook_deliveries(created_time D
 -- 性能优化索引
 -- =============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_entries_list ON entries(content_type_id, locale, status, published_time DESC);
+CREATE INDEX IF NOT EXISTS idx_entries_list ON entries(schema_id, locale, status, published_time DESC);
 CREATE INDEX IF NOT EXISTS idx_entries_site_locale ON entries(site_id, locale, status);
 CREATE INDEX IF NOT EXISTS idx_assets_site_type ON assets(site_id, type);
 CREATE INDEX IF NOT EXISTS idx_assets_site_created ON assets(site_id, created_time DESC);
@@ -898,7 +898,7 @@ CREATE TRIGGER update_site_roles_updated_time BEFORE UPDATE ON site_roles
     FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
 CREATE TRIGGER update_site_users_updated_time BEFORE UPDATE ON site_users
     FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
-CREATE TRIGGER update_content_types_updated_time BEFORE UPDATE ON content_types
+CREATE TRIGGER update_schemas_updated_time BEFORE UPDATE ON schemas
     FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
 CREATE TRIGGER update_fields_updated_time BEFORE UPDATE ON fields
     FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
@@ -924,8 +924,8 @@ CREATE TABLE IF NOT EXISTS site_configs (
     site_id         UUID         NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
     config_key      VARCHAR(128) NOT NULL,
     config_value    TEXT,
-    config_type     VARCHAR(32)  NOT NULL DEFAULT 'string',   -- string | number | boolean | json | encrypted
-    config_group    VARCHAR(64)  NOT NULL DEFAULT 'default', -- default | storage | mail | oauth | payment | feature | integrity
+    config_type     VARCHAR(32)  NOT NULL DEFAULT 'string',
+    config_group    VARCHAR(64)  NOT NULL DEFAULT 'default',
     is_encrypted    BOOLEAN      NOT NULL DEFAULT FALSE,
     is_readonly     BOOLEAN      NOT NULL DEFAULT FALSE,
     description     VARCHAR(255),
@@ -934,6 +934,20 @@ CREATE TABLE IF NOT EXISTS site_configs (
     updated_by      UUID         REFERENCES system_users(id),
     CONSTRAINT uk_site_config_key UNIQUE (site_id, config_key)
 );
+
+COMMENT ON TABLE site_configs IS '站点配置（key-value 存储）';
+COMMENT ON COLUMN site_configs.id IS '配置 ID';
+COMMENT ON COLUMN site_configs.site_id IS '所属站点 ID';
+COMMENT ON COLUMN site_configs.config_key IS '配置键（如 site.about）';
+COMMENT ON COLUMN site_configs.config_value IS '配置值（JSON 字符串）';
+COMMENT ON COLUMN site_configs.config_type IS '值类型: string | number | boolean | json';
+COMMENT ON COLUMN site_configs.config_group IS '分组: default（单页面内容）| integrity（签名配置）';
+COMMENT ON COLUMN site_configs.is_encrypted IS '是否加密存储';
+COMMENT ON COLUMN site_configs.is_readonly IS '是否只读（系统配置禁止修改）';
+COMMENT ON COLUMN site_configs.description IS '配置说明';
+COMMENT ON COLUMN site_configs.created_time IS '创建时间';
+COMMENT ON COLUMN site_configs.updated_time IS '更新时间';
+COMMENT ON COLUMN site_configs.updated_by IS '最后更新人';
 
 CREATE INDEX idx_site_configs_site_id ON site_configs(site_id);
 CREATE INDEX idx_site_configs_group ON site_configs(site_id, config_group);
@@ -962,9 +976,9 @@ COMMENT ON COLUMN assets.data_signature IS '媒体资源元信息完整性签名
 ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS data_signature JSONB NOT NULL DEFAULT '{}';
 COMMENT ON COLUMN audit_logs.data_signature IS '审计日志完整性签名，防篡改';
 
--- content_types 表新增签名开关
-ALTER TABLE content_types ADD COLUMN IF NOT EXISTS signature_enabled BOOLEAN NOT NULL DEFAULT FALSE;
-COMMENT ON COLUMN content_types.signature_enabled IS '是否启用数据签名（该内容类型下的条目自动签名）';
+-- schemas 表新增签名开关
+ALTER TABLE schemas ADD COLUMN IF NOT EXISTS signature_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN schemas.signature_enabled IS '是否启用数据签名（该内容类型下的条目自动签名）';
 
 -- 禁止更新 audit_logs（防篡改：允许 INSERT/SOFT DELETE，禁止 UPDATE）
 CREATE OR REPLACE FUNCTION prevent_audit_log_update()

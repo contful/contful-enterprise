@@ -13,7 +13,7 @@ export interface APIEndpoint {
 }
 
 export interface EndpointPermission {
-  content_types?: string[]
+  schemas?: string[]
   endpoints?: APIEndpoint[]
 }
 
@@ -193,7 +193,7 @@ export const createApiToken = (data: {
     name: data.name,
     description: data.description,
     expires_time: data.expires_in_days ? new Date(Date.now() + data.expires_in_days * 24 * 60 * 60 * 1000).toISOString() : undefined,
-    permissions: data.permissions ? { content_types: data.permissions } : undefined,
+    permissions: data.permissions ? { schemas: data.permissions } : undefined,
     rate_limits: data.rate_limit ? { requests_per_minute: Math.floor(data.rate_limit / 60), requests_per_day: data.rate_limit } : undefined,
   })
 }
@@ -207,7 +207,7 @@ export const updateApiToken = (id: string, data: {
   return apiTokenApi.update(id, {
     name: data.name,
     description: data.description,
-    permissions: data.permissions ? { content_types: data.permissions } : undefined,
+    permissions: data.permissions ? { schemas: data.permissions } : undefined,
     rate_limits: data.rate_limit ? { requests_per_minute: Math.floor(data.rate_limit / 60), requests_per_day: data.rate_limit } : undefined,
   })
 }

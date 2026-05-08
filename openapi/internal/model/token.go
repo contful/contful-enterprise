@@ -18,7 +18,7 @@ type TokenContext struct {
 
 // TokenPermission Token 权限范围
 type TokenPermission struct {
-	ContentTypes []string `json:"content_types"` // 允许的内容类型 slug，* 表示全部
+	ContentSchemas []string `json:"schemas"` // 允许的内容类型 slug，* 表示全部
 	AllowRead    bool     `json:"allow_read"`    // 允许读取
 	AllowWrite   bool     `json:"allow_write"`   // 允许写入
 }

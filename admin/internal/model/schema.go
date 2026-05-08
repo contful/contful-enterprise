@@ -8,22 +8,22 @@ import (
 	"github.com/google/uuid"
 )
 
-// ContentTypeKind 内容类型类型
-type ContentTypeKind string
+// ContentSchemaKind 内容模型类型
+type ContentSchemaKind string
 
 const (
-	ContentTypeKindCollection ContentTypeKind = "collection" // 集合类型（多条目）
-	ContentTypeKindSingle    ContentTypeKind = "single"      // 单条类型
+	ContentSchemaKindCollection ContentSchemaKind = "collection" // 集合类型（多条目）
+	ContentSchemaKindSingle    ContentSchemaKind = "single"      // 单条类型
 )
 
-// ContentType 内容类型
-type ContentType struct {
+// ContentSchema 内容模型
+type ContentSchema struct {
 	ID                   uuid.UUID        `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	SiteID               uuid.UUID        `json:"site_id" gorm:"type:uuid;not null;index"`
 	Name                 string           `json:"name" gorm:"size:200;not null"`
 	Slug                 string           `json:"slug" gorm:"size:100;not null;index"`
 	Description          string           `json:"description" gorm:"type:text"`
-	Kind                 ContentTypeKind  `json:"kind" gorm:"type:content_type_kind;not null;default:'collection'"`
+	Kind                 ContentSchemaKind  `json:"kind" gorm:"type:schema_kind;not null;default:'collection'"`
 	DisplayConfig        JSONB            `json:"display_config" gorm:"type:jsonb;default:'{}'"`
 	APISConfig           JSONB            `json:"api_config" gorm:"column:api_config;type:jsonb;default:'{\"publicRead\":false,\"publicWrite\":false}'"`
 	PreviewConfig        JSONB            `json:"preview_config" gorm:"type:jsonb;default:'{}'"`
@@ -38,18 +38,18 @@ type ContentType struct {
 	DeletedTime            *time.Time       `json:"deleted_time" gorm:"index"`
 
 	// 关联
-	Fields []Field `json:"fields,omitempty" gorm:"foreignKey:ContentTypeID;references:ID"`
+	Fields []Field `json:"fields,omitempty" gorm:"foreignKey:schema_id;references:ID"`
 }
 
 // TableName 表名
-func (ContentType) TableName() string {
-	return "content_types"
+func (ContentSchema) TableName() string {
+	return "schemas"
 }
 
 // Field 字段定义
 type Field struct {
 	ID                  uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	ContentTypeID       uuid.UUID  `json:"content_type_id" gorm:"type:uuid;not null;index"`
+	ContentSchemaID       uuid.UUID  `json:"schema_id" gorm:"column:schema_id;type:uuid;not null;index"`
 	Name                string     `json:"name" gorm:"size:100;not null"`
 	Label               string     `json:"label" gorm:"size:200;not null"`
 	Description         string     `json:"description" gorm:"type:text"`
@@ -82,7 +82,7 @@ var FieldTypes = []string{
 	"url",       // URL
 	"json",      // JSON
 	"media",     // 媒体（图片/文件）
-	"relation",  // 关联（指向其他内容类型）
+	"relation",  // 关联（指向其他内容模型）
 	"enum",      // 枚举
 	"password",  // 密码
 }

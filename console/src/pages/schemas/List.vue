@@ -8,14 +8,14 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'
 import {
-  getContentTypes,
-  createContentType,
-  updateContentType,
-  deleteContentType,
-  type ContentType,
-  type ContentTypeCreate,
-  type ContentTypeUpdate,
-} from '@/api/content-type'
+  getContentSchemas,
+  createContentSchema,
+  updateContentSchema,
+  deleteContentSchema,
+  type ContentSchema,
+  type ContentSchemaCreate,
+  type ContentSchemaUpdate,
+} from '@/api/schema'
 import { showError, showSuccess, getFriendlyError } from '@/utils/request'
 
 const { t } = useI18n()
@@ -23,19 +23,19 @@ const router = useRouter()
 
 // 状态
 const loading = ref(false)
-const dataList = ref<ContentType[]>([])
+const dataList = ref<ContentSchema[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
 
 // 创建/编辑对话框
 const dialogVisible = ref(false)
-const dialogTitle = computed(() => isEditing.value ? t('contentTypes.formTitleEdit') : t('contentTypes.formTitleCreate'))
+const dialogTitle = computed(() => isEditing.value ? t('contentSchemas.formTitleEdit') : t('contentSchemas.formTitleCreate'))
 const isEditing = ref(false)
 const editingId = ref('')
 const submitting = ref(false)
 
-const formData = ref<ContentTypeCreate>({
+const formData = ref<ContentSchemaCreate>({
   name: '',
   slug: '',
   description: '',
@@ -59,7 +59,7 @@ const generateSlug = () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getContentTypes({ page: currentPage.value, page_size: pageSize.value })
+    const res = await getContentSchemas({ page: currentPage.value, page_size: pageSize.value })
     dataList.value = res.data?.items || []
     total.value = res.data?.total || 0
   } catch (e) {
@@ -90,7 +90,7 @@ const openCreateDialog = () => {
 }
 
 // 打开编辑对话框
-const openEditDialog = (row: ContentType) => {
+const openEditDialog = (row: ContentSchema) => {
   isEditing.value = true
   formError.value = ''
   editingId.value = row.id
@@ -107,11 +107,11 @@ const openEditDialog = (row: ContentType) => {
 // 提交表单
 const submitForm = async () => {
   if (!formData.value.name) {
-    formError.value = t('contentTypes.namePlaceholder')
+    formError.value = t('contentSchemas.namePlaceholder')
     return
   }
   if (!formData.value.slug) {
-    formError.value = t('contentTypes.slugPlaceholder')
+    formError.value = t('contentSchemas.slugPlaceholder')
     return
   }
   formError.value = ''
@@ -119,11 +119,11 @@ const submitForm = async () => {
 
   try {
     if (isEditing.value) {
-      await updateContentType(editingId.value, formData.value as ContentTypeUpdate)
-      showSuccess(t('contentTypes.updateSuccess'))
+      await updateContentSchema(editingId.value, formData.value as ContentSchemaUpdate)
+      showSuccess(t('contentSchemas.updateSuccess'))
     } else {
-      await createContentType(formData.value)
-      showSuccess(t('contentTypes.createSuccess'))
+      await createContentSchema(formData.value)
+      showSuccess(t('contentSchemas.createSuccess'))
     }
     dialogVisible.value = false
     loadData()
@@ -135,16 +135,16 @@ const submitForm = async () => {
 }
 
 // 删除内容类型
-const handleDelete = async (row: ContentType) => {
+const handleDelete = async (row: ContentSchema) => {
   const confirmDialog = DialogPlugin.confirm({
-    header: t('contentTypes.deleteConfirm'),
-    body: t('contentTypes.deleteConfirmMsg'),
+    header: t('contentSchemas.deleteConfirm'),
+    body: t('contentSchemas.deleteConfirmMsg'),
     confirmBtn: { content: t('common.confirm'), theme: 'danger' },
     cancelBtn: t('common.cancel'),
     onConfirm: async () => {
       try {
-        await deleteContentType(row.id)
-        showSuccess(t('contentTypes.deleteSuccess'))
+        await deleteContentSchema(row.id)
+        showSuccess(t('contentSchemas.deleteSuccess'))
         loadData()
       } catch (e) {
         showError(e)
@@ -157,8 +157,8 @@ const handleDelete = async (row: ContentType) => {
 }
 
 // 跳转到字段管理
-const goToFields = (row: ContentType) => {
-  router.push(`/content/types/${row.id}/fields`)
+const goToFields = (row: ContentSchema) => {
+  router.push(`/content/schemas/${row.id}/fields`)
 }
 
 // 格式化时间
@@ -168,7 +168,7 @@ const formatDate = (date: string) => {
 
 // 格式化 kind
 const formatKind = (kind: string) => {
-  return kind === 'collection' ? t('contentTypes.kindCollection') : t('contentTypes.kindSingle')
+  return kind === 'collection' ? t('contentSchemas.kindCollection') : t('contentSchemas.kindSingle')
 }
 
 // 格式化状态
@@ -177,8 +177,8 @@ const formatStatus = (isActive: boolean) => {
 }
 
 const kindOptions = [
-  { value: 'collection', label: computed(() => t('contentTypes.kindCollection')) },
-  { value: 'single', label: computed(() => t('contentTypes.kindSingle')) },
+  { value: 'collection', label: computed(() => t('contentSchemas.kindCollection')) },
+  { value: 'single', label: computed(() => t('contentSchemas.kindSingle')) },
 ]
 
 onMounted(() => {
@@ -187,21 +187,22 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="content-types-page">
+  <div class="schemas-page">
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="title-section">
-        <h1>{{ t('contentTypes.title') }}</h1>
-        <p class="subtitle">{{ t('contentTypes.subtitle') }}</p>
+        <h1>{{ t('contentSchemas.title') }}</h1>
+        <p class="subtitle">{{ t('contentSchemas.subtitle') }}</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" @click="loadData">{{ t('common.refresh') }}</button>
-        <button class="btn btn-primary" @click="openCreateDialog">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-          </svg>
-          {{ t('contentTypes.createTypeBtn') }}
-        </button>
+        <t-button variant="outline" @click="loadData">
+          <template #icon><t-icon name="refresh" /></template>
+          {{ t('common.refresh') }}
+        </t-button>
+        <t-button theme="primary" @click="openCreateDialog">
+          <template #icon><t-icon name="add" /></template>
+          {{ t('contentSchemas.createTypeBtn') }}
+        </t-button>
       </div>
     </div>
 
@@ -210,10 +211,10 @@ onMounted(() => {
       <table class="table">
         <thead>
           <tr>
-            <th>{{ t('contentTypes.tableName') }}</th>
-            <th style="width: 100px;">{{ t('contentTypes.tableType') }}</th>
-            <th style="width: 100px;">{{ t('contentTypes.tableStatus') }}</th>
-            <th style="width: 100px;">{{ t('contentTypes.tableVersioning') }}</th>
+            <th>{{ t('contentSchemas.tableName') }}</th>
+            <th style="width: 100px;">{{ t('contentSchemas.tableType') }}</th>
+            <th style="width: 100px;">{{ t('contentSchemas.tableStatus') }}</th>
+            <th style="width: 100px;">{{ t('contentSchemas.tableVersioning') }}</th>
             <th>{{ t('common.description') }}</th>
             <th style="width: 180px;">{{ t('common.updatedAt') }}</th>
             <th style="width: 180px;">{{ t('common.actions') }}</th>
@@ -226,8 +227,8 @@ onMounted(() => {
           <tr v-else-if="dataList.length === 0">
             <td colspan="7" class="empty-state">
               <div class="empty-content">
-                <h3>{{ t('contentTypes.noTypes') }}</h3>
-                <p>{{ t('contentTypes.noTypesHint') }}</p>
+                <h3>{{ t('contentSchemas.noTypes') }}</h3>
+                <p>{{ t('contentSchemas.noTypesHint') }}</p>
               </div>
             </td>
           </tr>
@@ -260,21 +261,15 @@ onMounted(() => {
             <td class="time">{{ formatDate(row.updated_time) }}</td>
             <td>
               <div class="action-btns">
-                <button class="btn btn-secondary btn-sm" @click="goToFields(row)" :title="t('contentTypes.manageFields')">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"/>
-                  </svg>
-                </button>
-                <button class="btn btn-secondary btn-sm" @click="openEditDialog(row)" :title="t('common.edit')">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                  </svg>
-                </button>
-                <button class="btn btn-danger btn-sm" @click="handleDelete(row)" :title="t('common.delete')">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
-                  </svg>
-                </button>
+                <t-button variant="outline" size="small" @click="goToFields(row)" :title="t('contentSchemas.manageFields')">
+                  <template #icon><t-icon name="setting" /></template>
+                </t-button>
+                <t-button variant="outline" size="small" @click="openEditDialog(row)" :title="t('common.edit')">
+                  <template #icon><t-icon name="edit" /></template>
+                </t-button>
+                <t-button theme="danger" variant="outline" size="small" @click="handleDelete(row)" :title="t('common.delete')">
+                  <template #icon><t-icon name="delete" /></template>
+                </t-button>
               </div>
             </td>
           </tr>
@@ -284,21 +279,23 @@ onMounted(() => {
       <!-- 分页 -->
       <div class="pagination">
         <span class="pagination-info">{{ t('common.total') }} {{ total }} {{ t('common.items') }}</span>
-        <button
-          class="btn btn-secondary btn-sm"
+        <t-button
+          variant="outline"
+          size="small"
           :disabled="currentPage === 1"
           @click="onPageChange(currentPage - 1)"
         >
           {{ t('common.prevPage') }}
-        </button>
+        </t-button>
         <span class="pagination-current">{{ currentPage }} / {{ Math.ceil(total / pageSize) || 1 }}</span>
-        <button
-          class="btn btn-secondary btn-sm"
+        <t-button
+          variant="outline"
+          size="small"
           :disabled="currentPage >= Math.ceil(total / pageSize)"
           @click="onPageChange(currentPage + 1)"
         >
           {{ t('common.nextPage') }}
-        </button>
+        </t-button>
       </div>
     </div>
 
@@ -322,32 +319,32 @@ onMounted(() => {
               v-model="formData.name"
               type="text"
               class="input"
-              :placeholder="t('contentTypes.namePlaceholder')"
+              :placeholder="t('contentSchemas.namePlaceholder')"
               @blur="generateSlug"
             />
           </div>
 
           <div class="input-group">
-            <label class="input-label">{{ t('contentTypes.slug') }} <span class="required">*</span></label>
+            <label class="input-label">{{ t('contentSchemas.slug') }} <span class="required">*</span></label>
             <input
               v-model="formData.slug"
               type="text"
               class="input"
-              :placeholder="t('contentTypes.slugPlaceholder')"
+              :placeholder="t('contentSchemas.slugPlaceholder')"
               :disabled="isEditing"
             />
-            <span class="input-hint">{{ t('contentTypes.slugHint') }}</span>
+            <span class="input-hint">{{ t('contentSchemas.slugHint') }}</span>
           </div>
 
           <div class="input-group">
-            <label class="input-label">{{ t('contentTypes.kind') }}</label>
+            <label class="input-label">{{ t('contentSchemas.kind') }}</label>
             <select v-model="formData.kind" class="input" :disabled="isEditing">
-              <option value="collection">{{ t('contentTypes.kindCollection') }}</option>
-              <option value="single">{{ t('contentTypes.kindSingle') }}</option>
+              <option value="collection">{{ t('contentSchemas.kindCollection') }}</option>
+              <option value="single">{{ t('contentSchemas.kindSingle') }}</option>
             </select>
             <span class="input-hint">
-              <strong>{{ t('contentTypes.kindCollection') }}：</strong>{{ t('contentTypes.kindCollectionHint') }}<br/>
-              <strong>{{ t('contentTypes.kindSingle') }}：</strong>{{ t('contentTypes.kindSingleHint') }}
+              <strong>{{ t('contentSchemas.kindCollection') }}：</strong>{{ t('contentSchemas.kindCollectionHint') }}<br/>
+              <strong>{{ t('contentSchemas.kindSingle') }}：</strong>{{ t('contentSchemas.kindSingleHint') }}
             </span>
           </div>
 
@@ -364,15 +361,15 @@ onMounted(() => {
           <div class="input-group">
             <label class="input-label">
               <input v-model="formData.versioning_enabled" type="checkbox" />
-              <span style="margin-left: 8px;">{{ t('contentTypes.versioning') }}</span>
+              <span style="margin-left: 8px;">{{ t('contentSchemas.versioning') }}</span>
             </label>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="dialogVisible = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="submitting" @click="submitForm">
+          <t-button variant="outline" @click="dialogVisible = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" :disabled="submitting" @click="submitForm">
             {{ submitting ? t('common.loading') : (isEditing ? t('common.save') : t('common.create')) }}
-          </button>
+          </t-button>
         </div>
       </div>
     </div>
@@ -380,7 +377,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.content-types-page {
+.schemas-page {
   height: 100%;
 }
 

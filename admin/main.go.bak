@@ -80,7 +80,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db, redisClient)
 	siteRepo := repository.NewSiteRepository(db)
 	auditRepo := repository.NewAuditRepository(db)
-	schemaRepo := repository.NewSchemaRepository(db)
+	contentSchemaRepo := repository.NewContentSchemaRepository(db)
 	fieldRepo := repository.NewFieldRepository(db)
 	entryRepo := repository.NewEntryRepository(db)
 	assetRepo := repository.NewAssetRepository(db)
@@ -106,8 +106,8 @@ func main() {
 	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
 	userService := service.NewUserService(userRepo)
 	siteService := service.NewSiteService(db, siteRepo, configRepo)
-	schemaService := service.NewSchemaService(schemaRepo, fieldRepo, logger)
-	entryService := service.NewEntryService(entryRepo, schemaRepo, fieldRepo)
+	csService := service.NewContentSchemaService(contentSchemaRepo, fieldRepo, logger)
+	entryService := service.NewEntryService(entryRepo, contentSchemaRepo, fieldRepo)
 	tokenService := service.NewAPITokenService(tokenRepo, crypter)
 	cacheService := service.NewCacheService(redisClient)
 
@@ -131,7 +131,7 @@ func main() {
 	mfaHandler := handler.NewMFAHandler(mfaService, authService)
 	userHandler := handler.NewUserHandler(userService)
 	siteHandler := handler.NewSiteHandler(siteService)
-	schemaHandler := handler.NewSchemaHandler(schemaService)
+	csHandler := handler.NewContentSchemaHandler(csService)
 	entryHandler := handler.NewEntryHandler(entryService, configService)
 	assetHandler := handler.NewAssetHandler(assetService)
 	tokenHandler := handler.NewAPITokenHandler(tokenService)
@@ -211,75 +211,79 @@ func main() {
 			protected.DELETE("/users/:id", userHandler.Delete)
 
 			// 内容类型管理 (REST: /content/schemas)
-			protected.GET("/content/schemas", schemaHandler.List)
-			protected.POST("/content/schemas", schemaHandler.Create)
-			protected.GET("/content/schemas/:id", schemaHandler.Get)
-			protected.PUT("/content/schemas/:id", schemaHandler.Update)
-			protected.DELETE("/content/schemas/:id", schemaHandler.Delete)
-			protected.POST("/content/schemas/:id/fields", schemaHandler.CreateField)
-			protected.GET("/content/schemas/:id/fields", schemaHandler.ListFields)
+			protected.GET("/content/schemas", csHandler.List)
+			protected.POST("/content/schemas", csHandler.Create)
+			protected.GET("/content/schemas/:id", csHandler.Get)
+			protected.PUT("/content/schemas/:id", csHandler.Update)
+			protected.DELETE("/content/schemas/:id", csHandler.Delete)
+			protected.POST("/content/schemas/:id/fields", csHandler.CreateField)
+			protected.GET("/content/schemas/:id/fields", csHandler.ListFields)
 			// 字段操作（嵌套在 :id 之下，避免与 /content/schemas/:id 冲突）
-			protected.PUT("/content/schemas/:id/fields/:fieldId", schemaHandler.UpdateField)
-			protected.DELETE("/content/schemas/:id/fields/:fieldId", schemaHandler.DeleteField)
-			protected.POST("/content/schemas/:id/fields/reorder", schemaHandler.ReorderFields)
-
-			// 内容管理 (REST: /content/entries)
-			protected.GET("/content/entries", entryHandler.List)
-			protected.POST("/content/entries", entryHandler.Create)
-			protected.GET("/content/entries/:id", entryHandler.Get)
-			protected.PUT("/content/entries/:id", entryHandler.Update)
-			protected.DELETE("/content/entries/:id", entryHandler.Delete)
-			protected.POST("/content/entries/:id/publish", entryHandler.Publish)
-			protected.POST("/content/entries/:id/unpublish", entryHandler.Unpublish)
-			protected.GET("/content/entries/:id/versions", entryHandler.GetVersions)
-			// 批量操作（静态路径在前，避免与 :id 冲突）
-			protected.POST("/content/entries/batch-publish", entryHandler.BatchPublish)
-			protected.POST("/content/entries/batch-unpublish", entryHandler.BatchUnpublish)
-			protected.DELETE("/content/entries/batch-delete", entryHandler.BatchDelete)
-
-			// 媒体库
-			// 静态文件访问（nginx 直连，Go 兜底）
-			protected.GET("/assets/files/*filePath", assetHandler.ServeFile)
-			protected.GET("/assets", assetHandler.List)
-			protected.POST("/assets", assetHandler.Upload)
-			// 文件夹管理（静态路径必须在 :id 之前，否则 folders 会被 :id 捕获）
-			protected.POST("/assets/folders", assetHandler.CreateFolder)
-			protected.GET("/assets/folders/tree", assetHandler.GetFolderTree)
-			protected.GET("/assets/folders", assetHandler.ListFolders)
-			protected.GET("/assets/folders/:id", assetHandler.GetFolder)
-			protected.PUT("/assets/folders/:id", assetHandler.UpdateFolder)
-			protected.DELETE("/assets/folders/:id", assetHandler.DeleteFolder)
-			// 批量删除必须在 :id 路由之前注册（Gin 静态路径优先）
-			protected.DELETE("/assets/batch-delete", assetHandler.BatchDelete)
-			// 资产 CRUD（:id 路由放在最后）
-			protected.GET("/assets/:id", assetHandler.Get)
-			protected.PUT("/assets/:id", assetHandler.Update)
-			protected.DELETE("/assets/:id", assetHandler.Delete)
-
-			// API Token 管理
-			protected.POST("/tokens", tokenHandler.Create)
-			protected.GET("/tokens", tokenHandler.List)
-			protected.GET("/tokens/:id", tokenHandler.Get)
-			protected.PUT("/tokens/:id", tokenHandler.Update)
-			protected.DELETE("/tokens/:id", tokenHandler.Delete)
-			protected.POST("/tokens/:id/regenerate", tokenHandler.Regenerate)
-			protected.POST("/tokens/:id/revoke", tokenHandler.Revoke)
-			protected.POST("/tokens/:id/export", tokenHandler.Export)
-
-			// 站点配置管理（PRE-001）
-			protected.GET("/sites/:id/configs", configHandler.List)
-			protected.GET("/sites/:id/configs/:key", configHandler.Get)
-			protected.PUT("/sites/:id/configs/:key", configHandler.Set)
-			protected.DELETE("/sites/:id/configs/:key", configHandler.Delete)
-
-			// 数据完整性验签（PRE-004）
-			protected.GET("/integrity/verify", integrityHandler.Verify)
-			protected.POST("/integrity/verify/batch", integrityHandler.BatchVerify)
-
-			// 缓存管理
-			protected.POST("/cache/invalidate", cacheHandler.InvalidateSite)
+			protected.PUT("/content/schemas/:id/fields/:fieldId", csHandler.UpdateField)
+			protected.DELETE("/content/schemas/:id/fields/:fieldId", csHandler.DeleteField)
+			protected.POST("/content/schemas/:id/fields/reorder", csHandler.ReorderFields)
 		}
+
+				// 内容管理 (REST: /content/entries)
+				protected.GET("/content/entries", entryHandler.List)
+				protected.POST("/content/entries", entryHandler.Create)
+				protected.GET("/content/entries/:id", entryHandler.Get)
+				protected.PUT("/content/entries/:id", entryHandler.Update)
+				protected.DELETE("/content/entries/:id", entryHandler.Delete)
+				protected.POST("/content/entries/:id/publish", entryHandler.Publish)
+				protected.POST("/content/entries/:id/unpublish", entryHandler.Unpublish)
+				protected.GET("/content/entries/:id/versions", entryHandler.GetVersions)
+				// 批量操作（静态路径在前，避免与 :id 冲突）
+				protected.POST("/content/entries/batch-publish", entryHandler.BatchPublish)
+				protected.POST("/content/entries/batch-unpublish", entryHandler.BatchUnpublish)
+				protected.DELETE("/content/entries/batch-delete", entryHandler.BatchDelete)
+				
+				// 媒体库
+				// 静态文件访问（nginx 直连，Go 兜底）
+				protected.GET("/assets/files/*filePath", assetHandler.ServeFile)
+				protected.GET("/assets", assetHandler.List)
+				protected.POST("/assets", assetHandler.Upload)
+				// 文件夹管理（静态路径必须在 :id 之前，否则 folders 会被 :id 捕获）
+				protected.POST("/assets/folders", assetHandler.CreateFolder)
+				protected.GET("/assets/folders/tree", assetHandler.GetFolderTree)
+				protected.GET("/assets/folders", assetHandler.ListFolders)
+				protected.GET("/assets/folders/:id", assetHandler.GetFolder)
+				protected.PUT("/assets/folders/:id", assetHandler.UpdateFolder)
+				protected.DELETE("/assets/folders/:id", assetHandler.DeleteFolder)
+				// 批量删除必须在 :id 路由之前注册（Gin 静态路径优先）
+				protected.DELETE("/assets/batch-delete", assetHandler.BatchDelete)
+				// 资产 CRUD（:id 路由放在最后）
+				protected.GET("/assets/:id", assetHandler.Get)
+				protected.PUT("/assets/:id", assetHandler.Update)
+				protected.DELETE("/assets/:id", assetHandler.Delete)
+				
+				// API Token 管理
+				protected.POST("/tokens", tokenHandler.Create)
+				protected.GET("/tokens", tokenHandler.List)
+				protected.GET("/tokens/:id", tokenHandler.Get)
+				protected.PUT("/tokens/:id", tokenHandler.Update)
+				protected.DELETE("/tokens/:id", tokenHandler.Delete)
+				protected.POST("/tokens/:id/regenerate", tokenHandler.Regenerate)
+				protected.POST("/tokens/:id/revoke", tokenHandler.Revoke)
+				protected.POST("/tokens/:id/export", tokenHandler.Export)
+				
+				// 站点配置管理（PRE-001）
+				protected.GET("/sites/:id/configs", configHandler.List)
+				protected.GET("/sites/:id/configs/:key", configHandler.Get)
+				protected.PUT("/sites/:id/configs/:key", configHandler.Set)
+				protected.DELETE("/sites/:id/configs/:key", configHandler.Delete)
+				
+				// 数据完整性验签（PRE-004）
+				protected.GET("/integrity/verify", integrityHandler.Verify)
+				protected.POST("/integrity/verify/batch", integrityHandler.BatchVerify)
+				
+				// 缓存管理
+				protected.POST("/cache/invalidate", cacheHandler.InvalidateSite)
+		}
+
 	}
+
+
 
 	// 启动服务
 	addr := ":" + cfg.Server.Port

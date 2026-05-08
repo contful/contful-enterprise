@@ -43,11 +43,11 @@ func (r *FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Fie
 	return &field, nil
 }
 
-// ListByContentType 列出内容类型的字段
-func (r *FieldRepository) ListByContentType(ctx context.Context, contentTypeID uuid.UUID) ([]model.Field, error) {
+// ListByContentSchema 列出内容模型的字段
+func (r *FieldRepository) ListByContentSchema(ctx context.Context, contentSchemaID uuid.UUID) ([]model.Field, error) {
 	var fields []model.Field
 	err := r.db.WithContext(ctx).
-		Where("content_type_id = ?", contentTypeID).
+		Where("schema_id = ?", contentSchemaID).
 		Order("sort_order ASC").
 		Find(&fields).Error
 	if err != nil {
@@ -66,16 +66,16 @@ func (r *FieldRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&model.Field{}, "id = ?", id).Error
 }
 
-// DeleteByContentType 删除内容类型的所有字段
-func (r *FieldRepository) DeleteByContentType(ctx context.Context, contentTypeID uuid.UUID) error {
-	return r.db.WithContext(ctx).Delete(&model.Field{}, "content_type_id = ?", contentTypeID).Error
+// DeleteByContentSchema 删除内容模型的所有字段
+func (r *FieldRepository) DeleteByContentSchema(ctx context.Context, contentSchemaID uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&model.Field{}, "schema_id = ?", contentSchemaID).Error
 }
 
 // ExistsName 检查字段名是否已存在
-func (r *FieldRepository) ExistsName(ctx context.Context, contentTypeID uuid.UUID, name string, excludeID *uuid.UUID) (bool, error) {
+func (r *FieldRepository) ExistsName(ctx context.Context, contentSchemaID uuid.UUID, name string, excludeID *uuid.UUID) (bool, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(&model.Field{}).
-		Where("content_type_id = ? AND name = ?", contentTypeID, name)
+		Where("schema_id = ? AND name = ?", contentSchemaID, name)
 
 	if excludeID != nil {
 		query = query.Where("id != ?", *excludeID)
@@ -88,11 +88,11 @@ func (r *FieldRepository) ExistsName(ctx context.Context, contentTypeID uuid.UUI
 }
 
 // GetMaxSortOrder 获取最大排序号
-func (r *FieldRepository) GetMaxSortOrder(ctx context.Context, contentTypeID uuid.UUID) (int, error) {
+func (r *FieldRepository) GetMaxSortOrder(ctx context.Context, contentSchemaID uuid.UUID) (int, error) {
 	var maxOrder int
 	err := r.db.WithContext(ctx).
 		Model(&model.Field{}).
-		Where("content_type_id = ?", contentTypeID).
+		Where("schema_id = ?", contentSchemaID).
 		Select("COALESCE(MAX(sort_order), -1)").
 		Scan(&maxOrder).Error
 	if err != nil {

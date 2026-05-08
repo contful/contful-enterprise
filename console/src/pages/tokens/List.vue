@@ -264,12 +264,10 @@ onMounted(() => {
         <h1 class="page-title">{{ t('apiTokens.title') }}</h1>
         <p class="page-subtitle">{{ t('apiTokens.subtitle') }}</p>
       </div>
-      <button class="btn btn-primary" @click="openCreateModal">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-        </svg>
+      <t-button theme="primary" @click="openCreateModal">
+        <template #icon><t-icon name="add" /></template>
         {{ t('apiTokens.createToken') }}
-      </button>
+      </t-button>
     </div>
 
     <!-- Token 列表 -->
@@ -306,14 +304,14 @@ onMounted(() => {
             <td>
               <div class="permissions">
                 <span
-                  v-for="perm in (token.permissions?.content_types || []).slice(0, 2)"
+                  v-for="perm in (token.permissions?.schemas || []).slice(0, 2)"
                   :key="perm"
                   class="perm-badge"
                 >
                   {{ perm }}
                 </span>
-                <span v-if="(token.permissions?.content_types?.length || 0) > 2" class="perm-more">
-                  +{{ token.permissions!.content_types!.length - 2 }}
+                <span v-if="(token.permissions?.schemas?.length || 0) > 2" class="perm-more">
+                  +{{ token.permissions!.schemas!.length - 2 }}
                 </span>
               </div>
             </td>
@@ -327,46 +325,42 @@ onMounted(() => {
             <td>{{ new Date(token.created_time).toLocaleDateString() }}</td>
             <td>
               <div class="action-btns">
-                <button
+                <t-button
                   v-if="!token.revoked && !isExpired(token.expires_time)"
-                  class="btn btn-secondary btn-sm"
+                  variant="outline"
+                  size="small"
                   @click="confirmExport(token)"
                   :title="t('apiTokens.viewDetail')"
                 >
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"/>
-                  </svg>
-                </button>
-                <button
+                  <template #icon><t-icon name="browse" /></template>
+                </t-button>
+                <t-button
                   v-if="!token.revoked && !isExpired(token.expires_time)"
-                  class="btn btn-secondary btn-sm"
+                  variant="outline"
+                  size="small"
                   @click="confirmRegenerate(token)"
                   :title="t('apiTokens.regenerate')"
                 >
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"/>
-                  </svg>
-                </button>
-                <button
+                  <template #icon><t-icon name="refresh" /></template>
+                </t-button>
+                <t-button
                   v-if="!token.revoked"
-                  class="btn btn-secondary btn-sm"
+                  variant="outline"
+                  size="small"
                   @click="handleRevoke(token)"
                   :title="t('apiTokens.revoke')"
                 >
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
-                  </svg>
-                </button>
-                <button
-                  class="btn btn-danger btn-sm"
+                  <template #icon><t-icon name="close-circle" /></template>
+                </t-button>
+                <t-button
+                  theme="danger"
+                  variant="outline"
+                  size="small"
                   @click="confirmDelete(token)"
                   :title="t('common.delete')"
                 >
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
-                  </svg>
-                </button>
+                  <template #icon><t-icon name="delete" /></template>
+                </t-button>
               </div>
             </td>
           </tr>
@@ -402,9 +396,9 @@ onMounted(() => {
             <div class="new-token-label">{{ t('apiTokens.tokenShownOnce') }}</div>
             <div class="new-token-value">
               <code>{{ newToken }}</code>
-              <button class="btn btn-secondary btn-sm" @click="copyToken(newToken)">
+              <t-button variant="outline" size="small" @click="copyToken(newToken)">
                 {{ t('common.copy') || 'Copy' }}
-              </button>
+              </t-button>
             </div>
             <p class="new-token-warning">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -477,12 +471,12 @@ onMounted(() => {
           </template>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal">
+          <t-button variant="outline" @click="closeModal">
             {{ newToken ? t('common.close') : t('common.cancel') }}
-          </button>
-          <button v-if="!newToken" class="btn btn-primary" @click="handleSubmit">
+          </t-button>
+          <t-button v-if="!newToken" theme="primary" @click="handleSubmit">
             {{ t('common.create') }}
-          </button>
+          </t-button>
         </div>
       </div>
     </div>
@@ -497,8 +491,8 @@ onMounted(() => {
           <p>{{ t('apiTokens.deleteMsg') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-danger" @click="handleDelete">{{ t('common.delete') }}</button>
+          <t-button variant="outline" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="danger" @click="handleDelete">{{ t('common.delete') }}</t-button>
         </div>
       </div>
     </div>
@@ -514,8 +508,8 @@ onMounted(() => {
           <p class="warning-text">{{ t('apiTokens.regenerateWarning') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showRegenerateConfirm = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" @click="handleRegenerate">{{ t('apiTokens.regenerate') }}</button>
+          <t-button variant="outline" @click="showRegenerateConfirm = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" @click="handleRegenerate">{{ t('apiTokens.regenerate') }}</t-button>
         </div>
       </div>
     </div>
@@ -531,8 +525,8 @@ onMounted(() => {
           <p class="warning-text">{{ t('apiTokens.exportWarningDetail') }}</p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showExportConfirm = false">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" @click="handleExport">{{ t('common.confirm') }}</button>
+          <t-button variant="outline" @click="showExportConfirm = false">{{ t('common.cancel') }}</t-button>
+          <t-button theme="primary" @click="handleExport">{{ t('common.confirm') }}</t-button>
         </div>
       </div>
     </div>

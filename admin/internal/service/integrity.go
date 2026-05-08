@@ -117,7 +117,7 @@ func (s *IntegrityService) SignEntry(entry *model.Entry, values []model.EntryVal
 	}
 
 	// 如果内容类型未启用签名，跳过
-	if entry.ContentType != nil && !entry.ContentType.SignatureEnabled {
+	if entry.ContentSchema != nil && !entry.ContentSchema.SignatureEnabled {
 		return nil
 	}
 
@@ -196,7 +196,7 @@ func (s *IntegrityService) buildEntryCanonicalPayload(entry *model.Entry, values
 	type kv struct{ k, v any }
 	pairs := []kv{
 		{"id", entry.ID.String()},
-		{"content_type_id", entry.ContentTypeID.String()},
+		{"schema_id", entry.ContentSchemaID.String()},
 		{"site_id", entry.SiteID.String()},
 		{"locale", entry.Locale},
 		{"status", string(entry.Status)},

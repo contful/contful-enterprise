@@ -109,8 +109,8 @@ func (s *CacheService) InvalidateSite(ctx context.Context, siteID uuid.UUID) (in
 	return deletedCount, nil
 }
 
-// InvalidateContentType 清除指定内容类型的所有缓存
-func (s *CacheService) InvalidateContentType(ctx context.Context, siteID uuid.UUID, slug string) (int64, error) {
+// InvalidateContentSchema 清除指定内容模型的所有缓存
+func (s *CacheService) InvalidateContentSchema(ctx context.Context, siteID uuid.UUID, slug string) (int64, error) {
 	pattern := fmt.Sprintf("%s*:%s:%s:*", CacheKeyPrefix, siteID.String(), slug)
 	
 	var cursor uint64

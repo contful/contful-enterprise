@@ -8,14 +8,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// ============ ContentType DTO ============
+// ============ ContentSchema DTO ============
 
-// ContentTypeCreate 创建内容类型请求
-type ContentTypeCreate struct {
+// ContentSchemaCreate 创建内容模型请求
+type ContentSchemaCreate struct {
 	Name                 string          `json:"name" binding:"required,min=1,max=200"`
 	Slug                 string          `json:"slug" binding:"required,min=1,max=100"`
 	Description          string          `json:"description"`
-	Kind                 ContentTypeKind `json:"kind" binding:"required,oneof=collection single"`
+	Kind                 ContentSchemaKind `json:"kind" binding:"required,oneof=collection single"`
 	DisplayConfig        JSONB           `json:"display_config"`
 	APISConfig           JSONB           `json:"api_config"`
 	PreviewConfig        JSONB           `json:"preview_config"`
@@ -24,12 +24,12 @@ type ContentTypeCreate struct {
 	SortOrder            int             `json:"sort_order"`
 }
 
-// ContentTypeUpdate 更新内容类型请求
-type ContentTypeUpdate struct {
+// ContentSchemaUpdate 更新内容模型请求
+type ContentSchemaUpdate struct {
 	Name                 *string          `json:"name" binding:"omitempty,min=1,max=200"`
 	Slug                 *string          `json:"slug" binding:"omitempty,min=1,max=100"`
 	Description          *string          `json:"description"`
-	Kind                 *ContentTypeKind `json:"kind" binding:"omitempty,oneof=collection single"`
+	Kind                 *ContentSchemaKind `json:"kind" binding:"omitempty,oneof=collection single"`
 	DisplayConfig        *JSONB           `json:"display_config"`
 	APISConfig           *JSONB           `json:"api_config"`
 	PreviewConfig        *JSONB           `json:"preview_config"`
@@ -39,14 +39,14 @@ type ContentTypeUpdate struct {
 	SortOrder            *int             `json:"sort_order"`
 }
 
-// ContentTypeResponse 内容类型响应
-type ContentTypeResponse struct {
+// ContentSchemaResponse 内容模型响应
+type ContentSchemaResponse struct {
 	ID                   uuid.UUID             `json:"id"`
 	SiteID               uuid.UUID             `json:"site_id"`
 	Name                 string                `json:"name"`
 	Slug                 string                `json:"slug"`
 	Description          string                `json:"description"`
-	Kind                 ContentTypeKind       `json:"kind"`
+	Kind                 ContentSchemaKind       `json:"kind"`
 	DisplayConfig        map[string]interface{} `json:"display_config"`
 	APISConfig           map[string]interface{} `json:"api_config"`
 	PreviewConfig        map[string]interface{} `json:"preview_config"`
@@ -60,17 +60,17 @@ type ContentTypeResponse struct {
 	Fields               []FieldResponse       `json:"fields,omitempty"`
 }
 
-// ContentTypeListResponse 内容类型列表响应
-type ContentTypeListResponse struct {
-	Items      []ContentTypeResponse `json:"items"`
+// ContentSchemaListResponse 内容模型列表响应
+type ContentSchemaListResponse struct {
+	Items      []ContentSchemaResponse `json:"items"`
 	Total      int64                 `json:"total"`
 	Page       int                   `json:"page"`
 	PageSize   int                   `json:"page_size"`
 }
 
 // ToResponse 转换为响应
-func (ct *ContentType) ToResponse() ContentTypeResponse {
-	resp := ContentTypeResponse{
+func (ct *ContentSchema) ToResponse() ContentSchemaResponse {
+	resp := ContentSchemaResponse{
 		ID:                   ct.ID,
 		SiteID:               ct.SiteID,
 		Name:                 ct.Name,
@@ -141,7 +141,7 @@ type FieldUpdate struct {
 // FieldResponse 字段响应
 type FieldResponse struct {
 	ID                 uuid.UUID              `json:"id"`
-	ContentTypeID      uuid.UUID              `json:"content_type_id"`
+	ContentSchemaID      uuid.UUID              `json:"schema_id"`
 	Name               string                 `json:"name"`
 	Label              string                 `json:"label"`
 	Description        string                 `json:"description"`
@@ -160,7 +160,7 @@ type FieldResponse struct {
 func (f *Field) ToResponse() FieldResponse {
 	resp := FieldResponse{
 		ID:            f.ID,
-		ContentTypeID: f.ContentTypeID,
+		ContentSchemaID: f.ContentSchemaID,
 		Name:          f.Name,
 		Label:         f.Label,
 		Description:   f.Description,
