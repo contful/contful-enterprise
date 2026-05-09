@@ -14,11 +14,9 @@
 #
 # 构建参数:
 #   DB_TYPE=pg  # PostgreSQL（默认）
-#   DB_TYPE=dm  # 达梦 DM8
 #
 # 示例:
 #   ./shell/build.sh                        # 构建所有（PostgreSQL 版本）
-#   DB_TYPE=dm ./shell/build.sh console     # 构建达梦版本的 Console
 #
 # 构建产物:
 #   build/admin-server    - Admin API 二进制
@@ -171,13 +169,12 @@ show_help() {
     echo "  all       构建所有（默认）"
     echo ""
     echo "环境变量:"
-    echo "  DB_TYPE   数据库类型 (pg=PostgreSQL, dm=达梦 DM8)"
+    echo "  DB_TYPE   数据库类型 (pg=PostgreSQL)"
     echo "            默认值: pg"
     echo ""
     echo "示例:"
     echo "  $0                        # 构建所有（PostgreSQL 版本）"
     echo "  $0 console                # 仅构建 Console"
-    echo "  DB_TYPE=dm $0 openapi     # 构建达梦版本的 Open API"
     echo ""
 }
 

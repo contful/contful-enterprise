@@ -34,8 +34,8 @@ type ServerConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	// Type 数据库类型：postgres（默认）/ dm（达梦 DM8）
-	Type            string `mapstructure:"type"`
+	// Type 数据库类型（postgres）
+	Type string `mapstructure:"type"`
 	Host            string `mapstructure:"host"`
 	Port            int    `mapstructure:"port"`
 	User            string `mapstructure:"user"`
@@ -188,11 +188,7 @@ func (c *Config) PostLoad() {
 		c.Database.Type = "postgres"
 	}
 	if c.Database.Port == 0 {
-		if c.Database.Type == "dm" {
-			c.Database.Port = 5236
-		} else {
-			c.Database.Port = 5432
-		}
+		c.Database.Port = 5432
 	}
 	if c.Database.SSLMode == "" {
 		c.Database.SSLMode = "disable"

@@ -11,17 +11,12 @@
 #   或设置 apk 镜像源（见各阶段 RUN 命令）
 #
 # 构建参数:
-#   --build-arg DB_TYPE=pg   # PostgreSQL（默认）
-#   --build-arg DB_TYPE=dm   # 达梦 DM8
-#
-# 平台支持:
+#   --build-arg TARGETOS/TARGETARCH 覆盖
 #   自动根据构建主机平台选择 GOARCH（amd64/arm64）
 #   可通过 --build-arg TARGETOS/TARGETARCH 覆盖
 #
 # 构建示例（推荐在 contful/ 目录执行）:
-#   docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
-#   docker build -f docker/Dockerfile.openapi -t contful/openapi:dm --build-arg DB_TYPE=dm .
-#   docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform linux/arm64 .
+#   docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-latest .
 #
 # 或从父目录执行（指定构建上下文为 contful/）:
 #   docker build -f contful/docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest contful/

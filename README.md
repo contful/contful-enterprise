@@ -1,5 +1,7 @@
 # Contful
 
+> 🌍 多语言文档 / Multilingual Documentation: [简体中文](doc/README_zh-CN.md) · [繁體中文](doc/README_zh-TW.md) · [English](doc/README_en.md) · [한국어](doc/README_ko.md) · [日本語](doc/README_ja.md)
+
 开源 Headless CMS，支持多站点管理。
 
 ## 技术栈
@@ -81,7 +83,6 @@ docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 # 2. 初始化数据库
 psql -h <host> -U <user> -d contful -f sql/init_pg.sql
 
-# 达梦数据库使用 init_dm.sql
 
 # 3. 构建
 ./shell/build.sh
@@ -122,9 +123,6 @@ psql -h <host> -U <user> -d contful -f sql/init_pg.sql
 docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
 docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
 
-# 达梦 DM8 版本
-docker build -f docker/Dockerfile.console -t contful/console:dm --build-arg DB_TYPE=dm .
-docker build -f docker/Dockerfile.openapi -t contful/openapi:dm --build-arg DB_TYPE=dm .
 
 # ARM64 平台
 docker build -f docker/Dockerfile.console -t contful/console:pg-arm64 --platform linux/arm64 .

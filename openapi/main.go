@@ -37,7 +37,7 @@ func main() {
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: log.Writer()}).With().Timestamp().Logger()
 	logger.Info().Str("service", "open").Str("port", cfg.Server.Port).Msg("starting")
 
-	// 初始化数据库（根据 build tag 选择 PostgreSQL 或达梦 DM8）
+	// 初始化数据库（PostgreSQL）
 	dsnCfg := &database.DSNConfig{
 		Host:     cfg.Database.Host,
 		Port:     cfg.Database.Port,
@@ -76,9 +76,8 @@ func main() {
 	csRepo := repository.NewContentSchemaRepository(db)
 	entrySvc := service.NewEntryService(entryRepo, csRepo, cacheSvc)
 
-	// 站点配置服务（仅 default 分组，用于单页面内容配置）
-	scRepo := repository.NewSiteConfigRepository(db)
-	configSvc := service.NewConfigService(scRepo)
+	// 站点配置服务（从 sites.settings JSONB 读取）
+	configSvc := service.NewConfigService(db)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)

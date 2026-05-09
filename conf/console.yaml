@@ -25,7 +25,7 @@ server:
 
 # 数据库配置
 database:
-  type: postgres          # postgres（默认）/ dm（达梦 DM8）
+  type: postgres          # postgres（默认）
   host: postgres
   port: 5432
   user: postgres

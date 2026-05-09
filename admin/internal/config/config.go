@@ -60,9 +60,8 @@ type ServerConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	// Type 数据库类型：postgres（默认）/ dm（达梦 DM8）
-	// 通过 build tag 选择驱动，运行时通过此字段做日志/监控等区分
-	Type         string `mapstructure:"type"`
+	// Type 数据库类型（postgres）
+	Type string `mapstructure:"type"`
 	Host         string `mapstructure:"host"`
 	Port         int    `mapstructure:"port"`
 	User         string `mapstructure:"user"`
@@ -128,8 +127,9 @@ type LoggingConfig struct {
 
 // AuditConfig 审计日志配置
 type AuditConfig struct {
-	Enabled         bool `mapstructure:"enabled"`
-	LogAllRequests bool `mapstructure:"log_all_requests"`
+	Enabled         bool   `mapstructure:"enabled"`
+	LogAllRequests bool   `mapstructure:"log_all_requests"`
+	SigningKey     string `mapstructure:"signing_key"` // 审计日志 HMAC-SHA256 签名密钥（自动派生）
 }
 
 // MultiSiteConfig 多站点配置
@@ -292,11 +292,7 @@ func (c *Config) PostLoad() {
 		c.Database.Type = "postgres" // 默认 PostgreSQL
 	}
 	if c.Database.Port == 0 {
-		if c.Database.Type == "dm" {
-			c.Database.Port = 5236 // 达梦默认端口
-		} else {
-			c.Database.Port = 5432 // PostgreSQL 默认端口
-		}
+		c.Database.Port = 5432 // PostgreSQL 默认端口
 	}
 	if c.Database.SSLMode == "" {
 		c.Database.SSLMode = "disable"
@@ -360,6 +356,9 @@ func (c *Config) PostLoad() {
 			c.JWT.Secret = deriveKey(c.Security.Secret, "jwt-signing", 32)
 		}
 	}
+
+	// 审计签名密钥：派生 "audit-signing" info
+	c.Audit.SigningKey = deriveKey(c.Security.Secret, "audit-signing", 32)
 }
 
 // GetDSN 获取 PostgreSQL DSN

@@ -15,19 +15,15 @@
 #   ./shell/build-image.sh openapi      # 构建 Open API 镜像（当前架构）
 #
 # 环境变量:
-#   DB_TYPE    数据库类型 (pg=PostgreSQL, dm=达梦 DM8)
+#   DB_TYPE    数据库类型 (pg=PostgreSQL)
 #              支持逗号分隔，默认值: pg
 #
 # 示例:
 #   ./shell/build-image.sh                       # 构建所有镜像（pg，当前架构）
-#   DB_TYPE=pg,dm ./shell/build-image.sh         # 构建 pg + dm（当前架构）
-#   DB_TYPE=dm ./shell/build-image.sh console    # 仅构建 dm 的 Console
 #
 # 构建的镜像标签（每个平台构建时打两个标签）:
 #   contful/console:pg-amd64-latest   + pg-latest   （在 amd64 机器上）
 #   contful/console:pg-arm64-latest   + pg-latest   （在 arm64 机器上）
-#   contful/console:dm-amd64-latest   + dm-latest   （在 amd64 机器上）
-#   contful/console:dm-arm64-latest   + dm-latest   （在 arm64 机器上）
 #   contful/openapi:（同上）
 #
 # 说明:
@@ -204,14 +200,12 @@ show_help() {
     echo "  help      显示此帮助信息"
     echo ""
     echo "环境变量:"
-    echo "  DB_TYPE   数据库类型 (pg=PostgreSQL, dm=达梦 DM8)"
+    echo "  DB_TYPE   数据库类型 (pg=PostgreSQL)"
     echo "            支持逗号分隔多个类型，默认值: pg"
     echo ""
     echo "示例:"
     echo "  $0                              # 构建所有镜像（pg，当前架构）"
     echo "  $0 console                      # 仅构建 Console 镜像"
-    echo "  DB_TYPE=pg,dm $0                # 构建 pg + dm（当前架构）"
-    echo "  DB_TYPE=dm $0 openapi           # 仅构建 dm 的 Open API"
     echo ""
     echo "构建的镜像标签（每个平台打两个标签）:"
     echo "  contful/console:pg-amd64-latest   + pg-latest   （amd64 机器）"
