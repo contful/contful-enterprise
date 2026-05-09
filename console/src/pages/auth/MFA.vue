@@ -82,7 +82,7 @@
 
       <template #footer>
         <div class="auth-footer">
-          <span class="auth-copyright">© 2026 Contful. Powered by <a href="https://reepu.com" target="_blank" rel="noopener">reepu</a></span>
+          <span class="auth-copyright">© 2026 Contful. Powered by <a href="https://reepu.com" target="_blank" rel="noopener">reepu.com</a></span>
         </div>
       </template>
     </t-card>

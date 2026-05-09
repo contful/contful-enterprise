@@ -200,7 +200,7 @@ const getStatusLabel = (status: string) => {
         <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
         <div v-else-if="recentEntries.length === 0" class="empty-state">
           <p>{{ t('dashboard.noContent') }}</p>
-          <t-button theme="primary" size="small" @click="router.push('/content/entries')">
+          <t-button theme="primary" @click="router.push('/content/entries')">
             {{ t('dashboard.createFirstContent') }}
           </t-button>
         </div>
@@ -243,7 +243,7 @@ const getStatusLabel = (status: string) => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   margin-bottom: 24px;
 }
@@ -356,6 +356,12 @@ const getStatusLabel = (status: string) => {
   }
 
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 }

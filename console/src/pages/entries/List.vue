@@ -6,6 +6,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { DialogPlugin } from 'tdesign-vue-next'
 import { useSiteStore } from '@/stores/site'
 import { showError, showSuccess } from '@/utils/request'
 import {
@@ -25,8 +26,6 @@ import {
   batchUnpublishEntries,
   invalidateCache,
   type Entry,
-  type EntryCreate,
-  type EntryUpdate,
 } from '@/api/entry'
 
 const { t } = useI18n()
@@ -41,11 +40,7 @@ const contentSchemas = ref<ContentSchema[]>([])
 const entries = ref<Entry[]>([])
 const selectedType = ref<ContentSchema | null>(null)
 const showModal = ref(false)
-const showDeleteConfirm = ref(false)
 const editingEntry = ref<Entry | null>(null)
-const entryToDelete = ref<Entry | null>(null)
-const deleteLoading = ref(false)
-const publishLoading = ref<string | null>(null)
 
 // 内容类型条目数缓存
 const entryCounts = ref<Record<string, number>>({})
@@ -69,12 +64,12 @@ const sortOrder = ref<'asc' | 'desc'>('desc')
 // 批量选择
 const selectedIds = ref<Set<string>>(new Set())
 const batchLoading = ref(false)
-const showBatchConfirm = ref(false)
-const batchAction = ref<'delete' | 'publish' | 'unpublish'>('delete')
-const batchActionLabel = ref('')
 
 // 缓存状态
 const cacheLoading = ref(false)
+
+// 发布加载状态
+const publishLoading = ref<string | null>(null)
 
 // 计算属性
 const isAllSelected = computed(() => {
@@ -86,7 +81,6 @@ const hasSelected = computed(() => selectedIds.value.size > 0)
 
 // 加载内容类型
 const loadContentSchemas = async () => {
-  // 检查是否有当前站点
   if (!siteStore.currentSiteId) {
     contentSchemas.value = []
     return
@@ -94,7 +88,6 @@ const loadContentSchemas = async () => {
   try {
     const res = await getContentSchemas({ page: 1, page_size: 100 })
     contentSchemas.value = res.data?.items || []
-    // 加载每个内容类型的条目数
     await loadEntryCounts()
   } catch (error) {
     showError(error)
@@ -106,7 +99,6 @@ const loadEntryCounts = async () => {
   const counts: Record<string, number> = {}
   for (const type of contentSchemas.value) {
     try {
-      // 获取该类型的所有条目（只取 total，不取 items）
       const res = await getEntries({ schema_id: type.id, page: 1, page_size: 1 })
       counts[type.id] = res.data?.total || 0
     } catch {
@@ -192,7 +184,7 @@ const handleSubmit = async () => {
     }
     closeModal()
     loadEntries()
-    loadEntryCounts() // 刷新左侧内容类型统计
+    loadEntryCounts()
   } catch (error) {
     showError(error)
   } finally {
@@ -219,28 +211,23 @@ const handlePublish = async (entry: Entry) => {
   }
 }
 
-// 删除确认
+// 删除确认 — DialogPlugin.confirm
 const confirmDelete = (entry: Entry) => {
-  entryToDelete.value = entry
-  showDeleteConfirm.value = true
-}
-
-// 执行删除
-const handleDelete = async () => {
-  if (!entryToDelete.value) return
-  deleteLoading.value = true
-  try {
-    await deleteEntry(entryToDelete.value.id)
-    showDeleteConfirm.value = false
-    entryToDelete.value = null
-    showSuccess(t('content.deleteSuccess'))
-    loadEntries()
-    loadEntryCounts() // 刷新左侧内容类型统计
-  } catch (error) {
-    showError(error)
-  } finally {
-    deleteLoading.value = false
-  }
+  DialogPlugin.confirm({
+    header: t('common.confirmDelete'),
+    body: t('content.confirmDelete'),
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        await deleteEntry(entry.id)
+        showSuccess(t('content.deleteSuccess'))
+        loadEntries()
+        loadEntryCounts()
+      } catch (error) {
+        showError(error)
+      }
+    },
+  })
 }
 
 // 切换单选
@@ -250,6 +237,7 @@ const toggleSelect = (id: string) => {
   } else {
     selectedIds.value.add(id)
   }
+  // 触发响应式更新
   selectedIds.value = new Set(selectedIds.value)
 }
 
@@ -265,58 +253,55 @@ const toggleSelectAll = () => {
   selectedIds.value = new Set(selectedIds.value)
 }
 
-// 批量操作确认
+// 批量操作 — DialogPlugin.confirm
 const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
-  batchAction.value = action
   const labels: Record<string, string> = {
     delete: t('content.batchDelete'),
     publish: t('content.batchPublish'),
     unpublish: t('content.batchUnpublish'),
   }
-  batchActionLabel.value = labels[action]
-  showBatchConfirm.value = true
-}
-
-// 执行批量操作
-const executeBatchAction = async () => {
-  const ids = Array.from(selectedIds.value)
-  if (ids.length === 0) return
-  batchLoading.value = true
-  try {
-    switch (batchAction.value) {
-      case 'delete':
-        await batchDeleteEntries(ids)
-        showSuccess(t('content.deleted', { count: ids.length }))
-        break
-      case 'publish':
-        await batchPublishEntries(ids)
-        showSuccess(t('content.publishedCount', { count: ids.length }))
-        break
-      case 'unpublish':
-        await batchUnpublishEntries(ids)
-        showSuccess(t('content.unpublishedCount', { count: ids.length }))
-        break
-    }
-    showBatchConfirm.value = false
-    selectedIds.value.clear()
-    selectedIds.value = new Set()
-    loadEntries()
-    loadEntryCounts() // 刷新左侧内容类型统计
-  } catch (error) {
-    showError(error)
-  } finally {
-    batchLoading.value = false
-  }
-}
-
-// 获取批量操作确认提示
-const getBatchConfirmText = () => {
   const count = selectedIds.value.size
-  const action = batchActionLabel.value
-  if (batchAction.value === 'delete') {
-    return t('content.batchDeleteMsg', { count })
+  let bodyText = ''
+  if (action === 'delete') {
+    bodyText = t('content.batchDeleteMsg', { count })
+  } else {
+    bodyText = t('content.batchActionMsg', { action: labels[action], count })
   }
-  return t('content.batchActionMsg', { action, count })
+
+  DialogPlugin.confirm({
+    header: t('common.confirmAction', { action: labels[action] }),
+    body: bodyText,
+    theme: action === 'delete' ? 'warning' : 'info',
+    onConfirm: async () => {
+      const ids = Array.from(selectedIds.value)
+      if (ids.length === 0) return
+      batchLoading.value = true
+      try {
+        switch (action) {
+          case 'delete':
+            await batchDeleteEntries(ids)
+            showSuccess(t('content.deleted', { count: ids.length }))
+            break
+          case 'publish':
+            await batchPublishEntries(ids)
+            showSuccess(t('content.publishedCount', { count: ids.length }))
+            break
+          case 'unpublish':
+            await batchUnpublishEntries(ids)
+            showSuccess(t('content.unpublishedCount', { count: ids.length }))
+            break
+        }
+        selectedIds.value.clear()
+        selectedIds.value = new Set()
+        loadEntries()
+        loadEntryCounts()
+      } catch (error) {
+        showError(error)
+      } finally {
+        batchLoading.value = false
+      }
+    },
+  })
 }
 
 // 清除缓存
@@ -339,14 +324,14 @@ const clearSearch = () => {
   loadEntries()
 }
 
-// 状态样式
-const getStatusClass = (status: string) => {
+// 状态样式 → t-tag theme
+const getStatusTheme = (status: string): string => {
   const map: Record<string, string> = {
-    published: 'badge-success',
-    draft: 'badge-warning',
-    archived: 'badge-default',
+    published: 'success',
+    draft: 'warning',
+    archived: 'default',
   }
-  return map[status] || 'badge-default'
+  return map[status] || 'default'
 }
 
 const getStatusLabel = (status: string) => {
@@ -358,13 +343,11 @@ const getStatusLabel = (status: string) => {
   return map[status] || status
 }
 
-// 格式化字段值：兼容旧数据 { value: x } 和新数据直接值
+// 格式化字段值
 const formatFieldValue = (value: any): string => {
   if (value === null || value === undefined) return '-'
   if (typeof value === 'object') {
-    // 兼容旧格式 { value: x }
     if ('value' in value) return String(value.value)
-    // 复杂对象转 JSON 显示
     return JSON.stringify(value)
   }
   return String(value)
@@ -379,6 +362,13 @@ const formatDate = (date: string) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+// 分页变化
+const onPageChange = ({ current, pageSize: ps }: { current: number; pageSize: number }) => {
+  page.value = current
+  pageSize.value = ps
+  loadEntries()
 }
 
 // 监听内容类型变化
@@ -410,9 +400,9 @@ onMounted(() => {
           <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
             <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
           </svg>
-          <h3>{{ t('site.noSiteTitle') || '暂无站点' }}</h3>
-          <p>{{ t('site.noSiteHint') || '请先创建一个站点，才能管理内容' }}</p>
-          <t-button theme="primary" @click="router.push('/')">{{ t('site.goToCreate') || '返回首页创建站点' }}</t-button>
+          <h3>{{ t('site.noSiteTitle') || '\u6682\u65e0\u7ad9\u70b9' }}</h3>
+          <p>{{ t('site.noSiteHint') || '\u8bf7\u5148\u521b\u5efa\u4e00\u4e2a\u7ad9\u70b9\uff0c\u624d\u80fd\u7ba1\u7406\u5185\u5bb9' }}</p>
+          <t-button theme="primary" @click="router.push('/')">{{ t('site.goToCreate') || '\u8fd4\u56de\u9996\u9875\u521b\u5efa\u7ad9\u70b9' }}</t-button>
         </div>
       </div>
 
@@ -440,7 +430,7 @@ onMounted(() => {
             <span class="type-count">{{ entryCounts[type.id] || 0 }}</span>
           </button>
           <div v-if="contentSchemas.length === 0" class="empty-tip">
-            {{ t('content.noContentSchemas') }}，<router-link to="/content/schemas">{{ t('content.goToCreate') }}</router-link>
+            {{ t('content.noContentSchemas') }}<router-link to="/content/schemas">{{ t('content.goToCreate') }}</router-link>
           </div>
         </div>
       </aside>
@@ -451,40 +441,45 @@ onMounted(() => {
           <div class="content-toolbar">
             <div class="toolbar-left">
               <h2>{{ selectedType.name }}</h2>
-              <select v-model="statusFilter" class="input" style="width: 120px;" @change="loadEntries">
-                <option value="">{{ t('content.allStatus') }}</option>
-                <option value="draft">{{ t('content.draft') }}</option>
-                <option value="published">{{ t('content.published') }}</option>
-                <option value="archived">{{ t('content.archived') }}</option>
-              </select>
+              <t-select
+                v-model="statusFilter"
+                :placeholder="t('content.allStatus')"
+                size="small"
+                style="width: 120px"
+                clearable
+                @change="loadEntries"
+              >
+                <t-option value="draft" :label="t('content.draft')" />
+                <t-option value="published" :label="t('content.published')" />
+                <t-option value="archived" :label="t('content.archived')" />
+              </t-select>
 
-              <!-- 搜索框 -->
-              <div class="search-box">
-                <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/>
-                </svg>
-                <input
-                  v-model="searchKeyword"
-                  type="text"
-                  class="input search-input"
-                  :placeholder="t('content.searchContent')"
-                  @keyup.enter="loadEntries"
-                />
-                <button v-if="searchKeyword" class="search-clear" @click="clearSearch">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
-                  </svg>
-                </button>
-              </div>
+              <!-- 搜索框 — t-input with prefix icon -->
+              <t-input
+                v-model="searchKeyword"
+                :placeholder="t('content.searchContent')"
+                clearable
+                size="small"
+                style="width: 200px"
+                @enter="loadEntries"
+                @clear="clearSearch"
+              >
+                <template #prefixIcon><t-icon name="search" /></template>
+              </t-input>
 
               <!-- 排序 -->
-              <select v-model="sortField" class="input" style="width: 130px;" @change="loadEntries">
-                <option value="updated_time">{{ t('content.sortByUpdated') }}</option>
-                <option value="created_time">{{ t('content.sortByCreated') }}</option>
-                <option value="published_time">{{ t('content.sortByPublished') }}</option>
-                <option value="sort_weight">{{ t('content.sortByWeight') }}</option>
-              </select>
-              <t-button variant="outline" size="small" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; loadEntries()">
+              <t-select
+                v-model="sortField"
+                size="small"
+                style="width: 130px"
+                @change="loadEntries"
+              >
+                <t-option value="updated_time" :label="t('content.sortByUpdated')" />
+                <t-option value="created_time" :label="t('content.sortByCreated')" />
+                <t-option value="published_time" :label="t('content.sortByPublished')" />
+                <t-option value="sort_weight" :label="t('content.sortByWeight')" />
+              </t-select>
+              <t-button variant="outline" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; loadEntries()">
                 {{ sortOrder === 'asc' ? t('content.asc') : t('content.desc') }}
               </t-button>
             </div>
@@ -493,7 +488,6 @@ onMounted(() => {
               <!-- 清除缓存 -->
               <t-button
                 variant="outline"
-                size="small"
                 :disabled="cacheLoading"
                 :title="t('content.clearCacheHint')"
                 :loading="cacheLoading"
@@ -504,13 +498,13 @@ onMounted(() => {
               <!-- 批量操作 -->
               <div v-if="hasSelected" class="batch-actions">
                 <span class="selected-count">{{ t('common.selectedCount', { count: selectedCount }) }}</span>
-                <t-button variant="outline" size="small" :disabled="batchLoading" @click="confirmBatchAction('publish')">
+                <t-button variant="outline" :disabled="batchLoading" @click="confirmBatchAction('publish')">
                   {{ t('content.batchPublish') }}
                 </t-button>
-                <t-button variant="outline" size="small" :disabled="batchLoading" @click="confirmBatchAction('unpublish')">
+                <t-button variant="outline" :disabled="batchLoading" @click="confirmBatchAction('unpublish')">
                   {{ t('content.batchUnpublish') }}
                 </t-button>
-                <t-button theme="danger" variant="outline" size="small" :disabled="batchLoading" @click="confirmBatchAction('delete')">
+                <t-button theme="danger" variant="outline" :disabled="batchLoading" @click="confirmBatchAction('delete')">
                   {{ t('content.batchDelete') }}
                 </t-button>
               </div>
@@ -521,8 +515,8 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 表格 -->
-          <div class="card" style="padding: 0; overflow: hidden;">
+          <!-- 表格 — 保留原生 table（动态列复杂）但优化样式 -->
+          <div class="card table-wrap">
             <table class="table">
               <thead>
                 <tr>
@@ -530,7 +524,7 @@ onMounted(() => {
                     <input
                       type="checkbox"
                       :checked="isAllSelected"
-                      :indeterminate="hasSelected && !isAllSelected"
+                      :indeterminate.prop="hasSelected && !isAllSelected"
                       @change="toggleSelectAll"
                     />
                   </th>
@@ -544,19 +538,16 @@ onMounted(() => {
                 </tr>
               </thead>
               <tbody>
+                <!-- Loading 行 -->
                 <tr v-if="loading">
                   <td colspan="7" class="loading-state">
-                    <div class="spinner"></div>
+                    <t-loading size="small" />
                     <span>{{ t('common.loading') }}</span>
                   </td>
                 </tr>
+                <!-- 空状态 -->
                 <tr v-else-if="entries.length === 0">
                   <td colspan="7" class="empty-state">
-                    <div class="empty-icon">
-                      <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-                        <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
-                      </svg>
-                    </div>
                     <p class="empty-title">{{ t('content.noContent') }}</p>
                     <p class="empty-desc">{{ t('content.createFirst') }}</p>
                     <t-button theme="primary" @click="openCreateModal">
@@ -564,6 +555,7 @@ onMounted(() => {
                     </t-button>
                   </td>
                 </tr>
+                <!-- 数据行 -->
                 <tr v-else v-for="entry in entries" :key="entry.id" :class="{ selected: selectedIds.has(entry.id) }">
                   <td class="checkbox-col">
                     <input
@@ -577,9 +569,9 @@ onMounted(() => {
                     {{ formatFieldValue(entry.values?.[field.name]) }}
                   </td>
                   <td>
-                    <span :class="['badge', getStatusClass(entry.status)]">
+                    <t-tag :theme="(getStatusTheme(entry.status) as any)" variant="light" size="small">
                       {{ getStatusLabel(entry.status) }}
-                    </span>
+                    </t-tag>
                   </td>
                   <td>{{ formatDate(entry.updated_time) }}</td>
                   <td class="actions-cell">
@@ -593,43 +585,24 @@ onMounted(() => {
                     >
                       {{ entry.status === 'published' ? t('content.unpublish') : t('content.publish') }}
                     </t-button>
-                    <t-button theme="danger" variant="outline" size="small" :disabled="deleteLoading" @click="confirmDelete(entry)">{{ t('common.delete') }}</t-button>
+                    <t-button theme="danger" variant="outline" size="small" @click="confirmDelete(entry)">{{ t('common.delete') }}</t-button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <!-- 分页 -->
-          <div class="pagination">
-            <div class="pagination-left">
-              <span class="pagination-info">{{ t('common.total') }} {{ total }} {{ t('common.items') }}</span>
-              <select v-model="pageSize" class="input page-size-select" @change="page = 1; loadEntries()">
-                <option :value="10">10 {{ t('common.perPage') }}</option>
-                <option :value="20">20 {{ t('common.perPage') }}</option>
-                <option :value="50">50 {{ t('common.perPage') }}</option>
-                <option :value="100">100 {{ t('common.perPage') }}</option>
-              </select>
-            </div>
-            <div class="pagination-right">
-              <t-button
-                variant="outline"
-                size="small"
-                :disabled="page === 1"
-                @click="page--; loadEntries()"
-              >
-                {{ t('common.prevPage') }}
-              </t-button>
-              <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) || 1 }}</span>
-              <t-button
-                variant="outline"
-                size="small"
-                :disabled="page >= Math.ceil(total / pageSize)"
-                @click="page++; loadEntries()"
-              >
-                {{ t('common.nextPage') }}
-              </t-button>
-            </div>
+          <!-- 分页 — t-pagination -->
+          <div class="pagination-bar">
+            <t-pagination
+              v-model:current="page"
+              v-model:pageSize="pageSize"
+              :total="total"
+              :show-page-size="true"
+              :page-size-options="[10, 20, 50, 100]"
+              size="small"
+              @change="onPageChange"
+            />
           </div>
         </template>
 
@@ -644,126 +617,113 @@ onMounted(() => {
       </template>
     </div>
 
-    <!-- 创建/编辑弹窗 -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ editingEntry ? t('content.createEntry') : t('content.createEntry') }}</h3>
-          <button class="modal-close" @click="closeModal">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div v-for="field in selectedType?.fields" :key="field.id" class="input-group">
-            <label class="input-label">
-              {{ field.label }}
-              <span v-if="field.required" class="required">*</span>
-            </label>
-            <input
-              v-if="field.field_type === 'text' || field.field_type === 'email' || field.field_type === 'url'"
+    <!-- 创建/编辑弹窗 — t-dialog + 动态 t-form 字段 -->
+    <t-dialog
+      v-model:visible="showModal"
+      :header="editingEntry ? t('content.editEntry') : t('content.createEntry')"
+      :width="640"
+      :confirm-btn="{ content: submitting ? t('common.processing') : (editingEntry ? t('common.save') : t('common.create')), theme: 'primary' as const, loading: submitting }"
+      :cancel-btn="{ content: t('common.cancel') }"
+      :confirm-on-enter="!editingEntry"
+      @confirm="handleSubmit"
+      @close="closeModal"
+    >
+      <t-form :data="formData" label-align="top">
+        <template v-for="field in selectedType?.fields" :key="field.id">
+          <!-- text / email / url -->
+          <t-form-item
+            v-if="['text','email','url'].includes(field.field_type)"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input
               v-model="formData[field.name]"
-              type="text"
-              class="input"
               :placeholder="t('content.enterField', { fieldName: field.label })"
+              clearable
             />
+          </t-form-item>
+
+          <!-- rich_text / json -->
+          <t-form-item
+            v-else-if="['rich_text','json'].includes(field.field_type)"
+            :label="field.label"
+          >
             <textarea
-              v-else-if="field.field_type === 'rich_text' || field.field_type === 'json'"
               v-model="formData[field.name]"
-              class="input"
+              class="entry-textarea"
               rows="4"
               :placeholder="t('content.enterField', { fieldName: field.label })"
             ></textarea>
-            <input
-              v-else-if="field.field_type === 'number'"
+          </t-form-item>
+
+          <!-- number -->
+          <t-form-item
+            v-else-if="field.field_type === 'number'"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input-number
               v-model="formData[field.name]"
-              type="number"
-              class="input"
+              theme="normal"
               :placeholder="t('content.enterNumber')"
             />
-            <input
-              v-else-if="field.field_type === 'date'"
-              v-model="formData[field.name]"
-              type="date"
-              class="input"
-            />
-            <input
-              v-else-if="field.field_type === 'datetime'"
-              v-model="formData[field.name]"
-              type="datetime-local"
-              class="input"
-            />
-            <label v-else-if="field.field_type === 'boolean'" class="checkbox-label">
-              <input v-model="formData[field.name]" type="checkbox" />
-              <span>{{ formData[field.name] ? t('content.yes') : t('content.no') }}</span>
-            </label>
-            <select
-              v-else-if="field.field_type === 'enum' && (field.options || field.config?.options)"
-              v-model="formData[field.name]"
-              class="input"
-            >
-              <option value="">{{ t('content.select') }}</option>
-              <option v-for="opt in (field.options || field.config?.options)" :key="opt" :value="opt">{{ opt }}</option>
-            </select>
-            <input
-              v-else
-              v-model="formData[field.name]"
-              type="text"
-              class="input"
-              :placeholder="t('content.enterField', { fieldName: field.label })"
-            />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="closeModal" :disabled="submitting">{{ t('common.cancel') }}</t-button>
-          <t-button theme="primary" :disabled="submitting" :loading="submitting" @click="handleSubmit">
-            {{ submitting ? t('common.processing') : (editingEntry ? t('common.save') : t('common.create')) }}
-          </t-button>
-        </div>
-      </div>
-    </div>
+          </t-form-item>
 
-    <!-- 删除确认弹窗 -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>{{ t('common.confirmDelete') }}</h3>
-        </div>
-        <div class="modal-body">
-          <p>{{ t('content.confirmDelete') }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="showDeleteConfirm = false" :disabled="deleteLoading">{{ t('common.cancel') }}</t-button>
-          <t-button theme="danger" :disabled="deleteLoading" :loading="deleteLoading" @click="handleDelete">
-            {{ deleteLoading ? t('common.deleting') : t('common.delete') }}
-          </t-button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 批量操作确认弹窗 -->
-    <div v-if="showBatchConfirm" class="modal-overlay" @click.self="showBatchConfirm = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>{{ t('common.confirmAction', { action: batchActionLabel }) }}</h3>
-        </div>
-        <div class="modal-body">
-          <p>{{ getBatchConfirmText() }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="showBatchConfirm = false" :disabled="batchLoading">{{ t('common.cancel') }}</t-button>
-          <t-button
-            :theme="batchAction === 'delete' ? 'danger' : 'primary'"
-            :disabled="batchLoading"
-            :loading="batchLoading"
-            @click="executeBatchAction"
+          <!-- date -->
+          <t-form-item
+            v-else-if="field.field_type === 'date'"
+            :label="field.label"
           >
-            {{ batchLoading ? t('common.processing') : batchActionLabel }}
-          </t-button>
-        </div>
-      </div>
-    </div>
+            <t-date-picker
+              v-model="formData[field.name]"
+              enable-time-picker={false}
+            />
+          </t-form-item>
+
+          <!-- datetime -->
+          <t-form-item
+            v-else-if="field.field_type === 'datetime'"
+            :label="field.label"
+          >
+            <t-date-picker
+              v-model="formData[field.name]"
+              enable-time-picker
+            />
+          </t-form-item>
+
+          <!-- boolean -->
+          <t-form-item
+            v-else-if="field.field_type === 'boolean'"
+            :label="field.label"
+          >
+            <t-switch v-model="formData[field.name]" />
+          </t-form-item>
+
+          <!-- enum -->
+          <t-form-item
+            v-else-if="field.field_type === 'enum'"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-select
+              v-model="formData[field.name]"
+              :placeholder="t('content.select')"
+              :options="((field as any).options || field.config?.options || []).map((opt: string) => ({ label: opt, value: opt })) as any"
+              clearable
+            />
+          </t-form-item>
+
+          <!-- fallback: text input -->
+          <t-form-item
+            v-else
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input
+              v-model="formData[field.name]"
+              :placeholder="t('content.enterField', { fieldName: field.label })"
+              clearable
+            />
+          </t-form-item>
+        </template>
+      </t-form>
+    </t-dialog>
   </div>
 </template>
 
@@ -778,6 +738,7 @@ onMounted(() => {
   height: calc(100vh - 160px);
 }
 
+/* === Sidebar === */
 .type-sidebar {
   width: 240px;
   background: var(--color-card);
@@ -863,6 +824,7 @@ onMounted(() => {
   color: var(--color-primary);
 }
 
+/* === Main content === */
 .content-main {
   flex: 1;
   min-width: 0;
@@ -875,12 +837,15 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .toolbar-left h2 {
@@ -893,6 +858,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .batch-actions {
@@ -911,47 +877,12 @@ onMounted(() => {
   margin-right: 4px;
 }
 
-/* 搜索框 */
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
+/* === Table === */
+.table-wrap {
+  padding: 0 !important;
+  overflow: hidden;
 }
 
-.search-icon {
-  position: absolute;
-  left: 10px;
-  color: var(--color-text-secondary);
-  pointer-events: none;
-}
-
-.search-input {
-  padding-left: 34px !important;
-  padding-right: 34px !important;
-  width: 200px;
-}
-
-.search-clear {
-  position: absolute;
-  right: 8px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.search-clear:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
-
-/* 多选列 */
 .checkbox-col {
   width: 40px;
   text-align: center;
@@ -964,7 +895,6 @@ onMounted(() => {
   accent-color: var(--color-primary);
 }
 
-/* 选中行样式 */
 tr.selected {
   background: var(--color-primary-light) !important;
 }
@@ -977,139 +907,9 @@ tr.selected {
 
 .actions-cell {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
-.text-center {
-  text-align: center;
-  padding: 40px !important;
-  color: var(--color-text-secondary);
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-}
-
-.pagination-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pagination-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pagination-info {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.pagination-current {
-  font-size: 14px;
-  color: var(--color-text);
-  min-width: 60px;
-  text-align: center;
-}
-
-.page-size-select {
-  width: auto;
-  padding: 4px 28px 4px 8px;
-  font-size: 13px;
-}
-
-.required {
-  color: var(--color-error);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  width: 600px;
-  max-height: 80vh;
-  background: var(--color-card);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-sm {
-  width: 400px;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.modal-close:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
-
-.modal-body {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-}
-
-/* Loading 状态 */
 .loading-state {
   text-align: center;
   padding: 40px !important;
@@ -1120,42 +920,9 @@ tr.selected {
   gap: 12px;
 }
 
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* 按钮内 loading */
-.btn-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
-/* 空态优化 */
 .empty-state {
   text-align: center;
   padding: 48px 24px !important;
-}
-
-.empty-icon {
-  margin-bottom: 16px;
 }
 
 .empty-title {
@@ -1171,18 +938,35 @@ tr.selected {
   margin: 0 0 20px;
 }
 
-/* 按钮禁用状态 */
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* === Pagination === */
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
-.btn:disabled .btn-spinner {
-  border-color: currentColor;
-  border-top-color: transparent;
+/* === Form textarea === */
+.entry-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg-white);
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
-/* 无站点提示 */
+.entry-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 22, 119, 255), 0.15);
+}
+
+/* === No site === */
 .no-site-container {
   flex: 1;
   display: flex;

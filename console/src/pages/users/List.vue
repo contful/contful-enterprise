@@ -12,151 +12,85 @@
       </t-button>
     </div>
 
-    <!-- 用户列表 -->
-    <div class="card" style="padding: 0; overflow: hidden;">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>{{ t('users.user') }}</th>
-            <th>{{ t('users.email') }}</th>
-            <th>{{ t('users.role') }}</th>
-            <th>{{ t('users.status') }}</th>
-            <th>{{ t('users.createdTime') }}</th>
-            <th>{{ t('users.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="6" class="text-center">{{ t('users.loading') }}</td>
-          </tr>
-          <tr v-else-if="users.length === 0">
-            <td colspan="6" class="empty-state">
-              <h3>{{ t('users.noUsers') }}</h3>
-              <p>{{ t('users.noUsersHint') }}</p>
-            </td>
-          </tr>
-          <tr v-else v-for="row in users" :key="row.id">
-            <td>
-              <div class="user-info">
-                <div class="user-avatar">{{ row.email?.charAt(0).toUpperCase() }}</div>
-                <span class="user-name">{{ row.nickname || '—' }}</span>
-              </div>
-            </td>
-            <td>{{ row.email }}</td>
-            <td>
-              <span v-if="row.is_super_admin" class="badge badge-warning">{{ t('users.superAdmin') }}</span>
-              <span v-else class="badge badge-default">{{ t('users.normalUser') }}</span>
-            </td>
-            <td>
-              <span :class="['badge', getStatusBadge(row.status)]">{{ getStatusText(row.status) }}</span>
-            </td>
-            <td>{{ formatDate(row.created_time) }}</td>
-            <td>
-              <div style="display:flex;gap:8px;">
-                <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
-                <t-button
-                  theme="danger"
-                  variant="outline"
-                  size="small"
-                  :disabled="row.is_super_admin"
-                  @click="handleDelete(row)"
-                >{{ t('common.delete') }}</t-button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- 用户列表 — t-table -->
+    <t-table
+      :data="users"
+      :columns="columns"
+      :loading="loading"
+      :pagination="{ current: pagination.current, total: pagination.total, pageSize: pagination.pageSize, showPageSize: false }"
+      row-key="id"
+      @page-change="onPageChange"
+      hover
+      stripe
+      size="medium"
+    />
 
-    <!-- 分页 -->
-    <div v-if="users.length > 0" class="pagination-bar">
-      <t-pagination
-        v-model="pagination.current"
-        :total="pagination.total"
-        :page-size="pagination.pageSize"
-        :show-page-size="false"
-        @change="onPageChange"
-      />
-    </div>
-
-    <!-- 创建用户弹窗 -->
-    <div v-if="createVisible" class="modal-overlay" @click.self="createVisible = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ t('users.createTitle') }}</h3>
-        </div>
-        <div class="modal-body">
-          <div class="input-group">
-            <label class="input-label">{{ t('users.email') }} <span class="required">*</span></label>
-            <input v-model="createForm.email" class="input" type="email" :placeholder="t('users.enterEmail')" />
-          </div>
-          <div class="input-group">
-            <label class="input-label">{{ t('users.password') }} <span class="required">*</span></label>
-            <input v-model="createForm.password" class="input" type="password" :placeholder="t('users.enterPassword')" />
-            <div class="password-strength">
-              <div class="strength-bar">
-                <div class="strength-fill" :class="passwordStrength.level" :style="{ width: passwordStrength.width }"></div>
-              </div>
-              <span class="strength-text" :class="passwordStrength.level">{{ passwordStrength.label }}</span>
+    <!-- 创建用户弹窗 — t-dialog + t-form -->
+    <t-dialog
+      v-model:visible="createVisible"
+      :header="t('users.createTitle')"
+      :width="480"
+      :confirm-btn="{ content: creating ? t('common.creating') : t('common.create'), theme: 'primary' as const, loading: creating }"
+      :cancel-btn="{ content: t('common.cancel') }"
+      @confirm="handleCreate"
+    >
+      <t-form :data="createForm" label-align="top">
+        <t-form-item :label="`${t('users.email')} *`">
+          <t-input v-model="createForm.email" type="email" :placeholder="t('users.enterEmail')" clearable />
+          <template v-if="createError && createError.includes('@')" #help>
+            <span class="form-error">{{ createError }}</span>
+          </template>
+        </t-form-item>
+        <t-form-item :label="`${t('users.password')} *`">
+          <t-input v-model="createForm.password" type="password" :placeholder="t('users.enterPassword')" clearable />
+          <!-- 密码强度条 -->
+          <div class="password-strength">
+            <div class="strength-bar">
+              <div class="strength-fill" :class="passwordStrength.level" :style="{ width: passwordStrength.width }"></div>
             </div>
-            <div class="password-hint">{{ t('users.passwordHint') }}</div>
+            <span class="strength-text" :class="passwordStrength.level">{{ passwordStrength.label }}</span>
           </div>
-          <div class="input-group">
-            <label class="input-label">{{ t('users.nickname') }}</label>
-            <input v-model="createForm.nickname" class="input" type="text" :placeholder="t('users.enterNickname')" />
-          </div>
-          <div class="input-group">
-            <label class="input-label">{{ t('users.superAdminSwitch') }}</label>
-            <t-switch v-model="createForm.is_super_admin" />
-          </div>
-          <p v-if="createError" class="form-error">{{ createError }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="createVisible = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="primary" :disabled="creating" :loading="creating" @click="handleCreate">
-            {{ creating ? t('common.creating') : t('common.create') }}
-          </t-button>
-        </div>
-      </div>
-    </div>
+          <p class="password-hint">{{ t('users.passwordHint') }}</p>
+        </t-form-item>
+        <t-form-item :label="t('users.nickname')">
+          <t-input v-model="createForm.nickname" :placeholder="t('users.enterNickname')" clearable />
+        </t-form-item>
+        <t-form-item :label="t('users.superAdminSwitch')">
+          <t-switch v-model="createForm.is_super_admin" />
+        </t-form-item>
+        <t-alert v-if="createError && !createError.includes('@')" theme="error" :message="createError" closable @close="createError = ''" />
+      </t-form>
+    </t-dialog>
 
-    <!-- 编辑用户弹窗 -->
-    <div v-if="editVisible" class="modal-overlay" @click.self="editVisible = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ t('users.editTitle') }}</h3>
-        </div>
-        <div class="modal-body">
-          <div class="input-group">
-            <label class="input-label">{{ t('users.email') }}</label>
-            <input v-model="editForm.email" class="input" disabled />
-          </div>
-          <div class="input-group">
-            <label class="input-label">{{ t('users.nickname') }}</label>
-            <input v-model="editForm.nickname" class="input" type="text" :placeholder="t('users.enterNickname')" />
-          </div>
-          <div class="input-group">
-            <label class="input-label">{{ t('users.status') }}</label>
-            <select v-model="editForm.status" class="input">
-              <option value="active">{{ t('users.statusActive') }}</option>
-              <option value="inactive">{{ t('users.statusInactive') }}</option>
-              <option value="suspended">{{ t('users.statusBanned') }}</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label class="input-label">{{ t('users.superAdminSwitch') }}</label>
-            <t-switch v-model="editForm.is_super_admin" :disabled="editForm.is_super_admin" />
-          </div>
-          <p v-if="editError" class="form-error">{{ editError }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="editVisible = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="primary" :disabled="updating" :loading="updating" @click="handleUpdate">
-            {{ updating ? t('common.saving') : t('common.save') }}
-          </t-button>
-        </div>
-      </div>
-    </div>
+    <!-- 编辑用户弹窗 — t-dialog + t-form -->
+    <t-dialog
+      v-model:visible="editVisible"
+      :header="t('users.editTitle')"
+      :width="480"
+      :confirm-btn="{ content: updating ? t('common.saving') : t('common.save'), theme: 'primary' as const, loading: updating }"
+      :cancel-btn="{ content: t('common.cancel') }"
+      @confirm="handleUpdate"
+    >
+      <t-form :data="editForm" label-align="top">
+        <t-form-item :label="t('users.email')">
+          <t-input v-model="editForm.email" disabled />
+        </t-form-item>
+        <t-form-item :label="t('users.nickname')">
+          <t-input v-model="editForm.nickname" :placeholder="t('users.enterNickname')" clearable />
+        </t-form-item>
+        <t-form-item :label="t('users.status')">
+          <t-select v-model="editForm.status" :options="[
+            { label: t('users.statusActive'), value: 'active' },
+            { label: t('users.statusInactive'), value: 'inactive' },
+            { label: t('users.statusBanned'), value: 'suspended' },
+          ]" />
+        </t-form-item>
+        <t-form-item :label="t('users.superAdminSwitch')">
+          <t-switch v-model="editForm.is_super_admin" :disabled="editForm.is_super_admin" />
+        </t-form-item>
+        <t-alert v-if="editError" theme="error" :message="editError" closable @close="editError = ''" />
+      </t-form>
+    </t-dialog>
   </div>
 </template>
 
@@ -165,7 +99,7 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
@@ -260,22 +194,13 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString()
 }
 
-const getStatusBadge = (status: string): string => {
-  const map: Record<string, string> = {
-    active: 'badge-success',
-    inactive: 'badge-warning',
-    suspended: 'badge-error',
+const getStatusBadge = (status: string): 'success' | 'warning' | 'danger' | 'default' => {
+  const map: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
+    active: 'success',
+    inactive: 'warning',
+    suspended: 'danger',
   }
-  return map[status] || 'badge-default'
-}
-
-const getStatusText = (status: string) => {
-  const map: Record<string, string> = {
-    active: t('users.statusActive'),
-    inactive: t('users.statusInactive'),
-    suspended: t('users.statusBanned'),
-  }
-  return map[status] || status
+  return map[status] || 'default'
 }
 
 /**
@@ -367,27 +292,69 @@ const handleDelete = (user: User) => {
   })
 }
 
+// t-table columns
+const columns = computed(() => [
+  {
+    colKey: 'user',
+    title: t('users.user'),
+    cell: (_h: any, { row }: { row: User }) => h('div', { class: 'user-info' }, [
+      h('div', { class: 'user-avatar' }, row.email?.charAt(0).toUpperCase()),
+      h('span', { class: 'user-name' }, row.nickname || '\u2014'),
+    ]),
+  },
+  { colKey: 'email', title: t('users.email') },
+  {
+    colKey: 'role',
+    title: t('users.role'),
+    cell: (h: any, { row }: { row: User }) => {
+      const isAdmin = row.is_super_admin || (row as unknown as Record<string, any>).role === 'super_admin'
+      return isAdmin
+        ? h('t-tag', { props: { theme: 'warning', variant: 'light', size: 'small' } }, () => t('users.superAdmin'))
+        : h('t-tag', { props: { variant: 'light', size: 'small' } }, () => t('users.normalUser'))
+    },
+  },
+  {
+    colKey: 'status',
+    title: t('users.status'),
+    cell: (h: any, { row }: { row: User }) => {
+      const status = row.status || 'unknown'
+      const theme = getStatusBadge(status)
+      const map: Record<string, string> = {
+        active: t('users.statusActive'),
+        inactive: t('users.statusInactive'),
+        suspended: t('users.statusBanned'),
+      }
+      return h('t-tag', { props: { theme, variant: 'light', size: 'small' } }, () => map[status] || status)
+    },
+  },
+  { colKey: 'created_time', title: t('users.createdTime'), cell: (_h: any, { row }: { row: User }) => formatDate(row.created_time) },
+  {
+    colKey: 'operations',
+    title: t('users.actions'),
+    cell: (h: any, { row }: { row: User }) => h('div', { class: 'action-btns' }, [
+      h('t-tooltip', { props: { content: t('common.edit') } }, () =>
+        h('t-button', {
+          props: { variant: 'outline', size: 'small', shape: 'circle' },
+          on: { click: () => openEditDialog(row) },
+        }, () => h('t-icon', { props: { name: 'edit' } }))
+      ),
+      h('t-tooltip', { props: { content: t('common.delete') } }, () =>
+        h('t-button', {
+          props: { theme: 'danger', variant: 'outline', size: 'small', shape: 'circle', disabled: row.is_super_admin },
+          on: { click: () => handleDelete(row) },
+        }, () => h('t-icon', { props: { name: 'delete' } }))
+      ),
+    ]),
+  },
+])
+
 onMounted(() => {
   loadUsers()
 })
 </script>
 
-<style scoped>
-.users-page {
-  padding: 24px;
-}
-
-.text-center {
-  text-align: center;
-  padding: 40px !important;
-}
-
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
+<!-- 非 scoped：供 h() 渲染的表格单元格使用 -->
+<style>
 .user-info {
   display: flex;
   align-items: center;
@@ -412,17 +379,22 @@ onMounted(() => {
   font-weight: 500;
   color: var(--color-text);
 }
+</style>
 
-.required {
-  color: var(--color-error);
+<style scoped>
+.users-page {
+  height: 100%;
+  padding: 24px;
 }
 
+/* === Form error === */
 .form-error {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 4px;
+  font-size: 12px;
   color: var(--color-error);
 }
 
+/* === Password strength === */
 .password-strength {
   display: flex;
   align-items: center;
@@ -462,43 +434,9 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+/* === Action buttons in table === */
+.action-btns {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: var(--color-card);
-  border-radius: 12px;
-  width: 480px;
-  max-width: 90vw;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  padding: 20px 24px 0;
-}
-
-.modal-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.modal-body {
-  padding: 20px 24px;
-}
-
-.modal-footer {
-  padding: 0 24px 20px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
 }
 </style>

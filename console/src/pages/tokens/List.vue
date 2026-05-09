@@ -3,9 +3,9 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
 import {
   getApiTokens,
   createApiToken,
@@ -27,14 +27,9 @@ const pagination = reactive({
   pageSize: 20,
   total: 0,
 })
+// 创建/编辑/显示新 Token 弹窗
 const showModal = ref(false)
-const showDeleteConfirm = ref(false)
-const showRegenerateConfirm = ref(false)
-const showExportConfirm = ref(false)
 const editingToken = ref<ApiToken | null>(null)
-const tokenToDelete = ref<ApiToken | null>(null)
-const tokenToRegenerate = ref<ApiToken | null>(null)
-const tokenToExport = ref<ApiToken | null>(null)
 const newToken = ref('')
 const submitting = ref(false)
 
@@ -47,7 +42,7 @@ const formData = ref({
   rate_limit: 1000,
 })
 
-// 权限选项（labelKey 模式）
+// 权限选项
 const permissionOptions = [
   { value: 'content:read', labelKey: 'apiTokens.permissionContentRead' },
   { value: 'content:write', labelKey: 'apiTokens.permissionContentWrite' },
@@ -64,7 +59,6 @@ const loadTokens = async () => {
   loading.value = true
   try {
     const res = await getApiTokens({ page: pagination.current, page_size: pagination.pageSize })
-    // getApiTokens 返回的 res 已经是 APITokenListResponse（内部已解包 response.data.data）
     tokens.value = res?.items || []
     pagination.total = res?.total || 0
   } catch (error) {
@@ -84,26 +78,24 @@ const onPageChange = ({ current, pageSize }: { current: number; pageSize: number
 // 打开创建弹窗
 const openCreateModal = () => {
   editingToken.value = null
-  formData.value = {
-    name: '',
-    description: '',
-    expires_in_days: 365,
-    permissions: [],
-    rate_limit: 1000,
-  }
+  formData.value = { name: '', description: '', expires_in_days: 365, permissions: [], rate_limit: 1000 }
+  newToken.value = ''
   showModal.value = true
 }
 
 // 打开编辑弹窗
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const openEditModal = (token: ApiToken) => {
+  const tok = token as unknown as Record<string, any>
   editingToken.value = token
   formData.value = {
     name: token.name,
     description: token.description || '',
-    expires_in_days: token.expires_in_days || 365,
-    permissions: token.permissions || [],
-    rate_limit: token.rate_limit || 1000,
+    expires_in_days: tok.expires_in_days || 365,
+    permissions: (tok.permissions as string[]) || [],
+    rate_limit: tok.rate_limit || tok.rate_limits?.requests_per_day || 1000,
   }
+  newToken.value = ''
   showModal.value = true
 }
 
@@ -130,7 +122,6 @@ const handleSubmit = async () => {
       })
       newToken.value = res.token || ''
       MessagePlugin.success(t('apiTokens.createSuccess'))
-      // 不关闭弹窗，让用户看到新 Token
     }
     await loadTokens()
   } catch (error) {
@@ -138,87 +129,6 @@ const handleSubmit = async () => {
   } finally {
     submitting.value = false
   }
-}
-
-// 删除确认
-const confirmDelete = (token: ApiToken) => {
-  tokenToDelete.value = token
-  showDeleteConfirm.value = true
-}
-
-// 执行删除
-const handleDelete = async () => {
-  if (!tokenToDelete.value) return
-
-  try {
-    await deleteApiToken(tokenToDelete.value.id)
-    MessagePlugin.success(t('apiTokens.deleteSuccess'))
-    showDeleteConfirm.value = false
-    tokenToDelete.value = null
-    await loadTokens()
-  } catch (error) {
-    showError(error)
-  }
-}
-
-// 重新生成 Token
-const confirmRegenerate = (token: ApiToken) => {
-  tokenToRegenerate.value = token
-  showRegenerateConfirm.value = true
-}
-
-const handleRegenerate = async () => {
-  if (!tokenToRegenerate.value) return
-
-  try {
-    const res = await regenerateApiToken(tokenToRegenerate.value.id)
-    newToken.value = res.token || ''
-    showRegenerateConfirm.value = false
-    // 打开主弹窗显示新 Token
-    showModal.value = true
-    editingToken.value = null
-    tokenToRegenerate.value = null
-    await loadTokens()
-  } catch (error) {
-    showError(error)
-  }
-}
-
-// 撤销 Token
-const handleRevoke = async (token: ApiToken) => {
-  try {
-    await revokeApiToken(token.id)
-    await loadTokens()
-  } catch (error) {
-    showError(error)
-  }
-}
-
-// 导出 Token（查看详情）
-const confirmExport = (token: ApiToken) => {
-  tokenToExport.value = token
-  showExportConfirm.value = true
-}
-
-const handleExport = async () => {
-  if (!tokenToExport.value) return
-
-  try {
-    const res = await exportApiToken(tokenToExport.value.id)
-    newToken.value = res.token || ''
-    showExportConfirm.value = false
-    showModal.value = true
-    editingToken.value = null
-    tokenToExport.value = null
-    // 注意：不需要 reload，因为 Token 未重新生成
-  } catch (error) {
-    showError(error)
-  }
-}
-
-// 复制 Token
-const copyToken = (token: string) => {
-  navigator.clipboard.writeText(token)
 }
 
 // 关闭弹窗
@@ -240,17 +150,189 @@ const isExpired = (expiresAt: string | null) => {
 }
 
 // 获取状态标签
-const getStatusClass = (token: ApiToken) => {
-  if (token.revoked) return 'badge-error'
-  if (isExpired(token.expires_time)) return 'badge-warning'
-  return 'badge-success'
+const getStatusTag = (token: ApiToken): { theme: 'success' | 'warning' | 'danger' | 'default'; label: string } => {
+  const tok = token as unknown as Record<string, any>
+  if (tok.revoked || token.status === 'revoked') return { theme: 'danger', label: t('apiTokens.revoked') }
+  if (isExpired(token.expires_time) || token.status === 'expired') return { theme: 'warning', label: t('apiTokens.expired') }
+  return { theme: 'success', label: t('apiTokens.active') || 'Active' }
 }
 
-const getStatusLabel = (token: ApiToken) => {
-  if (token.revoked) return t('apiTokens.revoked')
-  if (isExpired(token.expires_time)) return t('apiTokens.expired')
-  return t('apiTokens.active') || 'Active'
+// 删除确认 → DialogPlugin.confirm
+const handleDeleteConfirm = (token: ApiToken) => {
+  DialogPlugin.confirm({
+    header: t('common.confirmDelete'),
+    body: t('apiTokens.deleteMsg'),
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        await deleteApiToken(token.id)
+        MessagePlugin.success(t('apiTokens.deleteSuccess'))
+        await loadTokens()
+      } catch (error) {
+        showError(error)
+      }
+    },
+  })
 }
+
+// 重新生成确认 → DialogPlugin.confirm
+const handleRegenerateConfirm = (token: ApiToken) => {
+  DialogPlugin.confirm({
+    header: t('apiTokens.regenerateConfirm'),
+    body: `${t('apiTokens.regenerateMsg')}<p style="color:var(--color-error);margin-top:8px">${t('apiTokens.regenerateWarning')}</p>`,
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        const res = await regenerateApiToken(token.id)
+        newToken.value = res.token || ''
+        editingToken.value = null // 以"显示新token"模式打开主弹窗
+        formData.value = { name: '', description: '', expires_in_days: 365, permissions: [], rate_limit: 1000 }
+        showModal.value = true
+        await loadTokens()
+      } catch (error) {
+        showError(error)
+      }
+    },
+  })
+}
+
+// 撤销 Token
+const handleRevoke = (token: ApiToken) => {
+  DialogPlugin.confirm({
+    header: t('apiTokens.revoke'),
+    body: t('apiTokens.revokeWarning') || `${t('apiTokens.revoke')} "${token.name}"?`,
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        await revokeApiToken(token.id)
+        MessagePlugin.success(t('apiTokens.revokeSuccess'))
+        await loadTokens()
+      } catch (error) {
+        showError(error)
+      }
+    },
+  })
+}
+
+// 导出/查看详情 → DialogPlugin.confirm
+const handleExportConfirm = (token: ApiToken) => {
+  DialogPlugin.confirm({
+    header: t('apiTokens.exportConfirm'),
+    body: `${t('apiTokens.exportMsg')}<p style="color:var(--color-error);margin-top:8px">${t('apiTokens.exportWarningDetail')}</p>`,
+    theme: 'info',
+    confirmBtn: t('common.confirm') || 'Confirm',
+    onConfirm: async () => {
+      try {
+        const res = await exportApiToken(token.id)
+        newToken.value = res.token || ''
+        editingToken.value = null
+        formData.value = { name: '', description: '', expires_in_days: 365, permissions: [], rate_limit: 1000 }
+        showModal.value = true
+      } catch (error) {
+        showError(error)
+      }
+    },
+  })
+}
+
+// 复制 Token（带反馈）
+const copyToken = async (token: string) => {
+  try {
+    await navigator.clipboard.writeText(token)
+    MessagePlugin.success(t('common.copied') || 'Copied to clipboard')
+  } catch {
+    // fallback: 旧浏览器不支持 clipboard API 时静默失败
+  }
+}
+
+// t-table columns 定义
+const columns = computed(() => [
+  {
+    colKey: 'name',
+    title: t('apiTokens.tableName'),
+    cell: (h: any, { row }: { row: ApiToken }) => h('div', { class: 'token-info' }, [
+      h('span', { class: 'token-name' }, row.name),
+      row.description ? h('span', { class: 'token-desc' }, row.description) : null,
+    ].filter(Boolean)),
+  },
+  {
+    colKey: 'permissions',
+    title: t('apiTokens.tablePermissions'),
+    cell: (_h2: any, { row }: { row: ApiToken }) => {
+      const tok = row as unknown as Record<string, any>
+      const schemas = tok.permissions?.schemas || (Array.isArray(tok.permissions) ? tok.permissions : [])
+      return h('div', { class: 'permissions' }, [
+        ...String(schemas).slice(0, 2).split(',').map((perm: string) =>
+          h('span', { class: 'perm-badge', key: perm }, perm)
+        ),
+      ].filter(Boolean))
+    },
+  },
+  {
+    colKey: 'rate_limits',
+    title: t('apiTokens.tableRateLimit'),
+    cell: (_h: any, { row }: { row: ApiToken }) =>
+      `${row.rate_limits?.requests_per_day || 0}/${t('apiTokens.rateLimitUnit')}`,
+  },
+  {
+    colKey: 'expires_time',
+    title: t('apiTokens.tableExpires'),
+    cell: (_h: any, { row }: { row: ApiToken }) => formatDate(row.expires_time),
+  },
+  {
+    colKey: 'status',
+    title: t('apiTokens.tableStatus'),
+    cell: (h: any, { row }: { row: ApiToken }) => {
+      const st = getStatusTag(row)
+      return h('t-tag', { props: { theme: st.theme, variant: 'light', size: 'small' } }, () => st.label)
+    },
+  },
+  {
+    colKey: 'created_time',
+    title: t('common.createdAt'),
+    cell: (_h: any, { row }: { row: ApiToken }) => new Date(row.created_time).toLocaleDateString(),
+  },
+  {
+    colKey: 'operations',
+    title: t('common.actions'),
+    cell: (_h: any, { row }: { row: ApiToken }) => {
+      const tok = row as unknown as Record<string, any>
+      const active = (!tok.revoked && row.status !== 'revoked') && !isExpired(row.expires_time)
+      return h('div', { class: 'action-btns' }, [
+        active ? h('t-tooltip', { props: { content: t('common.edit') } }, () =>
+          h('t-button', {
+            props: { variant: 'outline', size: 'small', shape: 'circle' },
+            on: { click: () => openEditModal(row) },
+          }, () => h('t-icon', { props: { name: 'edit' } }))
+        ) : null,
+        active ? h('t-tooltip', { props: { content: t('apiTokens.viewDetail') } }, () =>
+          h('t-button', {
+            props: { variant: 'outline', size: 'small', shape: 'circle' },
+            on: { click: () => handleExportConfirm(row) },
+          }, () => h('t-icon', { props: { name: 'browse' } }))
+        ) : null,
+        active ? h('t-tooltip', { props: { content: t('apiTokens.regenerate') } }, () =>
+          h('t-button', {
+            props: { variant: 'outline', size: 'small', shape: 'circle' },
+            on: { click: () => handleRegenerateConfirm(row) },
+          }, () => h('t-icon', { props: { name: 'refresh' } }))
+        ) : null,
+        (!tok.revoked && row.status !== 'revoked') ? h('t-tooltip', { props: { content: t('apiTokens.revoke') } }, () =>
+          h('t-button', {
+            props: { variant: 'outline', size: 'small', shape: 'circle' },
+            on: { click: () => handleRevoke(row) },
+          }, () => h('t-icon', { props: { name: 'close-circle' } }))
+        ) : null,
+        h('t-tooltip', { props: { content: t('common.delete') } }, () =>
+          h('t-button', {
+            props: { theme: 'danger', variant: 'outline', size: 'small', shape: 'circle' },
+            on: { click: () => handleDeleteConfirm(row) },
+          }, () => h('t-icon', { props: { name: 'delete' } }))
+        ),
+      ].filter(Boolean))
+    },
+  },
+])
 
 onMounted(() => {
   loadTokens()
@@ -270,266 +352,88 @@ onMounted(() => {
       </t-button>
     </div>
 
-    <!-- Token 列表 -->
-    <div class="card" style="padding: 0; overflow: hidden;">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>{{ t('apiTokens.tableName') }}</th>
-            <th>{{ t('apiTokens.tablePermissions') }}</th>
-            <th>{{ t('apiTokens.tableRateLimit') }}</th>
-            <th>{{ t('apiTokens.tableExpires') }}</th>
-            <th>{{ t('apiTokens.tableStatus') }}</th>
-            <th>{{ t('common.createdAt') }}</th>
-            <th>{{ t('common.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="7" class="text-center">{{ t('apiTokens.loading') }}</td>
-          </tr>
-          <tr v-else-if="tokens.length === 0">
-            <td colspan="7" class="empty-td">
-              <h3>{{ t('apiTokens.noTokens') }}</h3>
-              <p>{{ t('apiTokens.noTokensHint') }}</p>
-            </td>
-          </tr>
-          <tr v-else v-for="token in tokens" :key="token.id">
-            <td>
-              <div class="token-info">
-                <span class="token-name">{{ token.name }}</span>
-                <span v-if="token.description" class="token-desc">{{ token.description }}</span>
-              </div>
-            </td>
-            <td>
-              <div class="permissions">
-                <span
-                  v-for="perm in (token.permissions?.schemas || []).slice(0, 2)"
-                  :key="perm"
-                  class="perm-badge"
-                >
-                  {{ perm }}
-                </span>
-                <span v-if="(token.permissions?.schemas?.length || 0) > 2" class="perm-more">
-                  +{{ token.permissions!.schemas!.length - 2 }}
-                </span>
-              </div>
-            </td>
-            <td>{{ token.rate_limits?.requests_per_day || 0 }}/{{ t('apiTokens.rateLimitUnit') }}</td>
-            <td>{{ formatDate(token.expires_time) }}</td>
-            <td>
-              <span :class="['badge', getStatusClass(token)]">
-                {{ getStatusLabel(token) }}
-              </span>
-            </td>
-            <td>{{ new Date(token.created_time).toLocaleDateString() }}</td>
-            <td>
-              <div class="action-btns">
-                <t-button
-                  v-if="!token.revoked && !isExpired(token.expires_time)"
-                  variant="outline"
-                  size="small"
-                  @click="confirmExport(token)"
-                  :title="t('apiTokens.viewDetail')"
-                >
-                  <template #icon><t-icon name="browse" /></template>
-                </t-button>
-                <t-button
-                  v-if="!token.revoked && !isExpired(token.expires_time)"
-                  variant="outline"
-                  size="small"
-                  @click="confirmRegenerate(token)"
-                  :title="t('apiTokens.regenerate')"
-                >
-                  <template #icon><t-icon name="refresh" /></template>
-                </t-button>
-                <t-button
-                  v-if="!token.revoked"
-                  variant="outline"
-                  size="small"
-                  @click="handleRevoke(token)"
-                  :title="t('apiTokens.revoke')"
-                >
-                  <template #icon><t-icon name="close-circle" /></template>
-                </t-button>
-                <t-button
-                  theme="danger"
-                  variant="outline"
-                  size="small"
-                  @click="confirmDelete(token)"
-                  :title="t('common.delete')"
-                >
-                  <template #icon><t-icon name="delete" /></template>
-                </t-button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- Token 列表 — t-table -->
+    <t-table
+      :data="tokens"
+      :columns="(columns as any)"
+      :loading="loading"
+      :pagination="{ current: pagination.current, total: pagination.total, pageSize: pagination.pageSize, showPageSize: false }"
+      row-key="id"
+      @page-change="onPageChange"
+      :empty="() => h('div', { class: 'empty-state' }, [
+        h('p', {}, t('apiTokens.noTokens')),
+        h('p', { class: 'empty-hint' }, t('apiTokens.noTokensHint')),
+      ])"
+      hover
+      stripe
+      size="medium"
+    />
 
-    <!-- 分页 -->
-    <div v-if="tokens.length > 0" class="pagination-bar">
-      <t-pagination
-        v-model="pagination.current"
-        :total="pagination.total"
-        :page-size="pagination.pageSize"
-        :show-page-size="false"
-        @change="onPageChange"
-      />
-    </div>
-
-    <!-- 创建/编辑弹窗 -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ editingToken ? t('apiTokens.editTitle') : t('apiTokens.createTitle') }}</h3>
-          <button class="modal-close" @click="closeModal">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <!-- 新 Token 显示 -->
-          <div v-if="newToken" class="new-token-display">
-            <div class="new-token-label">{{ t('apiTokens.tokenShownOnce') }}</div>
-            <div class="new-token-value">
-              <code>{{ newToken }}</code>
-              <t-button variant="outline" size="small" @click="copyToken(newToken)">
-                {{ t('common.copy') || 'Copy' }}
-              </t-button>
-            </div>
-            <p class="new-token-warning">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"/>
-              </svg>
-              {{ t('apiTokens.onlyShowOnce') }}
-            </p>
-          </div>
-
-          <template v-else>
-            <div class="input-group">
-              <label class="input-label">{{ t('apiTokens.tableName') }} <span class="required">*</span></label>
-              <input
-                v-model="formData.name"
-                type="text"
-                class="input"
-                :placeholder="t('apiTokens.tokenNamePlaceholder')"
-              />
-            </div>
-
-            <div class="input-group">
-              <label class="input-label">{{ t('apiTokens.description') }}</label>
-              <input
-                v-model="formData.description"
-                type="text"
-                class="input"
-                :placeholder="t('apiTokens.descriptionPlaceholder')"
-              />
-            </div>
-
-            <div class="input-group">
-              <label class="input-label">{{ t('apiTokens.expiresAt') }}</label>
-              <select v-model="formData.expires_in_days" class="input">
-                <option :value="30">{{ t('apiTokens.expiredDays', { days: 30 }) }}</option>
-                <option :value="90">{{ t('apiTokens.expiredDays', { days: 90 }) }}</option>
-                <option :value="180">{{ t('apiTokens.expiredDays', { days: 180 }) }}</option>
-                <option :value="365">1 {{ t('settings.year') }}</option>
-                <option :value="0">{{ t('apiTokens.permanent') }}</option>
-              </select>
-            </div>
-
-            <div class="input-group">
-              <label class="input-label">{{ t('apiTokens.permissions') }}</label>
-              <div class="permissions-grid">
-                <label
-                  v-for="opt in permissionLabels"
-                  :key="opt.value"
-                  class="permission-item"
-                >
-                  <input
-                    type="checkbox"
-                    :value="opt.value"
-                    v-model="formData.permissions"
-                  />
-                  <span>{{ opt.label }}</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="input-group">
-              <label class="input-label">{{ t('apiTokens.rateLimit') }} ({{ t('apiTokens.rateLimitUnit') }})</label>
-              <input
-                v-model="formData.rate_limit"
-                type="number"
-                class="input"
-                min="100"
-                max="100000"
-              />
-            </div>
-          </template>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="closeModal">
-            {{ newToken ? t('common.close') : t('common.cancel') }}
-          </t-button>
-          <t-button v-if="!newToken" theme="primary" @click="handleSubmit">
-            {{ t('common.create') }}
+    <!-- 创建/编辑/显示新Token — 统一使用 t-dialog -->
+    <t-dialog
+      v-model:visible="showModal"
+      :header="newToken ? t('apiTokens.tokenShownOnce') : (editingToken ? t('apiTokens.editTitle') : t('apiTokens.createTitle'))"
+      :width="520"
+      :confirm-btn="newToken ? { content: t('common.close'), theme: 'default', variant: 'outline' as const } : { content: editingToken ? t('common.save') : t('common.create'), theme: 'primary' as const, loading: submitting }"
+      :cancel-btn="!!newToken"
+      :on-confirm="newToken ? closeModal : handleSubmit"
+      :on-close="closeModal"
+    >
+      <!-- 新 Token 显示区 -->
+      <div v-if="newToken" class="new-token-display">
+        <div class="new-token-value">
+          <code>{{ newToken }}</code>
+          <t-button variant="outline" size="small" @click="copyToken(newToken)">
+            <template #icon><t-icon name="copy" /></template>
+            {{ t('common.copy') || 'Copy' }}
           </t-button>
         </div>
+        <t-alert theme="warning" :message="t('apiTokens.onlyShowOnce')" />
       </div>
-    </div>
 
-    <!-- 删除确认弹窗 -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>{{ t('common.confirmDelete') }}</h3>
-        </div>
-        <div class="modal-body">
-          <p>{{ t('apiTokens.deleteMsg') }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="danger" @click="handleDelete">{{ t('common.delete') }}</t-button>
-        </div>
-      </div>
-    </div>
+      <!-- 表单区 -->
+      <t-form v-else :data="formData" label-align="left" :label-width="120">
+        <t-form-item :label="t('apiTokens.tableName')" required>
+          <t-input
+            v-model="formData.name"
+            :placeholder="t('apiTokens.tokenNamePlaceholder')"
+            clearable
+          />
+        </t-form-item>
 
-    <!-- 重新生成确认弹窗 -->
-    <div v-if="showRegenerateConfirm" class="modal-overlay" @click.self="showRegenerateConfirm = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>{{ t('apiTokens.regenerateConfirm') }}</h3>
-        </div>
-        <div class="modal-body">
-          <p>{{ t('apiTokens.regenerateMsg') }}</p>
-          <p class="warning-text">{{ t('apiTokens.regenerateWarning') }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="showRegenerateConfirm = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="primary" @click="handleRegenerate">{{ t('apiTokens.regenerate') }}</t-button>
-        </div>
-      </div>
-    </div>
+        <t-form-item :label="t('apiTokens.description')">
+          <t-input
+            v-model="formData.description"
+            :placeholder="t('apiTokens.descriptionPlaceholder')"
+            clearable
+          />
+        </t-form-item>
 
-    <!-- 查看详情确认弹窗 -->
-    <div v-if="showExportConfirm" class="modal-overlay" @click.self="showExportConfirm = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>{{ t('apiTokens.exportConfirm') }}</h3>
-        </div>
-        <div class="modal-body">
-          <p>{{ t('apiTokens.exportMsg') }}</p>
-          <p class="warning-text">{{ t('apiTokens.exportWarningDetail') }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="showExportConfirm = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="primary" @click="handleExport">{{ t('common.confirm') }}</t-button>
-        </div>
-      </div>
-    </div>
+        <t-form-item :label="t('apiTokens.expiresAt')">
+          <t-select v-model="formData.expires_in_days" :options="[
+            { label: t('apiTokens.expiredDays', { days: 30 }), value: 30 },
+            { label: t('apiTokens.expiredDays', { days: 90 }), value: 90 },
+            { label: t('apiTokens.expiredDays', { days: 180 }), value: 180 },
+            { label: `1 ${t('settings.year')}`, value: 365 },
+            { label: t('apiTokens.permanent'), value: 0 },
+          ]" />
+        </t-form-item>
+
+        <t-form-item :label="t('apiTokens.permissions')">
+          <t-checkbox-group v-model="formData.permissions" :options="permissionLabels.map(o => ({ label: o.label, value: o.value }))" />
+        </t-form-item>
+
+        <t-form-item :label="`${t('apiTokens.rateLimit')} (${t('apiTokens.rateLimitUnit')})`">
+          <t-input-number
+            v-model="formData.rate_limit"
+            :min="100"
+            :max="100000"
+            :step="100"
+            theme="normal"
+          />
+        </t-form-item>
+      </t-form>
+    </t-dialog>
   </div>
 </template>
 
@@ -538,6 +442,7 @@ onMounted(() => {
   height: 100%;
 }
 
+/* === Token info === */
 .token-info {
   display: flex;
   flex-direction: column;
@@ -549,22 +454,12 @@ onMounted(() => {
   color: var(--color-text);
 }
 
-.token-prefix {
-  font-size: 11px;
-  font-family: monospace;
-  color: var(--color-text-secondary);
-  background: var(--color-hover);
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-top: 2px;
-  display: inline-block;
-}
-
 .token-desc {
   font-size: 12px;
   color: var(--color-text-secondary);
 }
 
+/* === Permissions badge === */
 .permissions {
   display: flex;
   align-items: center;
@@ -585,142 +480,35 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
+/* === Action buttons === */
 .action-btns {
   display: flex;
   gap: 6px;
 }
 
-.text-center {
-  text-align: center;
-  padding: 60px !important;
-  color: var(--color-text-secondary);
-}
-
-.empty-td {
+/* === Empty state === */
+.empty-state {
   text-align: center;
   padding: 40px 0;
 }
 
-.empty-td h3 {
+.empty-state p {
   font-size: 15px;
   font-weight: 500;
   color: var(--color-text);
   margin-bottom: 4px;
 }
 
-.empty-td p {
+.empty-hint {
   font-size: 13px;
   color: var(--color-text-secondary);
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  width: 500px;
-  max-height: 80vh;
-  background: var(--color-card);
-  border-radius: 12px;
+/* === New token display === */
+.new-token-display {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-sm {
-  width: 400px;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.modal-close:hover {
-  background: var(--color-hover);
-}
-
-.modal-body {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-}
-
-.required {
-  color: var(--color-error);
-}
-
-.permissions-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.permission-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--color-hover);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.permission-item:hover {
-  background: var(--color-primary-light);
-}
-
-.permission-item input {
-  width: 16px;
-  height: 16px;
-}
-
-.new-token-display {
-  text-align: center;
-}
-
-.new-token-label {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin-bottom: 12px;
+  gap: 16px;
 }
 
 .new-token-value {
@@ -730,7 +518,6 @@ onMounted(() => {
   padding: 12px;
   background: var(--color-hover);
   border-radius: 8px;
-  margin-bottom: 12px;
 }
 
 .new-token-value code {
@@ -739,27 +526,5 @@ onMounted(() => {
   font-family: monospace;
   word-break: break-all;
   color: var(--color-text);
-}
-
-.new-token-warning {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--color-warning);
-}
-
-.warning-text {
-  font-size: 13px;
-  color: var(--color-error);
-  margin-top: 8px;
-}
-
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
 }
 </style>

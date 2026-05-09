@@ -5,6 +5,7 @@
 
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
 import Icon from '@/components/Icon.vue'
 import {
   getAssets,
@@ -13,7 +14,7 @@ import {
   createFolder,
   deleteAsset,
   type Asset,
-  type AssetFolder,
+  type FolderResponse,
 } from '@/api/asset'
 import { showError, showSuccess } from '@/utils/request'
 
@@ -21,24 +22,22 @@ const { t } = useI18n()
 
 const loading = ref(false)
 const assets = ref<Asset[]>([])
-const folders = ref<AssetFolder[]>([])
+const folders = ref<FolderResponse[]>([])
 const selectedFolder = ref<string | null>(null)
 const viewMode = ref<'grid' | 'list'>('grid')
 const showUploadModal = ref(false)
 const showNewFolderModal = ref(false)
-const showDeleteConfirm = ref(false)
-const assetToDelete = ref<Asset | null>(null)
 const selectedAssets = ref<Set<string>>(new Set())
 const uploading = ref(false)
-const uploadProgress = ref(0)
-const uploadFolderId = ref<string | null>(null) // 上传弹窗中选中的文件夹
+const uploadFolderId = ref<string | null>(null)
 
 // 新建文件夹
 const newFolderName = ref('')
+const creatingFolder = ref(false)
 
 // 打开上传弹窗
 function openUpload() {
-  uploadFolderId.value = selectedFolder.value // 默认使用当前选中的文件夹
+  uploadFolderId.value = selectedFolder.value
   showUploadModal.value = true
 }
 
@@ -78,9 +77,9 @@ const loadAssets = async () => {
     if (searchKeyword.value) {
       params.keyword = searchKeyword.value
     }
-    const res = await getAssets(params)
-    assets.value = res.data.items || []
-    total.value = res.data.total || 0
+    const res = await getAssets(params) as any
+    assets.value = res.items || []
+    total.value = res.total || 0
   } catch (error) {
     showError(error)
   } finally {
@@ -104,15 +103,13 @@ const handleUpload = async (event: Event) => {
   if (!input.files?.length) return
 
   uploading.value = true
-  uploadProgress.value = 0
-
   const file = input.files[0]
   try {
     await createAsset({
       file,
-      folder_id: uploadFolderId.value,
+      folder_id: uploadFolderId.value || undefined,
     })
-    showSuccess(t('media.uploadSuccess'))
+    MessagePlugin.success(t('media.uploadSuccess'))
     await loadAssets()
     showUploadModal.value = false
     uploadFolderId.value = null
@@ -135,11 +132,11 @@ const handleDrop = async (event: DragEvent) => {
     for (let i = 0; i < files.length; i++) {
       await createAsset({
         file: files[i],
-        folder_id: uploadFolderId.value,
+        folder_id: uploadFolderId.value || undefined,
       })
     }
     await loadAssets()
-    showSuccess(t('media.uploadSuccess'))
+    MessagePlugin.success(t('media.uploadSuccess'))
     uploadFolderId.value = null
   } catch (error) {
     showError(error)
@@ -148,40 +145,42 @@ const handleDrop = async (event: DragEvent) => {
   }
 }
 
+// 新建文件夹 — t-dialog 内提交
 const handleCreateFolder = async () => {
   if (!newFolderName.value.trim()) return
-
+  creatingFolder.value = true
   try {
     await createFolder({
       name: newFolderName.value,
-      parent_id: selectedFolder.value,
+      parent_id: selectedFolder.value || undefined,
     })
     await loadFolders()
     showNewFolderModal.value = false
     newFolderName.value = ''
+    MessagePlugin.success(t('common.createSuccess'))
   } catch (error) {
     showError(error)
+  } finally {
+    creatingFolder.value = false
   }
 }
 
-// 删除文件
+// 删除文件 — DialogPlugin.confirm
 const confirmDelete = (asset: Asset) => {
-  assetToDelete.value = asset
-  showDeleteConfirm.value = true
-}
-
-const handleDelete = async () => {
-  if (!assetToDelete.value) return
-
-  try {
-    await deleteAsset(assetToDelete.value.id)
-    showSuccess(t('media.deleteSuccess'))
-    showDeleteConfirm.value = false
-    assetToDelete.value = null
-    await loadAssets()
-  } catch (error) {
-    showError(error)
-  }
+  DialogPlugin.confirm({
+    header: t('media.confirmDeleteFile'),
+    body: t('media.deleteFileMsg', { name: asset.name }),
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        await deleteAsset(asset.id)
+        showSuccess(t('media.deleteSuccess'))
+        await loadAssets()
+      } catch (error) {
+        showError(error)
+      }
+    },
+  })
 }
 
 // 选择文件
@@ -222,6 +221,13 @@ const getFileIcon = (type: string) => {
 // 判断是否为图片
 const isImage = (asset: Asset) => {
   return asset.mime_type?.startsWith('image/')
+}
+
+// 分页变化
+const onPageChange = ({ current, pageSize: ps }: { current: number; pageSize: number }) => {
+  page.value = current
+  pageSize.value = ps
+  loadAssets()
 }
 
 onMounted(() => {
@@ -286,43 +292,51 @@ onMounted(() => {
         <!-- 工具栏 -->
         <div class="media-toolbar">
           <div class="toolbar-left">
-            <input
-            v-model="searchKeyword"
-            type="text"
-            class="input"
-            :placeholder="t('media.searchFiles')"
-            style="width: 240px;"
-            @keyup.enter="loadAssets"
-          />
-          <select v-model="typeFilter" class="input" style="width: 120px;" @change="loadAssets">
-            <option value="">{{ t('media.allTypes') }}</option>
-            <option value="image">{{ t('media.image') }}</option>
-            <option value="video">{{ t('media.video') }}</option>
-            <option value="audio">{{ t('media.audio') }}</option>
-            <option value="document">{{ t('media.document') }}</option>
-          </select>
-          <t-button variant="outline" size="small" @click="loadAssets">{{ t('media.searchBtn') }}</t-button>
+            <!-- 搜索框 → t-input -->
+            <t-input
+              v-model="searchKeyword"
+              :placeholder="t('media.searchFiles')"
+              clearable
+              size="small"
+              style="width: 240px"
+              @enter="loadAssets"
+              @clear="loadAssets"
+            >
+              <template #prefixIcon><t-icon name="search" /></template>
+            </t-input>
+            <!-- 类型过滤 → t-select -->
+            <t-select
+              v-model="typeFilter"
+              size="small"
+              style="width: 120px"
+              clearable
+              @change="loadAssets"
+            >
+              <t-option value="image" :label="t('media.image')" />
+              <t-option value="video" :label="t('media.video')" />
+              <t-option value="audio" :label="t('media.audio')" />
+              <t-option value="document" :label="t('media.document')" />
+            </t-select>
+            <t-button variant="outline" @click="loadAssets">{{ t('media.searchBtn') }}</t-button>
           </div>
           <div class="toolbar-right">
-            <span class="selection-info" v-if="selectedAssets.size > 0">
+            <span v-if="selectedAssets.size > 0" class="selection-info">
               {{ t('media.selectedFiles', { count: selectedAssets.size }) }}
             </span>
             <t-button
-            variant="outline"
-            size="small"
-            :theme="viewMode === 'grid' ? 'primary' : 'default'"
-            @click="viewMode = 'grid'"
-          >
-            <template #icon><t-icon name="layout-grid" /></template>
-          </t-button>
+              variant="outline"
+              :theme="viewMode === 'grid' ? 'primary' : 'default'"
+              @click="viewMode = 'grid'"
+            >
+              <template #icon><t-icon name="layout-grid" /></template>
+            </t-button>
             <t-button
-            variant="outline"
-            size="small"
-            :theme="viewMode === 'list' ? 'primary' : 'default'"
-            @click="viewMode = 'list'"
-          >
-            <template #icon><t-icon name="view-list" /></template>
-          </t-button>
+              variant="outline"
+              :theme="viewMode === 'list' ? 'primary' : 'default'"
+              @click="viewMode = 'list'"
+            >
+              <template #icon><t-icon name="view-list" /></template>
+            </t-button>
           </div>
         </div>
 
@@ -334,14 +348,13 @@ onMounted(() => {
         @dragleave="isDragging = false"
         @drop.prevent="handleDrop"
       >
-        <!-- 加载中 -->
-        <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
-
-        <!-- 无数据 -->
-        <div v-else-if="assets.length === 0" class="empty-state">
-          <h3>{{ t('media.noMedia') }}</h3>
-          <p>{{ t('media.noMediaHint') }}</p>
+        <!-- 加载中 → t-loading -->
+        <div v-if="loading" class="loading-state">
+          <t-loading size="medium" />
         </div>
+
+        <!-- 无数据 → t-empty -->
+        <t-empty v-else-if="assets.length === 0" :description="t('media.noMediaHint')" />
 
         <!-- 网格视图 -->
         <div v-else-if="viewMode === 'grid'" class="asset-grid">
@@ -414,9 +427,7 @@ onMounted(() => {
                     <span class="file-name" :title="asset.name">{{ asset.name }}</span>
                   </div>
                 </td>
-                <td>
-                  <span class="type-badge">{{ asset.mime_type?.split('/')[1] || '-' }}</span>
-                </td>
+                <td><t-tag variant="light" size="small">{{ asset.mime_type?.split('/')[1] || '-' }}</t-tag></td>
                 <td>{{ formatSize(asset.size) }}</td>
                 <td>{{ new Date(asset.created_time).toLocaleDateString() }}</td>
                 <td>
@@ -429,119 +440,87 @@ onMounted(() => {
       </div>
       </div><!-- /media-main -->
 
-      <!-- 分页 -->
-      <div class="pagination" v-if="total > pageSize">
-        <span class="pagination-info">{{ t('media.totalFiles', { total }) }}</span>
-        <t-button
-          variant="outline"
+      <!-- 分页 → t-pagination -->
+      <div v-if="total > pageSize" class="pagination-bar">
+        <t-pagination
+          v-model:current="page"
+          v-model:pageSize="pageSize"
+          :total="total"
+          :show-page-size="true"
+          :page-size-options="[12, 24, 48]"
           size="small"
-          :disabled="page === 1"
-          @click="page--; loadAssets()"
-        >
-          {{ t('media.prevPage') }}
-        </t-button>
-        <span class="pagination-current">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
-        <t-button
-          variant="outline"
-          size="small"
-          :disabled="page >= Math.ceil(total / pageSize)"
-          @click="page++; loadAssets()"
-        >
-          {{ t('media.nextPage') }}
-        </t-button>
+          :total-content="(totalVal: number) => `${t('media.totalFiles', { total: totalVal })}`"
+          @change="onPageChange"
+        />
       </div>
     </div>
 
-    <!-- 上传弹窗 -->
-    <div v-if="showUploadModal" class="modal-overlay" @click.self="showUploadModal = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ t('media.uploadFile') }}</h3>
-          <button class="modal-close" @click="showUploadModal = false">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
-            </svg>
-          </button>
+    <!-- 上传弹窗 — t-dialog -->
+    <t-dialog
+      v-model:visible="showUploadModal"
+      :header="t('media.uploadFile')"
+      :width="520"
+      :cancel-btn="{ content: t('common.cancel') as string }"
+      :confirm-btn="null"
+      @close="showUploadModal = false"
+    >
+      <!-- 文件夹选择 -->
+      <t-form label-align="top" style="margin-top: 8px">
+        <t-form-item :label="t('media.selectFolder') || '\u4e0a\u4f20\u5230'">
+          <t-select v-model="uploadFolderId" :options="[
+            { label: t('media.noFolder') || '\u6839\u76ee\u5f55', value: '' },
+            ...folders.map((f: FolderResponse) => ({ label: f.name, value: f.id })),
+          ]" clearable allow-input />
+        </t-form-item>
+      </t-form>
+      <!-- 上传区域 -->
+      <div
+        class="upload-zone"
+        :class="{ uploading }"
+        @click="($refs.fileInput as HTMLInputElement).click()"
+      >
+        <input
+          ref="fileInput"
+          type="file"
+          hidden
+          @change="handleUpload"
+        />
+        <div v-if="uploading" class="upload-progress">
+          <t-loading size="small" />
+          <p>{{ t('media.uploading') }}</p>
         </div>
-        <div class="modal-body">
-          <!-- 文件夹选择 -->
-          <div class="form-group">
-            <label class="input-label">{{ t('media.selectFolder') || '上传到' }}</label>
-            <select v-model="uploadFolderId" class="input">
-              <option :value="null">{{ t('media.noFolder') || '根目录' }}</option>
-              <option v-for="folder in folders" :key="folder.id" :value="folder.id">
-                {{ folder.name }}
-              </option>
-            </select>
-          </div>
-          <div
-            class="upload-zone"
-            :class="{ uploading }"
-            @click="($refs.fileInput as HTMLInputElement).click()"
-          >
-            <input
-              ref="fileInput"
-              type="file"
-              hidden
-              @change="handleUpload"
-            />
-            <div v-if="uploading" class="upload-progress">
-              <div class="spinner"></div>
-              <p>{{ t('media.uploading') }}</p>
-            </div>
-            <template v-else>
-              <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-                <path d="M10 3a1 1 0 011 1v5.586l1.707-1.707a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 9.586V4a1 1 0 011-1z"/>
-                <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/>
-              </svg>
-              <p>{{ t('media.dragTip') }}</p>
-              <span class="upload-hint">{{ t('media.fileTypeTip') }}</span>
-            </template>
-          </div>
-        </div>
+        <template v-else>
+          <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
+            <path d="M10 3a1 1 0 011 1v5.586l1.707-1.707a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 9.586V4a1 1 0 011-1z"/>
+            <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/>
+          </svg>
+          <p>{{ t('media.dragTip') }}</p>
+          <span class="upload-hint">{{ t('media.fileTypeTip') }}</span>
+        </template>
       </div>
-    </div>
+    </t-dialog>
 
-    <!-- 新建文件夹弹窗 -->
-    <div v-if="showNewFolderModal" class="modal-overlay" @click.self="showNewFolderModal = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>{{ t('media.createFolder') }}</h3>
-        </div>
-        <div class="modal-body">
-          <div class="input-group">
-            <label class="input-label">{{ t('media.folderName') }}</label>
-            <input
-              v-model="newFolderName"
-              type="text"
-              class="input"
-              :placeholder="t('media.enterFolderName')"
-              @keyup.enter="handleCreateFolder"
-            />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="showNewFolderModal = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="primary" @click="handleCreateFolder">{{ t('common.create') }}</t-button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 删除确认弹窗 -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
-      <div class="modal modal-sm">
-        <div class="modal-header">
-          <h3>{{ t('media.confirmDeleteFile') }}</h3>
-        </div>
-        <div class="modal-body">
-          <p>{{ t('media.deleteFileMsg') }}</p>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="danger" @click="handleDelete">{{ t('common.delete') }}</t-button>
-        </div>
-      </div>
-    </div>
+    <!-- 新建文件夹弹窗 — t-dialog + t-form -->
+    <t-dialog
+      v-model:visible="showNewFolderModal"
+      :header="t('media.createFolder')"
+      :width="400"
+      :confirm-btn="{ content: t('common.create'), theme: 'primary' as const, loading: creatingFolder }"
+      :cancel-btn="{ content: t('common.cancel') }"
+      :confirm-on-enter="true"
+      @confirm="handleCreateFolder"
+    >
+      <t-form label-align="top" style="margin-top: 8px">
+        <t-form-item :label="`${t('media.folderName')} *`">
+          <t-input
+            v-model="newFolderName"
+            :placeholder="t('media.enterFolderName')"
+            clearable
+            autofocus
+          />
+        </t-form-item>
+      </t-form>
+    </t-dialog>
   </div>
 </template>
 
@@ -564,7 +543,7 @@ onMounted(() => {
   gap: 20px;
 }
 
-/* 文件夹侧边栏 */
+/* === Folder sidebar === */
 .folder-sidebar {
   width: 200px;
   flex-shrink: 0;
@@ -612,7 +591,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-/* 主内容区 */
+/* === Main content === */
 .media-main {
   flex: 1;
   min-width: 0;
@@ -623,12 +602,15 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .toolbar-right {
@@ -643,6 +625,7 @@ onMounted(() => {
   margin-right: 12px;
 }
 
+/* === Drop zone === */
 .drop-zone {
   min-height: 400px;
 }
@@ -650,28 +633,17 @@ onMounted(() => {
 .drop-zone.dragging {
   background: var(--color-primary-light);
   border: 2px dashed var(--color-primary);
+  border-radius: 8px;
 }
 
-.empty-state {
+.loading-state {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   min-height: 300px;
-  gap: 8px;
-  color: var(--color-text-secondary);
 }
 
-.empty-state h3 {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.empty-state p {
-  font-size: 14px;
-}
-
+/* === Asset grid === */
 .asset-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -778,6 +750,7 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
+/* === List view === */
 .asset-list {
   overflow-x: auto;
 }
@@ -802,111 +775,14 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
-.type-badge {
-  font-size: 12px;
-  padding: 2px 8px;
-  background: var(--color-hover);
-  border-radius: 4px;
-  color: var(--color-text-secondary);
-}
-
-.text-center {
-  text-align: center;
-  padding: 40px !important;
-  color: var(--color-text-secondary);
-}
-
-.pagination {
+/* === Pagination === */
+.pagination-bar {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 12px;
   margin-top: 20px;
 }
 
-.pagination-info {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.pagination-current {
-  font-size: 14px;
-  color: var(--color-text);
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
-  color: var(--color-text-secondary);
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  width: 500px;
-  background: var(--color-card);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.modal-sm {
-  width: 400px;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.modal-close:hover {
-  background: var(--color-hover);
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-}
-
+/* === Upload zone === */
 .upload-zone {
   border: 2px dashed var(--color-border);
   border-radius: 12px;
@@ -930,19 +806,6 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 .upload-hint {
