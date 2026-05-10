@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // ContentSchemaKind 内容模型类型
@@ -35,7 +36,7 @@ type ContentSchema struct {
 	CreatedBy            *uuid.UUID       `json:"created_by" gorm:"type:uuid"`
 	CreatedTime            time.Time        `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime            time.Time        `json:"updated_time" gorm:"autoUpdateTime"`
-	DeletedTime            *time.Time       `json:"deleted_time" gorm:"index"`
+	DeletedAt              gorm.DeletedAt    `json:"deleted_time" gorm:"column:deleted_time;index"`
 
 	// 关联
 	Fields []Field `json:"fields,omitempty" gorm:"foreignKey:schema_id;references:ID"`
@@ -62,7 +63,7 @@ type Field struct {
 	ConditionalDisplay  *JSONB      `json:"conditional_display" gorm:"type:jsonb"`
 	CreatedTime           time.Time  `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime           time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
-	DeletedTime           *time.Time `json:"deleted_time" gorm:"index"`
+	DeletedAt              gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
 }
 
 // TableName 表名

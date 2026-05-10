@@ -29,7 +29,7 @@ WHERE NOT EXISTS (SELECT 1 FROM sites WHERE id = '00000000-0000-0000-0000-000000
 -- =============================================================================
 
 -- 超级管理员角色（拥有全部系统级权限）
-INSERT INTO system_roles (id, name, description, is_system, permissions, created_at, updated_at)
+INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000101'::uuid,
     'Super Admin',
@@ -46,7 +46,7 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000101'::uuid);
 
 -- 插件管理员角色
-INSERT INTO system_roles (id, name, description, is_system, permissions, created_at, updated_at)
+INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000102'::uuid,
     'Plugin Manager',
@@ -58,7 +58,7 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000102'::uuid);
 
 -- 审计员角色（仅可查看和导出审计日志）
-INSERT INTO system_roles (id, name, description, is_system, permissions, created_at, updated_at)
+INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000103'::uuid,
     'Auditor',
@@ -75,7 +75,7 @@ WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000
 -- =============================================================================
 
 -- 默认管理员用户（密码：Admin@123）
-INSERT INTO system_users (id, email, password_hash, nickname, status, is_super_admin, created_at, updated_at)
+INSERT INTO system_users (id, email, password_hash, nickname, status, is_super_admin, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000001'::uuid,
     'admin@contful.com',
@@ -92,7 +92,7 @@ WHERE NOT EXISTS (SELECT 1 FROM system_users WHERE id = '00000000-0000-0000-0000
 -- =============================================================================
 
 -- 关联 admin 用户与 Super Admin 角色
-INSERT INTO system_user_roles (user_id, role_id, created_at)
+INSERT INTO system_user_roles (user_id, role_id, created_time)
 SELECT
     '00000000-0000-0000-0000-000000000001'::uuid,
     '00000000-0000-0000-0000-000000000101'::uuid,
@@ -107,7 +107,7 @@ WHERE NOT EXISTS (
 -- 5. 系统配置
 -- =============================================================================
 
-INSERT INTO system_config (config_key, config_value, value_type, description, is_public, created_at, updated_at)
+INSERT INTO system_config (config_key, config_value, value_type, description, is_public, created_time, updated_time)
 VALUES
     ('password_expire_days', '90', 'number', '密码有效期（天），0 表示永不过期', FALSE, NOW(), NOW()),
     ('site_name', 'Contful', 'string', '系统名称', TRUE, NOW(), NOW()),
@@ -124,7 +124,7 @@ ON CONFLICT (config_key) DO NOTHING;
 -- =============================================================================
 
 -- 示例：文章模型
-INSERT INTO schemas (id, site_id, name, slug, description, kind, display_config, api_config, is_active, sort_order, created_at, updated_at)
+INSERT INTO schemas (id, site_id, name, slug, description, kind, display_config, api_config, is_active, sort_order, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000201'::uuid,
     '00000000-0000-0000-0000-000000000001'::uuid,
@@ -141,7 +141,7 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM schemas WHERE id = '00000000-0000-0000-0000-000000000201'::uuid);
 
 -- 示例字段：标题
-INSERT INTO fields (id, schema_id, name, label, description, field_type, config, validation, display, sort_order, created_at, updated_at)
+INSERT INTO fields (id, schema_id, name, label, description, field_type, config, validation, display, sort_order, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000301'::uuid,
     '00000000-0000-0000-0000-000000000201'::uuid,
@@ -158,7 +158,7 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM fields WHERE id = '00000000-0000-0000-0000-000000000301'::uuid);
 
 -- 示例字段：内容
-INSERT INTO fields (id, schema_id, name, label, description, field_type, config, validation, display, sort_order, created_at, updated_at)
+INSERT INTO fields (id, schema_id, name, label, description, field_type, config, validation, display, sort_order, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000302'::uuid,
     '00000000-0000-0000-0000-000000000201'::uuid,

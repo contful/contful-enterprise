@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // UserStatus 用户状态
@@ -34,7 +35,7 @@ type SystemUser struct {
 	CreatedTime   time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedTime   time.Time   `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
 	PasswordChangedTime *time.Time `json:"password_changed_time" gorm:"type:timestamptz"` // 密码最后修改时间（用于密码过期检查）
-	DeletedTime   *time.Time  `json:"deleted_time" gorm:"type:timestamptz"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"` // 软删除时间戳
 }
 
 func (SystemUser) TableName() string {
@@ -48,9 +49,9 @@ type SystemRole struct {
 	Description string    `json:"description" gorm:"type:text"`
 	IsSystem    bool      `json:"is_system" gorm:"not null;default:false"`
 	Permissions []string  `json:"permissions" gorm:"type:jsonb;serializer:json"`
-	CreatedTime time.Time `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedTime time.Time `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedTime *time.Time `json:"deleted_time" gorm:"type:timestamptz"`
+	CreatedTime time.Time     `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedTime time.Time     `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
 }
 
 func (SystemRole) TableName() string {
@@ -124,6 +125,7 @@ type UserResponse struct {
 	MFAEnabled        bool       `json:"mfa_enabled"`
 	CreatedTime       time.Time  `json:"created_time"`
 	PasswordChangedTime *time.Time `json:"password_changed_time,omitempty"` // 密码最后修改时间
+	DeletedAt         *time.Time `json:"deleted_at,omitempty"`              // 软删除时间（仅在包含已删除记录时返回）
 }
 
 // ============================================

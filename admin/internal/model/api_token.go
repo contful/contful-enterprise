@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // TokenType Token 类型
@@ -80,7 +81,7 @@ type APIToken struct {
 	CreatedBy       *uuid.UUID   `json:"created_by" gorm:"type:uuid"`
 	CreatedTime     time.Time    `json:"created_time" gorm:"column:created_time;autoCreateTime"`
 	UpdatedTime     time.Time    `json:"updated_time" gorm:"column:updated_time;autoUpdateTime"`
-	DeletedTime     *time.Time   `json:"deleted_time,omitempty" gorm:"type:timestamptz;index"`
+	DeletedAt       gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
 }
 
 // TableName 表名

@@ -314,7 +314,7 @@ func (s *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*model.Use
 
 // ListUsers 获取用户列表
 func (s *AuthService) ListUsers(ctx context.Context, page, pageSize int) (*model.PageResponse, error) {
-	users, total, err := s.userRepo.List(ctx, page, pageSize)
+	users, total, err := s.userRepo.List(ctx, page, pageSize, false)
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +390,7 @@ func (s *AuthService) generateRefreshToken(ctx context.Context, userID uuid.UUID
 }
 
 func (s *AuthService) toUserResponse(user *model.SystemUser) *model.UserResponse {
-	return &model.UserResponse{
+	resp := &model.UserResponse{
 		ID:                user.ID,
 		Email:             user.Email,
 		Nickname:          user.Nickname,
@@ -401,6 +401,10 @@ func (s *AuthService) toUserResponse(user *model.SystemUser) *model.UserResponse
 		CreatedTime:       user.CreatedTime,
 		PasswordChangedTime: user.PasswordChangedTime,
 	}
+	if user.DeletedAt.Valid {
+		resp.DeletedAt = &user.DeletedAt.Time
+	}
+	return resp
 }
 
 // IssueTokens 生成并存储 Access Token + Refresh Token（供 AuthService 和 MFA 验证后复用）

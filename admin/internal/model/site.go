@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 // Site 站点（混合模式：固定列 + JSONB 动态配置）
@@ -32,7 +33,7 @@ type Site struct {
 	CreatedBy *uuid.UUID      `json:"created_by,omitempty" gorm:"type:uuid"`
 	CreatedTime time.Time      `json:"created_time" gorm:"type:timestamptz;autoCreateTime"`
 	UpdatedTime time.Time      `json:"updated_time" gorm:"type:timestamptz;autoUpdateTime"`
-	DeletedTime *time.Time     `json:"deleted_time,omitempty" gorm:"type:timestamptz;index"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
 }
 
 // TableName 表名

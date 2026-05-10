@@ -243,6 +243,9 @@ func main() {
 			protected.DELETE("/users/:id",
 				middleware.RequirePermission(rbacService, "users:delete"),
 				userHandler.Delete)
+			protected.POST("/users/:id/restore",
+				middleware.RequirePermission(rbacService, "users:write"),
+				userHandler.Restore)
 
 			// 管理员重置用户密码（不需要旧密码）
 			protected.POST("/users/:id/reset-password",

@@ -100,33 +100,6 @@ func (s *UserService) Get(ctx context.Context, id uuid.UUID) (*model.UserRespons
 	return toUserResponse(user), nil
 }
 
-// List 分页列表
-func (s *UserService) List(ctx context.Context, page, pageSize int) (*model.PageResponse, error) {
-	if page <= 0 {
-		page = 1
-	}
-	if pageSize <= 0 {
-		pageSize = 20
-	}
-
-	users, total, err := s.userRepo.List(ctx, page, pageSize)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]*model.UserResponse, len(users))
-	for i := range users {
-		items[i] = toUserResponse(&users[i])
-	}
-
-	return &model.PageResponse{
-		Items:    items,
-		Total:    total,
-		Page:     page,
-		PageSize: pageSize,
-	}, nil
-}
-
 // Update 更新用户
 func (s *UserService) Update(ctx context.Context, id uuid.UUID, req *model.UpdateUserRequest) (*model.UserResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
@@ -152,9 +125,44 @@ func (s *UserService) Update(ctx context.Context, id uuid.UUID, req *model.Updat
 	return toUserResponse(user), nil
 }
 
-// Delete 删除用户（软删除）
-func (s *UserService) Delete(ctx context.Context, id uuid.UUID) error {
+// Delete 删除用户（支持软删除和永久删除）
+func (s *UserService) Delete(ctx context.Context, id uuid.UUID, permanent bool) error {
+	if permanent {
+		return s.userRepo.PermanentDelete(ctx, id)
+	}
 	return s.userRepo.Delete(ctx, id)
+}
+
+// Restore 恢复软删除的用户
+func (s *UserService) Restore(ctx context.Context, id uuid.UUID) error {
+	return s.userRepo.Restore(ctx, id)
+}
+
+// List 分页列表（可包含已删除记录）
+func (s *UserService) List(ctx context.Context, page, pageSize int, includeDeleted bool) (*model.PageResponse, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+
+	users, total, err := s.userRepo.List(ctx, page, pageSize, includeDeleted)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]*model.UserResponse, len(users))
+	for i := range users {
+		items[i] = toUserResponse(&users[i])
+	}
+
+	return &model.PageResponse{
+		Items:    items,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	}, nil
 }
 
 // UpdateMe 用户更新自己的资料
@@ -235,15 +243,20 @@ func (s *UserService) ResetPassword(ctx context.Context, id uuid.UUID, newPasswo
 }
 
 func toUserResponse(u *model.SystemUser) *model.UserResponse {
-	return &model.UserResponse{
+	resp := &model.UserResponse{
 		ID:                u.ID,
 		Email:             u.Email,
 		Nickname:          u.Nickname,
 		AvatarURL:         u.AvatarURL,
 		Status:            u.Status,
 		IsSuperAdmin:      u.IsSuperAdmin,
+		MFAEnabled:        u.MFAEnabled,
 		CreatedTime:       u.CreatedTime,
 		PasswordChangedTime: u.PasswordChangedTime,
 	}
+	if u.DeletedAt.Valid {
+		resp.DeletedAt = &u.DeletedAt.Time
+	}
+	return resp
 }
 

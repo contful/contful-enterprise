@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // EntryStatus 条目状态
@@ -36,7 +37,7 @@ type Entry struct {
 	CreatedBy      *uuid.UUID `json:"created_by" gorm:"type:uuid"`
 	CreatedTime      time.Time  `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime      time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
-	DeletedTime      *time.Time `json:"deleted_time" gorm:"index"`
+	DeletedAt        gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
 	DataSignature    JSONB      `json:"data_signature" gorm:"type:jsonb"` // 数据完整性签名
 
 	// 关联

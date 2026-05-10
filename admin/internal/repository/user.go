@@ -83,6 +83,49 @@ func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 		Delete(&model.SystemUser{}).Error
 }
 
+// PermanentDelete 永久删除用户（绕过软删除）
+func (r *UserRepository) PermanentDelete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Unscoped().
+		Where("id = ?", id).
+		Delete(&model.SystemUser{}).Error
+}
+
+// Restore 恢复软删除的用户
+func (r *UserRepository) Restore(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Unscoped().
+		Model(&model.SystemUser{}).
+		Where("id = ?", id).
+		Update("deleted_at", nil).Error
+}
+
+// FindByIDWithDeleted 根据 ID 查找用户（包含已删除的）
+func (r *UserRepository) FindByIDWithDeleted(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
+	var user model.SystemUser
+	result := r.db.WithContext(ctx).Unscoped().Where("id = ?", id).First(&user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
+// FindByEmailWithDeleted 根据邮箱查找用户（包含已删除的）
+func (r *UserRepository) FindByEmailWithDeleted(ctx context.Context, email string) (*model.SystemUser, error) {
+	var user model.SystemUser
+	result := r.db.WithContext(ctx).Unscoped().Where("email = ?", email).First(&user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
 // UpdateLastLogin 更新最后登录信息
 func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uuid.UUID, ip string) error {
 	now := time.Now()
@@ -98,12 +141,16 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uuid.UUID, ip s
 		Updates(updates).Error
 }
 
-// List 查询用户列表（分页）
-func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]model.SystemUser, int64, error) {
+// List 查询用户列表（分页，可包含已删除记录）
+func (r *UserRepository) List(ctx context.Context, page, pageSize int, includeDeleted bool) ([]model.SystemUser, int64, error) {
 	var users []model.SystemUser
 	var total int64
 
-	db := r.db.WithContext(ctx).Model(&model.SystemUser{}).Where("deleted_time IS NULL")
+	db := r.db.WithContext(ctx).Model(&model.SystemUser{})
+	
+	if !includeDeleted {
+		db = db.Where("deleted_time IS NULL")
+	}
 	
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err

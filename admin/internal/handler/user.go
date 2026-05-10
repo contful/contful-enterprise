@@ -72,7 +72,7 @@ func (h *UserHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, model.NewSuccessResponse(user))
 }
 
-// List 分页列表
+// List 分页列表（可包含已删除记录）
 func (h *UserHandler) List(c *gin.Context) {
 	var req model.PageRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -80,7 +80,10 @@ func (h *UserHandler) List(c *gin.Context) {
 		return
 	}
 
-	pageResp, err := h.userService.List(c.Request.Context(), req.Page, req.PageSize)
+	// 支持 ?include_deleted=true 参数
+	includeDeleted := c.Query("include_deleted") == "true"
+
+	pageResp, err := h.userService.List(c.Request.Context(), req.Page, req.PageSize, includeDeleted)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
 		return
@@ -123,7 +126,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 }
 
-// Delete 删除用户
+// Delete 删除用户（支持软删除和永久删除）
 func (h *UserHandler) Delete(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -132,7 +135,10 @@ func (h *UserHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.Delete(c.Request.Context(), id); err != nil {
+	// 支持 ?permanent=true 参数进行永久删除
+	permanent := c.Query("permanent") == "true"
+
+	if err := h.userService.Delete(c.Request.Context(), id, permanent); err != nil {
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
 		return
 	}
@@ -141,7 +147,38 @@ func (h *UserHandler) Delete(c *gin.Context) {
 
 	// 审计日志：记录用户删除操作
 	if h.auditService != nil {
-		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:delete",
+		action := "user:delete"
+		if permanent {
+			action = "user:permanent_delete"
+		}
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, action,
+			service.WithResource("user", id))
+	}
+}
+
+// Restore 恢复软删除的用户
+func (h *UserHandler) Restore(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	if err := h.userService.Restore(c.Request.Context(), id); err != nil {
+		if err == service.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "user not found"))
+		} else {
+			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(nil))
+
+	// 审计日志：记录用户恢复操作
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:restore",
 			service.WithResource("user", id))
 	}
 }
