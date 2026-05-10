@@ -31,11 +31,8 @@ func (h *EntryHandler) getIntegrityService(ctx context.Context, siteID uuid.UUID
 	if h.configService == nil {
 		return nil
 	}
-	signingKey, _ := h.configService.Get(ctx, siteID, "integrity.signing_key")
-	alg, _ := h.configService.Get(ctx, siteID, "integrity.algorithm")
-	if alg == "" {
-		alg = "HMAC-SHA256"
-	}
+	signingKey, _ := h.configService.GetAuditSigningKey()
+	alg := "HMAC-SHA256" // 默认算法
 	svc, _ := service.NewIntegrityService(siteID, signingKey, alg)
 	return svc
 }

@@ -68,65 +68,274 @@
         </div>
       </template>
     </t-card>
+
+    <!-- 密码过期强制修改弹窗 -->
+    <t-dialog
+      v-model:visible="passwordExpiredDialogVisible"
+      :header="t('auth.passwordExpiredTitle')"
+      :width="480"
+      :close-on-overlay-click="false"
+      :close-on-esc-keydown="false"
+      :show-overlay="true"
+      :footer="false"
+    >
+      <div class="password-expired-content">
+        <t-icon name="error-circle-filled" size="48px" color="var(--td-error-color)" />
+        <h3>{{ t('auth.passwordExpired') }}</h3>
+        <p>{{ t('auth.passwordExpiredHint', { days: passwordExpireDays }) }}</p>
+
+        <t-form :data="passwordForm" label-align="top" :rules="passwordRules" ref="passwordFormRef">
+          <t-form-item :label="t('auth.newPassword')" name="newPassword">
+            <t-input v-model="passwordForm.newPassword" type="password" :placeholder="t('auth.enterPassword')" clearable />
+            <!-- 密码强度条 -->
+            <div class="password-strength">
+              <div class="strength-bar">
+                <div class="strength-fill" :class="passwordStrength.level" :style="{ width: passwordStrength.width }"></div>
+              </div>
+              <span class="strength-text" :class="passwordStrength.level">{{ passwordStrength.label }}</span>
+            </div>
+          </t-form-item>
+
+          <t-form-item :label="t('auth.confirmPassword')" name="confirmPassword">
+            <t-input v-model="passwordForm.confirmPassword" type="password" :placeholder="t('auth.confirmPasswordHint')" clearable />
+          </t-form-item>
+
+          <t-form-item>
+            <t-button theme="primary" block :loading="changingPassword" @click="handleChangePassword">
+              {{ t('auth.changePassword') }}
+            </t-button>
+          </t-form-item>
+        </t-form>
+      </div>
+    </t-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
+import { updatePassword } from '@/api/user'
+import { getPasswordPolicy } from '@/api/system-config'
 
 const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
 
 const loginFormRef = ref()
+const passwordFormRef = ref()
 
 const loginForm = reactive({
   email: '',
   password: '',
 })
 
-const loginRules = {
+// 密码策略（从后端读取）
+const passwordPolicy = ref({
+  min_length: 8,
+  require_uppercase: true,
+  require_lowercase: true,
+  require_number: true,
+  require_special: false,
+  expire_days: 90,
+})
+
+// 组件挂载时获取密码策略
+onMounted(async () => {
+  try {
+    passwordPolicy.value = await getPasswordPolicy()
+  } catch (error) {
+    console.warn('Failed to load password policy, using defaults', error)
+  }
+})
+
+const loginRules = computed(() => ({
   email: [
     { required: true, message: t('auth.enterEmail') },
     { email: true, message: t('auth.invalidEmail') },
   ],
   password: [
     { required: true, message: t('auth.enterPassword') },
-    { min: 8, message: t('auth.passwordMinLength', { min: 8 }) },
+    { min: passwordPolicy.value.min_length, message: t('auth.passwordMinLength', { min: passwordPolicy.value.min_length }) },
   ],
-}
+}))
 
 const logoUrl = '/assets/logo.png'
 
+// 密码过期相关状态
+const passwordExpiredDialogVisible = ref(false)
+const passwordExpireDays = ref(0)
+const changingPassword = ref(false)
+const passwordForm = reactive({
+  newPassword: '',
+  confirmPassword: '',
+})
+
+const passwordRules = computed(() => ({
+  newPassword: [
+    { required: true, message: t('auth.enterPassword') },
+    { min: passwordPolicy.value.min_length, message: t('auth.passwordMinLength', { min: passwordPolicy.value.min_length }) },
+  ],
+  confirmPassword: [
+    { required: true, message: t('auth.confirmPasswordHint') },
+  ],
+}))
+
+// 密码强度计算（使用动态策略）
+const passwordStrength = computed(() => {
+  const pwd = passwordForm.newPassword
+  if (!pwd) return { level: '', width: '0%', label: '' }
+
+  let score = 0
+  if (pwd.length >= passwordPolicy.value.min_length) score++
+  if (pwd.length >= passwordPolicy.value.min_length + 4) score++
+  if (passwordPolicy.value.require_lowercase && /[a-z]/.test(pwd)) score++
+  if (passwordPolicy.value.require_uppercase && /[A-Z]/.test(pwd)) score++
+  if (passwordPolicy.value.require_number && /[0-9]/.test(pwd)) score++
+  if (passwordPolicy.value.require_special && /[^a-zA-Z0-9]/.test(pwd)) score++
+
+  if (score < 3) return { level: 'weak', width: '33%', label: t('users.passwordWeak') }
+  if (score < 5) return { level: 'medium', width: '66%', label: t('users.passwordMedium') }
+  return { level: 'strong', width: '100%', label: t('users.passwordStrong') }
+})
+
+// 密码强度检查（使用动态策略）
+const checkPasswordStrength = (pwd: string): boolean => {
+  if (pwd.length < passwordPolicy.value.min_length) return false
+  if (passwordPolicy.value.require_lowercase && !/[a-z]/.test(pwd)) return false
+  if (passwordPolicy.value.require_uppercase && !/[A-Z]/.test(pwd)) return false
+  if (passwordPolicy.value.require_number && !/[0-9]/.test(pwd)) return false
+  return true
+}
+
 const onLogin = async () => {
-  const result = await userStore.login(loginForm.email, loginForm.password)
+  const result: any = await userStore.login(loginForm.email, loginForm.password)
   if (result.success) {
-    if ((result as any).mfa_required) {
+    if (result.mfa_required) {
       // 使用 sessionStorage 传递敏感 token（不出现在 URL 中）
-      sessionStorage.setItem('mfa_token', (result as any).mfa_token)
+      sessionStorage.setItem('mfa_token', result.mfa_token)
       sessionStorage.setItem('mfa_email', loginForm.email)
       router.push({
         path: '/mfa',
         // 不再通过 query 传递敏感信息
       })
+    } else if (result.password_expired) {
+      // 密码已过期，强制修改密码
+      MessagePlugin.warning(t('auth.passwordExpired'))
+      passwordExpireDays.value = result.password_expire_days || 0
+      passwordExpiredDialogVisible.value = true
     } else {
       MessagePlugin.success(t('auth.loginSuccess'))
       router.push('/')
     }
   } else {
-    MessagePlugin.error((result as any).message || t('auth.loginFailed'))
+    MessagePlugin.error(result.message || t('auth.loginFailed'))
+  }
+}
+
+const handleChangePassword = async () => {
+  if (!passwordForm.newPassword) {
+    MessagePlugin.error(t('auth.enterPassword'))
+    return
+  }
+  if (!checkPasswordStrength(passwordForm.newPassword)) {
+    MessagePlugin.error(t('auth.passwordWeak'))
+    return
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    MessagePlugin.error(t('auth.passwordMismatch'))
+    return
+  }
+
+  changingPassword.value = true
+  try {
+    // 获取当前用户 ID
+    const userId = userStore.user?.id
+    if (!userId) {
+      MessagePlugin.error(t('auth.sessionExpired'))
+      passwordExpiredDialogVisible.value = false
+      return
+    }
+
+    // 调用修改密码 API（需要旧密码，但这里密码已过期，应该使用 reset API）
+    // 注意：这里需要管理员权限，或者创建一个特殊的 API 端点
+    // 临时方案：使用当前登录用户的 token 调用 updatePassword API
+    await updatePassword(userId, loginForm.password, passwordForm.newPassword)
+
+    MessagePlugin.success(t('auth.passwordChanged'))
+    passwordExpiredDialogVisible.value = false
+
+    // 重新登录（使用新密码）
+    loginForm.password = passwordForm.newPassword
+    await userStore.login(loginForm.email, loginForm.password)
+  } catch (error: any) {
+    MessagePlugin.error(error?.response?.data?.msg || t('auth.passwordChangeFailed'))
+  } finally {
+    changingPassword.value = false
   }
 }
 </script>
 
 <style scoped>
 /* 仅页面特有样式，通用样式已抽取到 src/styles/auth.css */
+
+.password-expired-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.password-expired-content h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--td-text-color-primary);
+}
+
+.password-expired-content p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--td-text-color-secondary);
+  text-align: center;
+}
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--td-component-stroke);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  transition: width 0.3s, background-color 0.3s;
+}
+
+.strength-fill.weak { background: var(--td-error-color); }
+.strength-fill.medium { background: var(--td-warning-color); }
+.strength-fill.strong { background: var(--td-success-color); }
+
+.strength-text {
+  font-size: 12px;
+  min-width: 36px;
+}
+
+.strength-text.weak { color: var(--td-error-color); }
+.strength-text.medium { color: var(--td-warning-color); }
+.strength-text.strong { color: var(--td-success-color); }
 </style>

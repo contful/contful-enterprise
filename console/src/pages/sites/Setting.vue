@@ -19,19 +19,41 @@ const loading = ref(false)
 const saving = ref(false)
 const siteId = computed(() => route.params.siteId as string)
 
+// SEO 关键词输入
+const seoKeywordsInput = ref('')
+
+const addSeoKeyword = () => {
+  const raw = seoKeywordsInput.value
+  if (!raw) return
+  // 支持逗号、中文逗号、空格分隔
+  const keywords = raw.split(/[,，\s]+/).map(k => k.trim()).filter(k => k)
+  // 去重后追加
+  const exists = new Set(form.value.seo_keywords)
+  for (const kw of keywords) {
+    if (!exists.has(kw)) {
+      form.value.seo_keywords.push(kw)
+      exists.add(kw)
+    }
+  }
+  seoKeywordsInput.value = ''
+}
+
 // 站点元数据（用于页头展示）
 const siteMeta = ref<{ name: string; slug: string; id: string } | null>(null)
 
-// 表单数据
+// 表单数据（与后端 API 匹配）
 const form = ref({
   name: '',
   slug: '',
   description: '',
   site_url: '',
-  config: {
-    timezone: 'Asia/Shanghai',
-    locale: 'zh-CN',
-  } as SiteConfig,
+  locale: 'zh-CN',
+  timezone: 'Asia/Shanghai',
+  seo_title: '',
+  seo_description: '',
+  seo_keywords: [] as string[],
+  is_active: true,
+  settings: {} as Record<string, any>,
 })
 
 // 原始 slug（不可修改提示）
@@ -70,8 +92,11 @@ const localeOptions = computed(() => [
 const hasChanges = computed(() =>
   form.value.name !== (siteMeta.value?.name ?? '') ||
   form.value.slug !== originalSlug.value ||
-  form.value.description !== '' ||
-  form.value.site_url !== ''
+  form.value.description !== (siteMeta.value ? '' : '') ||
+  form.value.site_url !== '' ||
+  form.value.locale !== 'zh-CN' ||
+  form.value.timezone !== 'Asia/Shanghai' ||
+  form.value.is_active !== true
 )
 
 // Slug 格式校验状态
@@ -99,7 +124,13 @@ const loadSite = async () => {
         slug: res.data.slug || '',
         description: res.data.description || '',
         site_url: res.data.site_url || '',
-        config: (res.data.config as SiteConfig) || { timezone: 'Asia/Shanghai', locale: 'zh-CN' },
+        locale: res.data.locale || 'zh-CN',
+        timezone: res.data.timezone || 'Asia/Shanghai',
+        seo_title: res.data.seo_title || '',
+        seo_description: res.data.seo_description || '',
+        seo_keywords: res.data.seo_keywords || [],
+        is_active: res.data.is_active !== false,
+        settings: res.data.settings || {},
       }
       originalSlug.value = res.data.slug || ''
     }
@@ -129,9 +160,15 @@ const handleSave = async () => {
     const res = await updateSite(siteId.value, {
       name: form.value.name,
       slug: form.value.slug,
-      description: form.value.description,
+      description: form.value.description || undefined,
       site_url: form.value.site_url || undefined,
-      config: form.value.config,
+      locale: form.value.locale,
+      timezone: form.value.timezone,
+      seo_title: form.value.seo_title || undefined,
+      seo_description: form.value.seo_description || undefined,
+      seo_keywords: form.value.seo_keywords.length > 0 ? form.value.seo_keywords : undefined,
+      is_active: form.value.is_active,
+      settings: form.value.settings,
     })
 
     if (res.code === 200) {
@@ -176,7 +213,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="site-config-page">
+  <div class="page page--padded">
     <!-- 页头：面包屑 + 站点信息 -->
     <div class="page-header">
       <div class="breadcrumb">
@@ -252,6 +289,7 @@ onMounted(() => {
             </t-form-item>
             <t-form-item :label="t('settings.siteDescription')" class="form-item-full">
               <t-textarea
+                v-if="siteMeta"
                 v-model="form.description"
                 :placeholder="t('settings.siteDescPlaceholder')"
                 :maxlength="2000"
@@ -280,24 +318,94 @@ onMounted(() => {
           <div class="form-grid">
             <t-form-item :label="t('settings.timezone')">
               <t-select
-                v-model="form.config.timezone"
+                v-model="form.timezone"
                 :options="timezoneOptions"
                 filterable
-                :placeholder="t('common.selectPlaceholder', '请选择')"
+                :placeholder="t('common.selectPlaceholder')"
               >
                 <template #prefix-icon><t-icon name="time" /></template>
               </t-select>
             </t-form-item>
             <t-form-item :label="t('settings.language')">
               <t-select
-                v-model="form.config.locale"
+                v-model="form.locale"
                 :options="localeOptions"
-                :placeholder="t('common.selectPlaceholder', '请选择')"
+                :placeholder="t('common.selectPlaceholder')"
               >
                 <template #prefix-icon><t-icon name="translate" /></template>
               </t-select>
             </t-form-item>
           </div>
+        </section>
+
+        <!-- SEO 配置 -->
+        <section class="settings-section">
+          <div class="section-header">
+            <t-icon name="search" class="section-icon" />
+            <h3 class="section-title">{{ t('settings.seo') }}</h3>
+          </div>
+          <p class="section-desc">{{ t('settings.seoTip') }}</p>
+          <div class="form-grid">
+            <t-form-item :label="t('settings.seoTitle')" class="form-item-full">
+              <t-input
+                v-model="form.seo_title"
+                :placeholder="t('settings.seoTitlePlaceholder')"
+                :maxlength="255"
+                clearable
+              >
+                <template #prefix-icon><t-icon name="title" /></template>
+              </t-input>
+            </t-form-item>
+            <t-form-item :label="t('settings.seoDesc')" class="form-item-full">
+              <t-textarea
+                v-if="siteMeta"
+                v-model="form.seo_description"
+                :placeholder="t('settings.seoDescPlaceholder')"
+                :maxlength="500"
+                :autosize="{ minRows: 3, maxRows: 6 }"
+              />
+            </t-form-item>
+            <t-form-item :label="t('settings.seoKeywords')" class="form-item-full">
+              <div class="keywords-wrapper">
+                <t-input
+                  v-model="seoKeywordsInput"
+                  :placeholder="t('settings.seoKeywordsPlaceholder')"
+                  clearable
+                  @enter="addSeoKeyword"
+                  @blur="addSeoKeyword"
+                />
+                <p class="keywords-hint">{{ t('settings.seoKeywordsHint') }}</p>
+                <div class="keywords-tags">
+                  <t-tag
+                    v-for="(kw, idx) in form.seo_keywords"
+                    :key="idx"
+                    theme="primary"
+                    variant="light"
+                    closable
+                    @close="form.seo_keywords.splice(idx, 1)"
+                  >
+                    {{ kw }}
+                  </t-tag>
+                  <span v-if="form.seo_keywords.length === 0" class="keywords-empty">
+                    {{ t('settings.seoKeywordsHint') }}
+                  </span>
+                </div>
+              </div>
+            </t-form-item>
+          </div>
+        </section>
+
+        <!-- 站点状态 -->
+        <section class="settings-section">
+          <div class="section-header">
+            <t-icon name="poweroff" class="section-icon" />
+            <h3 class="section-title">{{ t('settings.siteStatus') }}</h3>
+          </div>
+          <t-form-item :label="t('settings.isActive')">
+            <t-switch v-model="form.is_active">
+              <template #label="{ value }">{{ value ? t('common.enabled') : t('common.disabled') }}</template>
+            </t-switch>
+          </t-form-item>
         </section>
 
         <!-- 部署提示 -->
@@ -336,7 +444,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.site-config-page {
+/* 页面特有样式：站点设置 */
+.page {
   max-width: 800px;
 }
 

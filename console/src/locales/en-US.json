@@ -63,6 +63,7 @@
     "copied": "Copied",
     "copyFailed": "Copy failed",
     "copy": "Copy",
+    "view": "View",
     "saveSuccess": "Saved successfully",
     "deleteSuccess": "Deleted successfully",
     "createSuccess": "Created successfully"
@@ -74,11 +75,12 @@
     "contentEntries": "Content",
     "media": "Media",
     "users": "Users",
-    "settings": "Site Settings",
+    "settings": "Settings",
     "tokens": "Tokens",
     "apiTokens": "API Tokens",
     "configs": "Config",
-    "contentSchemas": "Schemas"
+    "contentSchemas": "Schemas",
+    "auditLogs": "Audit Logs"
   },
   "auth": {
     "login": "Login",
@@ -106,7 +108,73 @@
     "mfaRecoveryTip": "Each recovery code can only be used once. MFA may be disabled automatically after use.",
     "mfaInvalidCode": "Invalid or expired verification code",
     "mfaTokenExpired": "MFA session expired, please log in again",
-    "mfaSuccess": "Verification successful"
+    "mfaSuccess": "Verification successful",
+    "passwordExpired": "Your password has expired",
+    "passwordExpiredTitle": "Password Expired",
+    "passwordExpiredHint": "Your password expired {days} days ago. Please change your password to continue.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordHint": "Please re-enter password",
+    "changePassword": "Change Password",
+    "passwordChanged": "Password changed successfully",
+    "passwordChangeFailed": "Failed to change password",
+    "passwordMismatch": "Passwords do not match",
+    "sessionExpired": "Session expired, please login again"
+  },
+  "audit": {
+    "pageTitle": "Audit Logs",
+    "pageSubtitle": "View system operation records and audit trails",
+    "detailTitle": "Audit Log Detail",
+    "detailBtn": "Detail",
+    "dataSignature": "Data Signature",
+    "filter": {
+      "category": "Category",
+      "level": "Level",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "startTimePlaceholder": "Select start time",
+      "endTimePlaceholder": "Select end time",
+      "search": "Search",
+      "reset": "Reset"
+    },
+    "column": {
+      "action": "Action",
+      "category": "Category",
+      "level": "Level",
+      "resourceType": "Resource Type",
+      "userId": "User ID",
+      "ipAddress": "IP Address",
+      "time": "Time",
+      "operation": "Operation"
+    },
+    "detail": {
+      "id": "ID",
+      "action": "Action",
+      "category": "Category",
+      "level": "Level",
+      "resourceType": "Resource Type",
+      "resourceId": "Resource ID",
+      "userId": "User ID",
+      "siteId": "Site ID",
+      "ipAddress": "IP Address",
+      "userAgent": "User-Agent",
+      "details": "Details",
+      "time": "Time"
+    },
+    "category": {
+      "auth": "Auth",
+      "content": "Content",
+      "media": "Media",
+      "settings": "Settings",
+      "user": "User",
+      "system": "System"
+    },
+    "level": {
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Warn",
+      "error": "Error"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -332,8 +400,18 @@
     "superAdminSwitch": "Super Admin",
     "editTitle": "Edit User",
     "createTitle": "Add User",
+    "viewTitle": "View User",
     "revokeConfirm": "Revoke User",
-    "revokeMsg": "Are you sure you want to revoke this user?"
+    "revokeMsg": "Are you sure you want to revoke this user?",
+    "resetPassword": "Reset Password",
+    "resetPasswordTitle": "Reset Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordHint": "Please re-enter password",
+    "passwordRequired": "Password is required",
+    "passwordMismatch": "Passwords do not match",
+    "resetPasswordSuccess": "Password reset successfully",
+    "resetPasswordFailed": "Failed to reset password"
   },
   "apiTokens": {
     "title": "API Tokens",
@@ -476,6 +554,8 @@
     "defaultSiteName": "Site Name",
     "year": "Year",
     "active": "Active",
+    "siteStatus": "Site Status",
+    "isActive": "Is Active",
     "configs": "Site Config",
     "configsSubtitle": "Key-value configuration management with encryption and grouping support",
     "addConfig": "Add Config",
@@ -568,7 +648,22 @@
     "slugFormatInvalid": "Invalid format: only lowercase letters, numbers, hyphens; must start with a letter",
     "slugModified": "Modified",
     "unsavedChanges": "You have unsaved changes",
-    "selectPlaceholder": "Select"
+    "selectPlaceholder": "Select",
+    "systemConfig": "System Config",
+    "configKey": "Config Key",
+    "configValue": "Config Value",
+    "valueType": "Value Type",
+    "isPublic": "Public",
+    "editConfig": "Edit Config",
+    "enterValue": "Enter value",
+    "enterJson": "Enter JSON",
+    "enterDescription": "Enter description",
+    "loadFailed": "Load failed",
+    "updateSuccess": "Update success",
+    "updateFailed": "Update failed",
+    "valueRequired": "Value required",
+    "edit": "Edit",
+    "operation": "Operation"
   },
   "site": {
     "selectSite": "Select Site",
@@ -714,5 +809,40 @@
     "manageFields": "Manage Fields",
     "enableDisable": "Enable/Disable",
     "loading": "Loading..."
+  },
+  "roles": {
+    "title": "Role",
+    "subtitle": "Manage system-level roles and their permissions",
+    "addRole": "New Role",
+    "createTitle": "Create System Role",
+    "editTitle": "Edit System Role",
+    "deleteConfirm": "Delete role \"{name}\"? This cannot be undone.",
+    "namePlaceholder": "Role name",
+    "descPlaceholder": "Role description (optional)",
+    "permissions": "Permissions",
+    "permCount": "Permissions",
+    "perms": "items",
+    "builtIn": "Built-in",
+    "nameRequired": "Role name is required",
+    "role": "Role",
+    "perm": {
+      "systemUsers": "User Management",
+      "systemSites": "Site Management",
+      "systemTokens": "API Tokens",
+      "systemSettings": "System Settings",
+      "systemAudit": "Audit Logs",
+      "systemRoles": "Role Management"
+    }
+  },
+  "members": {
+    "title": "Site Members",
+    "subtitle": "Manage site members and their role permissions",
+    "invite": "Invite Member",
+    "inviteTitle": "Invite Member",
+    "sendInvite": "Send Invite",
+    "changeRole": "Change Role",
+    "removeConfirm": "Remove user \"{email}\" from site?",
+    "selectRole": "Select a role",
+    "fillRequired": "Email and role are required"
   }
 }

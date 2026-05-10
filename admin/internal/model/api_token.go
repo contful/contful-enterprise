@@ -70,7 +70,6 @@ type APIToken struct {
 	EncryptedToken string       `json:"-" gorm:"type:text"`                           // AES-256-GCM 加密存储
 	Scopes        StringArray  `json:"scopes" gorm:"type:jsonb;default:'[]'"`         // 权限范围
 	SiteScope     StringArray  `json:"site_scope" gorm:"type:jsonb;default:'[]'"`     // 站点范围
-	ChannelScope  StringArray  `json:"channel_scope" gorm:"type:jsonb;default:'[]'"`  // 频道范围
 	AllowedIPs    *string      `json:"allowed_ips,omitempty" gorm:"type:inet"`
 	RateLimit     int          `json:"rate_limit" gorm:"default:60"`
 	ExpiresTime     *time.Time   `json:"expires_time,omitempty" gorm:"column:expires_time"`
@@ -86,7 +85,7 @@ type APIToken struct {
 
 // TableName 表名
 func (APIToken) TableName() string {
-	return "api_tokens"
+	return "tokens"
 }
 
 // TokenHashPrefix 取 Token Hash 前缀用于日志脱敏

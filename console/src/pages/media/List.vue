@@ -17,6 +17,7 @@ import {
   type FolderResponse,
 } from '@/api/asset'
 import { showError, showSuccess } from '@/utils/request'
+import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
 
@@ -237,23 +238,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="media-library">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('media.title') }}</h1>
-        <p class="page-subtitle">{{ t('media.subtitle') }}</p>
-      </div>
-      <div class="header-actions">
+  <div class="page page--padded media-library">
+    <PageHeader
+      :title="t('media.title')"
+      :subtitle="t('media.subtitle')"
+      :show-refresh="true"
+      @refresh="loadMedia(currentFolder, currentPage)"
+    >
+      <template #actions>
         <t-button variant="outline" @click="showNewFolderModal = true">
           <template #icon><t-icon name="folder-add" /></template>
           {{ t('media.newFolder') }}
         </t-button>
+      </template>
+      <template #primary-action>
         <t-button theme="primary" @click="openUpload">
           <Icon name="arrow-up" />
           {{ t('media.upload') }}
         </t-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div class="media-layout">
       <!-- 文件夹侧边栏 -->
@@ -317,7 +321,7 @@ onMounted(() => {
               <t-option value="audio" :label="t('media.audio')" />
               <t-option value="document" :label="t('media.document')" />
             </t-select>
-            <t-button variant="outline" @click="loadAssets">{{ t('media.searchBtn') }}</t-button>
+            <t-button size="small" variant="outline" @click="loadAssets">{{ t('media.searchBtn') }}</t-button>
           </div>
           <div class="toolbar-right">
             <span v-if="selectedAssets.size > 0" class="selection-info">

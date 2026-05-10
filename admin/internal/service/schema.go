@@ -464,3 +464,4 @@ func isValidFieldName(name string) bool {
 	validName := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*$`)
 	return validName.MatchString(name)
 }
+

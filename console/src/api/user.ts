@@ -77,3 +77,8 @@ export function deleteUser(id: string) {
 export function updatePassword(id: string, oldPassword: string, newPassword: string) {
   return put<void>(`/users/${id}/password`, { old_password: oldPassword, new_password: newPassword })
 }
+
+// 管理员重置用户密码（不需要旧密码）
+export function resetPassword(id: string, newPassword: string) {
+  return post<void>(`/users/${id}/reset-password`, { new_password: newPassword })
+}

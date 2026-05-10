@@ -64,6 +64,7 @@
     "copied": "已複製",
     "copyFailed": "複製失敗",
     "copy": "複製",
+    "view": "檢視",
     "saveSuccess": "儲存成功",
     "deleteSuccess": "刪除成功",
     "createSuccess": "建立成功"
@@ -79,7 +80,8 @@
     "tokens": "權杖",
     "apiTokens": "API 權杖",
     "configs": "設定",
-    "contentSchemas": "內容模型"
+    "contentSchemas": "模型",
+    "auditLogs": "審計日誌"
   },
   "auth": {
     "login": "登入",
@@ -108,6 +110,61 @@
     "mfaInvalidCode": "驗證碼無效或已過期",
     "mfaTokenExpired": "MFA 工作階段已過期，請重新登入",
     "mfaSuccess": "驗證成功"
+  },
+  "audit": {
+    "pageTitle": "審計日誌",
+    "pageSubtitle": "查看系統操作記錄和審計追蹤",
+    "detailTitle": "審計日誌詳情",
+    "detailBtn": "詳情",
+    "dataSignature": "資料簽章",
+    "filter": {
+      "category": "日誌類別",
+      "level": "日誌級別",
+      "startTime": "開始時間",
+      "endTime": "結束時間",
+      "startTimePlaceholder": "請選擇開始時間",
+      "endTimePlaceholder": "請選擇結束時間",
+      "search": "搜尋",
+      "reset": "重置"
+    },
+    "column": {
+      "action": "動作",
+      "category": "類別",
+      "level": "級別",
+      "resourceType": "資源類型",
+      "userId": "使用者ID",
+      "ipAddress": "IP 位址",
+      "time": "時間",
+      "operation": "操作"
+    },
+    "detail": {
+      "id": "ID",
+      "action": "動作",
+      "category": "類別",
+      "level": "級別",
+      "resourceType": "資源類型",
+      "resourceId": "資源ID",
+      "userId": "使用者ID",
+      "siteId": "站台ID",
+      "ipAddress": "IP 位址",
+      "userAgent": "User-Agent",
+      "details": "詳情",
+      "time": "時間"
+    },
+    "category": {
+      "auth": "認證",
+      "content": "內容",
+      "media": "媒體",
+      "settings": "設定",
+      "user": "使用者",
+      "system": "系統"
+    },
+    "level": {
+      "debug": "除錯",
+      "info": "資訊",
+      "warn": "警告",
+      "error": "錯誤"
+    }
   },
   "dashboard": {
     "title": "儀表板",
@@ -333,6 +390,7 @@
     "superAdminSwitch": "超級管理員",
     "editTitle": "編輯使用者",
     "createTitle": "新增使用者",
+    "viewTitle": "檢視使用者",
     "revokeConfirm": "撤銷使用者",
     "revokeMsg": "確定要撤銷此使用者嗎？"
   },
@@ -477,6 +535,8 @@
     "defaultSiteName": "站台名稱",
     "year": "年",
     "active": "正常",
+    "siteStatus": "站台狀態",
+    "isActive": "是否啟用",
     "configs": "站台設定",
     "configsSubtitle": "鍵值設定管理，支援加密儲存和分組",
     "addConfig": "新增設定",
@@ -710,5 +770,40 @@
     "manageFields": "管理欄位",
     "enableDisable": "啟用/停用",
     "loading": "載入中"
+  },
+  "roles": {
+    "title": "角色",
+    "subtitle": "管理系統級角色及其權限配置",
+    "addRole": "新建角色",
+    "createTitle": "新建系統角色",
+    "editTitle": "編輯系統角色",
+    "deleteConfirm": "確認刪除角色「{name}」？此操作不可恢復。",
+    "namePlaceholder": "角色名稱",
+    "descPlaceholder": "角色描述（選填）",
+    "permissions": "權限配置",
+    "permCount": "權限數",
+    "perms": "項",
+    "builtIn": "內建",
+    "nameRequired": "請填寫角色名稱",
+    "role": "角色",
+    "perm": {
+      "systemUsers": "使用者管理",
+      "systemSites": "站點管理",
+      "systemTokens": "API Token",
+      "systemSettings": "系統設定",
+      "systemAudit": "稽核日誌",
+      "systemRoles": "角色管理"
+    }
+  },
+  "members": {
+    "title": "站點成員管理",
+    "subtitle": "管理站點成員及其角色權限",
+    "invite": "邀請成員",
+    "inviteTitle": "邀請成員",
+    "sendInvite": "確認邀請",
+    "changeRole": "更換角色",
+    "removeConfirm": "確認將使用者「{email}」從站點移除？",
+    "selectRole": "請選擇角色",
+    "fillRequired": "請填寫電子郵件和角色"
   }
 }

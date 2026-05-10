@@ -1,5 +1,5 @@
 <template>
-  <div class="security-page">
+  <div class="page page--padded">
     <!-- MFA 双因子认证 -->
     <div class="card">
       <div class="card-header">
@@ -317,11 +317,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.security-page {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+/* 页面特有样式：安全设置 */
 
 .card {
   background: var(--td-bg-color-container);

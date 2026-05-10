@@ -61,11 +61,8 @@ func (h *IntegrityHandler) Verify(c *gin.Context) {
 	// 从 config 中心读取签名密钥
 	var signingKey, alg string
 	if h.configService != nil {
-		signingKey, _ = h.configService.Get(c.Request.Context(), siteID, "integrity.signing_key")
-		alg, _ = h.configService.Get(c.Request.Context(), siteID, "integrity.algorithm")
-		if alg == "" {
-			alg = "HMAC-SHA256"
-		}
+		signingKey, _ = h.configService.GetAuditSigningKey()
+		alg = "HMAC-SHA256" // 默认算法
 	}
 
 	entity := c.Query("entity")
@@ -202,11 +199,8 @@ func (h *IntegrityHandler) BatchVerify(c *gin.Context) {
 	// 读取签名密钥
 	var signingKey, alg string
 	if h.configService != nil {
-		signingKey, _ = h.configService.Get(c.Request.Context(), siteID, "integrity.signing_key")
-		alg, _ = h.configService.Get(c.Request.Context(), siteID, "integrity.algorithm")
-		if alg == "" {
-			alg = "HMAC-SHA256"
-		}
+		signingKey, _ = h.configService.GetAuditSigningKey()
+		alg = "HMAC-SHA256" // 默认算法
 	}
 
 	intSvc, _ := service.NewIntegrityService(siteID, signingKey, alg)

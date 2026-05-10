@@ -1,5 +1,5 @@
 <template>
-  <div class="sites-page">
+  <div class="page page--padded">
     <!-- 页头 -->
     <div class="page-header">
       <div class="title-section">
@@ -37,10 +37,8 @@
         class="site-card"
         :class="{ 'site-card--current': site.id === siteStore.currentSiteId }"
       >
-        <!-- 当前站点标记 -->
-        <div v-if="site.id === siteStore.currentSiteId" class="current-badge">
-          {{ t('sites.current') }}
-        </div>
+        <!-- 当前站点标记（左上角角标） -->
+        <div v-if="site.id === siteStore.currentSiteId" class="current-badge"></div>
 
         <!-- 卡片头部 -->
         <div class="site-card__header">
@@ -69,10 +67,6 @@
                   <t-dropdown-item @click="router.push(`/sites/${site.id}/setting`)">
                     <template #prefix-icon><t-icon name="setting" /></template>
                     {{ t('menu.settings') }}
-                  </t-dropdown-item>
-                  <t-dropdown-item @click="router.push(`/sites/${site.id}/config`)">
-                    <template #prefix-icon><t-icon name="tools" /></template>
-                    {{ t('menu.configs') }}
                   </t-dropdown-item>
                   <t-dropdown-item @click="copySiteId(site)">
                     <template #prefix-icon><t-icon name="file-copy" /></template>
@@ -432,9 +426,7 @@ function formatDate(dt: string) {
 </script>
 
 <style scoped>
-.sites-page {
-  width: 100%;
-}
+/* 页面特有样式：站点列表 */
 
 .page-header {
   display: flex;
@@ -501,14 +493,12 @@ function formatDate(dt: string) {
 
 .current-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  background: var(--td-brand-color, #3b82f6);
-  color: #fff;
-  border-radius: 999px;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-left: 28px solid var(--td-brand-color, #3b82f6);
+  border-bottom: 28px solid transparent;
 }
 
 /* 卡片头部 */

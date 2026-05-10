@@ -33,6 +33,7 @@ type SystemUser struct {
 	RecoveryCodes *string     `json:"-" gorm:"type:text"`         // AES-256-GCM 加密后存储（JSON 数组）
 	CreatedTime   time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedTime   time.Time   `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
+	PasswordChangedTime *time.Time `json:"password_changed_time" gorm:"type:timestamptz"` // 密码最后修改时间（用于密码过期检查）
 	DeletedTime   *time.Time  `json:"deleted_time" gorm:"type:timestamptz"`
 }
 
@@ -56,42 +57,23 @@ func (SystemRole) TableName() string {
 	return "system_roles"
 }
 
-// SiteUser 站点用户关联
-type SiteUser struct {
-	ID               uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	SiteID           uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
-	UserID           uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
-	RoleID           uuid.UUID  `json:"role_id" gorm:"type:uuid;not null;index"`
-	Status           UserStatus `json:"status" gorm:"type:user_status;not null;default:'active'"`
-	ExtraPermissions []string   `json:"extra_permissions" gorm:"type:jsonb;serializer:json"`
-	CreatedTime      time.Time  `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedTime      time.Time  `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedTime      *time.Time `json:"deleted_time" gorm:"type:timestamptz"`
+// SystemUserRole 系统用户-角色关联（多对多）
+type SystemUserRole struct {
+	ID        uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID    uuid.UUID `json:"user_id" gorm:"type:uuid;not null;uniqueIndex:idx_user_role"`
+	RoleID    uuid.UUID `json:"role_id" gorm:"type:uuid;not null;uniqueIndex:idx_user_role"`
+	CreatedTime time.Time `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
 }
 
-func (SiteUser) TableName() string {
-	return "site_users"
+func (SystemUserRole) TableName() string {
+	return "system_user_roles"
 }
 
-// SiteRole 站点角色
-type SiteRole struct {
-	ID                 uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	SiteID             uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
-	Name               string     `json:"name" gorm:"type:varchar(100);not null"`
-	Description        string     `json:"description" gorm:"type:text"`
-	IsSystem           bool       `json:"is_system" gorm:"not null;default:false"`
-	Permissions        []string   `json:"permissions" gorm:"type:jsonb;serializer:json"`
-	ContentPermissions []string   `json:"content_permissions" gorm:"type:jsonb;serializer:json"`
-	ChannelPermissions []string   `json:"channel_permissions" gorm:"type:jsonb;serializer:json"`
-	SortOrder          int        `json:"sort_order" gorm:"not null;default:0"`
-	CreatedTime        time.Time  `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedTime        time.Time  `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
-	DeletedTime        *time.Time `json:"deleted_time" gorm:"type:timestamptz"`
-}
+// SiteUser 站点用户关联（已废弃，使用 system_user_roles 替代）
+// type SiteUser struct { ... } // 已删除
 
-func (SiteRole) TableName() string {
-	return "site_roles"
-}
+// SiteRole 站点角色（已废弃，使用 system_roles 替代）
+// type SiteRole struct { ... } // 已删除
 
 // ============================================
 // DTO / Request/Response
@@ -112,9 +94,11 @@ type LoginRequest struct {
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	User         *UserResponse `json:"user"`
-	AccessToken  string        `json:"access_token"`
-	RefreshToken string        `json:"refresh_token"`
+	User             *UserResponse `json:"user"`
+	AccessToken       string        `json:"access_token"`
+	RefreshToken      string        `json:"refresh_token"`
+	PasswordExpired   bool          `json:"password_expired,omitempty"`    // 密码是否已过期
+	PasswordExpireDays *int        `json:"password_expire_days,omitempty"` // 密码还有多少天过期（负数表示已过期）
 }
 
 // MFARequiredResponse 登录步骤 1 — 需要 MFA 验证时的响应
@@ -131,14 +115,15 @@ type RefreshResponse struct {
 
 // UserResponse 用户响应（脱敏）
 type UserResponse struct {
-	ID           uuid.UUID  `json:"id"`
-	Email        string     `json:"email"`
-	Nickname     string     `json:"nickname"`
-	AvatarURL    string     `json:"avatar_url,omitempty"`
-	Status       UserStatus `json:"status"`
-	IsSuperAdmin bool      `json:"is_super_admin"`
-	MFAEnabled   bool       `json:"mfa_enabled"`
-	CreatedTime  time.Time  `json:"created_time"`
+	ID                uuid.UUID  `json:"id"`
+	Email             string     `json:"email"`
+	Nickname          string     `json:"nickname"`
+	AvatarURL         string     `json:"avatar_url,omitempty"`
+	Status            UserStatus `json:"status"`
+	IsSuperAdmin      bool       `json:"is_super_admin"`
+	MFAEnabled        bool       `json:"mfa_enabled"`
+	CreatedTime       time.Time  `json:"created_time"`
+	PasswordChangedTime *time.Time `json:"password_changed_time,omitempty"` // 密码最后修改时间
 }
 
 // ============================================
@@ -231,5 +216,10 @@ type UpdateMeRequest struct {
 // UpdatePasswordRequest 用户修改密码请求
 type UpdatePasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
+
+// ResetPasswordRequest 管理员重置用户密码请求
+type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=8"`
 }

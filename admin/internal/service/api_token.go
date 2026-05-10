@@ -75,7 +75,6 @@ func (s *APITokenService) Create(ctx context.Context, siteID, userID uuid.UUID, 
 		RateLimit:      60, // 默认每分钟 60 次
 		Scopes:         model.StringArray{"read"}, // 默认只读
 		SiteScope:      model.StringArray{"*"},    // 全部站点
-		ChannelScope:   model.StringArray{},       // 空数组，非 nil
 		Status:         model.TokenStatusActive,
 		CreatedBy:      &userID,
 	}

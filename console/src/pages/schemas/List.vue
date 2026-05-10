@@ -17,6 +17,7 @@ import {
   type ContentSchemaUpdate,
 } from '@/api/schema'
 import { showError, showSuccess, getFriendlyError } from '@/utils/request'
+import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -187,24 +188,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="schemas-page">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <div class="title-section">
-        <h1>{{ t('contentSchemas.title') }}</h1>
-        <p class="subtitle">{{ t('contentSchemas.subtitle') }}</p>
-      </div>
-      <div class="header-actions">
-        <t-button variant="outline" @click="loadData">
-          <template #icon><t-icon name="refresh" /></template>
-          {{ t('common.refresh') }}
-        </t-button>
+  <div class="page page--padded">
+    <PageHeader
+      :title="t('contentSchemas.title')"
+      :subtitle="t('contentSchemas.subtitle')"
+      :show-refresh="true"
+      @refresh="loadData"
+    >
+      <template #primary-action>
         <t-button theme="primary" @click="openCreateDialog">
           <template #icon><t-icon name="add" /></template>
           {{ t('contentSchemas.createTypeBtn') }}
         </t-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <!-- 数据表格 -->
     <div class="card" style="padding: 0; overflow: hidden;">
@@ -377,9 +374,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.schemas-page {
-  height: 100%;
-}
+/* 页面特有样式：内容类型列表 */
 
 .page-header {
   display: flex;
@@ -433,10 +428,7 @@ onMounted(() => {
   font-size: 13px;
 }
 
-.action-btns {
-  display: flex;
-  gap: 6px;
-}
+/* === Action buttons — 已提取到 common.css === */
 
 .text-center {
   text-align: center;
@@ -563,14 +555,7 @@ onMounted(() => {
   border-top: 1px solid var(--color-border);
 }
 
-.form-error {
-  padding: 10px 12px;
-  background: var(--color-error-light);
-  color: var(--color-error);
-  border-radius: 6px;
-  margin-bottom: 16px;
-  font-size: 14px;
-}
+/* === Form error — block 版本，已提取到 common.css === */
 
 .required {
   color: var(--color-error);

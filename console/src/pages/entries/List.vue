@@ -27,6 +27,7 @@ import {
   invalidateCache,
   type Entry,
 } from '@/api/entry'
+import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -385,13 +386,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="content-management">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('content.title') }}</h1>
-        <p class="page-subtitle">{{ t('content.subtitle') }}</p>
-      </div>
-    </div>
+  <div class="page page--padded content-management">
+    <PageHeader
+      :title="t('content.title')"
+      :subtitle="t('content.subtitle')"
+      :show-refresh="true"
+      @refresh="loadContentEntries(currentPage)"
+    >
+      <template #primary-action>
+        <t-button theme="primary" @click="openCreateDialog">
+          <template #icon><t-icon name="add" /></template>
+          {{ t('content.createEntry') }}
+        </t-button>
+      </template>
+    </PageHeader>
 
     <div class="content-layout">
       <!-- 无站点提示 -->

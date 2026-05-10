@@ -1,16 +1,19 @@
 <template>
-  <div class="users-page">
+  <div class="page page--padded">
     <!-- 页面标题 -->
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('users.title') }}</h1>
-        <p class="page-subtitle">{{ t('users.subtitle') }}</p>
-      </div>
-      <t-button theme="primary" @click="openCreateDialog">
-        <template #icon><t-icon name="add" /></template>
-        {{ t('users.addUser') }}
-      </t-button>
-    </div>
+    <PageHeader
+      :title="t('users.title')"
+      :subtitle="t('users.subtitle')"
+      :show-refresh="true"
+      @refresh="loadUsers"
+    >
+      <template #primary-action>
+        <t-button theme="primary" @click="openCreateDialog">
+          <template #icon><t-icon name="add" /></template>
+          {{ t('users.addUser') }}
+        </t-button>
+      </template>
+    </PageHeader>
 
     <!-- 用户列表 — t-table -->
     <t-table
@@ -91,6 +94,75 @@
         <t-alert v-if="editError" theme="error" :message="editError" closable @close="editError = ''" />
       </t-form>
     </t-dialog>
+
+    <!-- 查看用户弹窗 — 只读展示 -->
+    <t-dialog
+      v-model:visible="viewVisible"
+      :header="t('users.viewTitle')"
+      :width="480"
+      :footer="false"
+    >
+      <div class="user-detail">
+        <div class="user-detail__avatar">
+          {{ viewUser?.email?.charAt(0).toUpperCase() }}
+        </div>
+        <div class="user-detail__info">
+          <div class="user-detail__row">
+            <span class="user-detail__label">{{ t('users.email') }}</span>
+            <span class="user-detail__value">{{ viewUser?.email }}</span>
+          </div>
+          <div class="user-detail__row">
+            <span class="user-detail__label">{{ t('users.nickname') }}</span>
+            <span class="user-detail__value">{{ viewUser?.nickname || '\u2014' }}</span>
+          </div>
+          <div class="user-detail__row">
+            <span class="user-detail__label">{{ t('users.status') }}</span>
+            <t-tag v-if="viewUser" :theme="getStatusBadge(viewUser.status)" variant="light" size="small">
+              {{ statusLabel(viewUser.status) }}
+            </t-tag>
+          </div>
+          <div class="user-detail__row">
+            <span class="user-detail__label">{{ t('users.role') }}</span>
+            <t-tag v-if="viewUser && viewUser.is_super_admin" theme="warning" variant="light" size="small">
+              {{ t('users.superAdmin') }}
+            </t-tag>
+            <t-tag v-else-if="viewUser" variant="light" size="small">{{ t('users.normalUser') }}</t-tag>
+          </div>
+          <div class="user-detail__row">
+            <span class="user-detail__label">{{ t('users.createdTime') }}</span>
+            <span class="user-detail__value">{{ formatDate(viewUser?.created_time || '') }}</span>
+          </div>
+        </div>
+      </div>
+    </t-dialog>
+
+    <!-- 重置密码弹窗 -->
+    <t-dialog
+      v-model:visible="resetPwdVisible"
+      :header="t('users.resetPasswordTitle')"
+      :width="480"
+      :confirm-btn="{ content: resetting ? t('common.saving') : t('common.confirm'), theme: 'primary' as const, loading: resetting }"
+      :cancel-btn="{ content: t('common.cancel') }"
+      @confirm="handleResetPassword"
+    >
+      <t-form label-align="top">
+        <t-form-item :label="t('users.newPassword')">
+          <t-input v-model="resetPwdForm.newPassword" type="password" :placeholder="t('users.enterPassword')" clearable />
+          <!-- 密码强度条 -->
+          <div class="password-strength">
+            <div class="strength-bar">
+              <div class="strength-fill" :class="resetPasswordStrength.level" :style="{ width: resetPasswordStrength.width }"></div>
+            </div>
+            <span class="strength-text" :class="resetPasswordStrength.level">{{ resetPasswordStrength.label }}</span>
+          </div>
+          <p class="password-hint">{{ t('users.passwordHint') }}</p>
+        </t-form-item>
+        <t-form-item :label="t('users.confirmPassword')">
+          <t-input v-model="resetPwdForm.confirmPassword" type="password" :placeholder="t('users.confirmPasswordHint')" clearable />
+        </t-form-item>
+        <t-alert v-if="resetPwdError" theme="error" :message="resetPwdError" closable @close="resetPwdError = ''" />
+      </t-form>
+    </t-dialog>
   </div>
 </template>
 
@@ -104,6 +176,8 @@ import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import { showError, showSuccess } from '@/utils/request'
+import PageHeader from '@/components/PageHeader.vue'
+import { resetPassword } from '@/api/user'
 
 const { t } = useI18n()
 
@@ -168,6 +242,48 @@ const editForm = reactive({
   is_super_admin: false,
 })
 
+// 查看弹窗
+const viewVisible = ref(false)
+const viewUser = ref<User | null>(null)
+
+// 重置密码弹窗
+const resetPwdVisible = ref(false)
+const resetting = ref(false)
+const resetPwdError = ref('')
+const resetTargetUserId = ref('')
+const resetPwdForm = reactive({
+  newPassword: '',
+  confirmPassword: '',
+})
+
+// 重置密码对话框的密码强度计算
+const resetPasswordStrength = computed(() => {
+  const pwd = resetPwdForm.newPassword
+  if (!pwd) return { level: '', width: '0%', label: '' }
+
+  let score = 0
+  if (pwd.length >= 8) score++
+  if (pwd.length >= 12) score++
+  if (/[a-z]/.test(pwd)) score++
+  if (/[A-Z]/.test(pwd)) score++
+  if (/[0-9]/.test(pwd)) score++
+  if (/[^a-zA-Z0-9]/.test(pwd)) score++
+
+  if (score < 3) return { level: 'weak', width: '33%', label: t('users.passwordWeak') }
+  if (score < 5) return { level: 'medium', width: '66%', label: t('users.passwordMedium') }
+  return { level: 'strong', width: '100%', label: t('users.passwordStrong') }
+})
+
+/** 状态值 → i18n 标签文本 */
+const statusLabel = (status: string) => {
+  const map: Record<string, string> = {
+    active: t('users.statusActive'),
+    inactive: t('users.statusInactive'),
+    suspended: t('users.statusBanned'),
+  }
+  return map[status] || status
+}
+
 const loadUsers = async () => {
   loading.value = true
   try {
@@ -221,6 +337,11 @@ const openCreateDialog = () => {
   createForm.is_super_admin = false
   createError.value = ''
   createVisible.value = true
+}
+
+const openViewDialog = (user: User) => {
+  viewUser.value = user
+  viewVisible.value = true
 }
 
 const handleCreate = async () => {
@@ -292,6 +413,32 @@ const handleDelete = (user: User) => {
   })
 }
 
+const openResetPasswordDialog = (user: User) => {
+  resetTargetUserId.value = user.id
+  resetPwdForm.newPassword = ''
+  resetPwdForm.confirmPassword = ''
+  resetPwdError.value = ''
+  resetPwdVisible.value = true
+}
+
+const handleResetPassword = async () => {
+  if (!resetPwdForm.newPassword) { resetPwdError.value = t('users.passwordRequired'); return }
+  if (resetPwdForm.newPassword !== resetPwdForm.confirmPassword) { resetPwdError.value = t('users.passwordMismatch'); return }
+  if (!checkPasswordStrength(resetPwdForm.newPassword)) { resetPwdError.value = t('users.passwordWeak'); return }
+
+  resetting.value = true
+  resetPwdError.value = ''
+  try {
+    await resetPassword(resetTargetUserId.value, resetPwdForm.newPassword)
+    showSuccess(t('users.resetPasswordSuccess'))
+    resetPwdVisible.value = false
+  } catch (error: any) {
+    resetPwdError.value = error?.response?.data?.msg || t('users.resetPasswordFailed')
+  } finally {
+    resetting.value = false
+  }
+}
+
 // t-table columns
 const columns = computed(() => [
   {
@@ -306,17 +453,17 @@ const columns = computed(() => [
   {
     colKey: 'role',
     title: t('users.role'),
-    cell: (h: any, { row }: { row: User }) => {
+    cell: (_h: any, { row }: { row: User }) => {
       const isAdmin = row.is_super_admin || (row as unknown as Record<string, any>).role === 'super_admin'
       return isAdmin
-        ? h('t-tag', { props: { theme: 'warning', variant: 'light', size: 'small' } }, () => t('users.superAdmin'))
-        : h('t-tag', { props: { variant: 'light', size: 'small' } }, () => t('users.normalUser'))
+        ? h('t-tag', { theme: 'warning', variant: 'light', size: 'small' }, () => t('users.superAdmin'))
+        : h('t-tag', { variant: 'light', size: 'small' }, () => t('users.normalUser'))
     },
   },
   {
     colKey: 'status',
     title: t('users.status'),
-    cell: (h: any, { row }: { row: User }) => {
+    cell: (_h: any, { row }: { row: User }) => {
       const status = row.status || 'unknown'
       const theme = getStatusBadge(status)
       const map: Record<string, string> = {
@@ -324,27 +471,65 @@ const columns = computed(() => [
         inactive: t('users.statusInactive'),
         suspended: t('users.statusBanned'),
       }
-      return h('t-tag', { props: { theme, variant: 'light', size: 'small' } }, () => map[status] || status)
+      return h('t-tag', { theme, variant: 'light', size: 'small' }, () => map[status] || status)
     },
   },
   { colKey: 'created_time', title: t('users.createdTime'), cell: (_h: any, { row }: { row: User }) => formatDate(row.created_time) },
   {
     colKey: 'operations',
     title: t('users.actions'),
-    cell: (h: any, { row }: { row: User }) => h('div', { class: 'action-btns' }, [
-      h('t-tooltip', { props: { content: t('common.edit') } }, () =>
-        h('t-button', {
-          props: { variant: 'outline', size: 'small', shape: 'circle' },
-          on: { click: () => openEditDialog(row) },
-        }, () => h('t-icon', { props: { name: 'edit' } }))
-      ),
-      h('t-tooltip', { props: { content: t('common.delete') } }, () =>
-        h('t-button', {
-          props: { theme: 'danger', variant: 'outline', size: 'small', shape: 'circle', disabled: row.is_super_admin },
-          on: { click: () => handleDelete(row) },
-        }, () => h('t-icon', { props: { name: 'delete' } }))
-      ),
-    ]),
+    cell: (_h: any, { row }: { row: User }) => {
+      const buttons = [
+        // 查看按钮
+        h('t-tooltip', { content: t('common.view') }, () =>
+          h('t-button', {
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            onClick: () => openViewDialog(row),
+          }, () => h('t-icon', { name: 'browse' }))
+        ),
+        // 编辑按钮
+        h('t-tooltip', { content: t('common.edit') }, () =>
+          h('t-button', {
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            onClick: () => openEditDialog(row),
+          }, () => h('t-icon', { name: 'edit' }))
+        ),
+      ]
+
+      // 重置密码按钮（仅超级管理员，且不能重置自己的密码）
+      if (userStore.user?.is_super_admin && row.id !== userStore.user?.id) {
+        buttons.push(
+          h('t-tooltip', { content: t('users.resetPassword') }, () =>
+            h('t-button', {
+              variant: 'outline',
+              size: 'small',
+              shape: 'circle',
+              onClick: () => openResetPasswordDialog(row),
+            }, () => h('t-icon', { name: 'lock-on' }))
+          )
+        )
+      }
+
+      // 删除按钮
+      buttons.push(
+        h('t-tooltip', { content: t('common.delete') }, () =>
+          h('t-button', {
+            theme: 'danger',
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            disabled: row.is_super_admin,
+            onClick: () => handleDelete(row),
+          }, () => h('t-icon', { name: 'delete' }))
+        )
+      )
+
+      return h('div', { class: 'action-btns' }, buttons)
+    },
   },
 ])
 
@@ -382,17 +567,7 @@ onMounted(() => {
 </style>
 
 <style scoped>
-.users-page {
-  height: 100%;
-  padding: 24px;
-}
-
-/* === Form error === */
-.form-error {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--color-error);
-}
+/* 页面特有样式：密码强度 */
 
 /* === Password strength === */
 .password-strength {
@@ -434,9 +609,51 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* === Action buttons in table === */
-.action-btns {
+/* === User detail view === */
+.user-detail {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-detail__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-detail__info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-detail__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-detail__label {
+  width: 80px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.user-detail__value {
+  font-size: 13px;
+  color: var(--color-text);
+  font-weight: 500;
 }
 </style>

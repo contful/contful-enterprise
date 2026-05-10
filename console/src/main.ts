@@ -10,6 +10,7 @@ import TDesign from 'tdesign-vue-next'
 import 'tdesign-vue-next/es/style/index.css'
 import './styles/index.css'
 import './styles/auth.css'
+import './styles/common.css'
 import Icon from './components/Icon.vue'
 
 const app = createApp(App)

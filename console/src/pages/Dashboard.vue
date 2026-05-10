@@ -3,17 +3,19 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject, type Ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/Icon.vue'
-import { getContentSchemas, getContentEntries, getAssets, getUsers } from '@/api/api'
-import { getMySites } from '@/api/site'
-import { apiTokenApi } from '@/api/api-token'
+import { getDashboardStats } from '@/api/api'
+import { getContentEntries } from '@/api/api'
 import { showError } from '@/utils/request'
 
 const { t, locale } = useI18n()
 const router = useRouter()
+
+// 等待 Layout 初始化完成（确保 currentSiteId 已设置）
+const layoutInitialized = inject<Ref<boolean>>('layoutInitialized', ref(true))
 
 const stats = ref({
   sites: 0,
@@ -26,35 +28,51 @@ const stats = ref({
 const recentEntries = ref<any[]>([])
 const loading = ref(true)
 
-onMounted(async () => {
+async function fetchDashboardData() {
   try {
-    const [sitesRes, typesRes, entriesRes, assetsRes, usersRes, tokensRes] = await Promise.all([
-      getMySites({ page: 1, page_size: 1 }),
-      getContentSchemas({ page: 1, page_size: 1 }),
-      getContentEntries({ page: 1, page_size: 5 }),
-      getAssets({ page: 1, page_size: 1 }),
-      getUsers({ page: 1, page_size: 1 }),
-      apiTokenApi.list({ page: 1, page_size: 1 }),
-    ])
-
+    // 单个接口获取全部统计
+    const res = await getDashboardStats()
+    const data = res.data
     stats.value = {
-      sites: sitesRes.data?.total || 0,
-      schemas: typesRes.data?.total || 0,
-      entries: entriesRes.data?.total || 0,
-      assets: assetsRes.data?.total || 0,
-      users: usersRes.data?.total || 0,
-      apiTokens: tokensRes.total || 0,
+      sites: data?.sites || 0,
+      schemas: data?.schemas || 0,
+      entries: data?.entries || 0,
+      assets: data?.assets || 0,
+      users: data?.users || 0,
+      apiTokens: data?.api_tokens || 0,
     }
-    recentEntries.value = entriesRes.data?.items || []
   } catch (error) {
     showError(error)
   } finally {
     loading.value = false
   }
+}
+
+// 最近内容单独获取（可选 site_id，无 site 时不阻塞）
+async function fetchRecentEntries() {
+  try {
+    const res = await getContentEntries({ page: 1, page_size: 5 })
+    recentEntries.value = res.data?.items || []
+  } catch {
+    recentEntries.value = []
+  }
+}
+
+onMounted(async () => {
+  if (layoutInitialized.value) {
+    await fetchDashboardData()
+    await fetchRecentEntries()
+  }
+})
+
+watch(layoutInitialized, async (ready) => {
+  if (ready && loading.value) {
+    await fetchDashboardData()
+    await fetchRecentEntries()
+  }
 })
 
 const quickActions = computed(() => {
-  // 依赖 locale 以响应语言切换
   void locale.value
   return [
     { icon: 'add', label: t('dashboard.createContent'), path: '/content/entries', color: '#3b82f6' },
@@ -121,7 +139,7 @@ const getStatusLabel = (status: string) => {
       <div class="stat-card" @click="router.push('/content/schemas')">
         <div class="stat-icon" style="background: #f3e8ff; color: #8b5cf6;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
+            <path d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 011 1H4a1 1 0 01-1-1v-2z"/>
           </svg>
         </div>
         <div class="stat-content">
@@ -154,7 +172,7 @@ const getStatusLabel = (status: string) => {
         </div>
       </div>
 
-      <div class="stat-card" @click="router.push('/sites')">
+      <div class="stat-card" @click="router.push('/tokens')">
         <div class="stat-icon" style="background: #fce7f3; color: #ec4899;">
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>

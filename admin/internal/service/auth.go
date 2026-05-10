@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/contful/contful/admin/internal/audit_callback"
+	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 )
@@ -29,6 +29,7 @@ import (
 
 type AuthService struct {
 	userRepo        *repository.UserRepository
+	configRepo      *repository.SystemConfigRepository
 	auditRepo       *repository.AuditRepository
 	configSvc       *ConfigService // 用于 AuditLog 数据签名
 	mfaService      *MFAService    // MFA 双因子认证（可空，启用时注入）
@@ -42,6 +43,7 @@ type AuthService struct {
 
 func NewAuthService(
 	userRepo *repository.UserRepository,
+	configRepo *repository.SystemConfigRepository,
 	auditRepo *repository.AuditRepository,
 	redisClient *redis.Client,
 	jwtSecret string,
@@ -49,6 +51,7 @@ func NewAuthService(
 ) *AuthService {
 	return &AuthService{
 		userRepo:        userRepo,
+		configRepo:      configRepo,
 		auditRepo:       auditRepo,
 		configSvc:       configSvc,
 		redis:           redisClient,
@@ -388,14 +391,15 @@ func (s *AuthService) generateRefreshToken(ctx context.Context, userID uuid.UUID
 
 func (s *AuthService) toUserResponse(user *model.SystemUser) *model.UserResponse {
 	return &model.UserResponse{
-		ID:           user.ID,
-		Email:        user.Email,
-		Nickname:     user.Nickname,
-		AvatarURL:    user.AvatarURL,
-		Status:       user.Status,
-		IsSuperAdmin: user.IsSuperAdmin,
-		MFAEnabled:   user.MFAEnabled,
-		CreatedTime:  user.CreatedTime,
+		ID:                user.ID,
+		Email:             user.Email,
+		Nickname:          user.Nickname,
+		AvatarURL:         user.AvatarURL,
+		Status:            user.Status,
+		IsSuperAdmin:      user.IsSuperAdmin,
+		MFAEnabled:        user.MFAEnabled,
+		CreatedTime:       user.CreatedTime,
+		PasswordChangedTime: user.PasswordChangedTime,
 	}
 }
 
@@ -415,10 +419,40 @@ func (s *AuthService) IssueTokens(ctx context.Context, user *model.SystemUser, i
 		return nil, err
 	}
 
+	// 密码过期检查（从 system_config 读取配置）
+	passwordExpireDays := s.configRepo.GetInt(ctx, "password_expire_days", 90)
+	var passwordMaxAge time.Duration
+	var passwordExpired bool
+	var passwordExpireDaysCount *int
+
+	if passwordExpireDays <= 0 {
+		// 0 或负数表示永不过期
+		passwordExpired = false
+		passwordExpireDaysCount = nil
+	} else {
+		passwordMaxAge = time.Duration(passwordExpireDays) * 24 * time.Hour
+
+		if user.PasswordChangedTime == nil {
+			// 旧用户，从未修改过密码，使用创建时间
+			elapsed := time.Since(user.CreatedTime)
+			days := int(elapsed.Hours() / 24)
+			passwordExpireDaysCount = &days
+			passwordExpired = elapsed > passwordMaxAge
+		} else {
+			// 检查密码最后修改时间
+			elapsed := time.Since(*user.PasswordChangedTime)
+			days := int(elapsed.Hours() / 24)
+			passwordExpireDaysCount = &days
+			passwordExpired = elapsed > passwordMaxAge
+		}
+	}
+
 	return &model.LoginResponse{
-		User:         s.toUserResponse(user),
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		User:              s.toUserResponse(user),
+		AccessToken:        accessToken,
+		RefreshToken:       refreshToken,
+		PasswordExpired:    passwordExpired,
+		PasswordExpireDays: passwordExpireDaysCount,
 	}, nil
 }
 
@@ -455,8 +489,8 @@ func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, site
 		}
 		// 注入签名密钥到 context
 		if s.configSvc != nil && siteID != nil {
-			if key, _ := s.configSvc.Get(context.Background(), *siteID, "integrity.signing_key"); key != "" {
-				ctx = audit_callback.WithSigningKey(ctx, key)
+			if key, _ := s.configSvc.GetAuditSigningKey(); key != "" {
+				ctx = audit.WithSigningKey(ctx, key)
 			}
 		}
 		if err := s.auditRepo.Create(ctx, auditLog); err != nil {

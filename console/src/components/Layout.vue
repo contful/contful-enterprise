@@ -3,7 +3,7 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, provide } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
@@ -22,6 +22,14 @@ const siteStore = useSiteStore()
 
 const sidebarCollapsed = ref(false)
 
+// 初始化状态：子组件可等待此状态变为 true 再发起需要 X-Site-ID 的请求
+const initialized = ref(false)
+
+// 提供初始化状态和 siteStore 供子组件使用
+// 子组件（如 Dashboard）需要等待 initialized 为 true 后才能安全地发起需要 X-Site-ID 的请求
+provide('layoutInitialized', initialized)
+provide('siteStore', siteStore)
+
 // 创建站点弹窗
 const showCreateSite = ref(false)
 const newSiteName = ref('')
@@ -37,6 +45,8 @@ const menuItems = computed(() => [
   { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
   { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
   { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
+  { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
+  { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
 ])
 
 const isActive = (path: string) => {
@@ -50,6 +60,7 @@ const handleLogout = async () => {
 }
 
 const user = computed(() => userStore.user)
+const userLoading = ref(false)
 
 const goToProfile = () => {
   router.push('/profile')
@@ -115,18 +126,40 @@ const closeCreateSiteDialog = async () => {
   newSiteDesc.value = ''
 }
 
-// 初始化时加载用户信息和站点（如果已登录）
+const siteOptions = computed(() =>
+  siteStore.sites.map(s => ({ label: s.name, value: s.id }))
+)
+// 响应式跟踪 sites 加载状态，替代独立的 siteLoading ref
+const siteLoading = computed(() => siteStore.loading || siteStore.sites.length === 0)
+
+// 初始化时加载用户信息和站点
+// 使用 onMounted 确保子组件的 onMounted 先执行，但通过 provide/initialized 控制数据请求时机
 onMounted(async () => {
-  if (userStore.isLoggedIn) {
-    // 先加载用户信息
-    if (!userStore.user) {
-      await userStore.fetchUser()
-    }
-    // 再加载站点列表
-    if (siteStore.sites.length === 0) {
-      await siteStore.fetchSites()
+  // 优先确保用户会话已初始化
+  // 页面刷新后 AccessToken 丢失，由 fetchUser() 内部调用 initializeSession() 用 RefreshToken 换新 AccessToken
+  if (!userStore.user) {
+    userLoading.value = true
+    try {
+      const ok = await userStore.fetchUser()
+      if (!ok) {
+        router.push('/login')
+        return
+      }
+    } finally {
+      userLoading.value = false
     }
   }
+
+  // 会话有效，加载站点列表（只会加载一次）
+  if (userStore.isLoggedIn && siteStore.sites.length === 0) {
+    try {
+      await siteStore.fetchSites()
+    } catch {
+      // 站点列表加载失败不应阻塞页面渲染
+    }
+  }
+
+  initialized.value = true
 })
 </script>
 
@@ -150,13 +183,15 @@ onMounted(async () => {
         <!-- 站点选择器：紧跟折叠按钮，左侧分隔线对齐 -->
         <div class="site-selector">
           <t-select
+            v-if="!siteLoading"
             v-model="siteStore.currentSiteId"
-            :options="siteStore.sites.map(s => ({ label: s.name, value: s.id }))"
+            :options="siteOptions"
             :placeholder="t('site.selectSite')"
             :clearable="false"
             style="width: 220px"
             @change="(val: string) => siteStore.setCurrentSite(val)"
           />
+          <t-skeleton v-else :loading="true" theme="text" :width="220" />
           <!-- 复制 Site ID 按钮 -->
           <t-tooltip
             v-if="siteStore.currentSiteId"
@@ -190,8 +225,20 @@ onMounted(async () => {
         <LangSwitcher />
         <t-dropdown trigger="click">
           <div class="user-trigger">
-            <div class="avatar" v-if="user">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
-            <span class="user-name" v-if="user">{{ user.nickname || user.email }}</span>
+            <!-- 加载中：显示骨架屏 -->
+            <template v-if="userLoading">
+              <t-skeleton theme="avatar" :loading="true" size="small" />
+              <t-skeleton theme="text" :loading="true" :width="80" style="margin-left: 8px" />
+            </template>
+            <!-- 加载完成：显示用户信息 -->
+            <template v-else-if="user">
+              <div class="avatar">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
+              <span class="user-name">{{ user.nickname || user.email }}</span>
+            </template>
+            <!-- 兜底：显示默认头像 -->
+            <template v-else>
+              <div class="avatar">U</div>
+            </template>
             <t-icon name="chevron-down" size="14px" style="color: var(--color-text-secondary)" />
           </div>
           <template #dropdown>

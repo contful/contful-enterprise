@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,7 +18,7 @@ import (
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 
-	"github.com/contful/contful/admin/internal/audit_callback"
+	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/config"
 	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/handler"
@@ -51,14 +52,26 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 初始化数据库
+	// 运行数据库迁移（在连接数据库之前）
+	migrateCfg := &database.MigrateConfig{
+		MigrationsPath: cfg.Database.MigrationsPath,
+		DatabaseURL:    buildDatabaseURL(cfg.Database),
+	}
+
+	logger.Info().Msg("running database migrations...")
+	if err := database.RunMigrations(migrateCfg); err != nil {
+		logger.Fatal().Err(err).Msg("failed to run migrations")
+	}
+	logger.Info().Msg("database migrations completed")
+
+	// 初始化数据库（迁移后）
 	db, err := initDB(cfg.Database)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
 
 	// 注册 AuditLog 数据签名 callback
-	audit_callback.Register(db)
+	audit.Register(db)
 	logger.Info().Msg("AuditLog 签名 callback 已注册")
 
 	// 初始化 Redis
@@ -85,6 +98,8 @@ func main() {
 	entryRepo := repository.NewEntryRepository(db)
 	assetRepo := repository.NewAssetRepository(db)
 	tokenRepo := repository.NewAPITokenRepository(db)
+	systemRoleRepo := repository.NewSystemRoleRepository(db)
+	systemConfigRepo := repository.NewSystemConfigRepository(db)
 
 	// 初始化加密器（根据配置选择算法）
 	var crypter crypto.Crypter
@@ -99,13 +114,19 @@ func main() {
 		logger.Warn().Msg("警告：SECRET 未设置，敏感数据将无法加密存储")
 	}
 
-	// 初始化 Service
-	configRepo := repository.NewSiteConfigRepository(db)
-	configService := service.NewConfigService(configRepo, crypter)
+	// 初始化 Service（不再需要 configRepo）
+	configService := service.NewConfigService(crypter, cfg)
 
-	authService := service.NewAuthService(userRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
+	// 初始化 Audit Service（审计日志）
+	auditService := service.NewAuditService(auditRepo, configService)
+	logger.Info().Msg("Audit 服务已就绪")
+
+	// 初始化 RBAC 服务（不再需要 siteRoleRepo 和 siteUserRepo）
+	rbacService := service.NewRBACService(db, redisClient, systemRoleRepo, userRepo)
+
+	authService := service.NewAuthService(userRepo, systemConfigRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
 	userService := service.NewUserService(userRepo)
-	siteService := service.NewSiteService(db, siteRepo, configRepo)
+	siteService := service.NewSiteService(db, siteRepo)
 	schemaService := service.NewSchemaService(schemaRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, schemaRepo, fieldRepo)
 	tokenService := service.NewAPITokenService(tokenRepo, crypter)
@@ -129,15 +150,18 @@ func main() {
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService)
 	mfaHandler := handler.NewMFAHandler(mfaService, authService)
-	userHandler := handler.NewUserHandler(userService)
+	userHandler := handler.NewUserHandler(userService, auditService)
 	siteHandler := handler.NewSiteHandler(siteService)
 	schemaHandler := handler.NewSchemaHandler(schemaService)
 	entryHandler := handler.NewEntryHandler(entryService, configService)
 	assetHandler := handler.NewAssetHandler(assetService)
 	tokenHandler := handler.NewAPITokenHandler(tokenService)
-	configHandler := handler.NewConfigHandler(configService)
-	integrityHandler := handler.NewIntegrityHandler(entryRepo, assetRepo, auditRepo, configService)
+		integrityHandler := handler.NewIntegrityHandler(entryRepo, assetRepo, auditRepo, configService)
 	cacheHandler := handler.NewCacheHandler(cacheService)
+	systemRoleHandler := handler.NewSystemRoleHandler(rbacService, auditService)
+	systemConfigHandler := handler.NewSystemConfigHandler(systemConfigRepo, rbacService)
+	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
+	auditHandler := handler.NewAuditHandler(auditService)
 
 	// 初始化 Gin
 	r := gin.New()
@@ -204,80 +228,235 @@ func main() {
 			protected.GET("/users/me", authHandler.Me)
 			protected.PATCH("/users/me", userHandler.UpdateMe)
 			protected.PUT("/users/me/password", userHandler.UpdatePassword)
-			protected.GET("/users", userHandler.List)
-			protected.POST("/users", userHandler.Create)
-			protected.GET("/users/:id", userHandler.Get)
-			protected.PUT("/users/:id", userHandler.Update)
-			protected.DELETE("/users/:id", userHandler.Delete)
+			protected.GET("/users",
+				middleware.RequirePermission(rbacService, "users:read"),
+				userHandler.List)
+			protected.POST("/users",
+				middleware.RequirePermission(rbacService, "users:write"),
+				userHandler.Create)
+			protected.GET("/users/:id",
+				middleware.RequirePermission(rbacService, "users:read"),
+				userHandler.Get)
+			protected.PUT("/users/:id",
+				middleware.RequirePermission(rbacService, "users:write"),
+				userHandler.Update)
+			protected.DELETE("/users/:id",
+				middleware.RequirePermission(rbacService, "users:delete"),
+				userHandler.Delete)
+
+			// 管理员重置用户密码（不需要旧密码）
+			protected.POST("/users/:id/reset-password",
+				middleware.RequirePermission(rbacService, "users:write"),
+				userHandler.ResetPassword)
 
 			// 内容类型管理 (REST: /content/schemas)
-			protected.GET("/content/schemas", schemaHandler.List)
-			protected.POST("/content/schemas", schemaHandler.Create)
-			protected.GET("/content/schemas/:id", schemaHandler.Get)
-			protected.PUT("/content/schemas/:id", schemaHandler.Update)
-			protected.DELETE("/content/schemas/:id", schemaHandler.Delete)
-			protected.POST("/content/schemas/:id/fields", schemaHandler.CreateField)
-			protected.GET("/content/schemas/:id/fields", schemaHandler.ListFields)
+			protected.GET("/content/schemas",
+				middleware.RequirePermission(rbacService, "content_schema:read"),
+				schemaHandler.List)
+			protected.POST("/content/schemas",
+				middleware.RequirePermission(rbacService, "content_schema:write"),
+				schemaHandler.Create)
+			protected.GET("/content/schemas/:id",
+				middleware.RequirePermission(rbacService, "content_schema:read"),
+				schemaHandler.Get)
+			protected.PUT("/content/schemas/:id",
+				middleware.RequirePermission(rbacService, "content_schema:write"),
+				schemaHandler.Update)
+			protected.DELETE("/content/schemas/:id",
+				middleware.RequirePermission(rbacService, "content_schema:delete"),
+				schemaHandler.Delete)
+			protected.POST("/content/schemas/:id/fields",
+				middleware.RequirePermission(rbacService, "content_schema:write"),
+				schemaHandler.CreateField)
+			protected.GET("/content/schemas/:id/fields",
+				middleware.RequirePermission(rbacService, "content_schema:read"),
+				schemaHandler.ListFields)
 			// 字段操作（嵌套在 :id 之下，避免与 /content/schemas/:id 冲突）
-			protected.PUT("/content/schemas/:id/fields/:fieldId", schemaHandler.UpdateField)
-			protected.DELETE("/content/schemas/:id/fields/:fieldId", schemaHandler.DeleteField)
-			protected.POST("/content/schemas/:id/fields/reorder", schemaHandler.ReorderFields)
+			protected.PUT("/content/schemas/:id/fields/:fieldId",
+				middleware.RequirePermission(rbacService, "content_schema:write"),
+				schemaHandler.UpdateField)
+			protected.DELETE("/content/schemas/:id/fields/:fieldId",
+				middleware.RequirePermission(rbacService, "content_schema:delete"),
+				schemaHandler.DeleteField)
+			protected.POST("/content/schemas/:id/fields/reorder",
+				middleware.RequirePermission(rbacService, "content_schema:write"),
+				schemaHandler.ReorderFields)
 
 			// 内容管理 (REST: /content/entries)
-			protected.GET("/content/entries", entryHandler.List)
-			protected.POST("/content/entries", entryHandler.Create)
-			protected.GET("/content/entries/:id", entryHandler.Get)
-			protected.PUT("/content/entries/:id", entryHandler.Update)
-			protected.DELETE("/content/entries/:id", entryHandler.Delete)
-			protected.POST("/content/entries/:id/publish", entryHandler.Publish)
-			protected.POST("/content/entries/:id/unpublish", entryHandler.Unpublish)
-			protected.GET("/content/entries/:id/versions", entryHandler.GetVersions)
+			protected.GET("/content/entries",
+				middleware.RequirePermission(rbacService, "entry:read"),
+				entryHandler.List)
+			protected.POST("/content/entries",
+				middleware.RequirePermission(rbacService, "entry:write"),
+				entryHandler.Create)
+			protected.GET("/content/entries/:id",
+				middleware.RequirePermission(rbacService, "entry:read"),
+				entryHandler.Get)
+			protected.PUT("/content/entries/:id",
+				middleware.RequirePermission(rbacService, "entry:write"),
+				entryHandler.Update)
+			protected.DELETE("/content/entries/:id",
+				middleware.RequirePermission(rbacService, "entry:delete"),
+				entryHandler.Delete)
+			protected.POST("/content/entries/:id/publish",
+				middleware.RequirePermission(rbacService, "entry:publish"),
+				entryHandler.Publish)
+			protected.POST("/content/entries/:id/unpublish",
+				middleware.RequirePermission(rbacService, "entry:publish"),
+				entryHandler.Unpublish)
+			protected.GET("/content/entries/:id/versions",
+				middleware.RequirePermission(rbacService, "entry:read"),
+				entryHandler.GetVersions)
 			// 批量操作（静态路径在前，避免与 :id 冲突）
-			protected.POST("/content/entries/batch-publish", entryHandler.BatchPublish)
-			protected.POST("/content/entries/batch-unpublish", entryHandler.BatchUnpublish)
-			protected.DELETE("/content/entries/batch-delete", entryHandler.BatchDelete)
+			protected.POST("/content/entries/batch-publish",
+				middleware.RequirePermission(rbacService, "entry:publish"),
+				entryHandler.BatchPublish)
+			protected.POST("/content/entries/batch-unpublish",
+				middleware.RequirePermission(rbacService, "entry:publish"),
+				entryHandler.BatchUnpublish)
+			protected.DELETE("/content/entries/batch-delete",
+				middleware.RequirePermission(rbacService, "entry:delete"),
+				entryHandler.BatchDelete)
 
 			// 媒体库
 			// 静态文件访问（nginx 直连，Go 兜底）
-			protected.GET("/assets/files/*filePath", assetHandler.ServeFile)
-			protected.GET("/assets", assetHandler.List)
-			protected.POST("/assets", assetHandler.Upload)
+			protected.GET("/assets/files/*filePath",
+				middleware.RequirePermission(rbacService, "asset:read"),
+				assetHandler.ServeFile)
+			protected.GET("/assets",
+				middleware.RequirePermission(rbacService, "asset:read"),
+				assetHandler.List)
+			protected.POST("/assets",
+				middleware.RequirePermission(rbacService, "asset:write"),
+				assetHandler.Upload)
 			// 文件夹管理（静态路径必须在 :id 之前，否则 folders 会被 :id 捕获）
-			protected.POST("/assets/folders", assetHandler.CreateFolder)
-			protected.GET("/assets/folders/tree", assetHandler.GetFolderTree)
-			protected.GET("/assets/folders", assetHandler.ListFolders)
-			protected.GET("/assets/folders/:id", assetHandler.GetFolder)
-			protected.PUT("/assets/folders/:id", assetHandler.UpdateFolder)
-			protected.DELETE("/assets/folders/:id", assetHandler.DeleteFolder)
+			protected.POST("/assets/folders",
+				middleware.RequirePermission(rbacService, "asset:write"),
+				assetHandler.CreateFolder)
+			protected.GET("/assets/folders/tree",
+				middleware.RequirePermission(rbacService, "asset:read"),
+				assetHandler.GetFolderTree)
+			protected.GET("/assets/folders",
+				middleware.RequirePermission(rbacService, "asset:read"),
+				assetHandler.ListFolders)
+			protected.GET("/assets/folders/:id",
+				middleware.RequirePermission(rbacService, "asset:read"),
+				assetHandler.GetFolder)
+			protected.PUT("/assets/folders/:id",
+				middleware.RequirePermission(rbacService, "asset:write"),
+				assetHandler.UpdateFolder)
+			protected.DELETE("/assets/folders/:id",
+				middleware.RequirePermission(rbacService, "asset:delete"),
+				assetHandler.DeleteFolder)
 			// 批量删除必须在 :id 路由之前注册（Gin 静态路径优先）
-			protected.DELETE("/assets/batch-delete", assetHandler.BatchDelete)
+			protected.DELETE("/assets/batch-delete",
+				middleware.RequirePermission(rbacService, "asset:delete"),
+				assetHandler.BatchDelete)
 			// 资产 CRUD（:id 路由放在最后）
-			protected.GET("/assets/:id", assetHandler.Get)
-			protected.PUT("/assets/:id", assetHandler.Update)
-			protected.DELETE("/assets/:id", assetHandler.Delete)
+			protected.GET("/assets/:id",
+				middleware.RequirePermission(rbacService, "asset:read"),
+				assetHandler.Get)
+			protected.PUT("/assets/:id",
+				middleware.RequirePermission(rbacService, "asset:write"),
+				assetHandler.Update)
+			protected.DELETE("/assets/:id",
+				middleware.RequirePermission(rbacService, "asset:delete"),
+				assetHandler.Delete)
 
 			// API Token 管理
-			protected.POST("/tokens", tokenHandler.Create)
-			protected.GET("/tokens", tokenHandler.List)
-			protected.GET("/tokens/:id", tokenHandler.Get)
-			protected.PUT("/tokens/:id", tokenHandler.Update)
-			protected.DELETE("/tokens/:id", tokenHandler.Delete)
-			protected.POST("/tokens/:id/regenerate", tokenHandler.Regenerate)
-			protected.POST("/tokens/:id/revoke", tokenHandler.Revoke)
-			protected.POST("/tokens/:id/export", tokenHandler.Export)
-
-			// 站点配置管理（PRE-001）
-			protected.GET("/sites/:id/configs", configHandler.List)
-			protected.GET("/sites/:id/configs/:key", configHandler.Get)
-			protected.PUT("/sites/:id/configs/:key", configHandler.Set)
-			protected.DELETE("/sites/:id/configs/:key", configHandler.Delete)
+			protected.POST("/tokens",
+				middleware.RequirePermission(rbacService, "api_token:write"),
+				tokenHandler.Create)
+			protected.GET("/tokens",
+				middleware.RequirePermission(rbacService, "api_token:read"),
+				tokenHandler.List)
+			protected.GET("/tokens/:id",
+				middleware.RequirePermission(rbacService, "api_token:read"),
+				tokenHandler.Get)
+			protected.PUT("/tokens/:id",
+				middleware.RequirePermission(rbacService, "api_token:write"),
+				tokenHandler.Update)
+			protected.DELETE("/tokens/:id",
+				middleware.RequirePermission(rbacService, "api_token:delete"),
+				tokenHandler.Delete)
+			protected.POST("/tokens/:id/regenerate",
+				middleware.RequirePermission(rbacService, "api_token:write"),
+				tokenHandler.Regenerate)
+			protected.POST("/tokens/:id/revoke",
+				middleware.RequirePermission(rbacService, "api_token:write"),
+				tokenHandler.Revoke)
+			protected.POST("/tokens/:id/export",
+				middleware.RequirePermission(rbacService, "api_token:read"),
+				tokenHandler.Export)
 
 			// 数据完整性验签（PRE-004）
-			protected.GET("/integrity/verify", integrityHandler.Verify)
-			protected.POST("/integrity/verify/batch", integrityHandler.BatchVerify)
+			protected.GET("/integrity/verify",
+				middleware.RequirePermission(rbacService, "settings:read"),
+				integrityHandler.Verify)
+			protected.POST("/integrity/verify/batch",
+				middleware.RequirePermission(rbacService, "settings:read"),
+				integrityHandler.BatchVerify)
 
 			// 缓存管理
-			protected.POST("/cache/invalidate", cacheHandler.InvalidateSite)
+			protected.POST("/cache/invalidate",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				cacheHandler.InvalidateSite)
+
+			// 仪表盘统计（不依赖 X-Site-ID）
+			protected.GET("/dashboard/stats",
+				middleware.RequirePermission(rbacService, "dashboard:read"),
+				dashboardHandler.Stats)
+
+			// 审计日志查询（P1 可视化）
+			protected.GET("/audit/logs",
+				middleware.RequirePermission(rbacService, "audit:read"),
+				auditHandler.List)
+			protected.GET("/audit/logs/:id",
+				middleware.RequirePermission(rbacService, "audit:read"),
+				auditHandler.Get)
+
+			// ─── RBAC 系统角色管理 ──────────────────────
+			// 注：permissions 静态路由必须在 :id 之前注册
+			protected.GET("/system/roles/permissions",
+				middleware.RequirePermission(rbacService, "roles:read"),
+				systemRoleHandler.Permissions)
+			protected.GET("/system/roles",
+				middleware.RequirePermission(rbacService, "roles:read"),
+				systemRoleHandler.List)
+			protected.POST("/system/roles",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				systemRoleHandler.Create)
+			protected.GET("/system/roles/:id",
+				middleware.RequirePermission(rbacService, "roles:read"),
+				systemRoleHandler.Get)
+			protected.PUT("/system/roles/:id",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				systemRoleHandler.Update)
+			protected.DELETE("/system/roles/:id",
+				middleware.RequirePermission(rbacService, "roles:delete"),
+				systemRoleHandler.Delete)
+
+			// ─── 系统配置管理 ─────────────────────────
+			// 公开配置（无需认证，注册页需要）
+			api.GET("/system/config/public", systemConfigHandler.GetPublicConfig)
+			// 需要认证的路由
+			protected.GET("/system/config",
+				middleware.RequirePermission(rbacService, "settings:read"),
+				systemConfigHandler.List)
+			protected.GET("/system/config/password-policy", systemConfigHandler.GetPasswordPolicy)
+			protected.GET("/system/config/:key",
+				middleware.RequirePermission(rbacService, "settings:read"),
+				systemConfigHandler.Get)
+			protected.PUT("/system/config/:key",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				systemConfigHandler.Update)
+
+			// ─── 权限元数据 ─────────────────────────────
+			protected.GET("/permissions",
+				middleware.RequirePermission(rbacService, "roles:read"),
+				func(c *gin.Context) {
+					c.JSON(200, rbacService.GetPermissionsMeta())
+				})
 		}
 	}
 
@@ -310,6 +489,14 @@ func main() {
 	}
 
 	logger.Info().Msg("server exited")
+}
+
+// buildDatabaseURL 构建数据库 URL
+func buildDatabaseURL(cfg config.DatabaseConfig) string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name, cfg.SSLMode,
+	)
 }
 
 func initDB(cfg config.DatabaseConfig) (*gorm.DB, error) {

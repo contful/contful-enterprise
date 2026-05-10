@@ -17,6 +17,7 @@ import {
   type ApiToken,
 } from '@/api/api-token'
 import { showError } from '@/utils/request'
+import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
 
@@ -284,7 +285,7 @@ const columns = computed(() => [
     title: t('apiTokens.tableStatus'),
     cell: (h: any, { row }: { row: ApiToken }) => {
       const st = getStatusTag(row)
-      return h('t-tag', { props: { theme: st.theme, variant: 'light', size: 'small' } }, () => st.label)
+      return h('t-tag', { theme: st.theme, variant: 'light', size: 'small' }, () => st.label)
     },
   },
   {
@@ -299,35 +300,46 @@ const columns = computed(() => [
       const tok = row as unknown as Record<string, any>
       const active = (!tok.revoked && row.status !== 'revoked') && !isExpired(row.expires_time)
       return h('div', { class: 'action-btns' }, [
-        active ? h('t-tooltip', { props: { content: t('common.edit') } }, () =>
+        active ? h('t-tooltip', { content: t('common.edit') }, () =>
           h('t-button', {
-            props: { variant: 'outline', size: 'small', shape: 'circle' },
-            on: { click: () => openEditModal(row) },
-          }, () => h('t-icon', { props: { name: 'edit' } }))
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            onClick: () => openEditModal(row),
+          }, () => h('t-icon', { name: 'edit' }))
         ) : null,
-        active ? h('t-tooltip', { props: { content: t('apiTokens.viewDetail') } }, () =>
+        active ? h('t-tooltip', { content: t('apiTokens.viewDetail') }, () =>
           h('t-button', {
-            props: { variant: 'outline', size: 'small', shape: 'circle' },
-            on: { click: () => handleExportConfirm(row) },
-          }, () => h('t-icon', { props: { name: 'browse' } }))
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            onClick: () => handleExportConfirm(row),
+          }, () => h('t-icon', { name: 'browse' }))
         ) : null,
-        active ? h('t-tooltip', { props: { content: t('apiTokens.regenerate') } }, () =>
+        active ? h('t-tooltip', { content: t('apiTokens.regenerate') }, () =>
           h('t-button', {
-            props: { variant: 'outline', size: 'small', shape: 'circle' },
-            on: { click: () => handleRegenerateConfirm(row) },
-          }, () => h('t-icon', { props: { name: 'refresh' } }))
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            onClick: () => handleRegenerateConfirm(row),
+          }, () => h('t-icon', { name: 'refresh' }))
         ) : null,
-        (!tok.revoked && row.status !== 'revoked') ? h('t-tooltip', { props: { content: t('apiTokens.revoke') } }, () =>
+        (!tok.revoked && row.status !== 'revoked') ? h('t-tooltip', { content: t('apiTokens.revoke') }, () =>
           h('t-button', {
-            props: { variant: 'outline', size: 'small', shape: 'circle' },
-            on: { click: () => handleRevoke(row) },
-          }, () => h('t-icon', { props: { name: 'close-circle' } }))
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            onClick: () => handleRevoke(row),
+          }, () => h('t-icon', { name: 'close-circle' }))
         ) : null,
-        h('t-tooltip', { props: { content: t('common.delete') } }, () =>
+        h('t-tooltip', { content: t('common.delete') }, () =>
           h('t-button', {
-            props: { theme: 'danger', variant: 'outline', size: 'small', shape: 'circle' },
-            on: { click: () => handleDeleteConfirm(row) },
-          }, () => h('t-icon', { props: { name: 'delete' } }))
+            theme: 'danger',
+            variant: 'outline',
+            size: 'small',
+            shape: 'circle',
+            onClick: () => handleDeleteConfirm(row),
+          }, () => h('t-icon', { name: 'delete' }))
         ),
       ].filter(Boolean))
     },
@@ -340,17 +352,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="api-tokens">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('apiTokens.title') }}</h1>
-        <p class="page-subtitle">{{ t('apiTokens.subtitle') }}</p>
-      </div>
-      <t-button theme="primary" @click="openCreateModal">
-        <template #icon><t-icon name="add" /></template>
-        {{ t('apiTokens.createToken') }}
-      </t-button>
-    </div>
+  <div class="page page--padded">
+    <PageHeader
+      :title="t('apiTokens.title')"
+      :subtitle="t('apiTokens.subtitle')"
+      :show-refresh="true"
+      @refresh="loadTokens"
+    >
+      <template #primary-action>
+        <t-button theme="primary" @click="openCreateModal">
+          <template #icon><t-icon name="add" /></template>
+          {{ t('apiTokens.createToken') }}
+        </t-button>
+      </template>
+    </PageHeader>
 
     <!-- Token 列表 — t-table -->
     <t-table
@@ -438,11 +453,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.api-tokens {
-  height: 100%;
-}
-
-/* === Token info === */
+/* 页面特有样式：Token 列表 */
 .token-info {
   display: flex;
   flex-direction: column;
@@ -480,11 +491,7 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* === Action buttons === */
-.action-btns {
-  display: flex;
-  gap: 6px;
-}
+/* === Action buttons — 已提取到 common.css === */
 
 /* === Empty state === */
 .empty-state {

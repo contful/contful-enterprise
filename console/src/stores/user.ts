@@ -21,6 +21,8 @@ interface LoginResponse {
   user: User
   access_token: string
   refresh_token: string
+  password_expired?: boolean
+  password_expire_days?: number
 }
 
 interface MFARequiredResponse {
@@ -62,7 +64,7 @@ export const useUserStore = defineStore('user', () => {
           }
         }
 
-        // 正常登录
+        // 正常登录（即使密码过期也完成登录）
         const loginData = data as LoginResponse
         // 只存储 AccessToken（内存），RefreshToken 已由后端写入 HttpOnly Cookie
         setAccessToken(loginData.access_token)
@@ -72,7 +74,13 @@ export const useUserStore = defineStore('user', () => {
         const siteStore = useSiteStore()
         await siteStore.fetchSites()
 
-        return { success: true, mfa_required: false }
+        // 返回密码过期状态
+        return {
+          success: true,
+          mfa_required: false,
+          password_expired: loginData.password_expired || false,
+          password_expire_days: loginData.password_expire_days,
+        }
       }
       return { success: false, message: res.data.msg }
     } catch (error: any) {
@@ -123,20 +131,22 @@ export const useUserStore = defineStore('user', () => {
     if (!getAccessToken()) {
       const restored = await initializeSession()
       if (!restored) {
-        // 无法恢复，跳转登录
-        logout()
-        return
+        clearUser()
+        clearAuthSession()
+        return false
       }
     }
 
     try {
-      const res = await request.get<{ user: User }>('/users/me')
-      if (res.data.code === 200) {
-        setUser(res.data.data as any)
+      const res = await request.get('/users/me')
+      const body = res.data as any
+      if (body.code === 200 && body.data) {
+        setUser(body.data)
+        return true
       }
+      return false
     } catch {
-      // token 可能已过期
-      logout()
+      return false
     }
   }
 

@@ -13,10 +13,11 @@ import (
 
 type UserHandler struct {
 	userService *service.UserService
+	auditService *service.AuditService
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewUserHandler(userService *service.UserService, auditService *service.AuditService) *UserHandler {
+	return &UserHandler{userService: userService, auditService: auditService}
 }
 
 // Create 创建用户
@@ -41,6 +42,12 @@ func (h *UserHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, model.NewSuccessResponse(user))
+
+	// 审计日志：记录用户创建操作
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:create",
+			service.WithResource("user", user.ID))
+	}
 }
 
 // Get 获取单个用户
@@ -108,6 +115,12 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(user))
+
+	// 审计日志：记录用户更新操作
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:update",
+			service.WithResource("user", id))
+	}
 }
 
 // Delete 删除用户
@@ -125,6 +138,12 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+
+	// 审计日志：记录用户删除操作
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:delete",
+			service.WithResource("user", id))
+	}
 }
 
 // UpdateMe 用户更新自己的资料
@@ -208,6 +227,79 @@ func (h *UserHandler) UpdatePassword(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
 		}
 		return
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(nil))
+}
+
+// ResetPassword 管理员重置用户密码（不需要旧密码）
+func (h *UserHandler) ResetPassword(c *gin.Context) {
+	// 只有超级管理员可以重置其他用户的密码
+	userIDStr, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "unauthorized"))
+		return
+	}
+
+	var adminID uuid.UUID
+	switch v := userIDStr.(type) {
+	case string:
+		uid, err := uuid.Parse(v)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
+			return
+		}
+		adminID = uid
+	case uuid.UUID:
+		adminID = v
+	default:
+		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
+		return
+	}
+
+	// 获取目标用户 ID
+	targetIDStr := c.Param("id")
+	targetID, err := uuid.Parse(targetIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid target user id"))
+		return
+	}
+
+	// 不能重置自己的密码（应该用 UpdatePassword）
+	if adminID == targetID {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "use UpdatePassword to change your own password"))
+		return
+	}
+
+	// 检查操作者是否是超级管理员
+	admin, err := h.userService.Get(c.Request.Context(), adminID)
+	if err != nil || !admin.IsSuperAdmin {
+		c.JSON(http.StatusForbidden, model.NewErrorResponse(model.CodeForbidden, "only super admin can reset password"))
+		return
+	}
+
+	var req model.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, err.Error()))
+		return
+	}
+
+	if err := h.userService.ResetPassword(c.Request.Context(), targetID, req.NewPassword); err != nil {
+		switch err {
+		case service.ErrWeakPassword:
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "password must be at least 8 characters with uppercase, lowercase and numbers"))
+		default:
+			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+		}
+		return
+	}
+
+	// 记录审计日志
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:reset_password",
+			service.WithResource("user", targetID),
+			service.WithDetails("管理员重置用户密码"),
+		)
 	}
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(nil))

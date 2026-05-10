@@ -3,6 +3,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -31,6 +32,11 @@ type Claims struct {
 // claimsGetter 接口：允许 handler 层注入 JWT 验证逻辑，避免循环依赖
 type claimsGetter interface {
 	GetClaims(string) (*Claims, error)
+}
+
+// permissionChecker 接口：允许 middleware 层调用权限检查，避免循环依赖
+type permissionChecker interface {
+	HasPermission(ctx context.Context, userID uuid.UUID, isSuperAdmin bool, permission string) (bool, error)
 }
 
 // JWTAuth JWT 认证中间件
@@ -104,6 +110,56 @@ func SuperAdminOnly() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"code": 403,
 				"msg":  "super admin only",
+			})
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// RequirePermission 细粒度权限检查中间件
+// 使用 permissionChecker 接口，避免循环依赖
+func RequirePermission(checker permissionChecker, permission string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claimsVal, exists := c.Get(ClaimsContextKey)
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code": 401,
+				"msg":  "unauthorized",
+			})
+			return
+		}
+
+		claims, ok := claimsVal.(*Claims)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code": 401,
+				"msg":  "invalid claims",
+			})
+			return
+		}
+
+		// 超级管理员直接放行
+		if claims.IsSuperAdmin {
+			c.Next()
+			return
+		}
+
+		// 检查权限
+		hasPerm, err := checker.HasPermission(c.Request.Context(), claims.UserID, claims.IsSuperAdmin, permission)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"code": 500,
+				"msg":  "permission check failed",
+			})
+			return
+		}
+
+		if !hasPerm {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"code": 403,
+				"msg":  "permission denied: " + permission,
 			})
 			return
 		}

@@ -153,3 +153,12 @@ func (r *APITokenRepository) CountBySite(ctx context.Context, siteID uuid.UUID) 
 		Count(&count).Error
 	return count, err
 }
+
+// CountGlobal 统计全局 API Token 总数（不限定站点）
+func (r *APITokenRepository) CountGlobal(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.APIToken{}).
+		Where("status = ?", model.TokenStatusActive).
+		Count(&count).Error
+	return count, err
+}

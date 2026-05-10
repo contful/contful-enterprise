@@ -70,39 +70,49 @@ func (h *SiteHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 
-	var isActive *bool
-	if v := c.Query("is_active"); v != "" {
-		b := v == "true"
-		isActive = &b
-	}
-
-	resp, err := h.siteService.List(c.Request.Context(), page, pageSize, isActive)
+	sites, total, err := h.siteService.List(c.Request.Context(), page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
 		return
 	}
 
-	middleware.OK(c, resp)
+	// 转换为响应类型
+	items := make([]model.SiteResponse, len(sites))
+	for i, s := range sites {
+		items[i] = s.ToResponse()
+	}
+
+	middleware.OK(c, model.SiteListResponse{
+		Items:    items,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	})
 }
 
-// MySites 列出当前用户所属站点
+// MySites 列出当前用户所属站点（已废弃，直接返回所有站点）
 func (h *SiteHandler) MySites(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
-	if !ok {
-		middleware.Unauthorized(c, "unauthorized")
-		return
-	}
-
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "100"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 
-	resp, err := h.siteService.ListMySites(c.Request.Context(), *userID, page, pageSize)
+	sites, total, err := h.siteService.List(c.Request.Context(), page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
 		return
 	}
 
-	middleware.OK(c, resp)
+	// 转换为响应类型
+	items := make([]model.SiteResponse, len(sites))
+	for i, s := range sites {
+		items[i] = s.ToResponse()
+	}
+
+	middleware.OK(c, model.SiteListResponse{
+		Items:    items,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	})
 }
 
 // Update 更新站点

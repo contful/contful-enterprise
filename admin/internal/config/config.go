@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/subosito/gotenv"
 	"github.com/spf13/viper"
+	"github.com/subosito/gotenv"
 
 	"github.com/contful/contful/admin/internal/crypto"
 )
@@ -61,16 +61,18 @@ type ServerConfig struct {
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
 	// Type 数据库类型（postgres）
-	Type string `mapstructure:"type"`
-	Host         string `mapstructure:"host"`
-	Port         int    `mapstructure:"port"`
-	User         string `mapstructure:"user"`
-	Password     string `mapstructure:"password"`
-	Name         string `mapstructure:"name"`
-	SSLMode      string `mapstructure:"ssl_mode"`
-	MaxOpenConns int    `mapstructure:"max_open_conns"`
-	MaxIdleConns int    `mapstructure:"max_idle_conns"`
+	Type            string `mapstructure:"type"`
+	Host            string `mapstructure:"host"`
+	Port            int    `mapstructure:"port"`
+	User            string `mapstructure:"user"`
+	Password        string `mapstructure:"password"`
+	Name            string `mapstructure:"name"`
+	SSLMode         string `mapstructure:"ssl_mode"`
+	MaxOpenConns    int    `mapstructure:"max_open_conns"`
+	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
 	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"`
+	// MigrationsPath 迁移文件路径
+	MigrationsPath  string `mapstructure:"migrations_path"`
 }
 
 // RedisConfig Redis 配置
@@ -91,12 +93,12 @@ type JWTConfig struct {
 
 // StorageConfig 文件存储配置
 type StorageConfig struct {
-	Driver           string `mapstructure:"driver"`
-	UploadDir        string `mapstructure:"upload_dir"`
-	MaxUploadSizeMB  int64  `mapstructure:"max_upload_size_mb"`
-	BaseURL          string `mapstructure:"base_url"`
-	AllowedExtensions []string  `mapstructure:"allowed_extensions"`
-	Oss              CloudStorageConfig `mapstructure:"oss"`
+	Driver            string             `mapstructure:"driver"`
+	UploadDir         string             `mapstructure:"upload_dir"`
+	MaxUploadSizeMB   int64              `mapstructure:"max_upload_size_mb"`
+	BaseURL           string             `mapstructure:"base_url"`
+	AllowedExtensions []string           `mapstructure:"allowed_extensions"`
+	Oss               CloudStorageConfig `mapstructure:"oss"`
 }
 
 // CloudStorageConfig 云存储配置（阿里云 OSS / 腾讯云 COS / 华为云 OBS / AWS S3 / MinIO）
@@ -127,7 +129,7 @@ type LoggingConfig struct {
 
 // AuditConfig 审计日志配置
 type AuditConfig struct {
-	Enabled         bool   `mapstructure:"enabled"`
+	Enabled        bool   `mapstructure:"enabled"`
 	LogAllRequests bool   `mapstructure:"log_all_requests"`
 	SigningKey     string `mapstructure:"signing_key"` // 审计日志 HMAC-SHA256 签名密钥（自动派生）
 }
@@ -278,7 +280,7 @@ func (c *Config) Validate() error {
 func (c *Config) PostLoad() {
 	// 确保默认端口
 	if c.Server.Port == "" {
-		c.Server.Port = "8080"
+		c.Server.Port = "9080"
 	}
 	if c.Server.Mode == "" {
 		c.Server.Mode = "release"
@@ -465,10 +467,10 @@ func readEnvOverrides(v *viper.Viper) {
 		"SECRET":           "security.secret",
 		"SECRET_ALGORITHM": "security.algorithm",
 		// 存储配置
-		"STORAGE_DRIVER":            "storage.driver",
-		"STORAGE_UPLOAD_DIR":       "storage.upload_dir",
+		"STORAGE_DRIVER":             "storage.driver",
+		"STORAGE_UPLOAD_DIR":         "storage.upload_dir",
 		"STORAGE_MAX_UPLOAD_SIZE_MB": "storage.max_upload_size_mb",
-		"STORAGE_BASE_URL":         "storage.base_url",
+		"STORAGE_BASE_URL":           "storage.base_url",
 	}
 
 	for envKey, configKey := range envMappings {

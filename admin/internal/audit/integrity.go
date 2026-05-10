@@ -1,6 +1,6 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
-package audit_callback
+package audit
 
 import (
 	"context"
@@ -10,18 +10,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/model"
 )
 
-// siteSigningKeyCtxKey context key 类型
-type siteSigningKeyCtxKey struct{}
+// signingKeyCtxKey context key 类型
+type signingKeyCtxKey struct{}
 
 // WithSigningKey 将签名密钥注入 context（供 callback 使用）
 func WithSigningKey(ctx context.Context, key string) context.Context {
-	return context.WithValue(ctx, siteSigningKeyCtxKey{}, key)
+	return context.WithValue(ctx, signingKeyCtxKey{}, key)
 }
 
 // CallbackName GORM callback 名称
@@ -50,7 +51,7 @@ func signAuditLog(scope *gorm.DB) {
 	// 获取签名密钥（从 context 注入）
 	signingKey := ""
 	if ctx := scope.Statement.Context; ctx != nil {
-		if key, ok := ctx.Value(siteSigningKeyCtxKey{}).(string); ok {
+		if key, ok := ctx.Value(signingKeyCtxKey{}).(string); ok {
 			signingKey = key
 		}
 	}
@@ -74,7 +75,7 @@ func signAuditLog(scope *gorm.DB) {
 		Sign:     signature,
 		Entity:   "audit_log",
 		EntityID: auditLog.ID.String(),
-		IssuedAt: auditLog.CreatedTime,
+		IssuedAt: auditLog.CreatedTime.Format(time.RFC3339),
 	}
 
 	sigJSON, err := json.Marshal(sigData)
@@ -108,7 +109,7 @@ func canonicalAuditPayload(a *model.AuditLog) string {
 	}
 	parts = append(parts, "level="+string(a.Level))
 	parts = append(parts, "category="+string(a.Category))
-	parts = append(parts, "created_time="+a.CreatedTime)
+	parts = append(parts, "created_time="+a.CreatedTime.Format(time.RFC3339))
 
 	return strings.Join(parts, "&")
 }

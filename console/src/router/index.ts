@@ -32,6 +32,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/settings/system-config',
+    name: 'SystemConfig',
+    component: () => import('@/pages/settings/SystemConfig.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/content/schemas',
     name: 'ContentSchemas',
     component: () => import('@/pages/schemas/List.vue'),
@@ -72,12 +78,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/configs',
-    name: 'Configs',
-    component: () => import('@/pages/sites/Config.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/users',
     name: 'Users',
     component: () => import('@/pages/users/List.vue'),
@@ -96,9 +96,21 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/sites/:siteId/config',
-    name: 'SiteConfig',
-    component: () => import('@/pages/sites/Config.vue'),
+    path: '/sites/:siteId/members',
+    name: 'SiteMembers',
+    component: () => import('@/pages/sites/Members.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/system/roles',
+    name: 'SystemRoles',
+    component: () => import('@/pages/system/Roles.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/audit/logs',
+    name: 'AuditLogs',
+    component: () => import('@/pages/audit/List.vue'),
     meta: { requiresAuth: true },
   },
 ]

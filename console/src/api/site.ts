@@ -3,13 +3,29 @@
 
 import { get, post, put, del } from '@/utils/request'
 
+// 站点配置类型（对应后端 settings JSONB）
+export interface SiteConfig {
+  [key: string]: any
+}
+
+// 站点（混合模式：固定列 + JSONB 动态配置）
 export interface Site {
   id: string
   name: string
   slug: string
   description?: string
   site_url?: string
-  config: Record<string, any>
+
+  // 混合模式：固定列
+  locale?: string
+  timezone?: string
+  seo_title?: string
+  seo_description?: string
+  seo_keywords?: string[]
+  
+  // 动态配置（JSONB）
+  settings?: SiteConfig
+
   is_active: boolean
   created_by?: string
   created_time: string
@@ -23,26 +39,32 @@ export interface SiteListResponse {
   page_size: number
 }
 
+// 创建站点参数
 export interface CreateSiteParams {
   name: string
   slug: string
   description?: string
-}
-
-// 站点配置（config JSONB）
-export interface SiteConfig {
-  timezone?: string
+  site_url?: string
   locale?: string
-  [key: string]: any
+  timezone?: string
+  seo_title?: string
+  seo_description?: string
+  seo_keywords?: string[]
+  settings?: Record<string, any>
 }
 
-// 更新站点参数（对应后端 SiteUpdate）
+// 更新站点参数
 export interface UpdateSiteParams {
   name?: string
   slug?: string
   description?: string
   site_url?: string
-  config?: SiteConfig
+  locale?: string
+  timezone?: string
+  seo_title?: string
+  seo_description?: string
+  seo_keywords?: string[]
+  settings?: Record<string, any>
   is_active?: boolean
 }
 

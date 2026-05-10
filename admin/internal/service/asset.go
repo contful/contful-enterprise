@@ -235,11 +235,8 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 
 	// 数据签名（仅当签名密钥已配置时）
 	if s.configService != nil {
-		signingKey, _ := s.configService.Get(ctx, siteID, "integrity.signing_key")
-		alg, _ := s.configService.Get(ctx, siteID, "integrity.algorithm")
-		if alg == "" {
-			alg = "HMAC-SHA256"
-		}
+		signingKey, _ := s.configService.GetAuditSigningKey()
+		alg := "HMAC-SHA256" // 默认算法
 		intSvc, _ := NewIntegrityService(siteID, signingKey, alg)
 		if intSvc != nil && intSvc.IsEnabled() {
 			_ = intSvc.SignAsset(asset)

@@ -205,7 +205,7 @@ watch(() => route.params.id, () => {
 </script>
 
 <template>
-  <div class="fields-page">
+  <div class="page page--padded">
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="title-section">
@@ -353,9 +353,7 @@ watch(() => route.params.id, () => {
 </template>
 
 <style scoped>
-.fields-page {
-  padding: 24px;
-}
+/* 页面特有样式：字段管理 */
 
 .page-header {
   display: flex;

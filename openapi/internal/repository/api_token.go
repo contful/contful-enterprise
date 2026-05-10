@@ -78,7 +78,7 @@ func (s StringArray) Value() (driver.Value, error) {
 }
 
 // APIToken 对应 DB 表结构（与 Admin API 共享同一 DB）
-// 表结构见 contful/sql/init_pg.sql api_tokens 表定义
+// 表结构见 contful/sql/init_pg.sql tokens 表定义
 type APIToken struct {
 	ID           uuid.UUID   `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	SiteID       uuid.UUID   `gorm:"type:uuid;not null;index"`
@@ -99,5 +99,5 @@ type APIToken struct {
 }
 
 func (APIToken) TableName() string {
-	return "api_tokens"
+	return "tokens"
 }

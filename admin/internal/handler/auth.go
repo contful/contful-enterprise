@@ -4,6 +4,7 @@ package handler
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -18,6 +19,20 @@ import (
 
 type AuthHandler struct {
 	authService *service.AuthService
+}
+
+// setRefreshTokenCookie 将 refresh_token 写入 HttpOnly Cookie
+// Secure 属性根据当前请求协议动态决定：HTTPS=true，HTTP=false（兼容本地开发环境）
+func setRefreshTokenCookie(c *gin.Context, token string, maxAge int) {
+	secure := c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie("refresh_token", token, maxAge, "/", "", secure, true) // HttpOnly + 动态 Secure + SameSite=Strict
+}
+
+// clearRefreshTokenCookie 清除 refresh_token Cookie（清除时 Secure 也需要匹配）
+func clearRefreshTokenCookie(c *gin.Context) {
+	secure := c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
+	c.SetCookie("refresh_token", "", -1, "/", "", secure, true)
 }
 
 func NewAuthHandler(authService *service.AuthService) *AuthHandler {
@@ -89,9 +104,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// 设置 RefreshToken 到 HttpOnly Cookie（安全增强）
 	if loginResp, ok := resp.(*model.LoginResponse); ok && loginResp.RefreshToken != "" {
-		// SetCookie(name, value, maxAge, path, domain, secure, httpOnly)
-		c.SetSameSite(http.SameSiteStrictMode) // 先设置 SameSite
-		c.SetCookie("refresh_token", loginResp.RefreshToken, 604800, "/", "", true, true) // HttpOnly + Secure + SameSite=Strict
+		setRefreshTokenCookie(c, loginResp.RefreshToken, 604800)
 	}
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(resp))
@@ -103,7 +116,9 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	var refreshToken string
 
 	// 优先从 HttpOnly Cookie 读取（Login 时写入）
-	if cookie, err := c.Cookie("refresh_token"); err == nil && cookie != "" {
+	cookie, err := c.Cookie("refresh_token")
+	log.Printf("[Refresh] Cookie refresh_token=%q, err=%v", cookie, err)
+	if err == nil && cookie != "" {
 		refreshToken = cookie
 	} else {
 		// 兜底：从 Authorization Header 读取（Barear accessToken.refreshToken 格式）
@@ -118,14 +133,13 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	newAccessToken, newRefreshToken, err := h.authService.Refresh(c.Request.Context(), refreshToken)
 	if err != nil {
 		// 刷新失败时清除 Cookie
-		c.SetCookie("refresh_token", "", -1, "/", "", true, true)
+		clearRefreshTokenCookie(c)
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid refresh token"))
 		return
 	}
 
 	// 新 RefreshToken 也写入 HttpOnly Cookie（Token 轮换）
-	c.SetSameSite(http.SameSiteStrictMode) // 先设置 SameSite
-	c.SetCookie("refresh_token", newRefreshToken, 604800, "/", "", true, true) // HttpOnly + Secure + SameSite=Strict
+	setRefreshTokenCookie(c, newRefreshToken, 604800)
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(model.RefreshResponse{
 		AccessToken:  newAccessToken,

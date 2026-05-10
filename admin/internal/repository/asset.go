@@ -252,6 +252,13 @@ func (r *AssetRepository) DeleteFolder(ctx context.Context, id uuid.UUID) error 
 	})
 }
 
+// CountGlobal 统计全局资源总数（不限定站点）
+func (r *AssetRepository) CountGlobal(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.Asset{}).Count(&count).Error
+	return count, err
+}
+
 // WithTransaction 执行事务
 func (r *AssetRepository) WithTransaction(fn func(repo *AssetRepository) error) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {

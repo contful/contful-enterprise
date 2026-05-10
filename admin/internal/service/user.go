@@ -71,15 +71,17 @@ func (s *UserService) Create(ctx context.Context, req *model.CreateUserRequest) 
 		return nil, err
 	}
 
+	now := time.Now()
 	user := &model.SystemUser{
-		ID:           uuid.New(),
-		Email:        req.Email,
-		PasswordHash: string(hashed),
-		Nickname:     req.Nickname,
-		Status:       model.UserStatusActive,
-		IsSuperAdmin: req.IsSuperAdmin,
-		CreatedTime: time.Now(),
-		UpdatedTime: time.Now(),
+		ID:                uuid.New(),
+		Email:             req.Email,
+		PasswordHash:      string(hashed),
+		Nickname:          req.Nickname,
+		Status:            model.UserStatusActive,
+		IsSuperAdmin:      req.IsSuperAdmin,
+		CreatedTime:        now,
+		UpdatedTime:        now,
+		PasswordChangedTime: &now, // 创建用户时设置密码修改时间
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -200,19 +202,48 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, oldP
 		return err
 	}
 
+	now := time.Now()
 	user.PasswordHash = string(hashed)
-	user.UpdatedTime = time.Now()
+	user.PasswordChangedTime = &now // 更新密码修改时间
+	user.UpdatedTime = now
+	return s.userRepo.Update(ctx, user)
+}
+
+// ResetPassword 管理员重置用户密码（不需要旧密码）
+func (s *UserService) ResetPassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+	user, err := s.userRepo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 新密码强度检查
+	if !isPasswordStrong(newPassword) {
+		return ErrWeakPassword
+	}
+
+	// 新密码哈希
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	user.PasswordHash = string(hashed)
+	user.PasswordChangedTime = &now // 更新密码修改时间
+	user.UpdatedTime = now
 	return s.userRepo.Update(ctx, user)
 }
 
 func toUserResponse(u *model.SystemUser) *model.UserResponse {
 	return &model.UserResponse{
-		ID:           u.ID,
-		Email:        u.Email,
-		Nickname:     u.Nickname,
-		AvatarURL:    u.AvatarURL,
-		Status:       u.Status,
-		IsSuperAdmin: u.IsSuperAdmin,
-		CreatedTime:  u.CreatedTime,
+		ID:                u.ID,
+		Email:             u.Email,
+		Nickname:          u.Nickname,
+		AvatarURL:         u.AvatarURL,
+		Status:            u.Status,
+		IsSuperAdmin:      u.IsSuperAdmin,
+		CreatedTime:       u.CreatedTime,
+		PasswordChangedTime: u.PasswordChangedTime,
 	}
 }
+

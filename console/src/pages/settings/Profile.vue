@@ -1,5 +1,5 @@
 <template>
-  <div class="profile-page">
+  <div class="page page--padded">
     <!-- 页面标题 -->
     <div class="page-header">
       <h1 class="page-title">{{ t('settings.personalProfile') }}</h1>
@@ -661,11 +661,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.profile-page {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+/* 页面特有样式：个人资料 */
 
 /* 第一行两列布局 */
 .profile-grid {
