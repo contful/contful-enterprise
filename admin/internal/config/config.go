@@ -412,6 +412,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("database.max_open_conns", 100)
 	v.SetDefault("database.max_idle_conns", 10)
 	v.SetDefault("database.conn_max_lifetime", 3600)
+	v.SetDefault("database.migrations_path", "file://admin/migrations")
 
 	// Redis
 	v.SetDefault("redis.port", 6379)
@@ -459,6 +460,7 @@ func readEnvOverrides(v *viper.Viper) {
 		"DB_PASSWORD":      "database.password",
 		"DB_NAME":          "database.name",
 		"DB_SSL_MODE":      "database.ssl_mode",
+		"MIGRATIONS_PATH":  "database.migrations_path",
 		"REDIS_HOST":       "redis.host",
 		"REDIS_PORT":       "redis.port",
 		"REDIS_PASSWORD":   "redis.password",
