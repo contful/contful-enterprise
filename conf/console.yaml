@@ -35,6 +35,7 @@ database:
   max_open_conns: 100
   max_idle_conns: 10
   conn_max_lifetime: 3600
+  migrations_path: "file://./db/migrations"  # Docker 镜像中迁移文件路径（本地开发自动解析）
 
 # Redis 配置（用于缓存、会话、限流）
 redis:

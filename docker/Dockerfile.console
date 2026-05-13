@@ -106,6 +106,9 @@ USER contful
 # 复制 Go 二进制
 COPY --chown=contful:contful --from=go-builder /app/admin-api /app/admin-api
 
+# 复制数据库迁移文件
+COPY --chown=contful:contful db/migrations/ /app/db/migrations/
+
 # 复制前端静态文件（从前端构建 stage）
 COPY --chown=contful:contful --from=frontend-builder /app/dist /usr/share/nginx/html
 

@@ -412,7 +412,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("database.max_open_conns", 100)
 	v.SetDefault("database.max_idle_conns", 10)
 	v.SetDefault("database.conn_max_lifetime", 3600)
-	v.SetDefault("database.migrations_path", "file://admin/migrations")
+	v.SetDefault("database.migrations_path", "file://../db/migrations")
 
 	// Redis
 	v.SetDefault("redis.port", 6379)

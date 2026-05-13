@@ -3,7 +3,6 @@
 .env.local
 .env.*.local
 
-
 # 密钥和证书
 *.pem
 *.key
@@ -27,8 +26,8 @@ vendor/
 
 # 构建产物
 dist/
-build/*
-build/                  # Go 编译产物（二进制文件）
+build/                    # Go 编译产物（二进制文件）
+bin/                      # 二进制文件
 *.exe
 *.dll
 *.so
@@ -42,12 +41,13 @@ go.work
 # 日志和临时文件
 *.log
 *.tmp
+*.pid
 tmp/
 temp/
-logs/                    # 日志目录
+logs/                     # 日志目录
 
 # 上传文件（开发环境）
-uploads/                # 用户上传文件
+uploads/                  # 用户上传文件
 
 # 测试覆盖率
 coverage/
@@ -60,10 +60,10 @@ coverage/
 
 # Docker
 docker/*.log
-docker/conf/config.yml  # 实际配置文件（不提交）
+docker/conf/config.yml    # 实际配置文件（不提交）
+
+# 报告
 audit-report-*.md
-logs/admin.pid
-logs/console.pid
-logs/openapi.pid
+
+# 前端锁文件（使用 yarn）
 console/package-lock.json
-console/yarn.lock

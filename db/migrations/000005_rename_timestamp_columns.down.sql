@@ -1,0 +1,1 @@
+-- No-op: no rollback needed

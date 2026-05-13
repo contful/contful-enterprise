@@ -10,12 +10,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/audit"
@@ -39,6 +43,8 @@ func main() {
 	// 初始化日志
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: log.Writer()}).With().Timestamp().Logger()
+	// 同步全局 zerolog logger，确保 handler/service 的日志也用相同格式输出
+	zlog.Logger = logger
 	logger.Info().
 		Str("service", "admin").
 		Str("port", cfg.Server.Port).
@@ -53,8 +59,29 @@ func main() {
 	}
 
 	// 运行数据库迁移（在连接数据库之前）
+	// 将 MigrationsPath 解析为绝对路径，避免 file:// URL 解析问题
+	migratePath := cfg.Database.MigrationsPath
+	if migratePath != "" {
+		// 去除 file:// 前缀，获取纯路径
+		cleanPath := strings.TrimPrefix(migratePath, "file://")
+		// 如果是相对路径，基于二进制所在目录解析为绝对路径
+		if !filepath.IsAbs(cleanPath) {
+			// 优先基于源码目录（本地开发），回退到可执行文件目录（Docker）
+			_, filename, _, _ := runtime.Caller(0)
+			sourceDir := filepath.Dir(filename)
+			resolvedPath := filepath.Join(sourceDir, cleanPath)
+			if _, err := os.Stat(resolvedPath); err == nil {
+				cleanPath = resolvedPath
+			} else {
+				// Docker 场景：基于可执行文件所在目录解析
+				execDir := filepath.Dir(os.Args[0])
+				cleanPath = filepath.Join(execDir, cleanPath)
+			}
+		}
+		migratePath = "file://" + cleanPath
+	}
 	migrateCfg := &database.MigrateConfig{
-		MigrationsPath: cfg.Database.MigrationsPath,
+		MigrationsPath: migratePath,
 		DatabaseURL:    buildDatabaseURL(cfg.Database),
 	}
 
