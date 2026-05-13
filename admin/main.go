@@ -10,9 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -58,40 +55,7 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 运行数据库迁移（在连接数据库之前）
-	// 将 MigrationsPath 解析为绝对路径，避免 file:// URL 解析问题
-	migratePath := cfg.Database.MigrationsPath
-	if migratePath != "" {
-		// 去除 file:// 前缀，获取纯路径
-		cleanPath := strings.TrimPrefix(migratePath, "file://")
-		// 如果是相对路径，基于二进制所在目录解析为绝对路径
-		if !filepath.IsAbs(cleanPath) {
-			// 优先基于源码目录（本地开发），回退到可执行文件目录（Docker）
-			_, filename, _, _ := runtime.Caller(0)
-			sourceDir := filepath.Dir(filename)
-			resolvedPath := filepath.Join(sourceDir, cleanPath)
-			if _, err := os.Stat(resolvedPath); err == nil {
-				cleanPath = resolvedPath
-			} else {
-				// Docker 场景：基于可执行文件所在目录解析
-				execDir := filepath.Dir(os.Args[0])
-				cleanPath = filepath.Join(execDir, cleanPath)
-			}
-		}
-		migratePath = "file://" + cleanPath
-	}
-	migrateCfg := &database.MigrateConfig{
-		MigrationsPath: migratePath,
-		DatabaseURL:    buildDatabaseURL(cfg.Database),
-	}
-
-	logger.Info().Msg("running database migrations...")
-	if err := database.RunMigrations(migrateCfg); err != nil {
-		logger.Fatal().Err(err).Msg("failed to run migrations")
-	}
-	logger.Info().Msg("database migrations completed")
-
-	// 初始化数据库（迁移后）
+	// 初始化数据库
 	db, err := initDB(cfg.Database)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")

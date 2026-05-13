@@ -1,2 +1,0 @@
--- No-op migration: timestamp column renaming was already handled by GORM AutoMigrate
--- This migration exists to maintain sequence continuity after a previous corrupt version was removed
