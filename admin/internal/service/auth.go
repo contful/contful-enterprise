@@ -27,8 +27,10 @@ import (
 // P2-002: 账户锁定机制 — 连续失败登录后锁定账户
 // P2-004: 登录失败记录审计日志
 
+// AuthService 认证服务
 type AuthService struct {
 	userRepo        *repository.UserRepository
+	siteRepo        *repository.SiteRepository
 	configRepo      *repository.SystemConfigRepository
 	auditRepo       *repository.AuditRepository
 	configSvc       *ConfigService // 用于 AuditLog 数据签名
@@ -43,6 +45,7 @@ type AuthService struct {
 
 func NewAuthService(
 	userRepo *repository.UserRepository,
+	siteRepo *repository.SiteRepository,
 	configRepo *repository.SystemConfigRepository,
 	auditRepo *repository.AuditRepository,
 	redisClient *redis.Client,
@@ -51,6 +54,7 @@ func NewAuthService(
 ) *AuthService {
 	return &AuthService{
 		userRepo:        userRepo,
+		siteRepo:        siteRepo,
 		configRepo:      configRepo,
 		auditRepo:       auditRepo,
 		configSvc:       configSvc,
@@ -69,9 +73,10 @@ func (s *AuthService) SetMFAService(mfaSvc *MFAService) {
 
 // JWT Claims
 type JWTClaims struct {
-	UserID       uuid.UUID `json:"user_id"`
-	Email        string    `json:"email"`
-	IsSuperAdmin bool      `json:"is_super_admin"`
+	UserID            uuid.UUID `json:"user_id"`
+	Email             string    `json:"email"`
+	IsSuperAdmin      bool      `json:"is_super_admin"`
+	MFASetupRequired  bool      `json:"mfa_setup_required,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -244,8 +249,11 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip str
 		log.Warn().Err(err).Str("user_id", user.ID.String()).Msg("failed to update last login")
 	}
 
-	// 正常发放 JWT
-	loginResp, err := s.IssueTokens(ctx, user, ip)
+	// 检查系统是否强制 MFA（用户未启用 MFA 时）
+	mfaEnforced := s.configRepo.GetBool(ctx, "mfa_enforced", false)
+
+	// 正常发放 JWT（携带 MFASetupRequired 标记）
+	loginResp, err := s.IssueTokens(ctx, user, ip, mfaEnforced && !user.MFAEnabled)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +284,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string,
 	}
 
 	// 生成新的 Access Token
-	accessToken, err := s.generateAccessToken(user)
+	accessToken, err := s.generateAccessToken(user, false)
 	if err != nil {
 		return "", "", err
 	}
@@ -299,16 +307,39 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string, ip string
 	return nil
 }
 
-// GetUser 获取当前用户
+// GetUser 获取当前用户（含可访问站点列表）
 func (s *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*model.UserWithSites, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
+	// 查询用户可访问的站点：super_admin 返回所有活跃站点
+	var sites []model.SiteBasic
+	if user.IsSuperAdmin {
+		active := true
+		allSites, _, err := s.siteRepo.List(ctx, 1, 100, &active)
+		if err != nil {
+			log.Warn().Err(err).Msg("query sites for super_admin failed, returning empty")
+			sites = []model.SiteBasic{}
+		} else {
+			sites = make([]model.SiteBasic, len(allSites))
+			for i, site := range allSites {
+				sites[i] = model.SiteBasic{
+					ID:   site.ID,
+					Name: site.Name,
+					Slug: site.Slug,
+				}
+			}
+		}
+	} else {
+		// 非超管用户：未来可通过站点成员表扩展，当前返回空列表
+		sites = []model.SiteBasic{}
+	}
+
 	return &model.UserWithSites{
 		UserResponse: *s.toUserResponse(user),
-		Sites:        []model.SiteBasic{}, // TODO: 查询用户关联的站点
+		Sites:        sites,
 	}, nil
 }
 
@@ -340,11 +371,17 @@ func (s *AuthService) ListUsers(ctx context.Context, page, pageSize int) (*model
 
 // Helper functions
 
-func (s *AuthService) generateAccessToken(user *model.SystemUser) (string, error) {
+func (s *AuthService) generateAccessToken(user *model.SystemUser, mfaSetupRequired ...bool) (string, error) {
+	mfaRequired := false
+	if len(mfaSetupRequired) > 0 {
+		mfaRequired = mfaSetupRequired[0]
+	}
+
 	claims := JWTClaims{
-		UserID:       user.ID,
-		Email:        user.Email,
-		IsSuperAdmin: user.IsSuperAdmin,
+		UserID:           user.ID,
+		Email:            user.Email,
+		IsSuperAdmin:     user.IsSuperAdmin,
+		MFASetupRequired: mfaRequired,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.accessTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -408,12 +445,17 @@ func (s *AuthService) toUserResponse(user *model.SystemUser) *model.UserResponse
 }
 
 // IssueTokens 生成并存储 Access Token + Refresh Token（供 AuthService 和 MFA 验证后复用）
-func (s *AuthService) IssueTokens(ctx context.Context, user *model.SystemUser, ip string) (*model.LoginResponse, error) {
+func (s *AuthService) IssueTokens(ctx context.Context, user *model.SystemUser, ip string, mfaSetupRequired ...bool) (*model.LoginResponse, error) {
 	if err := s.userRepo.UpdateLastLogin(ctx, user.ID, ip); err != nil {
 		log.Warn().Err(err).Str("user_id", user.ID.String()).Msg("failed to update last login")
 	}
 
-	accessToken, err := s.generateAccessToken(user)
+	var mfaReq bool
+	if len(mfaSetupRequired) > 0 {
+		mfaReq = mfaSetupRequired[0]
+	}
+
+	accessToken, err := s.generateAccessToken(user, mfaReq)
 	if err != nil {
 		return nil, err
 	}

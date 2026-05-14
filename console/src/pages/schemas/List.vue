@@ -3,10 +3,10 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { DialogPlugin } from 'tdesign-vue-next'
+import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
 import {
   getContentSchemas,
   createContentSchema,
@@ -17,6 +17,14 @@ import {
   type ContentSchemaUpdate,
 } from '@/api/schema'
 import { showError, showSuccess, getFriendlyError } from '@/utils/request'
+
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
 import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
@@ -44,7 +52,11 @@ const formData = ref<ContentSchemaCreate>({
   versioning_enabled: false,
 })
 
-const formError = ref('')
+// TDesign 表单验证规则
+const formRules = computed(() => ({
+  name: [{ required: true, message: t('contentSchemas.namePlaceholder'), trigger: 'blur' as const }],
+  slug: [{ required: true, message: t('contentSchemas.slugPlaceholder'), trigger: 'blur' as const }],
+}))
 
 // 自动生成 slug
 const generateSlug = () => {
@@ -64,22 +76,23 @@ const loadData = async () => {
     dataList.value = res.data?.items || []
     total.value = res.data?.total || 0
   } catch (e) {
-    showError(e)
+    handleError(e)
   } finally {
     loading.value = false
   }
 }
 
 // 分页变化
-const onPageChange = (page: number) => {
-  currentPage.value = page
+const onPageChange = (pageInfo: { current: number; pageSize: number }) => {
+  currentPage.value = pageInfo.current
+  pageSize.value = pageInfo.pageSize
   loadData()
 }
 
 // 打开创建对话框
 const openCreateDialog = () => {
   isEditing.value = false
-  formError.value = ''
+  editingId.value = ''
   formData.value = {
     name: '',
     slug: '',
@@ -93,7 +106,6 @@ const openCreateDialog = () => {
 // 打开编辑对话框
 const openEditDialog = (row: ContentSchema) => {
   isEditing.value = true
-  formError.value = ''
   editingId.value = row.id
   formData.value = {
     name: row.name,
@@ -105,17 +117,17 @@ const openEditDialog = (row: ContentSchema) => {
   dialogVisible.value = true
 }
 
-// 提交表单
+// 提交表单（由 t-dialog confirm 事件触发）
 const submitForm = async () => {
-  if (!formData.value.name) {
-    formError.value = t('contentSchemas.namePlaceholder')
+  // 前端校验
+  if (!formData.value.name?.trim()) {
+    MessagePlugin.warning(t('contentSchemas.namePlaceholder'))
     return
   }
-  if (!formData.value.slug) {
-    formError.value = t('contentSchemas.slugPlaceholder')
+  if (!formData.value.slug?.trim()) {
+    MessagePlugin.warning(t('contentSchemas.slugPlaceholder'))
     return
   }
-  formError.value = ''
   submitting.value = true
 
   try {
@@ -129,31 +141,29 @@ const submitForm = async () => {
     dialogVisible.value = false
     loadData()
   } catch (e: any) {
-    formError.value = getFriendlyError(e)
+    MessagePlugin.error(getFriendlyError(e))
   } finally {
     submitting.value = false
   }
 }
 
-// 删除内容类型
-const handleDelete = async (row: ContentSchema) => {
-  const confirmDialog = DialogPlugin.confirm({
+// 删除内容类型 — 显示具体名称
+const handleDelete = (row: ContentSchema) => {
+  DialogPlugin.confirm({
     header: t('contentSchemas.deleteConfirm'),
-    body: t('contentSchemas.deleteConfirmMsg'),
+    body: `${t('contentSchemas.deleteConfirmMsg')}「${row.name}」？`,
+    theme: 'warning',
     confirmBtn: { content: t('common.confirm'), theme: 'danger' },
     cancelBtn: t('common.cancel'),
     onConfirm: async () => {
       try {
         await deleteContentSchema(row.id)
-        showSuccess(t('contentSchemas.deleteSuccess'))
+        MessagePlugin.success(t('contentSchemas.deleteSuccess'))
         loadData()
       } catch (e) {
-        showError(e)
-      } finally {
-        confirmDialog.hide()
+        handleError(e)
       }
     },
-    onClose: () => confirmDialog.hide(),
   })
 }
 
@@ -177,10 +187,28 @@ const formatStatus = (isActive: boolean) => {
   return isActive ? t('common.enabled') : t('common.disabled')
 }
 
-const kindOptions = [
-  { value: 'collection', label: computed(() => t('contentSchemas.kindCollection')) },
-  { value: 'single', label: computed(() => t('contentSchemas.kindSingle')) },
-]
+// t-table 列定义
+const columns = computed(() => [
+  {
+    colKey: 'name',
+    title: t('contentSchemas.tableName'),
+    cell: (h2: any, { row }: { row: ContentSchema }) => h2('div', { class: 'name-cell' }, [
+      h2('span', { class: 'name' }, row.name),
+      h2('span', { class: 'slug' }, row.slug),
+    ]),
+  },
+  { colKey: 'kind', title: t('contentSchemas.tableType'), width: 120 },
+  { colKey: 'is_active', title: t('contentSchemas.tableStatus'), width: 100 },
+  { colKey: 'versioning_enabled', title: t('contentSchemas.tableVersioning'), width: 100 },
+  {
+    colKey: 'description',
+    title: t('common.description'),
+    cell: (h2: any, { row }: { row: ContentSchema }) =>
+      h2('span', { class: 'description' }, row.description || '-'),
+  },
+  { colKey: 'updated_time', title: t('common.updatedAt'), width: 180, formatter: ({ row }: { row: ContentSchema }) => formatDate(row.updated_time) },
+  { colKey: 'operations', title: t('common.actions'), width: 200, fixed: 'right' as const },
+])
 
 onMounted(() => {
   loadData()
@@ -203,201 +231,127 @@ onMounted(() => {
       </template>
     </PageHeader>
 
-    <!-- 数据表格 -->
-    <div class="card" style="padding: 0; overflow: hidden;">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>{{ t('contentSchemas.tableName') }}</th>
-            <th style="width: 100px;">{{ t('contentSchemas.tableType') }}</th>
-            <th style="width: 100px;">{{ t('contentSchemas.tableStatus') }}</th>
-            <th style="width: 100px;">{{ t('contentSchemas.tableVersioning') }}</th>
-            <th>{{ t('common.description') }}</th>
-            <th style="width: 180px;">{{ t('common.updatedAt') }}</th>
-            <th style="width: 180px;">{{ t('common.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="7" class="text-center">{{ t('common.loading') }}</td>
-          </tr>
-          <tr v-else-if="dataList.length === 0">
-            <td colspan="7" class="empty-state">
-              <div class="empty-content">
-                <h3>{{ t('contentSchemas.noTypes') }}</h3>
-                <p>{{ t('contentSchemas.noTypesHint') }}</p>
-              </div>
-            </td>
-          </tr>
-          <tr v-else v-for="row in dataList" :key="row.id">
-            <td>
-              <div class="name-cell">
-                <span class="name">{{ row.name }}</span>
-                <span class="slug">{{ row.slug }}</span>
-              </div>
-            </td>
-            <td>
-              <span :class="['badge', row.kind === 'collection' ? 'badge-primary' : 'badge-warning']">
-                {{ formatKind(row.kind) }}
-              </span>
-            </td>
-            <td>
-              <span :class="['badge', row.is_active ? 'badge-success' : 'badge-default']">
-                {{ formatStatus(row.is_active) }}
-              </span>
-            </td>
-            <td>
-              <svg v-if="row.versioning_enabled" width="20" height="20" viewBox="0 0 20 20" fill="#10b981">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-              </svg>
-              <svg v-else width="20" height="20" viewBox="0 0 20 20" fill="#94a3b8">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
-              </svg>
-            </td>
-            <td class="description">{{ row.description || '-' }}</td>
-            <td class="time">{{ formatDate(row.updated_time) }}</td>
-            <td>
-              <div class="action-btns">
-                <t-button variant="outline" size="small" @click="goToFields(row)" :title="t('contentSchemas.manageFields')">
-                  <template #icon><t-icon name="setting" /></template>
-                </t-button>
-                <t-button variant="outline" size="small" @click="openEditDialog(row)" :title="t('common.edit')">
-                  <template #icon><t-icon name="edit" /></template>
-                </t-button>
-                <t-button theme="danger" variant="outline" size="small" @click="handleDelete(row)" :title="t('common.delete')">
-                  <template #icon><t-icon name="delete" /></template>
-                </t-button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- 分页 -->
-      <div class="pagination">
-        <span class="pagination-info">{{ t('common.total') }} {{ total }} {{ t('common.items') }}</span>
-        <t-button
-          variant="outline"
-          size="small"
-          :disabled="currentPage === 1"
-          @click="onPageChange(currentPage - 1)"
-        >
-          {{ t('common.prevPage') }}
-        </t-button>
-        <span class="pagination-current">{{ currentPage }} / {{ Math.ceil(total / pageSize) || 1 }}</span>
-        <t-button
-          variant="outline"
-          size="small"
-          :disabled="currentPage >= Math.ceil(total / pageSize)"
-          @click="onPageChange(currentPage + 1)"
-        >
-          {{ t('common.nextPage') }}
-        </t-button>
-      </div>
-    </div>
-
-    <!-- 创建/编辑对话框 -->
-    <div v-if="dialogVisible" class="modal-overlay" @click.self="dialogVisible = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ dialogTitle }}</h3>
-          <button class="modal-close" @click="dialogVisible = false">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
-            </svg>
-          </button>
+    <!-- 数据表格 — t-table -->
+    <t-table
+      :data="dataList"
+      :columns="columns"
+      :loading="loading"
+      :pagination="{ current: currentPage, total: total, pageSize: pageSize, showJumper: false, showPageSize: false }"
+      row-key="id"
+      @page-change="onPageChange"
+      hover
+      stripe
+      size="medium"
+      :empty="() => h('div', { class: 'schema-empty' }, [
+        h('div', { class: 'empty-icon' }, [
+          h('svg', { width: 64, height: 64, viewBox: '0 0 20 20', fill: 'currentColor', style: { opacity: 0.3 } }, [
+            h('path', { d: 'M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z' })
+          ])
+        ]),
+        h('p', { class: 'empty-title' }, t('contentSchemas.noTypes')),
+        h('p', { class: 'empty-desc' }, t('contentSchemas.noTypesHint')),
+        h('t-button', {
+          theme: 'primary',
+          onClick: openCreateDialog,
+        }, () => t('contentSchemas.createTypeBtn')),
+      ])"
+    >
+      <!-- kind 列：自定义渲染 -->
+      <template #kind-cell="{ row }">
+        <t-tag :theme="row.kind === 'collection' ? 'primary' as const : 'warning' as const" variant="light" size="small">
+          {{ formatKind(row.kind) }}
+        </t-tag>
+      </template>
+      <!-- status 列：自定义渲染 -->
+      <template #is_active-cell="{ row }">
+        <t-tag :theme="row.is_active ? 'success' as const : 'default' as const" variant="light" size="small">
+          {{ formatStatus(row.is_active) }}
+        </t-tag>
+      </template>
+      <!-- versioning 列：图标渲染 -->
+      <template #versioning_enabled-cell="{ row }">
+        <t-icon v-if="row.versioning_enabled" name="check-circle-filled" :style="{ color: '#10b981' }" />
+        <t-icon v-else name="close-circle-filled" :style="{ color: '#94a3b8' }" />
+      </template>
+      <!-- 操作列 -->
+      <template #operations-cell="{ row }">
+        <div class="action-btns">
+          <t-button variant="outline" size="small" @click="goToFields(row)" :title="t('contentSchemas.manageFields')">
+            <template #icon><t-icon name="setting" /></template>
+          </t-button>
+          <t-button variant="outline" size="small" @click="openEditDialog(row)" :title="t('common.edit')">
+            <template #icon><t-icon name="edit" /></template>
+          </t-button>
+          <t-button theme="danger" variant="outline" size="small" @click="handleDelete(row)" :title="t('common.delete')">
+            <template #icon><t-icon name="delete" /></template>
+          </t-button>
         </div>
-        <div class="modal-body">
-          <div v-if="formError" class="form-error">{{ formError }}</div>
+      </template>
+    </t-table>
 
-          <div class="input-group">
-            <label class="input-label">{{ t('common.name') }} <span class="required">*</span></label>
-            <input
-              v-model="formData.name"
-              type="text"
-              class="input"
-              :placeholder="t('contentSchemas.namePlaceholder')"
-              @blur="generateSlug"
-            />
-          </div>
+    <!-- 创建/编辑对话框 — t-dialog（带动画、ESC 关闭、遮罩关闭） -->
+    <t-dialog
+      v-model:visible="dialogVisible"
+      :header="dialogTitle"
+      :width="520"
+      :confirm-btn="{ content: isEditing ? t('common.save') : t('common.create'), theme: 'primary' as const, loading: submitting }"
+      :cancel-btn="{ content: t('common.cancel') }"
+      :close-on-overlay-click="true"
+      :close-on-esc-keydown="true"
+      :on-confirm="submitForm"
+    >
+      <t-form :data="formData" :rules="formRules" label-align="left" :label-width="100">
+        <t-form-item :label="t('common.name')" name="name">
+          <t-input
+            v-model="formData.name"
+            :placeholder="t('contentSchemas.namePlaceholder')"
+            clearable
+            @blur="generateSlug"
+          />
+        </t-form-item>
 
-          <div class="input-group">
-            <label class="input-label">{{ t('contentSchemas.slug') }} <span class="required">*</span></label>
-            <input
-              v-model="formData.slug"
-              type="text"
-              class="input"
-              :placeholder="t('contentSchemas.slugPlaceholder')"
-              :disabled="isEditing"
-            />
+        <t-form-item :label="t('contentSchemas.slug')" name="slug">
+          <t-input
+            v-model="formData.slug"
+            :placeholder="t('contentSchemas.slugPlaceholder')"
+            :disabled="isEditing"
+          />
+          <template #tips>
             <span class="input-hint">{{ t('contentSchemas.slugHint') }}</span>
-          </div>
+          </template>
+        </t-form-item>
 
-          <div class="input-group">
-            <label class="input-label">{{ t('contentSchemas.kind') }}</label>
-            <select v-model="formData.kind" class="input" :disabled="isEditing">
-              <option value="collection">{{ t('contentSchemas.kindCollection') }}</option>
-              <option value="single">{{ t('contentSchemas.kindSingle') }}</option>
-            </select>
+        <t-form-item :label="t('contentSchemas.kind')">
+          <t-select v-model="formData.kind" :disabled="isEditing">
+            <t-option value="collection" :label="t('contentSchemas.kindCollection')" />
+            <t-option value="single" :label="t('contentSchemas.kindSingle')" />
+          </t-select>
+          <template #tips>
             <span class="input-hint">
               <strong>{{ t('contentSchemas.kindCollection') }}：</strong>{{ t('contentSchemas.kindCollectionHint') }}<br/>
               <strong>{{ t('contentSchemas.kindSingle') }}：</strong>{{ t('contentSchemas.kindSingleHint') }}
             </span>
-          </div>
+          </template>
+        </t-form-item>
 
-          <div class="input-group">
-            <label class="input-label">{{ t('common.description') }}</label>
-            <textarea
-              v-model="formData.description"
-              class="input"
-              rows="3"
-              :placeholder="t('common.description')"
-            ></textarea>
-          </div>
+        <t-form-item :label="t('common.description')">
+          <t-textarea
+            v-model="formData.description"
+            :placeholder="t('common.description')"
+            :autosize="{ minRows: 3, maxRows: 6 }"
+          />
+        </t-form-item>
 
-          <div class="input-group">
-            <label class="input-label">
-              <input v-model="formData.versioning_enabled" type="checkbox" />
-              <span style="margin-left: 8px;">{{ t('contentSchemas.versioning') }}</span>
-            </label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <t-button variant="outline" @click="dialogVisible = false">{{ t('common.cancel') }}</t-button>
-          <t-button theme="primary" :disabled="submitting" @click="submitForm">
-            {{ submitting ? t('common.loading') : (isEditing ? t('common.save') : t('common.create')) }}
-          </t-button>
-        </div>
-      </div>
-    </div>
+        <t-form-item :label="t('contentSchemas.versioning')">
+          <t-switch v-model="formData.versioning_enabled" />
+        </t-form-item>
+      </t-form>
+    </t-dialog>
   </div>
 </template>
 
 <style scoped>
-/* 页面特有样式：内容类型列表 */
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-}
-
-.title-section h1 {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-}
-
-.subtitle {
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
+/* 页面特有样式：内容类型列表 — page-header/header-actions 已提取到 common.css */
 
 .name-cell {
   display: flex;
@@ -423,148 +377,37 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.time {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-}
-
 /* === Action buttons — 已提取到 common.css === */
 
-.text-center {
+/* === Empty state（t-table empty 插槽） === */
+.schema-empty {
   text-align: center;
-  padding: 40px !important;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px !important;
-}
-
-.empty-content {
+  padding: 48px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
 }
 
-.empty-content h3 {
-  margin: 0;
+.empty-title {
   font-size: 16px;
   font-weight: 500;
   color: var(--color-text);
-}
-
-.empty-content p {
   margin: 0;
+}
+
+.empty-desc {
   font-size: 14px;
   color: var(--color-text-secondary);
+  margin: 0;
 }
 
-.badge-primary {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-}
-
-.badge-warning {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-}
-
-.pagination-info {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.pagination-current {
-  font-size: 14px;
-  color: var(--color-text);
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  width: 500px;
-  max-height: 80vh;
-  background: var(--color-card);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.modal-close:hover {
-  background: var(--color-hover);
-}
-
-.modal-body {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-}
-
-/* === Form error — block 版本，已提取到 common.css === */
-
-.required {
-  color: var(--color-error);
-}
-
+/* Form hints */
 .input-hint {
   display: block;
   font-size: 12px;
   color: var(--color-text-secondary);
   margin-top: 4px;
+  line-height: 1.5;
 }
 </style>

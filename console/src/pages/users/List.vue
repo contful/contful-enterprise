@@ -61,6 +61,16 @@
         <t-form-item :label="t('users.superAdminSwitch')">
           <t-switch v-model="createForm.is_super_admin" />
         </t-form-item>
+        <t-form-item :label="t('users.assignRoles')">
+          <t-select
+            v-model="createForm.roleIds"
+            :placeholder="t('users.selectRoles')"
+            multiple
+            :options="systemRoles.filter(r => !r.is_system || r.name === 'Auditor')"
+            :keys="{ label: 'name', value: 'id' }"
+            clearable
+          />
+        </t-form-item>
         <t-alert v-if="createError && !createError.includes('@')" theme="error" :message="createError" closable @close="createError = ''" />
       </t-form>
     </t-dialog>
@@ -90,6 +100,16 @@
         </t-form-item>
         <t-form-item :label="t('users.superAdminSwitch')">
           <t-switch v-model="editForm.is_super_admin" :disabled="editForm.is_super_admin" />
+        </t-form-item>
+        <t-form-item :label="t('users.assignRoles')">
+          <t-select
+            v-model="editForm.roleIds"
+            :placeholder="t('users.selectRoles')"
+            multiple
+            :options="systemRoles.filter(r => !r.is_system || r.name === 'Auditor')"
+            :keys="{ label: 'name', value: 'id' }"
+            clearable
+          />
         </t-form-item>
         <t-alert v-if="editError" theme="error" :message="editError" closable @close="editError = ''" />
       </t-form>
@@ -123,10 +143,15 @@
           </div>
           <div class="user-detail__row">
             <span class="user-detail__label">{{ t('users.role') }}</span>
-            <t-tag v-if="viewUser && viewUser.is_super_admin" theme="warning" variant="light" size="small">
-              {{ t('users.superAdmin') }}
-            </t-tag>
-            <t-tag v-else-if="viewUser" variant="light" size="small">{{ t('users.normalUser') }}</t-tag>
+            <div class="user-detail__roles">
+              <t-tag v-if="viewUserRoles.length > 0" v-for="r in viewUserRoles" :key="r.id" theme="primary" variant="light" size="small">
+                {{ r.name }}
+              </t-tag>
+              <t-tag v-else-if="viewUser && viewUser.is_super_admin" theme="warning" variant="light" size="small">
+                {{ t('users.superAdmin') }}
+              </t-tag>
+              <t-tag v-else-if="viewUser" variant="light" size="small">{{ t('users.normalUser') }}</t-tag>
+            </div>
           </div>
           <div class="user-detail__row">
             <span class="user-detail__label">{{ t('users.createdTime') }}</span>
@@ -176,8 +201,18 @@ import { useI18n } from 'vue-i18n'
 import { DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import { showError, showSuccess } from '@/utils/request'
+
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
 import PageHeader from '@/components/PageHeader.vue'
 import { resetPassword } from '@/api/user'
+import { listSystemRoles, getUserRoles, assignUserRole, removeUserRole } from '@/api/rbac'
+import type { SystemRole } from '@/api/rbac'
 
 const { t } = useI18n()
 
@@ -195,6 +230,11 @@ interface User {
 
 const users = ref<User[]>([])
 const loading = ref(false)
+const systemRoles = ref<SystemRole[]>([])
+// 用户ID → 角色名映射
+const userRoleMap = ref<Record<string, string>>({})
+// 用户ID → 角色列表映射（用于查看详情）
+const userRolesMap = ref<Record<string, SystemRole[]>>({})
 const pagination = reactive({
   current: 1,
   pageSize: 20,
@@ -210,6 +250,7 @@ const createForm = reactive({
   password: '',
   nickname: '',
   is_super_admin: false,
+  roleIds: [] as string[],
 })
 
 // 密码强度计算
@@ -240,11 +281,13 @@ const editForm = reactive({
   nickname: '',
   status: 'active' as string,
   is_super_admin: false,
+  roleIds: [] as string[],
 })
 
 // 查看弹窗
 const viewVisible = ref(false)
 const viewUser = ref<User | null>(null)
+const viewUserRoles = ref<SystemRole[]>([])
 
 // 重置密码弹窗
 const resetPwdVisible = ref(false)
@@ -291,11 +334,34 @@ const loadUsers = async () => {
     if (result) {
       users.value = result.items
       pagination.total = result.total
+      // 加载每个用户的系统角色
+      for (const u of result.items) {
+        try {
+          const roles = await getUserRoles(u.id)
+          const roleData = roles.data || []
+          userRolesMap.value[u.id] = roleData
+          if (roleData.length > 0) {
+            userRoleMap.value[u.id] = roleData.map(r => r.name).join(', ')
+          }
+        } catch {
+          // 静默失败
+        }
+      }
     }
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     loading.value = false
+  }
+}
+
+// 加载系统角色并构建用户-角色映射
+const loadSystemRoles = async () => {
+  try {
+    const res = await listSystemRoles()
+    systemRoles.value = res.data || []
+  } catch {
+    // 静默失败，角色列降级为仅显示 super_admin 状态
   }
 }
 
@@ -335,12 +401,14 @@ const openCreateDialog = () => {
   createForm.password = ''
   createForm.nickname = ''
   createForm.is_super_admin = false
+  createForm.roleIds = []
   createError.value = ''
   createVisible.value = true
 }
 
-const openViewDialog = (user: User) => {
+const openViewDialog = async (user: User) => {
   viewUser.value = user
+  viewUserRoles.value = userRolesMap.value[user.id] || []
   viewVisible.value = true
 }
 
@@ -350,13 +418,19 @@ const handleCreate = async () => {
   creating.value = true
   createError.value = ''
   try {
-    await userStore.createUser({
+    const newUser = await userStore.createUser({
       email: createForm.email,
       password: createForm.password,
       nickname: createForm.nickname || undefined,
       is_super_admin: createForm.is_super_admin,
     })
     showSuccess(t('users.createSuccess'))
+    // 分配选中的角色
+    if (createForm.roleIds.length > 0 && newUser?.id) {
+      for (const roleId of createForm.roleIds) {
+        try { await assignUserRole(newUser.id, roleId) } catch { /* 逐个失败不影响 */ }
+      }
+    }
     createVisible.value = false
     loadUsers()
   } catch (error: any) {
@@ -367,12 +441,15 @@ const handleCreate = async () => {
   }
 }
 
-const openEditDialog = (user: User) => {
+const openEditDialog = async (user: User) => {
   editingUserId.value = user.id
   editForm.email = user.email
   editForm.nickname = user.nickname || ''
   editForm.status = user.status
   editForm.is_super_admin = user.is_super_admin
+  // 加载用户当前角色
+  const currentRoles = userRolesMap.value[user.id] || []
+  editForm.roleIds = currentRoles.map(r => r.id)
   editError.value = ''
   editVisible.value = true
 }
@@ -386,6 +463,22 @@ const handleUpdate = async () => {
       status: editForm.status,
       is_super_admin: editForm.is_super_admin,
     })
+    // 同步角色：计算差异后增删
+    const currentRoles = userRolesMap.value[editingUserId.value] || []
+    const currentRoleIds = new Set(currentRoles.map(r => r.id))
+    const newRoleIds = new Set(editForm.roleIds)
+    // 需要新增的
+    for (const roleId of editForm.roleIds) {
+      if (!currentRoleIds.has(roleId)) {
+        try { await assignUserRole(editingUserId.value, roleId) } catch { /* */ }
+      }
+    }
+    // 需要移除的
+    for (const r of currentRoles) {
+      if (!newRoleIds.has(r.id)) {
+        try { await removeUserRole(editingUserId.value, r.id) } catch { /* */ }
+      }
+    }
     showSuccess(t('users.updateSuccess'))
     editVisible.value = false
     loadUsers()
@@ -407,7 +500,7 @@ const handleDelete = (user: User) => {
         showSuccess(t('users.deleteSuccess'))
         loadUsers()
       } catch (error) {
-        showError(error)
+        handleError(error)
       }
     },
   })
@@ -453,11 +546,18 @@ const columns = computed(() => [
   {
     colKey: 'role',
     title: t('users.role'),
+    width: 180,
     cell: (_h: any, { row }: { row: User }) => {
-      const isAdmin = row.is_super_admin || (row as unknown as Record<string, any>).role === 'super_admin'
-      return isAdmin
-        ? h('t-tag', { theme: 'warning', variant: 'light', size: 'small' }, () => t('users.superAdmin'))
-        : h('t-tag', { variant: 'light', size: 'small' }, () => t('users.normalUser'))
+      // 如果已缓存该用户的角色名，直接显示
+      const cachedRole = userRoleMap.value[row.id]
+      if (cachedRole) {
+        return h('t-tag', { theme: 'primary', variant: 'light', size: 'small' }, () => cachedRole)
+      }
+      // 超级管理员显示特殊标签
+      if (row.is_super_admin) {
+        return h('t-tag', { theme: 'warning', variant: 'light', size: 'small' }, () => t('users.superAdmin'))
+      }
+      return h('t-tag', { variant: 'light', size: 'small' }, () => t('users.normalUser'))
     },
   },
   {
@@ -535,6 +635,7 @@ const columns = computed(() => [
 
 onMounted(() => {
   loadUsers()
+  loadSystemRoles()
 })
 </script>
 

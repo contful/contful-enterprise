@@ -29,6 +29,9 @@ import {
 } from '@/api/entry'
 import PageHeader from '@/components/PageHeader.vue'
 
+// 类型守卫：处理 unknown 类型的 error 参数
+const handleError = (error: unknown) => showError(error as Parameters<typeof showError>[0])
+
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -91,7 +94,7 @@ const loadContentSchemas = async () => {
     contentSchemas.value = res.data?.items || []
     await loadEntryCounts()
   } catch (error) {
-    showError(error)
+    handleError(error)
   }
 }
 
@@ -132,7 +135,7 @@ const loadEntries = async () => {
     entries.value = res.data?.items || []
     total.value = res.data?.total || 0
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     loading.value = false
   }
@@ -156,11 +159,11 @@ const openCreateModal = () => {
 const openEditModal = async (entry: Entry) => {
   try {
     const res = await getEntry(entry.id)
-    editingEntry.value = res.data.data
-    formData.value = { ...res.data.data.values || {} }
+    editingEntry.value = res.data
+    formData.value = { ...res.data.values || {} }
     showModal.value = true
   } catch (error) {
-    showError(error)
+    handleError(error)
   }
 }
 
@@ -187,7 +190,7 @@ const handleSubmit = async () => {
     loadEntries()
     loadEntryCounts()
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     submitting.value = false
   }
@@ -206,17 +209,18 @@ const handlePublish = async (entry: Entry) => {
     }
     loadEntries()
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     publishLoading.value = null
   }
 }
 
-// 删除确认 — DialogPlugin.confirm
+// 删除确认 — 显示具体 Entry 名称
 const confirmDelete = (entry: Entry) => {
+  const entryTitle = entry.values?.title || entry.id.slice(0, 8)
   DialogPlugin.confirm({
     header: t('common.confirmDelete'),
-    body: t('content.confirmDelete'),
+    body: `${t('content.confirmDelete')}「${entryTitle}」？`,
     theme: 'warning',
     onConfirm: async () => {
       try {
@@ -225,7 +229,7 @@ const confirmDelete = (entry: Entry) => {
         loadEntries()
         loadEntryCounts()
       } catch (error) {
-        showError(error)
+        handleError(error)
       }
     },
   })
@@ -297,7 +301,7 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
         loadEntries()
         loadEntryCounts()
       } catch (error) {
-        showError(error)
+        handleError(error)
       } finally {
         batchLoading.value = false
       }
@@ -312,7 +316,7 @@ const handleClearCache = async () => {
     const res = await invalidateCache()
     showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     cacheLoading.value = false
   }
@@ -391,10 +395,10 @@ onMounted(() => {
       :title="t('content.title')"
       :subtitle="t('content.subtitle')"
       :show-refresh="true"
-      @refresh="loadContentEntries(currentPage)"
+      @refresh="loadEntries"
     >
       <template #primary-action>
-        <t-button theme="primary" @click="openCreateDialog">
+        <t-button theme="primary" @click="openCreateModal">
           <template #icon><t-icon name="add" /></template>
           {{ t('content.createEntry') }}
         </t-button>
@@ -849,26 +853,14 @@ onMounted(() => {
   gap: 12px;
 }
 
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
+/* toolbar-left/right 已提取到 common.css */
 .toolbar-left h2 {
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text);
 }
 
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
+/* batch-actions — toolbar-right 已提取到 common.css */
 .batch-actions {
   display: flex;
   align-items: center;
@@ -945,13 +937,7 @@ tr.selected {
   color: var(--color-text-secondary);
   margin: 0 0 20px;
 }
-
-/* === Pagination === */
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
+/* pagination-bar 已提取到 common.css */
 
 /* === Form textarea === */
 .entry-textarea {

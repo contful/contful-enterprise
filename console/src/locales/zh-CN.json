@@ -81,7 +81,7 @@
     "apiTokens": "API 令牌",
     "configs": "配置",
     "contentSchemas": "模型",
-    "auditLogs": "审计日志"
+    "auditLogs": "日志"
   },
   "auth": {
     "login": "登录",
@@ -414,7 +414,9 @@
     "passwordRequired": "请输入密码",
     "passwordMismatch": "两次输入的密码不一致",
     "resetPasswordSuccess": "密码重置成功",
-    "resetPasswordFailed": "密码重置失败"
+    "resetPasswordFailed": "密码重置失败",
+    "assignRoles": "分配角色",
+    "selectRoles": "请选择系统角色"
   },
   "apiTokens": {
     "title": "API Token",
@@ -481,7 +483,8 @@
     "exportConfirm": "查看 Token 详情",
     "exportMsg": "点击确认后，将解密并显示完整的 Token 值。",
     "exportWarningDetail": "此 Token 仅展示一次，请妥善保管！",
-    "exportSuccess": "Token 已解密显示"
+    "exportSuccess": "Token 已解密显示",
+    "lastUsedTime": "最后使用"
   },
   "settings": {
     "title": "设置",
@@ -834,15 +837,8 @@
       "systemRoles": "角色管理"
     }
   },
-  "members": {
-    "title": "站点成员管理",
-    "subtitle": "管理站点成员及其角色权限",
-    "invite": "邀请成员",
-    "inviteTitle": "邀请成员",
-    "sendInvite": "确认邀请",
-    "changeRole": "更换角色",
-    "removeConfirm": "确认将用户「{email}」从站点移除？",
-    "selectRole": "请选择角色",
-    "fillRequired": "请填写邮箱和角色"
+  "permission": {
+    "denied": "您没有访问该页面的权限",
+    "required": "需要权限：{permission}"
   }
 }

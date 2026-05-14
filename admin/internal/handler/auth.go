@@ -203,9 +203,10 @@ func (h *AuthHandler) GetClaims(token string) (*middleware.Claims, error) {
 	}
 
 	return &middleware.Claims{
-		UserID:       claims.UserID,
-		Email:        claims.Email,
-		IsSuperAdmin: claims.IsSuperAdmin,
+		UserID:           claims.UserID,
+		Email:            claims.Email,
+		IsSuperAdmin:     claims.IsSuperAdmin,
+		MFASetupRequired: claims.MFASetupRequired,
 	}, nil
 }
 

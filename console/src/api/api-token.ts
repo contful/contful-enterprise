@@ -174,8 +174,8 @@ export const apiTokenApi = {
 export default apiTokenApi
 
 // ============ 便捷函数导出 ============
-export const getApiTokens = (params?: { page?: number; page_size?: number; status?: string; name?: string }) => {
-  return apiTokenApi.list({ page: params?.page, page_size: params?.page_size, filter: params })
+export const getApiTokens = (params?: { page?: number; page_size?: number; status?: TokenStatus; name?: string }) => {
+  return apiTokenApi.list({ page: params?.page, page_size: params?.page_size, filter: params ? { status: params.status, name: params.name } : undefined })
 }
 
 export const getApiToken = (id: string) => {

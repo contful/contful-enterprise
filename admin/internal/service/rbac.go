@@ -320,20 +320,15 @@ func (s *RBACService) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]mod
 // GetPermissionsMeta 返回完整权限 Key 清单
 func (s *RBACService) GetPermissionsMeta() map[string]interface{} {
 	return map[string]interface{}{
-		"system": map[string]interface{}{
-			"users":   map[string]string{"read": "查看用户", "write": "管理用户", "delete": "删除用户"},
-			"sites":   map[string]string{"read": "查看站点", "write": "管理站点", "delete": "删除站点"},
-			"tokens":  map[string]string{"read": "查看 Token", "write": "管理 Token", "delete": "删除 Token"},
-			"settings": map[string]string{"read": "查看设置", "write": "修改设置"},
-			"audit":    map[string]string{"read": "查看审计日志", "export": "导出审计日志"},
-			"roles":    map[string]string{"read": "查看角色", "write": "管理角色", "delete": "删除角色"},
-			"dashboard": map[string]string{"read": "查看仪表盘"},
-		},
+		"users":          map[string]string{"read": "查看用户", "write": "管理用户", "delete": "删除用户"},
+		"sites":          map[string]string{"read": "查看站点", "write": "管理站点", "delete": "删除站点"},
+		"tokens":         map[string]string{"read": "查看 Token", "write": "管理 Token", "delete": "删除 Token"},
+		"settings":       map[string]string{"read": "查看设置", "write": "修改设置"},
+		"audit":          map[string]string{"read": "查看审计日志", "export": "导出审计日志"},
+		"roles":          map[string]string{"read": "查看角色", "write": "管理角色", "delete": "删除角色"},
+		"dashboard":      map[string]string{"read": "查看仪表盘"},
 		"content_schema": map[string]string{"read": "查看模型", "write": "管理模型", "delete": "删除模型"},
 		"entry":          map[string]string{"read": "查看条目", "write": "编辑条目", "publish": "发布", "delete": "删除条目"},
 		"asset":          map[string]string{"read": "查看文件", "write": "管理文件", "delete": "删除文件"},
-		"media":          map[string]string{"read": "查看媒体库", "write": "管理媒体", "delete": "删除媒体"},
-		"site":           map[string]string{"read": "查看站点", "write": "站点设置", "delete": "删除站点"},
-		"api_token":      map[string]string{"read": "查看 Token", "write": "管理 Token", "delete": "删除 Token"},
 	}
 }

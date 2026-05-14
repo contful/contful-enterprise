@@ -232,7 +232,7 @@ export const folderApi = {
    * 获取文件夹树
    */
   getTree: async (): Promise<FolderResponse[]> => {
-    const response = await request.get<FolderResponse[]>('/assets/folders/tree')
+    const response = await request.get<{ data: FolderResponse[] }>('/assets/folders/tree')
     // API 返回 { code, message, data: [...] }，需要取 response.data.data
     return response.data.data || []
   },
@@ -242,7 +242,7 @@ export const folderApi = {
    */
   list: async (parentId?: string): Promise<FolderResponse[]> => {
     const params = parentId ? { parent_id: parentId } : {}
-    const response = await request.get<FolderResponse[]>('/assets/folders', { params })
+    const response = await request.get<{ data: FolderResponse[] }>('/assets/folders', { params })
     // API 返回 { code, message, data: [...] }，需要取 response.data.data
     return response.data.data || []
   },
@@ -276,8 +276,8 @@ export default assetApi
 
 // ============ 便捷函数导出 ============
 // 与 media/List.vue 兼容的导出
-export const getAssets = (params?: { page?: number; page_size?: number; folder_id?: string; type?: string; keyword?: string }) => {
-  return assetApi.list({ page: params?.page, page_size: params?.page_size, filter: params })
+export const getAssets = (params?: { page?: number; page_size?: number; folder_id?: string; type?: AssetType; keyword?: string }) => {
+  return assetApi.list({ page: params?.page, page_size: params?.page_size, filter: params ? { folder_id: params.folder_id, type: params.type, keyword: params.keyword } : undefined })
 }
 
 export const getAsset = (id: string) => {

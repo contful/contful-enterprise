@@ -160,6 +160,14 @@ import { getAuditLogs } from '@/api/audit'
 import type { AuditLog, AuditLevel, AuditType } from '@/types/audit'
 import PageHeader from '@/components/PageHeader.vue'
 
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    MessagePlugin.error(err.message)
+  } else {
+    MessagePlugin.error(String(err))
+  }
+}
+
 const { t, locale } = useI18n()
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
@@ -185,14 +193,14 @@ const pagination = reactive({
 })
 
 const columns = computed(() => [
-  { colKey: 'action', title: t('audit.column.action'), width: 120 },
+  { colKey: 'action', title: t('audit.column.action'), width: 140 },
   { colKey: 'category', title: t('audit.column.category'), width: 100 },
   { colKey: 'level', title: t('audit.column.level'), width: 80 },
   { colKey: 'resource_type', title: t('audit.column.resourceType'), width: 120 },
-  { colKey: 'user_id', title: t('audit.column.userId'), width: 300 },
-  { colKey: 'ip_address', title: t('audit.column.ipAddress'), width: 150 },
-  { colKey: 'created_time', title: t('audit.column.time'), width: 180 },
-  { colKey: 'operation', title: t('audit.column.operation'), width: 80, fixed: 'right' },
+  { colKey: 'user_id', title: t('audit.column.userId'), width: 160 },
+  { colKey: 'ip_address', title: t('audit.column.ipAddress'), width: 140 },
+  { colKey: 'created_time', title: t('audit.column.time'), width: 170 },
+  { colKey: 'operation', title: t('audit.column.operation'), width: 80, fixed: 'right' as const },
 ])
 
 
@@ -223,10 +231,10 @@ async function fetchLogs() {
     if (filterForm.startTime) params.start_time = filterForm.startTime
     if (filterForm.endTime) params.end_time = filterForm.endTime
     const res = await getAuditLogs(params)
-    logs.value = res.items || []
-    pagination.total = res.total || 0
-  } catch (err: any) {
-    MessagePlugin.error(err.message || '获取审计日志失败')
+    logs.value = res.data?.items || []
+    pagination.total = res.data?.total || 0
+  } catch (err: unknown) {
+    handleError(err)
   } finally {
     loading.value = false
   }

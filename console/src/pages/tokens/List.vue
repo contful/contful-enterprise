@@ -3,9 +3,10 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, computed, onMounted, reactive, h } from 'vue'
+import { ref, computed, onMounted, reactive, h, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
+import { Dropdown as TDropdown } from 'tdesign-vue-next'
 import {
   getApiTokens,
   createApiToken,
@@ -15,8 +16,17 @@ import {
   revokeApiToken,
   exportApiToken,
   type ApiToken,
+  type TokenStatus,
 } from '@/api/api-token'
 import { showError } from '@/utils/request'
+
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
 import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
@@ -55,15 +65,44 @@ const permissionLabels = computed(() =>
   permissionOptions.map(opt => ({ ...opt, label: t(opt.labelKey) }))
 )
 
+// 搜索和筛选
+const searchKeyword = ref('')
+const statusFilter = ref<TokenStatus | ''>('')
+const debouncedKeyword = ref('')
+
+// 搜索防抖：watch searchKeyword，300ms 无输入后触发实际搜索
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+watch(searchKeyword, (val) => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    debouncedKeyword.value = val
+    pagination.current = 1
+    loadTokens()
+  }, 300)
+})
+
+const handleSearch = () => {
+  // 立即执行（点击搜索按钮时清除防抖）
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debouncedKeyword.value = searchKeyword.value
+  pagination.current = 1
+  loadTokens()
+}
+
 // 加载 Token 列表
 const loadTokens = async () => {
   loading.value = true
   try {
-    const res = await getApiTokens({ page: pagination.current, page_size: pagination.pageSize })
+    const res = await getApiTokens({
+      page: pagination.current,
+      page_size: pagination.pageSize,
+      name: debouncedKeyword.value || undefined,
+      status: statusFilter.value || undefined,
+    })
     tokens.value = res?.items || []
     pagination.total = res?.total || 0
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     loading.value = false
   }
@@ -126,7 +165,7 @@ const handleSubmit = async () => {
     }
     await loadTokens()
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     submitting.value = false
   }
@@ -139,13 +178,13 @@ const closeModal = () => {
 }
 
 // 格式化日期
-const formatDate = (date: string | null) => {
+const formatDate = (date: string | null | undefined) => {
   if (!date) return t('apiTokens.permanent')
   return new Date(date).toLocaleDateString()
 }
 
 // 判断 Token 是否过期
-const isExpired = (expiresAt: string | null) => {
+const isExpired = (expiresAt: string | null | undefined) => {
   if (!expiresAt) return false
   return new Date(expiresAt) < new Date()
 }
@@ -170,7 +209,7 @@ const handleDeleteConfirm = (token: ApiToken) => {
         MessagePlugin.success(t('apiTokens.deleteSuccess'))
         await loadTokens()
       } catch (error) {
-        showError(error)
+        handleError(error)
       }
     },
   })
@@ -191,7 +230,7 @@ const handleRegenerateConfirm = (token: ApiToken) => {
         showModal.value = true
         await loadTokens()
       } catch (error) {
-        showError(error)
+        handleError(error)
       }
     },
   })
@@ -209,7 +248,7 @@ const handleRevoke = (token: ApiToken) => {
         MessagePlugin.success(t('apiTokens.revokeSuccess'))
         await loadTokens()
       } catch (error) {
-        showError(error)
+        handleError(error)
       }
     },
   })
@@ -230,7 +269,7 @@ const handleExportConfirm = (token: ApiToken) => {
         formData.value = { name: '', description: '', expires_in_days: 365, permissions: [], rate_limit: 1000 }
         showModal.value = true
       } catch (error) {
-        showError(error)
+        handleError(error)
       }
     },
   })
@@ -261,11 +300,14 @@ const columns = computed(() => [
     title: t('apiTokens.tablePermissions'),
     cell: (_h2: any, { row }: { row: ApiToken }) => {
       const tok = row as unknown as Record<string, any>
-      const schemas = tok.permissions?.schemas || (Array.isArray(tok.permissions) ? tok.permissions : [])
+      const schemas = tok.permissions?.schemas || []
+      const displayItems = Array.isArray(schemas) ? schemas.slice(0, 2) : []
+      const moreCount = Array.isArray(schemas) ? Math.max(0, schemas.length - 2) : 0
       return h('div', { class: 'permissions' }, [
-        ...String(schemas).slice(0, 2).split(',').map((perm: string) =>
+        ...displayItems.map((perm: string) =>
           h('span', { class: 'perm-badge', key: perm }, perm)
         ),
+        moreCount > 0 ? h('span', { class: 'perm-more', key: 'more' }, `+${moreCount}`) : null,
       ].filter(Boolean))
     },
   },
@@ -289,6 +331,16 @@ const columns = computed(() => [
     },
   },
   {
+    colKey: 'last_used_time',
+    title: t('apiTokens.lastUsedTime'),
+    cell: (_h: any, { row }: { row: ApiToken }) => {
+      const tok = row as unknown as Record<string, any>
+      const time = tok.last_used_time
+      if (!time) return h('span', { style: 'color: var(--color-text-placeholder)' }, '—')
+      return new Date(time).toLocaleDateString()
+    },
+  },
+  {
     colKey: 'created_time',
     title: t('common.createdAt'),
     cell: (_h: any, { row }: { row: ApiToken }) => new Date(row.created_time).toLocaleDateString(),
@@ -300,48 +352,32 @@ const columns = computed(() => [
       const tok = row as unknown as Record<string, any>
       const active = (!tok.revoked && row.status !== 'revoked') && !isExpired(row.expires_time)
       return h('div', { class: 'action-btns' }, [
-        active ? h('t-tooltip', { content: t('common.edit') }, () =>
-          h('t-button', {
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            onClick: () => openEditModal(row),
-          }, () => h('t-icon', { name: 'edit' }))
-        ) : null,
-        active ? h('t-tooltip', { content: t('apiTokens.viewDetail') }, () =>
-          h('t-button', {
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            onClick: () => handleExportConfirm(row),
-          }, () => h('t-icon', { name: 'browse' }))
-        ) : null,
-        active ? h('t-tooltip', { content: t('apiTokens.regenerate') }, () =>
-          h('t-button', {
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            onClick: () => handleRegenerateConfirm(row),
-          }, () => h('t-icon', { name: 'refresh' }))
-        ) : null,
-        (!tok.revoked && row.status !== 'revoked') ? h('t-tooltip', { content: t('apiTokens.revoke') }, () =>
-          h('t-button', {
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            onClick: () => handleRevoke(row),
-          }, () => h('t-icon', { name: 'close-circle' }))
-        ) : null,
-        h('t-tooltip', { content: t('common.delete') }, () =>
-          h('t-button', {
-            theme: 'danger',
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            onClick: () => handleDeleteConfirm(row),
-          }, () => h('t-icon', { name: 'delete' }))
+        h(TDropdown, {
+          options: [
+            ...(active ? [
+              { content: t('common.edit'), value: 'edit', prefixIcon: () => h('t-icon', { name: 'edit' }) },
+              { content: t('apiTokens.viewDetail'), value: 'view', prefixIcon: () => h('t-icon', { name: 'browse' }) },
+              { content: t('apiTokens.regenerate'), value: 'regenerate', prefixIcon: () => h('t-icon', { name: 'refresh' }) },
+            ] : []),
+            ...((!tok.revoked && row.status !== 'revoked') ? [
+              { content: t('apiTokens.revoke'), value: 'revoke', prefixIcon: () => h('t-icon', { name: 'close-circle' }) },
+            ] : []),
+            { content: t('common.delete'), value: 'delete', theme: 'error' as const, prefixIcon: () => h('t-icon', { name: 'delete' }) },
+          ],
+          onClick: (data: any) => {
+            switch (data.value as string) {
+              case 'edit': openEditModal(row); break
+              case 'view': handleExportConfirm(row); break
+              case 'regenerate': handleRegenerateConfirm(row); break
+              case 'revoke': handleRevoke(row); break
+              case 'delete': handleDeleteConfirm(row); break
+            }
+          },
+          trigger: 'click',
+        }, () =>
+          h('t-button', { variant: 'outline', size: 'small', shape: 'circle' }, () => h('t-icon', { name: 'ellipsis' }))
         ),
-      ].filter(Boolean))
+      ])
     },
   },
 ])
@@ -367,6 +403,32 @@ onMounted(() => {
       </template>
     </PageHeader>
 
+    <!-- 搜索栏 -->
+    <div class="tokens-toolbar">
+      <t-input
+        v-model="searchKeyword"
+        :placeholder="t('common.searchPlaceholder')"
+        clearable
+        style="width: 280px"
+      >
+        <template #prefix-icon>
+          <t-icon name="search" />
+        </template>
+      </t-input>
+      <t-select
+        v-model="statusFilter"
+        :placeholder="t('apiTokens.tableStatus')"
+        clearable
+        style="width: 140px"
+        :options="[
+          { label: t('apiTokens.active'), value: 'active' },
+          { label: t('apiTokens.expired'), value: 'expired' },
+          { label: t('apiTokens.revoked'), value: 'revoked' },
+        ]"
+        @change="handleSearch"
+      />
+    </div>
+
     <!-- Token 列表 — t-table -->
     <t-table
       :data="tokens"
@@ -375,9 +437,16 @@ onMounted(() => {
       :pagination="{ current: pagination.current, total: pagination.total, pageSize: pagination.pageSize, showPageSize: false }"
       row-key="id"
       @page-change="onPageChange"
-      :empty="() => h('div', { class: 'empty-state' }, [
-        h('p', {}, t('apiTokens.noTokens')),
-        h('p', { class: 'empty-hint' }, t('apiTokens.noTokensHint')),
+      :empty="() => h('div', { class: 'token-empty' }, [
+        h('div', { class: 'empty-icon' }, [
+          h('t-icon', { name: 'lock-on', size: '48px', style: { color: 'var(--color-text-placeholder)', opacity: 0.5 } }),
+        ]),
+        h('p', { class: 'empty-title' }, t('apiTokens.noTokens')),
+        h('p', { class: 'empty-desc' }, t('apiTokens.noTokensHint')),
+        h('t-button', {
+          theme: 'primary',
+          onClick: openCreateModal,
+        }, () => t('apiTokens.createToken')),
       ])"
       hover
       stripe
@@ -454,6 +523,12 @@ onMounted(() => {
 
 <style scoped>
 /* 页面特有样式：Token 列表 */
+.tokens-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .token-info {
   display: flex;
   flex-direction: column;
@@ -494,21 +569,30 @@ onMounted(() => {
 /* === Action buttons — 已提取到 common.css === */
 
 /* === Empty state === */
-.empty-state {
+.token-empty {
   text-align: center;
-  padding: 40px 0;
+  padding: 48px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
-.empty-state p {
-  font-size: 15px;
+.empty-icon {
+  margin-bottom: 8px;
+}
+
+.empty-title {
+  font-size: 16px;
   font-weight: 500;
   color: var(--color-text);
-  margin-bottom: 4px;
+  margin: 0;
 }
 
-.empty-hint {
-  font-size: 13px;
+.empty-desc {
+  font-size: 14px;
   color: var(--color-text-secondary);
+  margin: 0;
 }
 
 /* === New token display === */

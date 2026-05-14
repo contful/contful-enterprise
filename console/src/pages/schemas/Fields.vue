@@ -15,7 +15,6 @@ import {
   Input,
   Select,
   Option,
-  Switch,
   MessagePlugin,
   Tooltip,
   Popconfirm,
@@ -28,7 +27,6 @@ import {
   createField,
   updateField,
   deleteField,
-  reorderFields,
   type ContentSchema,
   type Field,
   type FieldCreate,
@@ -64,11 +62,11 @@ const formData = ref<FieldCreate>({
 // 表单规则
 const formRules = {
   name: [
-    { required: true, message: t('fields.nameRequired'), trigger: 'blur' },
-    { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: t('fields.nameFormat'), trigger: 'blur' },
+    { required: true, message: t('fields.nameRequired'), trigger: 'blur' as const },
+    { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: t('fields.nameFormat'), trigger: 'blur' as const },
   ],
-  label: [{ required: true, message: t('fields.displayNameRequired'), trigger: 'blur' }],
-  field_type: [{ required: true, message: t('fields.typeRequired'), trigger: 'change' }],
+  label: [{ required: true, message: t('fields.displayNameRequired'), trigger: 'blur' as const }],
+  field_type: [{ required: true, message: t('fields.typeRequired'), trigger: 'change' as const }],
 }
 
 // 字段类型选项（带 i18n label）
@@ -333,7 +331,7 @@ watch(() => route.params.id, () => {
         <FormItem :label="t('fields.fieldDescription')">
           <Input
             v-model="formData.description"
-            type="textarea"
+            :type="'textarea' as any"
             :placeholder="t('fields.fieldDescPlaceholder')"
             :rows="2"
           />

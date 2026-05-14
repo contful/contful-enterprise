@@ -81,7 +81,7 @@
     "apiTokens": "API 權杖",
     "configs": "設定",
     "contentSchemas": "模型",
-    "auditLogs": "審計日誌"
+    "auditLogs": "日誌"
   },
   "auth": {
     "login": "登入",
@@ -109,7 +109,20 @@
     "mfaRecoveryTip": "每個復原碼只能使用一次。使用後系統可能自動停用 MFA。",
     "mfaInvalidCode": "驗證碼無效或已過期",
     "mfaTokenExpired": "MFA 工作階段已過期，請重新登入",
-    "mfaSuccess": "驗證成功"
+    "mfaSuccess": "驗證成功",
+    "emailPlaceholder": "請輸入電子郵件地址",
+    "mfaEmailMissing": "電子郵件不能為空",
+    "changePassword": "修改密碼",
+    "confirmPassword": "確認新密碼",
+    "confirmPasswordHint": "請再次輸入新密碼",
+    "newPassword": "新密碼",
+    "passwordChangeFailed": "密碼修改失敗",
+    "passwordChanged": "密碼已修改",
+    "passwordExpired": "密碼已過期",
+    "passwordExpiredHint": "密碼已超過有效期，請修改密碼後繼續使用",
+    "passwordExpiredTitle": "密碼已過期",
+    "passwordMismatch": "兩次輸入的密碼不一致",
+    "sessionExpired": "工作階段已過期"
   },
   "audit": {
     "pageTitle": "審計日誌",
@@ -392,7 +405,18 @@
     "createTitle": "新增使用者",
     "viewTitle": "檢視使用者",
     "revokeConfirm": "撤銷使用者",
-    "revokeMsg": "確定要撤銷此使用者嗎？"
+    "revokeMsg": "確定要撤銷此使用者嗎？",
+    "confirmPassword": "確認密碼",
+    "confirmPasswordHint": "請再次輸入密碼",
+    "newPassword": "新密碼",
+    "passwordMismatch": "兩次輸入的密碼不一致",
+    "passwordRequired": "密碼不能為空",
+    "resetPassword": "重設密碼",
+    "resetPasswordFailed": "重設密碼失敗",
+    "resetPasswordSuccess": "密碼已重設",
+    "resetPasswordTitle": "重設密碼",
+    "assignRoles": "分配角色",
+    "selectRoles": "請選擇系統角色"
   },
   "apiTokens": {
     "title": "API Token",
@@ -459,7 +483,8 @@
     "exportConfirm": "查看 Token 詳情",
     "exportMsg": "點擊確認後，將解密並顯示完整的 Token 值。",
     "exportWarningDetail": "此 Token 僅展示一次，請妥善保管！",
-    "exportSuccess": "Token 已解密顯示"
+    "exportSuccess": "Token 已解密顯示",
+    "lastUsedTime": "最後使用"
   },
   "settings": {
     "title": "設定",
@@ -629,7 +654,22 @@
     "slugFormatInvalid": "格式錯誤：僅允許小寫字母、數字和連字元，且必須以字母開頭",
     "slugModified": "已修改",
     "unsavedChanges": "存在未儲存的變更",
-    "selectPlaceholder": "請選擇"
+    "selectPlaceholder": "請選擇",
+    "systemConfig": "系統設定",
+    "configKey": "設定鍵",
+    "configValue": "設定值",
+    "valueType": "值類型",
+    "isPublic": "公開",
+    "edit": "編輯",
+    "editConfig": "編輯設定",
+    "enterDescription": "請輸入說明",
+    "enterJson": "請輸入 JSON",
+    "enterValue": "請輸入值",
+    "loadFailed": "載入失敗",
+    "operation": "操作",
+    "updateFailed": "更新失敗",
+    "updateSuccess": "更新成功",
+    "valueRequired": "值不能為空"
   },
   "site": {
     "selectSite": "選擇站台",
@@ -713,6 +753,20 @@
     "descOss": "阿里雲物件儲存服務，適合部署於阿里雲的站台。",
     "descCos": "騰訊雲物件儲存服務，適合部署於騰訊雲的站台。",
     "descObs": "華為雲物件儲存服務，適合部署於華為雲的站台。",
+    "cloudConfig": {
+      "baseUrl": "公開存取位址",
+      "baseUrlHint": "檔案的公開 URL 前綴，留空自動推斷",
+      "bucket": "Bucket 名稱",
+      "endpoint": "Endpoint 位址",
+      "endpointHint": "留空使用雲端服務商預設位址",
+      "forcePathStyle": "路徑樣式",
+      "forcePathStyleHint": "MinIO 等自建 S3 服務需啟用此選項",
+      "pathPrefix": "路徑前綴",
+      "pathPrefixHint": "上傳檔案的目錄前綴，如 media/",
+      "pathStyleForce": "強制路徑樣式（MinIO 適用）",
+      "pathStyleVirtual": "虛擬託管樣式（預設）",
+      "region": "區域（Region）"
+    },
     "localConfig": "本機儲存設定",
     "localRoot": "儲存根目錄",
     "localRootHint": "相對於工作目錄的路徑，如 uploads",
@@ -795,15 +849,8 @@
       "systemRoles": "角色管理"
     }
   },
-  "members": {
-    "title": "站點成員管理",
-    "subtitle": "管理站點成員及其角色權限",
-    "invite": "邀請成員",
-    "inviteTitle": "邀請成員",
-    "sendInvite": "確認邀請",
-    "changeRole": "更換角色",
-    "removeConfirm": "確認將使用者「{email}」從站點移除？",
-    "selectRole": "請選擇角色",
-    "fillRequired": "請填寫電子郵件和角色"
+  "permission": {
+    "denied": "您沒有存取此頁面的權限",
+    "required": "需要權限：{permission}"
   }
 }

@@ -24,9 +24,10 @@ const (
 
 // Claims JWT Claims（不含 site_id，由前端通过请求头传递）
 type Claims struct {
-	UserID       uuid.UUID
-	Email        string
-	IsSuperAdmin bool
+	UserID           uuid.UUID
+	Email            string
+	IsSuperAdmin     bool
+	MFASetupRequired bool
 }
 
 // claimsGetter 接口：允许 handler 层注入 JWT 验证逻辑，避免循环依赖
@@ -80,6 +81,30 @@ func JWTAuth(getter claimsGetter) gin.HandlerFunc {
 		// 将用户信息存入上下文
 		c.Set(ClaimsContextKey, claims)
 		c.Set(UserContextKey, claims.UserID)
+
+		// MFA 强制策略检查：如果系统要求 MFA 但用户未设置，仅允许 MFA 相关路由
+		if claims.MFASetupRequired {
+			allowedPaths := []string{"/mfa/setup", "/mfa/enable", "/mfa/status", "/auth/mfa"}
+			path := c.Request.URL.Path
+			allowed := false
+			for _, p := range allowedPaths {
+				if strings.Contains(path, p) {
+					allowed = true
+					break
+				}
+			}
+			// 也允许 refresh/logout 路由
+			if strings.HasSuffix(path, "/auth/refresh") || strings.HasSuffix(path, "/auth/logout") {
+				allowed = true
+			}
+			if !allowed {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"code": "mfa_setup_required",
+					"msg":  "MFA setup is required by system policy",
+				})
+				return
+			}
+		}
 
 		// 从请求头获取 site_id（前端必须传递）
 		siteIDStr := c.GetHeader(SiteIDHeader)

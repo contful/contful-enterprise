@@ -5,6 +5,7 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
+    "logout": "Sign Out",
     "delete": "Delete",
     "confirm": "Confirm",
     "search": "Search",
@@ -80,7 +81,7 @@
     "apiTokens": "API Tokens",
     "configs": "Config",
     "contentSchemas": "Schemas",
-    "auditLogs": "Audit Logs"
+    "auditLogs": "Logs"
   },
   "auth": {
     "login": "Login",
@@ -109,6 +110,8 @@
     "mfaInvalidCode": "Invalid or expired verification code",
     "mfaTokenExpired": "MFA session expired, please log in again",
     "mfaSuccess": "Verification successful",
+    "emailPlaceholder": "Enter email address",
+    "mfaEmailMissing": "Email cannot be empty",
     "passwordExpired": "Your password has expired",
     "passwordExpiredTitle": "Password Expired",
     "passwordExpiredHint": "Your password expired {days} days ago. Please change your password to continue.",
@@ -411,7 +414,9 @@
     "passwordRequired": "Password is required",
     "passwordMismatch": "Passwords do not match",
     "resetPasswordSuccess": "Password reset successfully",
-    "resetPasswordFailed": "Failed to reset password"
+    "resetPasswordFailed": "Failed to reset password",
+    "assignRoles": "Assign Roles",
+    "selectRoles": "Select system roles"
   },
   "apiTokens": {
     "title": "API Tokens",
@@ -478,7 +483,8 @@
     "exportConfirm": "View Token Details",
     "exportMsg": "Click confirm to decrypt and display the full Token value.",
     "exportWarningDetail": "This Token will only be displayed once. Please save it securely!",
-    "exportSuccess": "Token decrypted and displayed"
+    "exportSuccess": "Token decrypted and displayed",
+    "lastUsedTime": "Last Used"
   },
   "settings": {
     "title": "Settings",
@@ -834,15 +840,8 @@
       "systemRoles": "Role Management"
     }
   },
-  "members": {
-    "title": "Site Members",
-    "subtitle": "Manage site members and their role permissions",
-    "invite": "Invite Member",
-    "inviteTitle": "Invite Member",
-    "sendInvite": "Send Invite",
-    "changeRole": "Change Role",
-    "removeConfirm": "Remove user \"{email}\" from site?",
-    "selectRole": "Select a role",
-    "fillRequired": "Email and role are required"
+  "permission": {
+    "denied": "You do not have permission to access this page",
+    "required": "Permission required: {permission}"
   }
 }

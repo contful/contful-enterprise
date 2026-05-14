@@ -5,9 +5,12 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -28,22 +31,61 @@ func (SystemConfig) TableName() string {
 	return "system_config"
 }
 
-// SystemConfigRepository 系统配置仓库
+const (
+	configCachePrefix = "system_config:"
+	configCacheTTL    = 5 * time.Minute
+)
+
+// SystemConfigRepository 系统配置仓库（带 Redis 缓存）
 type SystemConfigRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis *redis.Client
 }
 
-func NewSystemConfigRepository(db *gorm.DB) *SystemConfigRepository {
-	return &SystemConfigRepository{db: db}
+func NewSystemConfigRepository(db *gorm.DB, rdb *redis.Client) *SystemConfigRepository {
+	return &SystemConfigRepository{db: db, redis: rdb}
 }
 
-// GetByKey 根据键名获取配置
+// configCacheKey 生成 Redis 缓存 key
+func configCacheKey(key string) string {
+	return configCachePrefix + key
+}
+
+// GetByKey 根据键名获取配置（Cache-Aside: 先 Redis 后 DB）
 func (r *SystemConfigRepository) GetByKey(ctx context.Context, key string) (*SystemConfig, error) {
+	// 1. 先查 Redis 缓存
+	if r.redis != nil {
+		val, err := r.redis.Get(context.Background(), configCacheKey(key)).Result()
+		if err == nil {
+			var config SystemConfig
+			if jsonErr := json.Unmarshal([]byte(val), &config); jsonErr == nil {
+				return &config, nil
+			}
+			// 反序列化失败，删除脏缓存，继续走 DB
+			r.redis.Del(context.Background(), configCacheKey(key))
+		}
+		// redis.Nil 表示缓存 miss，继续走 DB
+		if err != nil && err != redis.Nil {
+			log.Warn().Err(err).Str("key", key).Msg("redis get config cache failed, falling back to DB")
+		}
+	}
+
+	// 2. 查 DB
 	var config SystemConfig
 	err := r.db.WithContext(ctx).Where("config_key = ?", key).First(&config).Error
 	if err != nil {
 		return nil, err
 	}
+
+	// 3. 写入 Redis 缓存
+	if r.redis != nil {
+		if data, jsonErr := json.Marshal(&config); jsonErr == nil {
+			if setErr := r.redis.Set(context.Background(), configCacheKey(key), data, configCacheTTL).Err(); setErr != nil {
+				log.Warn().Err(setErr).Str("key", key).Msg("redis set config cache failed")
+			}
+		}
+	}
+
 	return &config, nil
 }
 
@@ -88,7 +130,7 @@ func (r *SystemConfigRepository) GetBool(ctx context.Context, key string, defaul
 	return config.ConfigValue == "true"
 }
 
-// List 获取所有配置
+// List 获取所有配置（不缓存，因为列表变更需要复杂的缓存失效策略）
 func (r *SystemConfigRepository) List(ctx context.Context) ([]SystemConfig, error) {
 	var configs []SystemConfig
 	err := r.db.WithContext(ctx).Order("config_key ASC").Find(&configs).Error
@@ -102,7 +144,7 @@ func (r *SystemConfigRepository) ListByPublic(ctx context.Context, isPublic bool
 	return configs, err
 }
 
-// Set 设置配置值
+// Set 设置配置值（写入 DB 后删除 Redis 缓存）
 func (r *SystemConfigRepository) Set(ctx context.Context, key, value, valueType, description string, isPublic bool) error {
 	var config SystemConfig
 	err := r.db.WithContext(ctx).Where("config_key = ?", key).First(&config).Error
@@ -116,17 +158,28 @@ func (r *SystemConfigRepository) Set(ctx context.Context, key, value, valueType,
 			Description: description,
 			IsPublic:    isPublic,
 		}
-		return r.db.WithContext(ctx).Create(&config).Error
-	}
-
-	if err != nil {
+		if createErr := r.db.WithContext(ctx).Create(&config).Error; createErr != nil {
+			return createErr
+		}
+	} else if err != nil {
 		return err
+	} else {
+		// 更新现有配置
+		config.ConfigValue = value
+		config.ValueType = valueType
+		config.Description = description
+		config.IsPublic = isPublic
+		if saveErr := r.db.WithContext(ctx).Save(&config).Error; saveErr != nil {
+			return saveErr
+		}
 	}
 
-	// 更新现有配置
-	config.ConfigValue = value
-	config.ValueType = valueType
-	config.Description = description
-	config.IsPublic = isPublic
-	return r.db.WithContext(ctx).Save(&config).Error
+	// 删除对应的 Redis 缓存
+	if r.redis != nil {
+		if delErr := r.redis.Del(context.Background(), configCacheKey(key)).Err(); delErr != nil {
+			log.Warn().Err(delErr).Str("key", key).Msg("redis del config cache failed after set")
+		}
+	}
+
+	return nil
 }

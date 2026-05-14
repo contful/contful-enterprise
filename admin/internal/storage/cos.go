@@ -128,9 +128,41 @@ func (p *COSProvider) Stat(ctx context.Context, key string) (*ObjectInfo, error)
 	}, nil
 }
 
-func (p *COSProvider) List(_ context.Context, _ string, _ int, _ string) ([]ObjectInfo, string, error) {
-	// TODO: 使用 GET Bucket (List Objects) 封装分页列举
-	return nil, "", fmt.Errorf("List 方法暂未实现")
+func (p *COSProvider) List(ctx context.Context, prefix string, limit int, marker string) ([]ObjectInfo, string, error) {
+	opt := &cos.BucketGetOptions{
+		Prefix:  p.fullKey(prefix),
+		MaxKeys: limit,
+		Marker:  marker,
+	}
+	if limit <= 0 {
+		opt.MaxKeys = 100
+	}
+
+	resp, _, err := p.client.Bucket.Get(ctx, opt)
+	if err != nil {
+		return nil, "", fmt.Errorf("COS 列举对象失败: %w", err)
+	}
+
+	items := make([]ObjectInfo, 0, len(resp.Contents))
+	for _, c := range resp.Contents {
+		// 去掉 pathPrefix 前缀，返回相对 Key
+		key := c.Key
+		if p.pathPrefix != "" && len(key) > len(p.pathPrefix)+1 {
+			key = key[len(p.pathPrefix)+1:]
+		}
+		items = append(items, ObjectInfo{
+			Key:       key,
+			Size:      c.Size,
+			CreatedAt: parseCOSLastModified(c.LastModified),
+		})
+	}
+
+	nextMarker := ""
+	if resp.IsTruncated {
+		nextMarker = resp.NextMarker
+	}
+
+	return items, nextMarker, nil
 }
 
 func (p *COSProvider) DeleteMulti(ctx context.Context, keys []string) error {
@@ -148,6 +180,19 @@ func (p *COSProvider) DeleteMulti(ctx context.Context, keys []string) error {
 // Region 返回 COS region，从 baseURL 解析
 func (p *COSProvider) Region() string {
 	return p.region
+}
+
+// parseCOSLastModified 解析 COS 返回的 RFC3339 时间字符串
+func parseCOSLastModified(s string) time.Time {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		// 尝试 ISO8601 格式
+		t, err = time.Parse("2006-01-02T15:04:05Z", s)
+		if err != nil {
+			return time.Time{}
+		}
+	}
+	return t
 }
 
 func init() {

@@ -7,8 +7,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { getSite, updateSite, type SiteConfig } from '@/api/site'
+import { getSite, updateSite } from '@/api/site'
 import { showError } from '@/utils/request'
+
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
 
 const { t } = useI18n()
 const route = useRoute()
@@ -135,7 +143,7 @@ const loadSite = async () => {
       originalSlug.value = res.data.slug || ''
     }
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     loading.value = false
   }
@@ -177,7 +185,7 @@ const handleSave = async () => {
       MessagePlugin.success(t('settings.saved'))
     }
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     saving.value = false
   }

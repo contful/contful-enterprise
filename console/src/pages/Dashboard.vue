@@ -11,6 +11,14 @@ import { getDashboardStats } from '@/api/api'
 import { getContentEntries } from '@/api/api'
 import { showError } from '@/utils/request'
 
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
+
 const { t, locale } = useI18n()
 const router = useRouter()
 
@@ -42,7 +50,7 @@ async function fetchDashboardData() {
       apiTokens: data?.api_tokens || 0,
     }
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     loading.value = false
   }
@@ -90,6 +98,38 @@ const getStatusClass = (status: string) => {
   }
   return map[status] || 'badge-default'
 }
+
+// t-table 列定义（最近内容）
+const getStatusTheme = (status: string) => {
+  const map: Record<string, string> = {
+    published: 'success',
+    draft: 'warning',
+    archived: 'default',
+  }
+  return map[status] || 'default'
+}
+
+const recentColumns = computed(() => [
+  {
+    colKey: 'title',
+    title: t('dashboard.titleCol'),
+    cell: (_h: any, { row }: { row: any }) =>
+      row.values?.find((v: any) => v.field?.name === 'title')?.text_value || row.id.slice(0, 8),
+  },
+  {
+    colKey: 'type',
+    title: t('dashboard.typeCol'),
+    cell: (_h: any, { row }: { row: any }) =>
+      row.content_schema?.name || row.schema_id?.slice(0, 8) || '-',
+  },
+  { colKey: 'status', title: t('dashboard.statusCol'), width: 100 },
+  {
+    colKey: 'updated_time',
+    title: t('dashboard.updatedCol'),
+    width: 120,
+    cell: (_h: any, { row }: { row: any }) => new Date(row.updated_time).toLocaleDateString(),
+  },
+])
 
 const getStatusLabel = (status: string) => {
   const map: Record<string, string> = {
@@ -222,33 +262,23 @@ const getStatusLabel = (status: string) => {
             {{ t('dashboard.createFirstContent') }}
           </t-button>
         </div>
-        <table v-else class="table">
-          <thead>
-            <tr>
-              <th>{{ t('dashboard.titleCol') }}</th>
-              <th>{{ t('dashboard.typeCol') }}</th>
-              <th>{{ t('dashboard.statusCol') }}</th>
-              <th>{{ t('dashboard.updatedCol') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="entry in recentEntries"
-              :key="entry.id"
-              @click="router.push(`/content/entries?type=${entry.schema_id}&id=${entry.id}`)"
-              style="cursor: pointer;"
-            >
-              <td>{{ entry.values?.find(v => v.field?.name === 'title')?.text_value || entry.id.slice(0, 8) }}</td>
-              <td>{{ entry.content_schema?.name || entry.schema_id?.slice(0, 8) || '-' }}</td>
-              <td>
-                <span :class="['badge', getStatusClass(entry.status)]">
-                  {{ getStatusLabel(entry.status) }}
-                </span>
-              </td>
-              <td>{{ new Date(entry.updated_time).toLocaleDateString() }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <t-table
+          v-else
+          :data="recentEntries"
+          :columns="recentColumns"
+          :pagination="false"
+          hover
+          size="small"
+          row-key="id"
+          @row-click="(row) => router.push(`/content/entries?type=${row.schema_id}&id=${row.id}`)"
+          class="recent-table"
+        >
+          <template #status-cell="{ row }">
+            <t-tag :theme="(getStatusTheme(row.status) as any)" variant="light" size="small">
+              {{ getStatusLabel(row.status) }}
+            </t-tag>
+          </template>
+        </t-table>
       </div>
     </div>
   </div>

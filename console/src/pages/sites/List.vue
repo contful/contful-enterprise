@@ -30,7 +30,7 @@
       </t-button>
     </div>
 
-    <div v-else class="sites-grid">
+    <div v-else class="cards-grid">
       <div
         v-for="site in sites"
         :key="site.id"
@@ -223,6 +223,14 @@ import {
 import { useSiteStore } from '@/stores/site'
 import { showError } from '@/utils/request'
 
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
+
 const { t } = useI18n()
 const router = useRouter()
 const siteStore = useSiteStore()
@@ -241,7 +249,7 @@ async function fetchSites() {
       total.value = res.data?.total || 0
     }
   } catch (e) {
-    showError(e)
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -376,7 +384,7 @@ async function onSubmit() {
       }
     }
   } catch (e) {
-    showError(e)
+    handleError(e)
   } finally {
     submitting.value = false
   }
@@ -403,7 +411,7 @@ async function doDelete() {
     await fetchSites()
     await siteStore.fetchSites()
   } catch (e) {
-    showError(e)
+    handleError(e)
   } finally {
     deleting.value = false
   }
@@ -426,30 +434,7 @@ function formatDate(dt: string) {
 </script>
 
 <style scoped>
-/* 页面特有样式：站点列表 */
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-}
-
-.title-section .page-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-}
-
-.page-subtitle {
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
+/* 页面特有样式：站点列表 — page-header/page-subtitle/header-actions/status 已提取到 common.css */
 
 .loading-wrap {
   display: flex;
@@ -464,12 +449,7 @@ function formatDate(dt: string) {
   padding: 80px 0;
 }
 
-/* 卡片网格 */
-.sites-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-}
+/* 卡片网格 — 使用 common.css 的 .cards-grid */
 
 /* 单张卡片 */
 .site-card {
@@ -625,30 +605,12 @@ function formatDate(dt: string) {
   border-radius: 999px;
 }
 
-.status--active {
-  background: var(--color-success-light);
-  color: var(--color-success);
-}
-
-.status--inactive {
-  background: var(--color-hover);
-  color: var(--color-text-secondary);
-}
+/* status--active/inactive 已提取到 common.css */
 
 .site-updated {
   font-size: 12px;
   color: var(--color-text-secondary);
 }
 
-/* 弹窗底部 */
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.form-tip {
-  font-size: 12px;
-  color: var(--td-text-color-secondary);
-}
+/* 弹窗底部 — form-tip 已提取到 common.css */
 </style>

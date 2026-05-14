@@ -3,6 +3,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -145,6 +146,83 @@ func (h *SystemRoleHandler) Delete(c *gin.Context) {
 func (h *SystemRoleHandler) Permissions(c *gin.Context) {
 	meta := h.rbacService.GetPermissionsMeta()
 	c.JSON(http.StatusOK, model.NewSuccessResponse(meta))
+}
+
+// ─────────────────────────────────────────────────────────────
+// 用户-角色关联管理
+// ─────────────────────────────────────────────────────────────
+
+// GetUserRoles GET /admin/api/v1/users/:id/roles — 查询用户的系统角色列表
+func (h *SystemRoleHandler) GetUserRoles(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	roles, err := h.rbacService.GetUserRoles(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+		return
+	}
+	c.JSON(http.StatusOK, model.NewSuccessResponse(roles))
+}
+
+// AssignUserRole PUT /admin/api/v1/users/:id/roles/:roleId — 为用户分配角色
+func (h *SystemRoleHandler) AssignUserRole(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
+		return
+	}
+	roleID, err := uuid.Parse(c.Param("roleId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid role id"))
+		return
+	}
+
+	if err := h.rbacService.AssignUserRole(c.Request.Context(), userID, roleID); err != nil {
+		switch err {
+		case service.ErrRoleNotFound:
+			c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "role not found"))
+		default:
+			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, err.Error()))
+		}
+		return
+	}
+	c.JSON(http.StatusCreated, model.NewSuccessResponse(gin.H{"message": "role assigned"}))
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:assign_role",
+			service.WithResource("user", userID),
+			service.WithDetails(fmt.Sprintf("role_id=%s", roleID.String())))
+	}
+}
+
+// RemoveUserRole DELETE /admin/api/v1/users/:id/roles/:roleId — 移除用户的角色
+func (h *SystemRoleHandler) RemoveUserRole(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
+		return
+	}
+	roleID, err := uuid.Parse(c.Param("roleId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid role id"))
+		return
+	}
+
+	if err := h.rbacService.RemoveUserRole(c.Request.Context(), userID, roleID); err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "role removed"}))
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:remove_role",
+			service.WithResource("user", userID),
+			service.WithDetails(fmt.Sprintf("role_id=%s", roleID.String())))
+	}
 }
 
 // ─────────────────────────────────────────────────────────────

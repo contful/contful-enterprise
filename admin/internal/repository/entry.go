@@ -127,7 +127,15 @@ func (r *EntryRepository) ListByContentSchema(ctx context.Context, siteID uuid.U
 		if filter.Locale != nil {
 			query = query.Where("locale = ?", *filter.Locale)
 		}
-		// TODO: Keyword 搜索需要关联 entry_values 表，支持文本搜索
+		// Keyword 搜索：关联 entry_values 表的 text_value 字段
+		if filter.Keyword != nil && *filter.Keyword != "" {
+			keyword := "%" + *filter.Keyword + "%"
+			query = query.Where(`EXISTS (
+				SELECT 1 FROM entry_values ev
+				WHERE ev.entry_id = entries.id
+				AND (ev.text_value ILIKE ? OR CAST(ev.value AS TEXT) ILIKE ?)
+			)`, keyword, keyword)
+		}
 	}
 
 	if err := query.Count(&total).Error; err != nil {

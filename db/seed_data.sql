@@ -35,12 +35,12 @@ SELECT
     'Super Admin',
     '系统超级管理员，拥有全部权限',
     TRUE,
-    '["system:users:read","system:users:write","system:users:delete",
-      "system:sites:read","system:sites:write","system:sites:delete",
-      "system:tokens:read","system:tokens:write","system:tokens:delete",
-      "system:settings:read","system:settings:write",
-      "system:audit:read","system:audit:export",
-      "system:roles:read","system:roles:write","system:roles:delete"]'::jsonb,
+    '["users:read","users:write","users:delete",
+      "sites:read","sites:write","sites:delete",
+      "tokens:read","tokens:write","tokens:delete",
+      "settings:read","settings:write",
+      "audit:read","audit:export",
+      "roles:read","roles:write","roles:delete"]'::jsonb,
     NOW(),
     NOW()
 WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000101'::uuid);
@@ -64,8 +64,8 @@ SELECT
     'Auditor',
     '审计人员，仅可查看和导出审计日志',
     TRUE,
-    '["system:users:read","system:sites:read","system:tokens:read",
-      "system:settings:read","system:audit:read","system:audit:export"]'::jsonb,
+    '["users:read","sites:read","tokens:read",
+      "settings:read","audit:read","audit:export"]'::jsonb,
     NOW(),
     NOW()
 WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000103'::uuid);
@@ -116,7 +116,9 @@ VALUES
     ('password_min_length', '8', 'number', '密码最小长度', FALSE, NOW(), NOW()),
     ('password_require_uppercase', 'true', 'boolean', '密码必须包含大写字母', FALSE, NOW(), NOW()),
     ('password_require_lowercase', 'true', 'boolean', '密码必须包含小写字母', FALSE, NOW(), NOW()),
-    ('password_require_number', 'true', 'boolean', '密码必须包含数字', FALSE, NOW(), NOW())
+    ('password_require_number', 'true', 'boolean', '密码必须包含数字', FALSE, NOW(), NOW()),
+    ('password_require_special', 'false', 'boolean', '密码必须包含特殊字符', FALSE, NOW(), NOW()),
+    ('mfa_enforced', 'false', 'boolean', '是否强制所有用户启用 MFA 双因子认证', FALSE, NOW(), NOW())
 ON CONFLICT (config_key) DO NOTHING;
 
 -- =============================================================================

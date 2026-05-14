@@ -3,9 +3,47 @@
 
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { useUserStore } from '@/stores/user'
 import { getAccessToken, initializeSession } from '@/utils/request'
+import { useUserStore } from '@/stores/user'
+import { MessagePlugin } from 'tdesign-vue-next'
+import { i18n } from '@/locales'
 
+// ─────────────────────────────────────────────────────────────
+// 路由 → 权限映射
+// ─────────────────────────────────────────────────────────────
+const ROUTE_PERMISSION_MAP: Record<string, string> = {
+  '/': 'dashboard:read',
+  '/dashboard': 'dashboard:read',
+  '/users': 'users:read',
+  '/sites': 'sites:read',
+  '/content/schemas': 'content_schema:read',
+  '/content/entries': 'entry:read',
+  '/assets': 'asset:read',
+  '/tokens': 'tokens:read',
+  '/settings/tokens': 'tokens:read',
+  '/settings/system-config': 'settings:read',
+  '/system/roles': 'roles:read',
+  '/audit/logs': 'audit:read',
+}
+
+// 获取路由对应的权限
+function getRoutePermission(path: string): string | null {
+  // 精确匹配
+  if (ROUTE_PERMISSION_MAP[path]) {
+    return ROUTE_PERMISSION_MAP[path]
+  }
+  // 模糊匹配（处理 /content/schemas/:id/fields 这种情况）
+  for (const [route, permission] of Object.entries(ROUTE_PERMISSION_MAP)) {
+    if (path.startsWith(route + '/') || path.startsWith(route + '?')) {
+      return permission
+    }
+  }
+  return null
+}
+
+// ─────────────────────────────────────────────────────────────
+// 路由配置
+// ─────────────────────────────────────────────────────────────
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -96,12 +134,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/sites/:siteId/members',
-    name: 'SiteMembers',
-    component: () => import('@/pages/sites/Members.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/system/roles',
     name: 'SystemRoles',
     component: () => import('@/pages/system/Roles.vue'),
@@ -120,7 +152,9 @@ const router = createRouter({
   routes,
 })
 
+// ─────────────────────────────────────────────────────────────
 // 路由守卫
+// ─────────────────────────────────────────────────────────────
 router.beforeEach(async (to, _from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false
   let token = getAccessToken()
@@ -138,6 +172,42 @@ router.beforeEach(async (to, _from, next) => {
   } else if (to.path === '/login' && token) {
     // 已登录用户访问登录页，跳转到首页
     next('/')
+  } else if (requiresAuth && token) {
+    // 权限检查
+    const userStore = useUserStore()
+    const t = i18n.global.t
+
+    // 如果还没有获取过用户信息，先获取
+    if (!userStore.user) {
+      const ok = await userStore.fetchUser()
+      if (!ok) {
+        next('/login')
+        return
+      }
+    }
+
+    // 如果还没有获取过权限列表，先获取
+    if (!userStore.isSuperAdmin && userStore.permissions.length === 0) {
+      await userStore.fetchPermissions()
+    }
+
+    // 获取目标路由需要的权限
+    const requiredPermission = getRoutePermission(to.path)
+
+    // 如果路由没有定义权限要求，直接放行
+    if (requiredPermission === null) {
+      next()
+      return
+    }
+
+    // 检查权限
+    if (userStore.hasPermission(requiredPermission)) {
+      next()
+    } else {
+      // 无权访问，显示提示并跳转到首页
+      MessagePlugin.warning(t('permission.denied'))
+      next('/')
+    }
   } else {
     next()
   }

@@ -70,12 +70,6 @@ func (SystemUserRole) TableName() string {
 	return "system_user_roles"
 }
 
-// SiteUser 站点用户关联（已废弃，使用 system_user_roles 替代）
-// type SiteUser struct { ... } // 已删除
-
-// SiteRole 站点角色（已废弃，使用 system_roles 替代）
-// type SiteRole struct { ... } // 已删除
-
 // ============================================
 // DTO / Request/Response
 // ============================================

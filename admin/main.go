@@ -90,7 +90,7 @@ func main() {
 	assetRepo := repository.NewAssetRepository(db)
 	tokenRepo := repository.NewAPITokenRepository(db)
 	systemRoleRepo := repository.NewSystemRoleRepository(db)
-	systemConfigRepo := repository.NewSystemConfigRepository(db)
+	systemConfigRepo := repository.NewSystemConfigRepository(db, redisClient)
 
 	// 初始化加密器（根据配置选择算法）
 	var crypter crypto.Crypter
@@ -115,7 +115,7 @@ func main() {
 	// 初始化 RBAC 服务（不再需要 siteRoleRepo 和 siteUserRepo）
 	rbacService := service.NewRBACService(db, redisClient, systemRoleRepo, userRepo)
 
-	authService := service.NewAuthService(userRepo, systemConfigRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
+	authService := service.NewAuthService(userRepo, siteRepo, systemConfigRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
 	userService := service.NewUserService(userRepo)
 	siteService := service.NewSiteService(db, siteRepo)
 	schemaService := service.NewSchemaService(schemaRepo, fieldRepo, logger)
@@ -242,6 +242,17 @@ func main() {
 			protected.POST("/users/:id/reset-password",
 				middleware.RequirePermission(rbacService, "users:write"),
 				userHandler.ResetPassword)
+
+			// 用户-角色关联管理
+			protected.GET("/users/:id/roles",
+				middleware.RequirePermission(rbacService, "roles:read"),
+				systemRoleHandler.GetUserRoles)
+			protected.PUT("/users/:id/roles/:roleId",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				systemRoleHandler.AssignUserRole)
+			protected.DELETE("/users/:id/roles/:roleId",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				systemRoleHandler.RemoveUserRole)
 
 			// 内容类型管理 (REST: /content/schemas)
 			protected.GET("/content/schemas",
@@ -437,7 +448,7 @@ func main() {
 			protected.GET("/system/config",
 				middleware.RequirePermission(rbacService, "settings:read"),
 				systemConfigHandler.List)
-			protected.GET("/system/config/password-policy", systemConfigHandler.GetPasswordPolicy)
+			protected.GET("/system/config/password/policy", systemConfigHandler.GetPasswordPolicy)
 			protected.GET("/system/config/:key",
 				middleware.RequirePermission(rbacService, "settings:read"),
 				systemConfigHandler.Get)

@@ -93,7 +93,76 @@
 }
 
 /* --- 统一状态标签色系 --- */
-.status--active { color: var(--color-success, #10b981); }
-.status--inactive { color: var(--color-warning, #eab308); }
+.status--active {
+  background: var(--color-success-light, rgba(16, 185, 129, 0.1));
+  color: var(--color-success, #10b981);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status--inactive {
+  background: var(--color-hover, #f1f5f9);
+  color: var(--color-text-secondary, #64748b);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .status--error { color: var(--color-error, #ef4444); }
 .status--default { color: var(--color-text-secondary, #64748b); }
+
+/* --- Settings card --- */
+.card {
+  background: var(--td-bg-color-container, var(--color-card));
+  border-radius: 8px;
+  border: 1px solid var(--td-border-level-1-color, var(--color-border));
+  padding: 24px;
+}
+
+.card-header {
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--td-text-color-primary, var(--color-text));
+  margin: 0 0 4px;
+}
+
+.card-desc {
+  font-size: 13px;
+  color: var(--td-text-color-secondary, var(--color-text-secondary));
+  margin: 0;
+}
+
+/* --- Toolbar --- */
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* --- Pagination bar --- */
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* --- Form tip --- */
+.form-tip {
+  font-size: 12px;
+  color: var(--td-text-color-secondary, var(--color-text-secondary));
+}

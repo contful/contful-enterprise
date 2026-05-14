@@ -104,7 +104,7 @@ func (h *SystemConfigHandler) GetPasswordPolicy(c *gin.Context) {
 		"require_uppercase": h.configRepo.GetBool(c.Request.Context(), "password_require_uppercase", true),
 		"require_lowercase": h.configRepo.GetBool(c.Request.Context(), "password_require_lowercase", true),
 		"require_number":    h.configRepo.GetBool(c.Request.Context(), "password_require_number", true),
-		"require_special":   false, // TODO: 添加配置项
+		"require_special":   h.configRepo.GetBool(c.Request.Context(), "password_require_special", false),
 		"expire_days":       h.configRepo.GetInt(c.Request.Context(), "password_expire_days", 90),
 	}
 

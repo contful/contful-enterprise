@@ -15,6 +15,7 @@ interface User {
   is_super_admin: boolean
   mfa_enabled: boolean
   created_time: string
+  permissions?: string[]
 }
 
 interface LoginResponse {
@@ -25,16 +26,13 @@ interface LoginResponse {
   password_expire_days?: number
 }
 
-interface MFARequiredResponse {
-  mfa_required: true
-  mfa_token: string
-}
-
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
+  const permissions = ref<string[]>([])
   const isLoading = ref(false)
 
   const isLoggedIn = computed(() => !!getAccessToken())
+  const isSuperAdmin = computed(() => user.value?.is_super_admin === true)
 
   const setUser = (newUser: User) => {
     user.value = newUser
@@ -42,12 +40,46 @@ export const useUserStore = defineStore('user', () => {
 
   const clearUser = () => {
     user.value = null
+    permissions.value = []
+  }
+
+  /** 获取当前用户的权限列表 */
+  const fetchPermissions = async () => {
+    // super_admin 拥有所有权限
+    if (user.value?.is_super_admin) {
+      permissions.value = []
+      return
+    }
+    try {
+      const res = await request.get<{ data: string[] }>('/users/me/permissions')
+      const body = res.data as any
+      if (body.code === 200 && body.data) {
+        permissions.value = body.data
+      } else {
+        permissions.value = []
+      }
+    } catch {
+      permissions.value = []
+    }
+  }
+
+  /** 检查用户是否拥有指定权限 */
+  const hasPermission = (permission: string): boolean => {
+    // super_admin 跳过所有权限检查
+    if (isSuperAdmin.value) return true
+    return permissions.value.includes(permission)
+  }
+
+  /** 检查用户是否拥有任一指定权限 */
+  const hasAnyPermission = (perms: string[]): boolean => {
+    if (isSuperAdmin.value) return true
+    return perms.some(p => permissions.value.includes(p))
   }
 
   const login = async (email: string, password: string) => {
     isLoading.value = true
     try {
-      const res = await request.post<LoginResponse | MFARequiredResponse>('/auth/login', {
+      const res = await request.post<any>('/auth/login', {
         email,
         password,
       })
@@ -94,7 +126,7 @@ export const useUserStore = defineStore('user', () => {
   const register = async (email: string, password: string, nickname?: string) => {
     isLoading.value = true
     try {
-      const res = await request.post<User>('/auth/register', {
+      const res = await request.post<any>('/auth/register', {
         email,
         password,
         nickname,
@@ -178,14 +210,19 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     user,
+    permissions,
     isLoading,
     isLoggedIn,
+    isSuperAdmin,
     setUser,
     clearUser,
     login,
     register,
     logout,
     fetchUser,
+    fetchPermissions,
+    hasPermission,
+    hasAnyPermission,
     listUsers,
     deleteUser,
     createUser,

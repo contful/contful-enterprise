@@ -208,22 +208,21 @@ start_admin() {
     cd "$ADMIN_DIR"
     go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/admin-server" .
 
-    # 设置环境变量
-    export CONTFUL_SERVER_PORT="$ADMIN_PORT"
-    export CONTFUL_DB_HOST="${DB_HOST:-localhost}"
-    export CONTFUL_DB_PORT="${DB_PORT:-5432}"
-    export CONTFUL_DB_USER="${DB_USER:-postgres}"
-    export CONTFUL_DB_PASSWORD="${DB_PASSWORD}"
-    export CONTFUL_DB_NAME="${DB_NAME:-contful}"
-    export CONTFUL_REDIS_HOST="${REDIS_HOST:-localhost}"
-    export CONTFUL_REDIS_PORT="${REDIS_PORT:-6379}"
-    export CONTFUL_REDIS_PASSWORD="${REDIS_PASSWORD}"
-    export SECRET="${SECRET:-}"
-    export CONTFUL_LOG_LEVEL="${LOG_LEVEL:-info}"
-    export CONTFUL_STORAGE_UPLOAD_DIR="$UPLOAD_DIR"
-
-    # 后台运行
-    nohup "$BUILD_DIR/admin-server" > "$LOG_DIR/admin.log" 2>&1 &
+    # 后台运行（使用 env 内联传递，与 openapi 保持一致，避免 export 在 nohup 子进程中的问题）
+    nohup env \
+        SERVER_PORT="$ADMIN_PORT" \
+        DB_HOST="${DB_HOST:-localhost}" \
+        DB_PORT="${DB_PORT:-5432}" \
+        DB_USER="${DB_USER:-postgres}" \
+        DB_PASSWORD="${DB_PASSWORD}" \
+        DB_NAME="${DB_NAME:-contful}" \
+        REDIS_HOST="${REDIS_HOST:-localhost}" \
+        REDIS_PORT="${REDIS_PORT:-6379}" \
+        REDIS_PASSWORD="${REDIS_PASSWORD}" \
+        SECRET="${SECRET:-}" \
+        LOG_LEVEL="${LOG_LEVEL:-info}" \
+        STORAGE_UPLOAD_DIR="$UPLOAD_DIR" \
+        "$BUILD_DIR/admin-server" > "$LOG_DIR/admin.log" 2>&1 &
     echo $! > "$LOG_DIR/admin.pid"
 
     # 等待启动

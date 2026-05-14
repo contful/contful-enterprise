@@ -8,7 +8,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useSiteStore } from '@/stores/site'
-import { createSite, type CreateSiteParams } from '@/api/site'
 import { showError, showSuccess } from '@/utils/request'
 import LangSwitcher from './LangSwitcher.vue'
 
@@ -37,17 +36,45 @@ const newSiteSlug = ref('')
 const newSiteDesc = ref('')
 const creating = ref(false)
 
-const menuItems = computed(() => [
-  { path: '/', icon: 'dashboard', label: t('menu.dashboard'), name: 'Dashboard', tIcon: 'dashboard' },
-  { path: '/sites', icon: 'layers', label: t('menu.sites'), name: 'Sites', tIcon: 'layers' },
-  { path: '/content/schemas', icon: 'schema', label: t('menu.contentSchemas'), name: 'ContentSchemas', tIcon: 'server' },
-  { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
-  { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
-  { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
-  { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
-  { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
-  { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
-])
+// 菜单项 → 权限映射
+const MENU_PERMISSION_MAP: Record<string, string> = {
+  '/': 'dashboard:read',
+  '/sites': 'sites:read',
+  '/content/schemas': 'content_schema:read',
+  '/content/entries': 'entry:read',
+  '/assets': 'asset:read',
+  '/users': 'users:read',
+  '/tokens': 'tokens:read',
+  '/system/roles': 'roles:read',
+  '/audit/logs': 'audit:read',
+}
+
+// 根据权限过滤菜单项
+const filteredMenuItems = computed(() => {
+  const allItems = [
+    { path: '/', icon: 'dashboard', label: t('menu.dashboard'), name: 'Dashboard', tIcon: 'dashboard' },
+    { path: '/sites', icon: 'layers', label: t('menu.sites'), name: 'Sites', tIcon: 'layers' },
+    { path: '/content/schemas', icon: 'schema', label: t('menu.contentSchemas'), name: 'ContentSchemas', tIcon: 'server' },
+    { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
+    { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
+    { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
+    { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
+    { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
+    { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
+  ]
+
+  // super_admin 看到所有菜单
+  if (userStore.isSuperAdmin) {
+    return allItems
+  }
+
+  // 根据权限过滤菜单项
+  return allItems.filter(item => {
+    const requiredPermission = MENU_PERMISSION_MAP[item.path]
+    if (!requiredPermission) return true
+    return userStore.hasPermission(requiredPermission)
+  })
+})
 
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/'
@@ -159,6 +186,15 @@ onMounted(async () => {
     }
   }
 
+  // 加载用户权限列表（只会加载一次）
+  if (userStore.isLoggedIn && !userStore.isSuperAdmin && userStore.permissions.length === 0) {
+    try {
+      await userStore.fetchPermissions()
+    } catch {
+      // 权限列表加载失败不应阻塞页面渲染
+    }
+  }
+
   initialized.value = true
 })
 </script>
@@ -266,7 +302,7 @@ onMounted(async () => {
       <aside class="sidebar">
         <nav class="sidebar-nav">
           <router-link
-            v-for="item in menuItems"
+            v-for="item in filteredMenuItems"
             :key="item.path"
             :to="item.path"
             class="nav-item"

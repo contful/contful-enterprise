@@ -95,7 +95,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import request, { setAccessToken } from '@/utils/request'
@@ -104,7 +104,6 @@ import { useSiteStore } from '@/stores/site'
 
 const { t } = useI18n()
 const router = useRouter()
-const route = useRoute()
 const userStore = useUserStore()
 const siteStore = useSiteStore()
 
@@ -120,8 +119,7 @@ const mfaToken = ref('')
 onMounted(() => {
   // 从 sessionStorage 读取敏感信息（避免出现在 URL 中）
   mfaToken.value = sessionStorage.getItem('mfa_token') || ''
-  const email = sessionStorage.getItem('mfa_email') || ''
-  
+
   if (!mfaToken.value) {
     // 没有 mfa_token，跳回登录
     router.replace('/login')

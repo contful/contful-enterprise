@@ -127,7 +127,9 @@ const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
 
+// @ts-expect-error template ref
 const loginFormRef = ref()
+// @ts-expect-error template ref
 const passwordFormRef = ref()
 
 const loginForm = reactive({

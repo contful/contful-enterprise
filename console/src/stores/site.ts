@@ -7,6 +7,14 @@ import { useI18n } from 'vue-i18n'
 import { getMySites, createSite, type Site, type CreateSiteParams } from '@/api/site'
 import { showSuccess, showError } from '@/utils/request'
 
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
+
 export const useSiteStore = defineStore('site', () => {
   const { t } = useI18n()
 
@@ -54,7 +62,7 @@ export const useSiteStore = defineStore('site', () => {
       }
       return []
     } catch (error) {
-      showError(error)
+      handleError(error)
       return []
     } finally {
       loading.value = false

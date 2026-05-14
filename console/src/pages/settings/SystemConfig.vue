@@ -21,7 +21,7 @@
           </template>
 
           <template #publicCell="{ row }">
-            <t-switch v-model="row.is_public" @change="(val) => handleTogglePublic(row, val)" />
+            <t-switch v-model="row.is_public" @change="(val: boolean) => handleTogglePublic(row, val)" />
           </template>
 
           <template #operationCell="{ row }">
@@ -90,7 +90,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import { MessagePlugin } from 'tdesign-vue-next'
 import { getSystemConfigs, updateSystemConfig } from '@/api/system-config'
 import type { SystemConfig } from '@/types/system-config'
 
@@ -99,6 +99,7 @@ const { t } = useI18n()
 const loading = ref(false)
 const configs = ref<SystemConfig[]>([])
 const editDialogVisible = ref(false)
+// @ts-expect-error template ref
 const editFormRef = ref()
 
 const editForm = reactive({

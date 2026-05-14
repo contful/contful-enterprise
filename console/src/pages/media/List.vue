@@ -17,6 +17,14 @@ import {
   type FolderResponse,
 } from '@/api/asset'
 import { showError, showSuccess } from '@/utils/request'
+
+function handleError(err: unknown) {
+  if (err instanceof Error) {
+    showError(err.message)
+  } else {
+    showError(String(err))
+  }
+}
 import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
@@ -82,7 +90,7 @@ const loadAssets = async () => {
     assets.value = res.items || []
     total.value = res.total || 0
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     loading.value = false
   }
@@ -94,7 +102,7 @@ const loadFolders = async () => {
     const data = await getAssetFolders()
     folders.value = data || []
   } catch (error) {
-    showError(error)
+    handleError(error)
   }
 }
 
@@ -115,7 +123,7 @@ const handleUpload = async (event: Event) => {
     showUploadModal.value = false
     uploadFolderId.value = null
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     uploading.value = false
     input.value = ''
@@ -140,7 +148,7 @@ const handleDrop = async (event: DragEvent) => {
     MessagePlugin.success(t('media.uploadSuccess'))
     uploadFolderId.value = null
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     showUploadModal.value = false
   }
@@ -160,7 +168,7 @@ const handleCreateFolder = async () => {
     newFolderName.value = ''
     MessagePlugin.success(t('common.createSuccess'))
   } catch (error) {
-    showError(error)
+    handleError(error)
   } finally {
     creatingFolder.value = false
   }
@@ -178,7 +186,7 @@ const confirmDelete = (asset: Asset) => {
         showSuccess(t('media.deleteSuccess'))
         await loadAssets()
       } catch (error) {
-        showError(error)
+        handleError(error)
       }
     },
   })
@@ -243,7 +251,7 @@ onMounted(() => {
       :title="t('media.title')"
       :subtitle="t('media.subtitle')"
       :show-refresh="true"
-      @refresh="loadMedia(currentFolder, currentPage)"
+      @refresh="loadAssets"
     >
       <template #actions>
         <t-button variant="outline" @click="showNewFolderModal = true">
@@ -529,13 +537,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* 页面特有样式：媒体库 — header-actions 已提取到 common.css */
 .media-library {
   height: 100%;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
 }
 
 .media-layout {
@@ -610,18 +614,7 @@ onMounted(() => {
   gap: 12px;
 }
 
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+/* toolbar-left/right 已提取到 common.css */
 
 .selection-info {
   font-size: 13px;
@@ -780,11 +773,7 @@ onMounted(() => {
 }
 
 /* === Pagination === */
-.pagination-bar {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
+/* pagination-bar 已提取到 common.css */
 
 /* === Upload zone === */
 .upload-zone {
