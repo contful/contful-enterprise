@@ -1,5 +1,4 @@
 <template>
-  <div class="page page--padded">
     <!-- 页面标题 -->
     <PageHeader
       :title="t('users.title')"
@@ -26,7 +25,16 @@
       hover
       stripe
       size="medium"
-    />
+    >
+      <template #operations="{ row }">
+        <t-space size="small">
+          <t-button variant="outline" size="small" @click="openViewDialog(row)">{{ t('common.view') }}</t-button>
+          <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
+          <t-button v-if="userStore.user?.is_super_admin && row.id !== userStore.user?.id" variant="outline" size="small" @click="openResetPasswordDialog(row)">{{ t('users.resetPassword') }}</t-button>
+          <t-button theme="danger" variant="outline" size="small" :disabled="row.is_super_admin" @click="handleDelete(row)">{{ t('common.delete') }}</t-button>
+        </t-space>
+      </template>
+    </t-table>
 
     <!-- 创建用户弹窗 — t-dialog + t-form -->
     <t-dialog
@@ -188,7 +196,6 @@
         <t-alert v-if="resetPwdError" theme="error" :message="resetPwdError" closable @close="resetPwdError = ''" />
       </t-form>
     </t-dialog>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -578,58 +585,7 @@ const columns = computed(() => [
   {
     colKey: 'operations',
     title: t('users.actions'),
-    cell: (_h: any, { row }: { row: User }) => {
-      const buttons = [
-        // 查看按钮
-        h('t-tooltip', { content: t('common.view') }, () =>
-          h('t-button', {
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            onClick: () => openViewDialog(row),
-          }, () => h('t-icon', { name: 'browse' }))
-        ),
-        // 编辑按钮
-        h('t-tooltip', { content: t('common.edit') }, () =>
-          h('t-button', {
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            onClick: () => openEditDialog(row),
-          }, () => h('t-icon', { name: 'edit' }))
-        ),
-      ]
-
-      // 重置密码按钮（仅超级管理员，且不能重置自己的密码）
-      if (userStore.user?.is_super_admin && row.id !== userStore.user?.id) {
-        buttons.push(
-          h('t-tooltip', { content: t('users.resetPassword') }, () =>
-            h('t-button', {
-              variant: 'outline',
-              size: 'small',
-              shape: 'circle',
-              onClick: () => openResetPasswordDialog(row),
-            }, () => h('t-icon', { name: 'lock-on' }))
-          )
-        )
-      }
-
-      // 删除按钮
-      buttons.push(
-        h('t-tooltip', { content: t('common.delete') }, () =>
-          h('t-button', {
-            theme: 'danger',
-            variant: 'outline',
-            size: 'small',
-            shape: 'circle',
-            disabled: row.is_super_admin,
-            onClick: () => handleDelete(row),
-          }, () => h('t-icon', { name: 'delete' }))
-        )
-      )
-
-      return h('div', { class: 'action-btns' }, buttons)
-    },
+    width: 320,
   },
 ])
 

@@ -751,14 +751,18 @@ CREATE TABLE tokens (
     site_id UUID NOT NULL REFERENCES sites(id),
     name VARCHAR(200) NOT NULL,
     description TEXT,
-    token_prefix VARCHAR(10) NOT NULL,
+    token_prefix VARCHAR(20) NOT NULL,
     token_hash VARCHAR(64) NOT NULL UNIQUE,
-    permissions JSONB NOT NULL DEFAULT '{}',
-    rate_limits JSONB NOT NULL DEFAULT '{"requests_per_minute": 60, "requests_per_day": 10000}',
-    usage JSONB NOT NULL DEFAULT '{"request_count": 0}',
+    encrypted_token TEXT NOT NULL,
+    scopes JSONB NOT NULL DEFAULT '["read"]'::jsonb,
+    site_scope JSONB NOT NULL DEFAULT '["*"]'::jsonb,
+    allowed_ips INET,
+    rate_limit INT NOT NULL DEFAULT 60,
+    request_count BIGINT NOT NULL DEFAULT 0,
     expires_time TIMESTAMPTZ,
     status token_status NOT NULL DEFAULT 'active',
     last_used_time TIMESTAMPTZ,
+    last_used_ip INET,
     created_by UUID,
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -769,6 +773,7 @@ CREATE INDEX idx_tokens_site ON tokens(site_id);
 CREATE INDEX idx_tokens_hash ON tokens(token_hash);
 CREATE INDEX idx_tokens_status ON tokens(status);
 CREATE INDEX idx_tokens_expires ON tokens(expires_time) WHERE expires_time IS NOT NULL;
+CREATE INDEX idx_tokens_deleted_time ON tokens(deleted_time) WHERE deleted_time IS NOT NULL;
 
 CREATE TRIGGER update_tokens_updated_time
     BEFORE UPDATE ON tokens
@@ -781,12 +786,16 @@ COMMENT ON COLUMN tokens.name IS 'Token 名称';
 COMMENT ON COLUMN tokens.description IS 'Token 描述';
 COMMENT ON COLUMN tokens.token_prefix IS 'Token 前缀（显示用）';
 COMMENT ON COLUMN tokens.token_hash IS 'Token 哈希（验证用）';
-COMMENT ON COLUMN tokens.permissions IS '权限范围 JSON';
-COMMENT ON COLUMN tokens.rate_limits IS '速率限制 JSON';
-COMMENT ON COLUMN tokens.usage IS '使用统计 JSON';
+COMMENT ON COLUMN tokens.encrypted_token IS '加密存储的完整 Token';
+COMMENT ON COLUMN tokens.scopes IS '权限范围 JSON 数组';
+COMMENT ON COLUMN tokens.site_scope IS '站点范围 JSON 数组';
+COMMENT ON COLUMN tokens.allowed_ips IS '允许的 IP 地址';
+COMMENT ON COLUMN tokens.rate_limit IS '速率限制（每分钟）';
+COMMENT ON COLUMN tokens.request_count IS '请求计数';
 COMMENT ON COLUMN tokens.expires_time IS '过期时间';
 COMMENT ON COLUMN tokens.status IS '状态：active/expired/revoked';
 COMMENT ON COLUMN tokens.last_used_time IS '最后使用时间';
+COMMENT ON COLUMN tokens.last_used_ip IS '最后使用 IP';
 COMMENT ON COLUMN tokens.created_by IS '创建者';
 COMMENT ON COLUMN tokens.created_time IS '创建时间';
 COMMENT ON COLUMN tokens.updated_time IS '更新时间';

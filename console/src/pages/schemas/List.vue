@@ -174,7 +174,10 @@ const goToFields = (row: ContentSchema) => {
 
 // 格式化时间
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleString()
+  if (!date) return '-'
+  const d = new Date(date)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 // 格式化 kind
@@ -192,22 +195,30 @@ const columns = computed(() => [
   {
     colKey: 'name',
     title: t('contentSchemas.tableName'),
-    cell: (h2: any, { row }: { row: ContentSchema }) => h2('div', { class: 'name-cell' }, [
-      h2('span', { class: 'name' }, row.name),
-      h2('span', { class: 'slug' }, row.slug),
-    ]),
+    cell: (h2: any, { row }: { row: ContentSchema }) => h2('span', { class: 'name-text' }, row.name),
+  },
+  {
+    colKey: 'slug',
+    title: t('contentSchemas.slug'),
+    width: 140,
+    cell: (h2: any, { row }: { row: ContentSchema }) => h2('code', { class: 'slug-code' }, row.slug),
   },
   { colKey: 'kind', title: t('contentSchemas.tableType'), width: 120 },
-  { colKey: 'is_active', title: t('contentSchemas.tableStatus'), width: 100 },
-  { colKey: 'versioning_enabled', title: t('contentSchemas.tableVersioning'), width: 100 },
+  { colKey: 'is_active', title: t('contentSchemas.tableStatus'), width: 100, cell: (_h: any, { row }: { row: ContentSchema }) => formatStatus(row.is_active) },
+  {
+    colKey: 'versioning_enabled',
+    title: t('contentSchemas.tableVersioning'),
+    width: 100,
+    cell: (_h: any, { row }: { row: ContentSchema }) => (row.versioning_enabled ? '✓' : '✗'),
+  },
   {
     colKey: 'description',
     title: t('common.description'),
     cell: (h2: any, { row }: { row: ContentSchema }) =>
       h2('span', { class: 'description' }, row.description || '-'),
   },
-  { colKey: 'updated_time', title: t('common.updatedAt'), width: 180, formatter: ({ row }: { row: ContentSchema }) => formatDate(row.updated_time) },
-  { colKey: 'operations', title: t('common.actions'), width: 200, fixed: 'right' as const },
+  { colKey: 'updated_time', title: t('common.updatedAt'), width: 180, cell: (_h: any, { row }: { row: ContentSchema }) => formatDate(row.updated_time) },
+  { colKey: 'operations', title: t('common.actions'), width: 280 },
 ])
 
 onMounted(() => {
@@ -216,7 +227,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page page--padded">
     <PageHeader
       :title="t('contentSchemas.title')"
       :subtitle="t('contentSchemas.subtitle')"
@@ -262,30 +272,12 @@ onMounted(() => {
           {{ formatKind(row.kind) }}
         </t-tag>
       </template>
-      <!-- status 列：自定义渲染 -->
-      <template #is_active-cell="{ row }">
-        <t-tag :theme="row.is_active ? 'success' as const : 'default' as const" variant="light" size="small">
-          {{ formatStatus(row.is_active) }}
-        </t-tag>
-      </template>
-      <!-- versioning 列：图标渲染 -->
-      <template #versioning_enabled-cell="{ row }">
-        <t-icon v-if="row.versioning_enabled" name="check-circle-filled" :style="{ color: '#10b981' }" />
-        <t-icon v-else name="close-circle-filled" :style="{ color: '#94a3b8' }" />
-      </template>
-      <!-- 操作列 -->
-      <template #operations-cell="{ row }">
-        <div class="action-btns">
-          <t-button variant="outline" size="small" @click="goToFields(row)" :title="t('contentSchemas.manageFields')">
-            <template #icon><t-icon name="setting" /></template>
-          </t-button>
-          <t-button variant="outline" size="small" @click="openEditDialog(row)" :title="t('common.edit')">
-            <template #icon><t-icon name="edit" /></template>
-          </t-button>
-          <t-button theme="danger" variant="outline" size="small" @click="handleDelete(row)" :title="t('common.delete')">
-            <template #icon><t-icon name="delete" /></template>
-          </t-button>
-        </div>
+      <template #operations="{ row }">
+        <t-space size="small">
+          <t-button variant="outline" size="small" @click="goToFields(row)">{{ t('contentSchemas.manageFields') }}</t-button>
+          <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
+          <t-button theme="danger" variant="outline" size="small" @click="handleDelete(row)">{{ t('common.delete') }}</t-button>
+        </t-space>
       </template>
     </t-table>
 
@@ -347,26 +339,21 @@ onMounted(() => {
         </t-form-item>
       </t-form>
     </t-dialog>
-  </div>
 </template>
 
 <style scoped>
 /* 页面特有样式：内容类型列表 — page-header/header-actions 已提取到 common.css */
 
-.name-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.name-cell .name {
+.name-text {
   font-weight: 500;
 }
 
-.name-cell .slug {
+.slug-code {
   font-size: 12px;
   color: var(--color-text-secondary);
-  font-family: monospace;
+  background: var(--color-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .description {

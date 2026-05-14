@@ -1,9 +1,14 @@
 <template>
-  <div class="page page--padded">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1 class="page-title">{{ t('settings.personalProfile') }}</h1>
-      <p class="page-subtitle">{{ t('settings.profileSubtitle') }}</p>
+      <div>
+        <h1 class="page-title">{{ t('settings.personalProfile') }}</h1>
+        <p class="page-subtitle">{{ t('settings.profileSubtitle') }}</p>
+      </div>
+      <t-button variant="outline" @click="showPasswordDialog = true">
+        <template #icon><t-icon name="lock-on" /></template>
+        {{ t('settings.profileChangePassword') }}
+      </t-button>
     </div>
 
     <!-- 第一行：两列布局 -->
@@ -41,12 +46,37 @@
           </div>
           <div class="info-item">
             <span class="info-label">{{ t('settings.profileMFA') }}</span>
-            <t-tag v-if="userStore.user?.mfa_enabled" theme="success" variant="light">
+            <t-tag v-if="mfaEnabled" theme="success" variant="light">
               {{ t('settings.mfaEnabled') }}
             </t-tag>
             <t-tag v-else theme="default" variant="light">
               {{ t('settings.mfaDisabled') }}
             </t-tag>
+            <span v-if="mfaEnabled && remainingCodes > 0" class="remaining-hint">{{ t('settings.mfaRemainingCodes', { count: remainingCodes }) }}</span>
+            <t-button
+              v-if="!mfaEnabled"
+              size="small"
+              theme="primary"
+              @click="openSetupDialog"
+              :loading="setupLoading"
+            >
+              {{ t('settings.mfaEnable') }}
+            </t-button>
+            <t-button
+              v-else
+              size="small"
+              variant="outline"
+              theme="danger"
+              @click="openDisableDialog"
+            >
+              {{ t('settings.mfaDisableBtn') }}
+            </t-button>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ t('settings.profilePasswordExpiry') }}</span>
+            <t-tag v-if="passwordExpired" theme="danger" variant="light">{{ t('settings.profilePasswordExpired') }}</t-tag>
+            <span v-else-if="passwordExpireDays !== null" class="info-value">{{ t('settings.profilePasswordExpireIn', { days: passwordExpireDays }) }}</span>
+            <span v-else class="info-value">-</span>
           </div>
           <div class="info-item">
             <span class="info-label">{{ t('settings.profileCreatedAt') }}</span>
@@ -120,22 +150,36 @@
             </div>
           </div>
         </div>
+
+        <!-- OTP 安全验证微信小程序推广 -->
+        <div class="card weapp-card">
+          <div class="weapp-layout">
+            <img src="/assets/weapp.jpg" alt="OTP安全验证" class="weapp-qrcode" />
+            <div class="weapp-info">
+              <h4 class="weapp-title">{{ t('settings.weappTitle') }}</h4>
+              <p class="weapp-desc">{{ t('settings.weappDesc') }}</p>
+              <p class="weapp-hint">{{ t('settings.weappHint') }}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 修改密码 -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{{ t('settings.profileChangePassword') }}</h3>
-        <p class="card-desc">{{ t('settings.profilePasswordHint') }}</p>
-      </div>
+    <!-- 修改密码弹窗 -->
+    <t-dialog
+      v-model:visible="showPasswordDialog"
+      :header="t('settings.profileChangePassword')"
+      :width="460"
+      :confirm-btn="{ content: t('settings.profileUpdatePassword'), theme: 'primary' as const, loading: passwordLoading }"
+      :cancel-btn="{ content: t('common.cancel') }"
+      @confirm="onChangePassword"
+      @close="onResetPasswordForm"
+    >
       <t-form
         :data="passwordForm"
         :rules="passwordRules"
-        @submit="onChangePassword"
         label-align="right"
         :label-width="120"
-        @reset="onResetPasswordForm"
       >
         <t-form-item :label="t('settings.profileOldPassword')" name="old_password">
           <t-input
@@ -149,7 +193,7 @@
           <t-input
             v-model="passwordForm.new_password"
             type="password"
-            :placeholder="t('auth.passwordPlaceholder')"
+            :placeholder="t('auth.passwordHint')"
             clearable
           />
         </t-form-item>
@@ -161,65 +205,8 @@
             clearable
           />
         </t-form-item>
-        <t-form-item>
-          <t-space>
-            <t-button theme="primary" type="submit" :loading="passwordLoading">
-              {{ t('settings.profileUpdatePassword') }}
-            </t-button>
-            <t-button type="reset" variant="outline">
-              {{ t('common.reset') }}
-            </t-button>
-          </t-space>
-        </t-form-item>
       </t-form>
-    </div>
-
-    <!-- MFA 双因子认证 -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{{ t('settings.mfaSection') }}</h3>
-        <p class="card-desc">{{ t('settings.mfaDesc') }}</p>
-      </div>
-
-      <div class="mfa-status-row">
-        <div class="mfa-status-info">
-          <t-tag v-if="mfaEnabled" theme="success" variant="light">
-            <template #icon><t-icon name="check-circle" /></template>
-            {{ t('settings.mfaEnabled') }}
-          </t-tag>
-          <t-tag v-else theme="default" variant="light">
-            {{ t('settings.mfaDisabled') }}
-          </t-tag>
-        </div>
-        <div class="mfa-actions">
-          <t-button
-            v-if="!mfaEnabled"
-            theme="primary"
-            @click="openSetupDialog"
-            :loading="setupLoading"
-          >
-            {{ t('settings.mfaEnable') }}
-          </t-button>
-          <t-button
-            v-else
-            theme="danger"
-            variant="outline"
-            @click="openDisableDialog"
-          >
-            {{ t('settings.mfaDisableBtn') }}
-          </t-button>
-        </div>
-      </div>
-
-      <template v-if="mfaEnabled">
-        <t-divider />
-        <div class="recovery-section">
-          <h4 class="recovery-title">{{ t('settings.mfaRecoveryCodes') }}</h4>
-          <p class="recovery-desc">{{ t('settings.mfaRecoveryDesc') }}</p>
-          <p class="recovery-remaining">{{ t('settings.mfaRemainingCodes', { count: remainingCodes }) }}</p>
-        </div>
-      </template>
-    </div>
+    </t-dialog>
 
     <!-- MFA Setup 弹窗 -->
     <t-dialog
@@ -318,7 +305,6 @@
         style="margin-top: 12px;"
       />
     </t-dialog>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -394,12 +380,15 @@ const profileRules = {
 }
 
 // 修改密码
+const showPasswordDialog = ref(false)
 const passwordForm = reactive({
   old_password: '',
   new_password: '',
   confirm_password: '',
 })
 const passwordLoading = ref(false)
+const passwordExpired = ref(false)
+const passwordExpireDays = ref<number | null>(null)
 const validateConfirmPassword = (val: string) => {
   if (val !== passwordForm.new_password) {
     return { result: false, message: t('settings.profilePasswordMismatch'), type: 'error' }
@@ -459,10 +448,8 @@ const onChangePassword = async () => {
     })
     if (res.data.code === 200) {
       MessagePlugin.success(t('settings.profilePasswordSuccess'))
-      // 重置表单
-      passwordForm.old_password = ''
-      passwordForm.new_password = ''
-      passwordForm.confirm_password = ''
+      showPasswordDialog.value = false
+      onResetPasswordForm()
     } else {
       MessagePlugin.error(res.data.message || t('settings.profilePasswordFailed'))
     }
@@ -499,6 +486,27 @@ const fetchMFAStatus = async () => {
     if (res.data.code === 200) {
       const u = res.data.data
       mfaEnabled.value = u.mfa_enabled ?? false
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// 获取密码过期信息
+const fetchPasswordExpiry = async () => {
+  try {
+    const [userRes, policyRes] = await Promise.all([
+      request.get('/users/me'),
+      request.get('/system/config/password/policy'),
+    ])
+    const user = userRes.data.code === 200 ? userRes.data.data : null
+    const policy = policyRes.data.code === 200 ? policyRes.data.data : null
+    if (user && policy?.password_expire_days && policy.password_expire_days > 0) {
+      const created = new Date(user.created_time).getTime()
+      const expireMs = created + policy.password_expire_days * 86400 * 1000
+      const remaining = Math.ceil((expireMs - Date.now()) / 86400000)
+      passwordExpired.value = remaining <= 0
+      passwordExpireDays.value = remaining
     }
   } catch {
     // ignore
@@ -626,6 +634,7 @@ const doDisable = async () => {
 }
 
 const onResetPasswordForm = () => {
+  showPasswordDialog.value = false
   passwordForm.old_password = ''
   passwordForm.new_password = ''
   passwordForm.confirm_password = ''
@@ -657,6 +666,7 @@ onMounted(async () => {
   }
   loadProfile()
   fetchMFAStatus()
+  fetchPasswordExpiry()
 })
 </script>
 
@@ -791,5 +801,56 @@ onMounted(async () => {
   font-family: monospace;
 }
 
+.remaining-hint {
+  font-size: 12px;
+  color: var(--td-text-color-secondary);
+  flex: 1;
+  text-align: right;
+}
+
 /* MFA 样式已提取到 mfa.css */
+
+/* 小程序推广卡片 */
+.weapp-card {
+  padding: 16px 20px;
+}
+
+.weapp-layout {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.weapp-qrcode {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  border: 1px solid var(--td-component-border);
+  flex-shrink: 0;
+}
+
+.weapp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.weapp-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--td-text-color-primary);
+  margin: 0 0 6px;
+}
+
+.weapp-desc {
+  font-size: 13px;
+  color: var(--td-text-color-secondary);
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.weapp-hint {
+  font-size: 12px;
+  color: var(--td-text-color-placeholder);
+  margin: 0;
+}
 </style>

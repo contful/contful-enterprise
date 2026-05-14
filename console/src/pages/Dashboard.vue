@@ -8,7 +8,6 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/Icon.vue'
 import { getDashboardStats } from '@/api/api'
-import { getContentEntries } from '@/api/api'
 import { showError } from '@/utils/request'
 
 function handleError(err: unknown) {
@@ -33,12 +32,10 @@ const stats = ref({
   users: 0,
   apiTokens: 0,
 })
-const recentEntries = ref<any[]>([])
 const loading = ref(true)
 
 async function fetchDashboardData() {
   try {
-    // 单个接口获取全部统计
     const res = await getDashboardStats()
     const data = res.data
     stats.value = {
@@ -56,27 +53,15 @@ async function fetchDashboardData() {
   }
 }
 
-// 最近内容单独获取（可选 site_id，无 site 时不阻塞）
-async function fetchRecentEntries() {
-  try {
-    const res = await getContentEntries({ page: 1, page_size: 5 })
-    recentEntries.value = res.data?.items || []
-  } catch {
-    recentEntries.value = []
-  }
-}
-
 onMounted(async () => {
   if (layoutInitialized.value) {
     await fetchDashboardData()
-    await fetchRecentEntries()
   }
 })
 
 watch(layoutInitialized, async (ready) => {
   if (ready && loading.value) {
     await fetchDashboardData()
-    await fetchRecentEntries()
   }
 })
 
@@ -89,56 +74,6 @@ const quickActions = computed(() => {
     { icon: 'token', label: t('menu.apiTokens'), path: '/tokens', color: '#f59e0b' },
   ]
 })
-
-const getStatusClass = (status: string) => {
-  const map: Record<string, string> = {
-    published: 'badge-success',
-    draft: 'badge-warning',
-    archived: 'badge-default',
-  }
-  return map[status] || 'badge-default'
-}
-
-// t-table 列定义（最近内容）
-const getStatusTheme = (status: string) => {
-  const map: Record<string, string> = {
-    published: 'success',
-    draft: 'warning',
-    archived: 'default',
-  }
-  return map[status] || 'default'
-}
-
-const recentColumns = computed(() => [
-  {
-    colKey: 'title',
-    title: t('dashboard.titleCol'),
-    cell: (_h: any, { row }: { row: any }) =>
-      row.values?.find((v: any) => v.field?.name === 'title')?.text_value || row.id.slice(0, 8),
-  },
-  {
-    colKey: 'type',
-    title: t('dashboard.typeCol'),
-    cell: (_h: any, { row }: { row: any }) =>
-      row.content_schema?.name || row.schema_id?.slice(0, 8) || '-',
-  },
-  { colKey: 'status', title: t('dashboard.statusCol'), width: 100 },
-  {
-    colKey: 'updated_time',
-    title: t('dashboard.updatedCol'),
-    width: 120,
-    cell: (_h: any, { row }: { row: any }) => new Date(row.updated_time).toLocaleDateString(),
-  },
-])
-
-const getStatusLabel = (status: string) => {
-  const map: Record<string, string> = {
-    published: t('content.published'),
-    draft: t('content.draft'),
-    archived: t('content.archived'),
-  }
-  return map[status] || status
-}
 </script>
 
 <template>
@@ -225,60 +160,26 @@ const getStatusLabel = (status: string) => {
       </div>
     </div>
 
-    <div class="dashboard-grid">
-      <!-- 快速操作 -->
-      <div class="card quick-actions">
-        <h3 class="card-title">{{ t('dashboard.quickActions') }}</h3>
-        <div class="actions-list">
-          <button
-            v-for="action in quickActions"
-            :key="action.label"
-            class="action-item"
-            @click="router.push(action.path)"
-          >
-            <span class="action-icon" :style="{ background: action.color }">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="white">
-                <path v-if="action.icon === 'add'" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-                <Icon v-else-if="action.icon === 'upload'" name="arrow-up" style="color: white" />
-                <path v-else-if="action.icon === 'schema'" d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
-                <path v-else-if="action.icon === 'token'" d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
-              </svg>
-            </span>
-            <span class="action-label">{{ action.label }}</span>
-            <svg class="action-arrow" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- 最近内容 -->
-      <div class="card recent-entries">
-        <h3 class="card-title">{{ t('dashboard.recentContent') }}</h3>
-        <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
-        <div v-else-if="recentEntries.length === 0" class="empty-state">
-          <p>{{ t('dashboard.noContent') }}</p>
-          <t-button theme="primary" @click="router.push('/content/entries')">
-            {{ t('dashboard.createFirstContent') }}
-          </t-button>
-        </div>
-        <t-table
-          v-else
-          :data="recentEntries"
-          :columns="recentColumns"
-          :pagination="false"
-          hover
-          size="small"
-          row-key="id"
-          @row-click="(row) => router.push(`/content/entries?type=${row.schema_id}&id=${row.id}`)"
-          class="recent-table"
+    <!-- 快速操作 -->
+    <div class="card quick-actions">
+      <h3 class="card-title">{{ t('dashboard.quickActions') }}</h3>
+      <div class="actions-row">
+        <button
+          v-for="action in quickActions"
+          :key="action.label"
+          class="action-item"
+          @click="router.push(action.path)"
         >
-          <template #status-cell="{ row }">
-            <t-tag :theme="(getStatusTheme(row.status) as any)" variant="light" size="small">
-              {{ getStatusLabel(row.status) }}
-            </t-tag>
-          </template>
-        </t-table>
+          <span class="action-icon" :style="{ background: action.color }">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="white">
+              <path v-if="action.icon === 'add'" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
+              <Icon v-else-if="action.icon === 'upload'" name="arrow-up" style="color: white" />
+              <path v-else-if="action.icon === 'schema'" d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
+              <path v-else-if="action.icon === 'token'" d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
+            </svg>
+          </span>
+          <span class="action-label">{{ action.label }}</span>
+        </button>
       </div>
     </div>
   </div>
@@ -287,6 +188,7 @@ const getStatusLabel = (status: string) => {
 <style scoped>
 .dashboard {
   width: 100%;
+  max-width: 960px;
 }
 
 .stats-grid {
@@ -334,12 +236,6 @@ const getStatusLabel = (status: string) => {
   color: var(--color-text-secondary);
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 20px;
-}
-
 .card-title {
   font-size: 16px;
   font-weight: 600;
@@ -347,24 +243,26 @@ const getStatusLabel = (status: string) => {
   margin-bottom: 16px;
 }
 
-.quick-actions .actions-list {
+.quick-actions {
+  /* full width, no max-width needed */
+}
+
+.actions-row {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .action-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 12px 20px;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  text-align: left;
-  width: 100%;
 }
 
 .action-item:hover {
@@ -379,32 +277,19 @@ const getStatusLabel = (status: string) => {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .action-label {
-  flex: 1;
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text);
-}
-
-.action-arrow {
-  color: var(--color-text-secondary);
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 @media (max-width: 1024px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
   }
 }
 

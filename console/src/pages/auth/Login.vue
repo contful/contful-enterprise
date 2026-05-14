@@ -119,9 +119,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
+import JSEncrypt from 'jsencrypt'
 import { useUserStore } from '@/stores/user'
 import { updatePassword } from '@/api/user'
 import { getPasswordPolicy } from '@/api/system-config'
+import { get } from '@/utils/request'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -216,7 +218,33 @@ const checkPasswordStrength = (pwd: string): boolean => {
 }
 
 const onLogin = async () => {
-  const result: any = await userStore.login(loginForm.email, loginForm.password)
+  // 1. 获取 RSA 公钥 + Anti-Replay Token
+  let encryptedPassword = ''
+  let tokenId = ''
+  let rsaToken = ''
+  try {
+    const keyRes: any = await get('/auth/public/key')
+    if (keyRes.code === 200 && keyRes.data?.public_key) {
+      const { public_key, token_id, token } = keyRes.data
+      tokenId = token_id
+      rsaToken = token
+      // 2. RSA 加密「密码@@token」
+      const encrypt = new JSEncrypt()
+      encrypt.setPublicKey(public_key)
+      const plaintext = loginForm.password + '@@' + token
+      encryptedPassword = encrypt.encrypt(plaintext) || ''
+    }
+  } catch {
+    // 降级：加密失败时使用明文（保持兼容）
+  }
+
+  const result: any = await userStore.login(
+    loginForm.email,
+    loginForm.password,
+    encryptedPassword,
+    tokenId,
+    rsaToken,
+  )
   if (result.success) {
     if (result.mfa_required) {
       // 使用 sessionStorage 传递敏感 token（不出现在 URL 中）

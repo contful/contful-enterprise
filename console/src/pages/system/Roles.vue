@@ -1,5 +1,4 @@
 <template>
-  <div class="page">
     <!-- 页面标题 -->
     <div class="page-header">
       <div>
@@ -21,7 +20,14 @@
       hover
       stripe
       size="medium"
-    />
+    >
+      <template #operations="{ row }">
+        <t-space size="small">
+          <t-button variant="text" theme="primary" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
+          <t-button v-if="!row.is_system" variant="text" theme="danger" size="small" @click="openDeleteDialog(row)">{{ t('common.delete') }}</t-button>
+        </t-space>
+      </template>
+    </t-table>
 
     <!-- 创建/编辑角色弹窗 -->
     <t-dialog
@@ -82,7 +88,6 @@
     >
       <p>{{ t('roles.deleteConfirm', { name: deletingRole?.name }) }}</p>
     </t-dialog>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -174,22 +179,6 @@ const columns = computed(() => [
     colKey: 'operations',
     title: t('common.actions'),
     width: 160,
-    fixed: 'right',
-    cell: (_: unknown, { row }: { row: SystemRole }) =>
-      h('div', { class: 'action-cell' }, [
-        h(
-          't-button',
-          { variant: 'text', theme: 'primary', size: 'small', onClick: () => openEditDialog(row) },
-          () => t('common.edit'),
-        ),
-        !row.is_system
-          ? h(
-              't-button',
-              { variant: 'text', theme: 'danger', size: 'small', onClick: () => openDeleteDialog(row) },
-              () => t('common.delete'),
-            )
-          : null,
-      ]),
   },
 ])
 

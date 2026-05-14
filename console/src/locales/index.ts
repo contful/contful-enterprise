@@ -53,6 +53,7 @@ export const i18n = createI18n({
   fallbackLocale: 'zh-CN',
   messages: {
     'zh-CN': zhCN,
+    'zh': zhCN,      // 兼容浏览器返回 zh 无地区后缀
     'zh-TW': zhTW,
     'en-US': enUS,
   },

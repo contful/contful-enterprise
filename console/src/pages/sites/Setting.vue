@@ -221,7 +221,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page page--padded">
     <!-- 页头：面包屑 + 站点信息 -->
     <div class="page-header">
       <div class="breadcrumb">
@@ -448,7 +447,6 @@ onMounted(() => {
         </div>
       </t-form>
     </t-loading>
-  </div>
 </template>
 
 <style scoped>

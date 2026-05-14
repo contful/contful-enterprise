@@ -390,13 +390,23 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page page--padded content-management">
     <PageHeader
       :title="t('content.title')"
       :subtitle="t('content.subtitle')"
       :show-refresh="true"
       @refresh="loadEntries"
     >
+      <template #actions>
+        <t-button
+          variant="outline"
+          :disabled="cacheLoading"
+          :title="t('content.clearCacheHint')"
+          :loading="cacheLoading"
+          @click="handleClearCache"
+        >
+          {{ t('content.clearCache') }}
+        </t-button>
+      </template>
       <template #primary-action>
         <t-button theme="primary" @click="openCreateModal">
           <template #icon><t-icon name="add" /></template>
@@ -497,16 +507,6 @@ onMounted(() => {
             </div>
 
             <div class="toolbar-right">
-              <!-- 清除缓存 -->
-              <t-button
-                variant="outline"
-                :disabled="cacheLoading"
-                :title="t('content.clearCacheHint')"
-                :loading="cacheLoading"
-                @click="handleClearCache"
-              >
-                {{ t('content.clearCache') }}
-              </t-button>
               <!-- 批量操作 -->
               <div v-if="hasSelected" class="batch-actions">
                 <span class="selected-count">{{ t('common.selectedCount', { count: selectedCount }) }}</span>
@@ -520,10 +520,6 @@ onMounted(() => {
                   {{ t('content.batchDelete') }}
                 </t-button>
               </div>
-              <t-button theme="primary" @click="openCreateModal">
-                <template #icon><t-icon name="add" /></template>
-                {{ t('content.createEntry') }}
-              </t-button>
             </div>
           </div>
 
@@ -736,7 +732,6 @@ onMounted(() => {
         </template>
       </t-form>
     </t-dialog>
-  </div>
 </template>
 
 <style scoped>

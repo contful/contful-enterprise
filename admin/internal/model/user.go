@@ -83,8 +83,11 @@ type RegisterRequest struct {
 
 // LoginRequest 登录请求
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Email             string `json:"email" binding:"required,email"`
+	Password          string `json:"password"`
+	EncryptedPassword string `json:"encrypted_password"` // RSA 加密后的密码（若提供则优先使用）
+	TokenID           string `json:"token_id"`            // Anti-Replay Token ID
+	RSAToken          string `json:"rsa_token"`           // Anti-Replay Token 值
 }
 
 // LoginResponse 登录响应

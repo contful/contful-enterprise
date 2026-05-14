@@ -39,14 +39,15 @@ var SupportedAlgorithms = []string{crypto.AlgorithmAES, crypto.AlgorithmSM4}
 // SecurityConfig 安全配置
 type SecurityConfig struct {
 	// Secret 主密钥（统一配置）
-	// - 支持 64 字符 hex（纯 0-9a-f）：openssl rand -hex 32
-	// - 支持任意长度字符串（会自动派生 32 字节密钥）
-	// ⚠️ 重要：此密钥用于加密存储敏感数据，变更前请确保无遗留加密数据
 	Secret string `mapstructure:"secret"`
 
 	// Algorithm 加密算法
-	// 可选值：aes-256-gcm（默认）
 	Algorithm string `mapstructure:"algorithm"`
+
+	// RSA 密钥对（用于前端登录密码加密传输）
+	// 可通过环境变量 CONTFUL_SECURITY_RSA_PUBKEY / CONTFUL_SECURITY_RSA_PRIVKEY 覆盖
+	RSAPublicKey  string `mapstructure:"rsa_pubkey"`
+	RSAPrivateKey string `mapstructure:"rsa_privkey"`
 }
 
 // ServerConfig 服务配置
@@ -359,6 +360,16 @@ func (c *Config) PostLoad() {
 
 	// 审计签名密钥：派生 "audit-signing" info
 	c.Audit.SigningKey = deriveKey(c.Security.Secret, "audit-signing", 32)
+
+	// RSA 密钥对：未配置时自动生成（首次启动会生成，之后从配置/env 加载）
+	if c.Security.RSAPrivateKey == "" || c.Security.RSAPublicKey == "" {
+		pub, priv, err := crypto.GenerateRSAKeyPair()
+		if err != nil {
+			panic(fmt.Sprintf("failed to generate RSA key pair: %v", err))
+		}
+		c.Security.RSAPublicKey = pub
+		c.Security.RSAPrivateKey = priv
+	}
 }
 
 // GetDSN 获取 PostgreSQL DSN

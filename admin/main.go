@@ -138,8 +138,15 @@ func main() {
 	assetService := service.NewAssetService(assetRepo, storageProvider)
 	assetService.SetConfigService(configService)
 
+	// 解析 RSA 密钥对（用于登录密码加密传输）
+	rsaPrivKey, err := crypto.ParseRSAPrivateKey(cfg.Security.RSAPrivateKey)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to parse RSA private key")
+	}
+	logger.Info().Msg("RSA key pair loaded")
+
 	// 初始化 Handler
-	authHandler := handler.NewAuthHandler(authService)
+	authHandler := handler.NewAuthHandler(authService, cfg.Security.RSAPublicKey, rsaPrivKey)
 	mfaHandler := handler.NewMFAHandler(mfaService, authService)
 	userHandler := handler.NewUserHandler(userService, auditService)
 	siteHandler := handler.NewSiteHandler(siteService)
@@ -187,6 +194,7 @@ func main() {
 		// 公开路由
 		auth := api.Group("/auth")
 		{
+			auth.GET("/public/key", authHandler.PublicKey) // RSA 公钥 + Anti-Replay Token
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)

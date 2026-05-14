@@ -1,5 +1,4 @@
 <template>
-  <div class="page page--padded">
     <PageHeader
       :title="t('audit.pageTitle')"
       :subtitle="t('audit.pageSubtitle')"
@@ -11,7 +10,7 @@
     <t-card class="filter-card">
       <t-form :data="filterForm" layout="inline" class="filter-form">
         <t-form-item :label="t('audit.filter.category')">
-          <t-select v-model="filterForm.category" :placeholder="t('common.selectPlaceholder')" clearable style="width: 130px">
+          <t-select v-model="filterForm.category" :placeholder="selectPlaceholder" clearable style="width: 130px">
             <t-option :label="t('audit.category.auth')" value="auth" />
             <t-option :label="t('audit.category.content')" value="content" />
             <t-option :label="t('audit.category.media')" value="media" />
@@ -21,7 +20,7 @@
           </t-select>
         </t-form-item>
         <t-form-item :label="t('audit.filter.level')">
-          <t-select v-model="filterForm.level" :placeholder="t('common.selectPlaceholder')" clearable style="width: 120px">
+          <t-select v-model="filterForm.level" :placeholder="selectPlaceholder" clearable style="width: 120px">
             <t-option :label="t('audit.level.debug')" value="debug" />
             <t-option :label="t('audit.level.info')" value="info" />
             <t-option :label="t('audit.level.warn')" value="warn" />
@@ -149,7 +148,6 @@
         </t-list>
       </div>
     </t-dialog>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -169,6 +167,8 @@ function handleError(err: unknown) {
 }
 
 const { t, locale } = useI18n()
+
+const selectPlaceholder = computed(() => t('common.selectPlaceholder'))
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const detailVisible = ref(false)

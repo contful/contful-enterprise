@@ -246,7 +246,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page page--padded media-library">
     <PageHeader
       :title="t('media.title')"
       :subtitle="t('media.subtitle')"
@@ -340,7 +339,7 @@ onMounted(() => {
               :theme="viewMode === 'grid' ? 'primary' : 'default'"
               @click="viewMode = 'grid'"
             >
-              <template #icon><t-icon name="layout-grid" /></template>
+              <template #icon><t-icon name="view-module" /></template>
             </t-button>
             <t-button
               variant="outline"
@@ -533,7 +532,6 @@ onMounted(() => {
         </t-form-item>
       </t-form>
     </t-dialog>
-  </div>
 </template>
 
 <style scoped>

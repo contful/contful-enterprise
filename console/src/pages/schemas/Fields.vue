@@ -203,7 +203,6 @@ watch(() => route.params.id, () => {
 </script>
 
 <template>
-  <div class="page page--padded">
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="title-section">
@@ -347,7 +346,6 @@ watch(() => route.params.id, () => {
         </Space>
       </template>
     </Dialog>
-  </div>
 </template>
 
 <style scoped>

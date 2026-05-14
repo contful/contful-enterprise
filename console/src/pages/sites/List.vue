@@ -1,5 +1,4 @@
 <template>
-  <div class="page page--padded">
     <!-- 页头 -->
     <div class="page-header">
       <div class="title-section">
@@ -202,7 +201,6 @@
     >
       <p>{{ t('sites.deleteMsg', { name: deletingTarget?.name }) }}</p>
     </t-dialog>
-  </div>
 </template>
 
 <script setup lang="ts">

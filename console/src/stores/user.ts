@@ -76,13 +76,18 @@ export const useUserStore = defineStore('user', () => {
     return perms.some(p => permissions.value.includes(p))
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, encryptedPassword?: string, tokenId?: string, rsaToken?: string) => {
     isLoading.value = true
     try {
-      const res = await request.post<any>('/auth/login', {
-        email,
-        password,
-      })
+      const body: any = { email }
+      if (encryptedPassword && tokenId && rsaToken) {
+        body.encrypted_password = encryptedPassword
+        body.token_id = tokenId
+        body.rsa_token = rsaToken
+      } else {
+        body.password = password
+      }
+      const res = await request.post<any>('/auth/login', body)
       if (res.data.code === 200) {
         const data = res.data.data as any
 

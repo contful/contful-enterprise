@@ -3,6 +3,7 @@
 package handler
 
 import (
+	"crypto/rsa"
 	"errors"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
@@ -19,14 +21,16 @@ import (
 
 type AuthHandler struct {
 	authService *service.AuthService
+	rsaPubKey   string
+	rsaPrivKey  *rsa.PrivateKey
 }
 
 // setRefreshTokenCookie 将 refresh_token 写入 HttpOnly Cookie
 // Secure 属性根据当前请求协议动态决定：HTTPS=true，HTTP=false（兼容本地开发环境）
 func setRefreshTokenCookie(c *gin.Context, token string, maxAge int) {
 	secure := c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("refresh_token", token, maxAge, "/", "", secure, true) // HttpOnly + 动态 Secure + SameSite=Strict
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("refresh_token", token, maxAge, "/", "", secure, true) // HttpOnly + 动态 Secure + SameSite=Lax
 }
 
 // clearRefreshTokenCookie 清除 refresh_token Cookie（清除时 Secure 也需要匹配）
@@ -35,8 +39,23 @@ func clearRefreshTokenCookie(c *gin.Context) {
 	c.SetCookie("refresh_token", "", -1, "/", "", secure, true)
 }
 
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService *service.AuthService, rsaPubKey string, rsaPrivKey *rsa.PrivateKey) *AuthHandler {
+	return &AuthHandler{authService: authService, rsaPubKey: rsaPubKey, rsaPrivKey: rsaPrivKey}
+}
+
+// PublicKey 获取 RSA 公钥和一次性 Anti-Replay Token
+// GET /admin/api/v1/auth/public/key
+func (h *AuthHandler) PublicKey(c *gin.Context) {
+	token, tokenID, err := h.authService.GenerateRSAToken(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "failed to generate token"))
+		return
+	}
+	c.JSON(http.StatusOK, model.NewSuccessResponse(map[string]string{
+		"public_key": h.rsaPubKey,
+		"token_id":   tokenID,
+		"token":      token,
+	}))
 }
 
 // Register 注册
@@ -77,6 +96,36 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid request: "+err.Error()))
+		return
+	}
+
+	// RSA 加密密码处理
+	if req.EncryptedPassword != "" && req.TokenID != "" && req.RSAToken != "" {
+		// 验证 Anti-Replay Token
+		if !h.authService.ValidateAndConsumeRSAToken(c.Request.Context(), req.TokenID, req.RSAToken) {
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid or expired security token"))
+			return
+		}
+		// 解密密码
+		if h.rsaPrivKey != nil {
+			plaintext, err := crypto.RSADecrypt(h.rsaPrivKey, req.EncryptedPassword)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "failed to decrypt password"))
+				return
+			}
+			// 提取密码（格式：password@@token）
+			parts := strings.SplitN(string(plaintext), "@@", 2)
+			if len(parts) == 2 && parts[1] == req.RSAToken {
+				req.Password = parts[0]
+			} else {
+				c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "token mismatch"))
+				return
+			}
+		}
+	}
+
+	if req.Password == "" {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "password is required"))
 		return
 	}
 

@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -522,6 +523,8 @@ func MFAPendingDataFromUser(user *model.SystemUser) MFAPendingData {
 
 func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, siteID *uuid.UUID, action, resourceType string, resourceID uuid.UUID, level model.AuditLevel, category model.AuditType, ip string) {
 	go func() {
+		// 使用 background context 避免 request context 被取消导致写入失败
+		bgCtx := context.Background()
 		auditLog := &model.AuditLog{
 			ID:           uuid.New(),
 			UserID:       &userID,
@@ -536,10 +539,10 @@ func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, site
 		// 注入签名密钥到 context
 		if s.configSvc != nil && siteID != nil {
 			if key, _ := s.configSvc.GetAuditSigningKey(); key != "" {
-				ctx = audit.WithSigningKey(ctx, key)
+				bgCtx = audit.WithSigningKey(bgCtx, key)
 			}
 		}
-		if err := s.auditRepo.Create(ctx, auditLog); err != nil {
+		if err := s.auditRepo.Create(bgCtx, auditLog); err != nil {
 			log.Error().Err(err).Msg("failed to create audit log")
 		}
 	}()
@@ -548,6 +551,7 @@ func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, site
 // P2-004: 登录失败审计日志（userID 为 nil）
 func (s *AuthService) createAuditLogLoginFail(ctx context.Context, email string, ip string, reason string) {
 	go func() {
+		bgCtx := context.Background()
 		maskedEmail := maskEmail(email)
 		auditLog := &model.AuditLog{
 			ID:           uuid.New(),
@@ -560,7 +564,7 @@ func (s *AuthService) createAuditLogLoginFail(ctx context.Context, email string,
 			IPAddress:    ip,
 		}
 		// 登录失败场景暂无 site_id，跳过签名
-		if err := s.auditRepo.Create(ctx, auditLog); err != nil {
+		if err := s.auditRepo.Create(bgCtx, auditLog); err != nil {
 			log.Error().Err(err).Str("email", maskedEmail).Msg("failed to create login_fail audit log")
 		}
 	}()
@@ -596,4 +600,31 @@ func (s *AuthService) ValidateAccessToken(tokenString string) (*JWTClaims, error
 		return nil, errors.New("invalid token format")
 	}
 	return s.parseAccessToken(parts[0])
+}
+
+// GenerateRSAToken 生成一次性 Anti-Replay Token（存储 Redis，5 分钟过期）
+func (s *AuthService) GenerateRSAToken(ctx context.Context) (token, tokenID string, err error) {
+	tokenID = uuid.New().String()
+	token = uuid.New().String()
+	key := "rsa_token:" + tokenID
+	err = s.redis.Set(ctx, key, token, 5*time.Minute).Err()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to store RSA token: %w", err)
+	}
+	return token, tokenID, nil
+}
+
+// ValidateAndConsumeRSAToken 验证并销毁一次性 Anti-Replay Token
+func (s *AuthService) ValidateAndConsumeRSAToken(ctx context.Context, tokenID, token string) bool {
+	key := "rsa_token:" + tokenID
+	stored, err := s.redis.Get(ctx, key).Result()
+	if err != nil {
+		return false
+	}
+	if stored != token {
+		return false
+	}
+	// 一次性使用：验证后立即删除
+	s.redis.Del(ctx, key)
+	return true
 }

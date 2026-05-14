@@ -348,37 +348,7 @@ const columns = computed(() => [
   {
     colKey: 'operations',
     title: t('common.actions'),
-    cell: (_h: any, { row }: { row: ApiToken }) => {
-      const tok = row as unknown as Record<string, any>
-      const active = (!tok.revoked && row.status !== 'revoked') && !isExpired(row.expires_time)
-      return h('div', { class: 'action-btns' }, [
-        h(TDropdown, {
-          options: [
-            ...(active ? [
-              { content: t('common.edit'), value: 'edit', prefixIcon: () => h('t-icon', { name: 'edit' }) },
-              { content: t('apiTokens.viewDetail'), value: 'view', prefixIcon: () => h('t-icon', { name: 'browse' }) },
-              { content: t('apiTokens.regenerate'), value: 'regenerate', prefixIcon: () => h('t-icon', { name: 'refresh' }) },
-            ] : []),
-            ...((!tok.revoked && row.status !== 'revoked') ? [
-              { content: t('apiTokens.revoke'), value: 'revoke', prefixIcon: () => h('t-icon', { name: 'close-circle' }) },
-            ] : []),
-            { content: t('common.delete'), value: 'delete', theme: 'error' as const, prefixIcon: () => h('t-icon', { name: 'delete' }) },
-          ],
-          onClick: (data: any) => {
-            switch (data.value as string) {
-              case 'edit': openEditModal(row); break
-              case 'view': handleExportConfirm(row); break
-              case 'regenerate': handleRegenerateConfirm(row); break
-              case 'revoke': handleRevoke(row); break
-              case 'delete': handleDeleteConfirm(row); break
-            }
-          },
-          trigger: 'click',
-        }, () =>
-          h('t-button', { variant: 'outline', size: 'small', shape: 'circle' }, () => h('t-icon', { name: 'ellipsis' }))
-        ),
-      ])
-    },
+    width: 100,
   },
 ])
 
@@ -388,7 +358,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page page--padded">
     <PageHeader
       :title="t('apiTokens.title')"
       :subtitle="t('apiTokens.subtitle')"
@@ -451,7 +420,19 @@ onMounted(() => {
       hover
       stripe
       size="medium"
-    />
+    >
+      <template #operations="{ row }">
+        <t-space size="small">
+          <template v-if="row.status === 'active' && !isExpired(row.expires_time)">
+            <t-button variant="outline" size="small" @click="openEditModal(row)">{{ t('common.edit') }}</t-button>
+            <t-button variant="outline" size="small" @click="handleExportConfirm(row)">{{ t('apiTokens.viewDetail') }}</t-button>
+            <t-button variant="outline" size="small" @click="handleRegenerateConfirm(row)">{{ t('apiTokens.regenerate') }}</t-button>
+          </template>
+          <t-button v-if="row.status !== 'revoked'" variant="outline" size="small" @click="handleRevoke(row)">{{ t('apiTokens.revoke') }}</t-button>
+          <t-button theme="danger" variant="outline" size="small" @click="handleDeleteConfirm(row)">{{ t('common.delete') }}</t-button>
+        </t-space>
+      </template>
+    </t-table>
 
     <!-- 创建/编辑/显示新Token — 统一使用 t-dialog -->
     <t-dialog
@@ -518,7 +499,6 @@ onMounted(() => {
         </t-form-item>
       </t-form>
     </t-dialog>
-  </div>
 </template>
 
 <style scoped>

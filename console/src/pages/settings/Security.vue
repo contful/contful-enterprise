@@ -1,5 +1,4 @@
 <template>
-  <div class="page page--padded">
     <!-- MFA 双因子认证 -->
     <div class="card">
       <div class="card-header">
@@ -150,7 +149,6 @@
         style="margin-top: 12px;"
       />
     </t-dialog>
-  </div>
 </template>
 
 <script setup lang="ts">
