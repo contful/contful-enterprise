@@ -455,6 +455,7 @@ function formatDate(dt: string) {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: 12px;
+  overflow: hidden;
   padding: 20px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }

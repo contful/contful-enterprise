@@ -5,7 +5,6 @@ package crypto
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -87,9 +86,9 @@ func GenerateRSAKeyPair() (pubKeyPEM, privKeyPEM string, err error) {
 }
 
 // RSAEncrypt 使用公钥加密明文，返回 Base64 编码密文
-// 使用 RSA-OAEP SHA-256
+// 使用 PKCS#1 v1.5（与 JSEncrypt 兼容）
 func RSAEncrypt(pub *rsa.PublicKey, plaintext []byte) (string, error) {
-	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, plaintext, nil)
+	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, pub, plaintext)
 	if err != nil {
 		return "", fmt.Errorf("RSA encrypt failed: %w", err)
 	}
@@ -102,7 +101,7 @@ func RSADecrypt(priv *rsa.PrivateKey, cipherB64 string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode failed: %w", err)
 	}
-	plaintext, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, priv, ciphertext, nil)
+	plaintext, err := rsa.DecryptPKCS1v15(rand.Reader, priv, ciphertext)
 	if err != nil {
 		return nil, fmt.Errorf("RSA decrypt failed: %w", err)
 	}

@@ -149,7 +149,7 @@ const submitForm = async () => {
 
 // 删除内容类型 — 显示具体名称
 const handleDelete = (row: ContentSchema) => {
-  DialogPlugin.confirm({
+  const dialog = DialogPlugin.confirm({
     header: t('contentSchemas.deleteConfirm'),
     body: `${t('contentSchemas.deleteConfirmMsg')}「${row.name}」？`,
     theme: 'warning',
@@ -160,6 +160,7 @@ const handleDelete = (row: ContentSchema) => {
         await deleteContentSchema(row.id)
         MessagePlugin.success(t('contentSchemas.deleteSuccess'))
         loadData()
+        dialog.destroy()
       } catch (e) {
         handleError(e)
       }

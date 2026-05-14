@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -138,15 +139,26 @@ func main() {
 	assetService := service.NewAssetService(assetRepo, storageProvider)
 	assetService.SetConfigService(configService)
 
-	// 解析 RSA 密钥对（用于登录密码加密传输）
-	rsaPrivKey, err := crypto.ParseRSAPrivateKey(cfg.Security.RSAPrivateKey)
+	// 加载 RSA 密钥对（用于登录密码加密传输）
+	// 路径相对于配置文件目录（conf/）或工作目录，多个搜索路径
+	rsaPubPath := resolveConfigPath(cfg.Security.RSAPublicKeyPath)
+	rsaPrivPath := resolveConfigPath(cfg.Security.RSAPrivateKeyPath)
+	rsaPubKeyPEM, err := os.ReadFile(rsaPubPath)
+	if err != nil {
+		logger.Fatal().Err(err).Str("path", rsaPubPath).Msg("failed to read RSA public key file")
+	}
+	rsaPrivKeyPEM, err := os.ReadFile(rsaPrivPath)
+	if err != nil {
+		logger.Fatal().Err(err).Str("path", rsaPrivPath).Msg("failed to read RSA private key file")
+	}
+	rsaPrivKey, err := crypto.ParseRSAPrivateKey(string(rsaPrivKeyPEM))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to parse RSA private key")
 	}
 	logger.Info().Msg("RSA key pair loaded")
 
 	// 初始化 Handler
-	authHandler := handler.NewAuthHandler(authService, cfg.Security.RSAPublicKey, rsaPrivKey)
+	authHandler := handler.NewAuthHandler(authService, string(rsaPubKeyPEM), rsaPrivKey)
 	mfaHandler := handler.NewMFAHandler(mfaService, authService)
 	userHandler := handler.NewUserHandler(userService, auditService)
 	siteHandler := handler.NewSiteHandler(siteService)
@@ -510,6 +522,18 @@ func buildDatabaseURL(cfg config.DatabaseConfig) string {
 		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name, cfg.SSLMode,
 	)
+}
+
+// resolveConfigPath 解析配置文件相对路径，依次搜索 conf/、../conf/、当前目录
+func resolveConfigPath(path string) string {
+	searchPaths := []string{"./conf", "../conf", "."}
+	for _, dir := range searchPaths {
+		candidate := filepath.Join(dir, path)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return path
 }
 
 func initDB(cfg config.DatabaseConfig) (*gorm.DB, error) {

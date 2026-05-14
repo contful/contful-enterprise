@@ -44,10 +44,10 @@ type SecurityConfig struct {
 	// Algorithm 加密算法
 	Algorithm string `mapstructure:"algorithm"`
 
-	// RSA 密钥对（用于前端登录密码加密传输）
-	// 可通过环境变量 CONTFUL_SECURITY_RSA_PUBKEY / CONTFUL_SECURITY_RSA_PRIVKEY 覆盖
-	RSAPublicKey  string `mapstructure:"rsa_pubkey"`
-	RSAPrivateKey string `mapstructure:"rsa_privkey"`
+	// RSA 密钥对文件路径（用于前端登录密码加密传输）
+	// 相对路径相对于配置文件目录（conf/）
+	RSAPublicKeyPath  string `mapstructure:"rsa_pubkey_path"`
+	RSAPrivateKeyPath string `mapstructure:"rsa_privkey_path"`
 }
 
 // ServerConfig 服务配置
@@ -361,14 +361,13 @@ func (c *Config) PostLoad() {
 	// 审计签名密钥：派生 "audit-signing" info
 	c.Audit.SigningKey = deriveKey(c.Security.Secret, "audit-signing", 32)
 
-	// RSA 密钥对：未配置时自动生成（首次启动会生成，之后从配置/env 加载）
-	if c.Security.RSAPrivateKey == "" || c.Security.RSAPublicKey == "" {
-		pub, priv, err := crypto.GenerateRSAKeyPair()
-		if err != nil {
-			panic(fmt.Sprintf("failed to generate RSA key pair: %v", err))
-		}
-		c.Security.RSAPublicKey = pub
-		c.Security.RSAPrivateKey = priv
+	// RSA 密钥对：从文件读取，未配置时自动生成
+	// 公钥用于 PublicKey 端点，私钥用于密码解密
+	if c.Security.RSAPublicKeyPath == "" {
+		c.Security.RSAPublicKeyPath = "rsa_public.pem"
+	}
+	if c.Security.RSAPrivateKeyPath == "" {
+		c.Security.RSAPrivateKeyPath = "rsa_private.pem"
 	}
 }
 

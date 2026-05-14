@@ -26,6 +26,16 @@
       stripe
       size="medium"
     >
+      <template #role="{ row }">
+        <t-tag v-if="userRoleMap[row.id]" theme="primary" variant="light" size="small">{{ userRoleMap[row.id] }}</t-tag>
+        <t-tag v-else-if="row.is_super_admin" theme="warning" variant="light" size="small">{{ t('users.superAdmin') }}</t-tag>
+        <t-tag v-else variant="light" size="small">{{ t('users.normalUser') }}</t-tag>
+      </template>
+      <template #status="{ row }">
+        <t-tag :theme="(getStatusBadge(row.status || 'unknown') as any)" variant="light" size="small">
+          {{ row.status === 'active' ? t('users.statusActive') : row.status === 'inactive' ? t('users.statusInactive') : row.status === 'suspended' ? t('users.statusBanned') : row.status }}
+        </t-tag>
+      </template>
       <template #operations="{ row }">
         <t-space size="small">
           <t-button variant="outline" size="small" @click="openViewDialog(row)">{{ t('common.view') }}</t-button>
@@ -74,7 +84,7 @@
             v-model="createForm.roleIds"
             :placeholder="t('users.selectRoles')"
             multiple
-            :options="systemRoles.filter(r => !r.is_system || r.name === 'Auditor')"
+            :options="systemRoles"
             :keys="{ label: 'name', value: 'id' }"
             clearable
           />
@@ -114,7 +124,7 @@
             v-model="editForm.roleIds"
             :placeholder="t('users.selectRoles')"
             multiple
-            :options="systemRoles.filter(r => !r.is_system || r.name === 'Auditor')"
+            :options="systemRoles"
             :keys="{ label: 'name', value: 'id' }"
             clearable
           />
@@ -497,7 +507,7 @@ const handleUpdate = async () => {
 }
 
 const handleDelete = (user: User) => {
-  DialogPlugin.confirm({
+  const dlg = DialogPlugin.confirm({
     header: t('users.confirmDeleteUser'),
     body: t('users.deleteConfirmMsg', { email: user.email }),
     theme: 'warning',
@@ -506,6 +516,7 @@ const handleDelete = (user: User) => {
         await userStore.deleteUser(user.id)
         showSuccess(t('users.deleteSuccess'))
         loadUsers()
+        dlg.destroy()
       } catch (error) {
         handleError(error)
       }
@@ -553,35 +564,14 @@ const columns = computed(() => [
   {
     colKey: 'role',
     title: t('users.role'),
-    width: 180,
-    cell: (_h: any, { row }: { row: User }) => {
-      // 如果已缓存该用户的角色名，直接显示
-      const cachedRole = userRoleMap.value[row.id]
-      if (cachedRole) {
-        return h('t-tag', { theme: 'primary', variant: 'light', size: 'small' }, () => cachedRole)
-      }
-      // 超级管理员显示特殊标签
-      if (row.is_super_admin) {
-        return h('t-tag', { theme: 'warning', variant: 'light', size: 'small' }, () => t('users.superAdmin'))
-      }
-      return h('t-tag', { variant: 'light', size: 'small' }, () => t('users.normalUser'))
-    },
+    width: 250,
   },
   {
     colKey: 'status',
     title: t('users.status'),
-    cell: (_h: any, { row }: { row: User }) => {
-      const status = row.status || 'unknown'
-      const theme = getStatusBadge(status)
-      const map: Record<string, string> = {
-        active: t('users.statusActive'),
-        inactive: t('users.statusInactive'),
-        suspended: t('users.statusBanned'),
-      }
-      return h('t-tag', { theme, variant: 'light', size: 'small' }, () => map[status] || status)
-    },
+    width: 80,
   },
-  { colKey: 'created_time', title: t('users.createdTime'), cell: (_h: any, { row }: { row: User }) => formatDate(row.created_time) },
+  { colKey: 'created_time', title: t('users.createdTime'), width: 170, cell: (_h: any, { row }: { row: User }) => formatDate(row.created_time) },
   {
     colKey: 'operations',
     title: t('users.actions'),

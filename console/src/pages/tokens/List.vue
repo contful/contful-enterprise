@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
 import { Dropdown as TDropdown } from 'tdesign-vue-next'
 import {
-  getApiTokens,
+  listApiTokens,
   createApiToken,
   updateApiToken,
   deleteApiToken,
@@ -17,7 +17,7 @@ import {
   exportApiToken,
   type ApiToken,
   type TokenStatus,
-} from '@/api/api-token'
+} from '@/api/token'
 import { showError } from '@/utils/request'
 
 function handleError(err: unknown) {
@@ -49,21 +49,7 @@ const formData = ref({
   name: '',
   description: '',
   expires_in_days: 365,
-  permissions: [] as string[],
-  rate_limit: 1000,
 })
-
-// 权限选项
-const permissionOptions = [
-  { value: 'content:read', labelKey: 'apiTokens.permissionContentRead' },
-  { value: 'content:write', labelKey: 'apiTokens.permissionContentWrite' },
-  { value: 'assets:read', labelKey: 'apiTokens.permissionAssetsRead' },
-  { value: 'assets:write', labelKey: 'apiTokens.permissionAssetsWrite' },
-]
-
-const permissionLabels = computed(() =>
-  permissionOptions.map(opt => ({ ...opt, label: t(opt.labelKey) }))
-)
 
 // 搜索和筛选
 const searchKeyword = ref('')
@@ -93,7 +79,7 @@ const handleSearch = () => {
 const loadTokens = async () => {
   loading.value = true
   try {
-    const res = await getApiTokens({
+    const res = await listApiTokens({
       page: pagination.current,
       page_size: pagination.pageSize,
       name: debouncedKeyword.value || undefined,
@@ -118,7 +104,7 @@ const onPageChange = ({ current, pageSize }: { current: number; pageSize: number
 // 打开创建弹窗
 const openCreateModal = () => {
   editingToken.value = null
-  formData.value = { name: '', description: '', expires_in_days: 365, permissions: [], rate_limit: 1000 }
+  formData.value = { name: '', description: '', expires_in_days: 365 }
   newToken.value = ''
   showModal.value = true
 }
@@ -132,8 +118,6 @@ const openEditModal = (token: ApiToken) => {
     name: token.name,
     description: token.description || '',
     expires_in_days: tok.expires_in_days || 365,
-    permissions: (tok.permissions as string[]) || [],
-    rate_limit: tok.rate_limit || tok.rate_limits?.requests_per_day || 1000,
   }
   newToken.value = ''
   showModal.value = true
@@ -147,8 +131,6 @@ const handleSubmit = async () => {
       await updateApiToken(editingToken.value.id, {
         name: formData.value.name,
         description: formData.value.description,
-        permissions: formData.value.permissions,
-        rate_limit: formData.value.rate_limit,
       })
       MessagePlugin.success(t('apiTokens.updateSuccess') || 'Token updated')
       showModal.value = false
@@ -157,8 +139,6 @@ const handleSubmit = async () => {
         name: formData.value.name,
         description: formData.value.description,
         expires_in_days: formData.value.expires_in_days,
-        permissions: formData.value.permissions,
-        rate_limit: formData.value.rate_limit,
       })
       newToken.value = res.token || ''
       MessagePlugin.success(t('apiTokens.createSuccess'))
@@ -180,7 +160,9 @@ const closeModal = () => {
 // 格式化日期
 const formatDate = (date: string | null | undefined) => {
   if (!date) return t('apiTokens.permanent')
-  return new Date(date).toLocaleDateString()
+  const d = new Date(date)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 // 判断 Token 是否过期
@@ -199,7 +181,7 @@ const getStatusTag = (token: ApiToken): { theme: 'success' | 'warning' | 'danger
 
 // 删除确认 → DialogPlugin.confirm
 const handleDeleteConfirm = (token: ApiToken) => {
-  DialogPlugin.confirm({
+  const dlg = DialogPlugin.confirm({
     header: t('common.confirmDelete'),
     body: t('apiTokens.deleteMsg'),
     theme: 'warning',
@@ -208,6 +190,7 @@ const handleDeleteConfirm = (token: ApiToken) => {
         await deleteApiToken(token.id)
         MessagePlugin.success(t('apiTokens.deleteSuccess'))
         await loadTokens()
+        dlg.destroy()
       } catch (error) {
         handleError(error)
       }
@@ -217,18 +200,22 @@ const handleDeleteConfirm = (token: ApiToken) => {
 
 // 重新生成确认 → DialogPlugin.confirm
 const handleRegenerateConfirm = (token: ApiToken) => {
-  DialogPlugin.confirm({
+  const dlg = DialogPlugin.confirm({
     header: t('apiTokens.regenerateConfirm'),
-    body: `${t('apiTokens.regenerateMsg')}<p style="color:var(--color-error);margin-top:8px">${t('apiTokens.regenerateWarning')}</p>`,
+    body: () => h('div', [
+      h('p', t('apiTokens.regenerateMsg')),
+      h('p', { style: { color: 'var(--color-error)', marginTop: '8px' } }, t('apiTokens.regenerateWarning')),
+    ]),
     theme: 'warning',
     onConfirm: async () => {
       try {
         const res = await regenerateApiToken(token.id)
         newToken.value = res.token || ''
-        editingToken.value = null // 以"显示新token"模式打开主弹窗
-        formData.value = { name: '', description: '', expires_in_days: 365, permissions: [], rate_limit: 1000 }
+        editingToken.value = null
+        formData.value = { name: '', description: '', expires_in_days: 365 }
         showModal.value = true
         await loadTokens()
+        dlg.destroy()
       } catch (error) {
         handleError(error)
       }
@@ -238,15 +225,16 @@ const handleRegenerateConfirm = (token: ApiToken) => {
 
 // 撤销 Token
 const handleRevoke = (token: ApiToken) => {
-  DialogPlugin.confirm({
+  const dlg = DialogPlugin.confirm({
     header: t('apiTokens.revoke'),
-    body: t('apiTokens.revokeWarning') || `${t('apiTokens.revoke')} "${token.name}"?`,
+    body: t('apiTokens.revokeWarning'),
     theme: 'warning',
     onConfirm: async () => {
       try {
         await revokeApiToken(token.id)
         MessagePlugin.success(t('apiTokens.revokeSuccess'))
         await loadTokens()
+        dlg.destroy()
       } catch (error) {
         handleError(error)
       }
@@ -256,9 +244,12 @@ const handleRevoke = (token: ApiToken) => {
 
 // 导出/查看详情 → DialogPlugin.confirm
 const handleExportConfirm = (token: ApiToken) => {
-  DialogPlugin.confirm({
+  const dlg = DialogPlugin.confirm({
     header: t('apiTokens.exportConfirm'),
-    body: `${t('apiTokens.exportMsg')}<p style="color:var(--color-error);margin-top:8px">${t('apiTokens.exportWarningDetail')}</p>`,
+    body: () => h('div', [
+      h('p', t('apiTokens.exportMsg')),
+      h('p', { style: { color: 'var(--color-error)', marginTop: '8px' } }, t('apiTokens.exportWarningDetail')),
+    ]),
     theme: 'info',
     confirmBtn: t('common.confirm') || 'Confirm',
     onConfirm: async () => {
@@ -266,8 +257,9 @@ const handleExportConfirm = (token: ApiToken) => {
         const res = await exportApiToken(token.id)
         newToken.value = res.token || ''
         editingToken.value = null
-        formData.value = { name: '', description: '', expires_in_days: 365, permissions: [], rate_limit: 1000 }
+        formData.value = { name: '', description: '', expires_in_days: 365 }
         showModal.value = true
+        dlg.destroy()
       } catch (error) {
         handleError(error)
       }
@@ -290,32 +282,12 @@ const columns = computed(() => [
   {
     colKey: 'name',
     title: t('apiTokens.tableName'),
-    cell: (h: any, { row }: { row: ApiToken }) => h('div', { class: 'token-info' }, [
-      h('span', { class: 'token-name' }, row.name),
-      row.description ? h('span', { class: 'token-desc' }, row.description) : null,
-    ].filter(Boolean)),
+    width: 160,
   },
   {
-    colKey: 'permissions',
-    title: t('apiTokens.tablePermissions'),
-    cell: (_h2: any, { row }: { row: ApiToken }) => {
-      const tok = row as unknown as Record<string, any>
-      const schemas = tok.permissions?.schemas || []
-      const displayItems = Array.isArray(schemas) ? schemas.slice(0, 2) : []
-      const moreCount = Array.isArray(schemas) ? Math.max(0, schemas.length - 2) : 0
-      return h('div', { class: 'permissions' }, [
-        ...displayItems.map((perm: string) =>
-          h('span', { class: 'perm-badge', key: perm }, perm)
-        ),
-        moreCount > 0 ? h('span', { class: 'perm-more', key: 'more' }, `+${moreCount}`) : null,
-      ].filter(Boolean))
-    },
-  },
-  {
-    colKey: 'rate_limits',
-    title: t('apiTokens.tableRateLimit'),
-    cell: (_h: any, { row }: { row: ApiToken }) =>
-      `${row.rate_limits?.requests_per_day || 0}/${t('apiTokens.rateLimitUnit')}`,
+    colKey: 'description',
+    title: t('apiTokens.description'),
+    cell: (_h: any, { row }: { row: ApiToken }) => row.description || '-',
   },
   {
     colKey: 'expires_time',
@@ -325,10 +297,7 @@ const columns = computed(() => [
   {
     colKey: 'status',
     title: t('apiTokens.tableStatus'),
-    cell: (h: any, { row }: { row: ApiToken }) => {
-      const st = getStatusTag(row)
-      return h('t-tag', { theme: st.theme, variant: 'light', size: 'small' }, () => st.label)
-    },
+    width: 90,
   },
   {
     colKey: 'last_used_time',
@@ -343,12 +312,12 @@ const columns = computed(() => [
   {
     colKey: 'created_time',
     title: t('common.createdAt'),
-    cell: (_h: any, { row }: { row: ApiToken }) => new Date(row.created_time).toLocaleDateString(),
+    cell: (_h: any, { row }: { row: ApiToken }) => formatDate(row.created_time),
   },
   {
     colKey: 'operations',
     title: t('common.actions'),
-    width: 100,
+    width: 420,
   },
 ])
 
@@ -405,6 +374,7 @@ onMounted(() => {
       :loading="loading"
       :pagination="{ current: pagination.current, total: pagination.total, pageSize: pagination.pageSize, showPageSize: false }"
       row-key="id"
+      table-layout="fixed"
       @page-change="onPageChange"
       :empty="() => h('div', { class: 'token-empty' }, [
         h('div', { class: 'empty-icon' }, [
@@ -421,6 +391,11 @@ onMounted(() => {
       stripe
       size="medium"
     >
+      <template #status="{ row }">
+        <t-tag :theme="row.status === 'active' ? 'success' : row.status === 'expired' ? 'warning' : 'danger'" variant="light" size="small">
+          {{ row.status === 'active' ? t('apiTokens.active') : row.status === 'revoked' ? t('apiTokens.revoked') : t('apiTokens.expired') }}
+        </t-tag>
+      </template>
       <template #operations="{ row }">
         <t-space size="small">
           <template v-if="row.status === 'active' && !isExpired(row.expires_time)">
@@ -482,20 +457,6 @@ onMounted(() => {
             { label: `1 ${t('settings.year')}`, value: 365 },
             { label: t('apiTokens.permanent'), value: 0 },
           ]" />
-        </t-form-item>
-
-        <t-form-item :label="t('apiTokens.permissions')">
-          <t-checkbox-group v-model="formData.permissions" :options="permissionLabels.map(o => ({ label: o.label, value: o.value }))" />
-        </t-form-item>
-
-        <t-form-item :label="`${t('apiTokens.rateLimit')} (${t('apiTokens.rateLimitUnit')})`">
-          <t-input-number
-            v-model="formData.rate_limit"
-            :min="100"
-            :max="100000"
-            :step="100"
-            theme="normal"
-          />
         </t-form-item>
       </t-form>
     </t-dialog>

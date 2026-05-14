@@ -32,7 +32,7 @@ WHERE NOT EXISTS (SELECT 1 FROM sites WHERE id = '00000000-0000-0000-0000-000000
 INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000101'::uuid,
-    'Super Admin',
+    '超级管理员',
     '系统超级管理员，拥有全部权限',
     TRUE,
     '["dashboard:read",
@@ -50,7 +50,7 @@ WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000
 INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000102'::uuid,
-    'Plugin Manager',
+    '插件管理员',
     '插件管理员',
     TRUE,
     '["plugins:read", "plugins:write", "plugins:install", "plugins:uninstall"]'::jsonb,
@@ -62,7 +62,7 @@ WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000
 INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000103'::uuid,
-    'Auditor',
+    '审计人员',
     '审计人员，仅可查看和导出审计日志',
     TRUE,
     '["users:read","sites:read","tokens:read",
@@ -121,61 +121,6 @@ VALUES
     ('password_require_special', 'false', 'boolean', '密码必须包含特殊字符', FALSE, NOW(), NOW()),
     ('mfa_enforced', 'false', 'boolean', '是否强制所有用户启用 MFA 双因子认证', FALSE, NOW(), NOW())
 ON CONFLICT (config_key) DO NOTHING;
-
--- =============================================================================
--- 6. 示例内容模型（可选）
--- =============================================================================
-
--- 示例：文章模型
-INSERT INTO schemas (id, site_id, name, slug, description, kind, display_config, api_config, is_active, sort_order, created_time, updated_time)
-SELECT
-    '00000000-0000-0000-0000-000000000201'::uuid,
-    '00000000-0000-0000-0000-000000000001'::uuid,
-    '文章',
-    'posts',
-    '文章内容模型',
-    'collection',
-    '{"icon":"file-text","color":"blue"}'::jsonb,
-    '{"publicRead":false,"publicWrite":false}'::jsonb,
-    TRUE,
-    0,
-    NOW(),
-    NOW()
-WHERE NOT EXISTS (SELECT 1 FROM schemas WHERE id = '00000000-0000-0000-0000-000000000201'::uuid);
-
--- 示例字段：标题
-INSERT INTO fields (id, schema_id, name, label, description, field_type, config, validation, display, sort_order, created_time, updated_time)
-SELECT
-    '00000000-0000-0000-0000-000000000301'::uuid,
-    '00000000-0000-0000-0000-000000000201'::uuid,
-    'title',
-    '标题',
-    '文章标题',
-    'text',
-    '{"maxLength":200}'::jsonb,
-    '{"required":true,"minLength":1,"maxLength":200}'::jsonb,
-    '{"placeholder":"请输入标题"}'::jsonb,
-    0,
-    NOW(),
-    NOW()
-WHERE NOT EXISTS (SELECT 1 FROM fields WHERE id = '00000000-0000-0000-0000-000000000301'::uuid);
-
--- 示例字段：内容
-INSERT INTO fields (id, schema_id, name, label, description, field_type, config, validation, display, sort_order, created_time, updated_time)
-SELECT
-    '00000000-0000-0000-0000-000000000302'::uuid,
-    '00000000-0000-0000-0000-000000000201'::uuid,
-    'content',
-    '内容',
-    '文章正文',
-    'rich_text',
-    '{}'::jsonb,
-    '{"required":true}'::jsonb,
-    '{}'::jsonb,
-    1,
-    NOW(),
-    NOW()
-WHERE NOT EXISTS (SELECT 1 FROM fields WHERE id = '00000000-0000-0000-0000-000000000302'::uuid);
 
 -- =============================================================================
 -- 完成提示

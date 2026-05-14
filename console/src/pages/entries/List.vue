@@ -218,7 +218,7 @@ const handlePublish = async (entry: Entry) => {
 // 删除确认 — 显示具体 Entry 名称
 const confirmDelete = (entry: Entry) => {
   const entryTitle = entry.values?.title || entry.id.slice(0, 8)
-  DialogPlugin.confirm({
+  const dialog = DialogPlugin.confirm({
     header: t('common.confirmDelete'),
     body: `${t('content.confirmDelete')}「${entryTitle}」？`,
     theme: 'warning',
@@ -228,6 +228,7 @@ const confirmDelete = (entry: Entry) => {
         showSuccess(t('content.deleteSuccess'))
         loadEntries()
         loadEntryCounts()
+        dialog.destroy()
       } catch (error) {
         handleError(error)
       }
@@ -273,7 +274,7 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
     bodyText = t('content.batchActionMsg', { action: labels[action], count })
   }
 
-  DialogPlugin.confirm({
+  const dlg = DialogPlugin.confirm({
     header: t('common.confirmAction', { action: labels[action] }),
     body: bodyText,
     theme: action === 'delete' ? 'warning' : 'info',
@@ -300,6 +301,7 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
         selectedIds.value = new Set()
         loadEntries()
         loadEntryCounts()
+        dlg.destroy()
       } catch (error) {
         handleError(error)
       } finally {
@@ -393,27 +395,7 @@ onMounted(() => {
     <PageHeader
       :title="t('content.title')"
       :subtitle="t('content.subtitle')"
-      :show-refresh="true"
-      @refresh="loadEntries"
-    >
-      <template #actions>
-        <t-button
-          variant="outline"
-          :disabled="cacheLoading"
-          :title="t('content.clearCacheHint')"
-          :loading="cacheLoading"
-          @click="handleClearCache"
-        >
-          {{ t('content.clearCache') }}
-        </t-button>
-      </template>
-      <template #primary-action>
-        <t-button theme="primary" @click="openCreateModal">
-          <template #icon><t-icon name="add" /></template>
-          {{ t('content.createEntry') }}
-        </t-button>
-      </template>
-    </PageHeader>
+    />
 
     <div class="content-layout">
       <!-- 无站点提示 -->
@@ -507,6 +489,23 @@ onMounted(() => {
             </div>
 
             <div class="toolbar-right">
+              <t-button variant="outline" @click="loadEntries">
+                <template #icon><t-icon name="refresh" /></template>
+                {{ t('common.refresh') }}
+              </t-button>
+              <t-button
+                variant="outline"
+                :disabled="cacheLoading"
+                :title="t('content.clearCacheHint')"
+                :loading="cacheLoading"
+                @click="handleClearCache"
+              >
+                {{ t('content.clearCache') }}
+              </t-button>
+              <t-button theme="primary" @click="openCreateModal">
+                <template #icon><t-icon name="add" /></template>
+                {{ t('content.createEntry') }}
+              </t-button>
               <!-- 批量操作 -->
               <div v-if="hasSelected" class="batch-actions">
                 <span class="selected-count">{{ t('common.selectedCount', { count: selectedCount }) }}</span>

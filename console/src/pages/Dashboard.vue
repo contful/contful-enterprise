@@ -188,7 +188,6 @@ const quickActions = computed(() => {
 <style scoped>
 .dashboard {
   width: 100%;
-  max-width: 960px;
 }
 
 .stats-grid {
@@ -248,14 +247,15 @@ const quickActions = computed(() => {
 }
 
 .actions-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 
 .action-item {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 12px 20px;
   background: transparent;

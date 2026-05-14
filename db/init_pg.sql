@@ -754,11 +754,6 @@ CREATE TABLE tokens (
     token_prefix VARCHAR(20) NOT NULL,
     token_hash VARCHAR(64) NOT NULL UNIQUE,
     encrypted_token TEXT NOT NULL,
-    scopes JSONB NOT NULL DEFAULT '["read"]'::jsonb,
-    site_scope JSONB NOT NULL DEFAULT '["*"]'::jsonb,
-    allowed_ips INET,
-    rate_limit INT NOT NULL DEFAULT 60,
-    request_count BIGINT NOT NULL DEFAULT 0,
     expires_time TIMESTAMPTZ,
     status token_status NOT NULL DEFAULT 'active',
     last_used_time TIMESTAMPTZ,
@@ -784,19 +779,14 @@ COMMENT ON COLUMN tokens.id IS 'Token 唯一标识符';
 COMMENT ON COLUMN tokens.site_id IS '所属站点';
 COMMENT ON COLUMN tokens.name IS 'Token 名称';
 COMMENT ON COLUMN tokens.description IS 'Token 描述';
-COMMENT ON COLUMN tokens.token_prefix IS 'Token 前缀（显示用）';
-COMMENT ON COLUMN tokens.token_hash IS 'Token 哈希（验证用）';
-COMMENT ON COLUMN tokens.encrypted_token IS '加密存储的完整 Token';
-COMMENT ON COLUMN tokens.scopes IS '权限范围 JSON 数组';
-COMMENT ON COLUMN tokens.site_scope IS '站点范围 JSON 数组';
-COMMENT ON COLUMN tokens.allowed_ips IS '允许的 IP 地址';
-COMMENT ON COLUMN tokens.rate_limit IS '速率限制（每分钟）';
-COMMENT ON COLUMN tokens.request_count IS '请求计数';
-COMMENT ON COLUMN tokens.expires_time IS '过期时间';
-COMMENT ON COLUMN tokens.status IS '状态：active/expired/revoked';
+COMMENT ON COLUMN tokens.token_prefix IS 'Token 前缀（ctf_，显示用，10 字符）';
+COMMENT ON COLUMN tokens.token_hash IS 'Token 哈希（SHA-256，验证用）';
+COMMENT ON COLUMN tokens.encrypted_token IS '加密存储的完整 Token（AES-256-GCM）';
+COMMENT ON COLUMN tokens.expires_time IS '过期时间（NULL 表示永不过期）';
+COMMENT ON COLUMN tokens.status IS '状态：active / expired / revoked';
 COMMENT ON COLUMN tokens.last_used_time IS '最后使用时间';
 COMMENT ON COLUMN tokens.last_used_ip IS '最后使用 IP';
-COMMENT ON COLUMN tokens.created_by IS '创建者';
+COMMENT ON COLUMN tokens.created_by IS '创建者用户 ID';
 COMMENT ON COLUMN tokens.created_time IS '创建时间';
 COMMENT ON COLUMN tokens.updated_time IS '更新时间';
 COMMENT ON COLUMN tokens.deleted_time IS '软删除时间';
