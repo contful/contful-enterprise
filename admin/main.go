@@ -213,12 +213,17 @@ func main() {
 			// MFA 登录步骤 2（无需 JWT，但受限流保护）
 			auth.POST("/mfa/verify", mfaHandler.Verify)
 			auth.POST("/mfa/recover", mfaHandler.Recover)
-		}
+	}
 
-		// 需要认证的路由
-		protected := api.Group("")
-		protected.Use(middleware.JWTAuth(authHandler))
-		{
+	// ─── 系统配置（公开，无需认证，登录/注册页使用）─────────
+	// 注意：必须在 protected 组之前注册，避免 :key 通配符路由冲突
+	api.GET("/system/config/site", systemConfigHandler.GetSiteConfig)
+	api.GET("/system/config/public", systemConfigHandler.GetPublicConfig)
+
+	// 需要认证的路由
+	protected := api.Group("")
+	protected.Use(middleware.JWTAuth(authHandler))
+	{
 			// 认证相关
 			protected.POST("/auth/logout", authHandler.Logout)
 
@@ -462,11 +467,6 @@ func main() {
 				systemRoleHandler.Delete)
 
 			// ─── 系统配置管理 ─────────────────────────
-			// 公开配置（无需认证，登录/注册页使用）
-			// 注意：必须注册在 protected 组之前，避免 :key 通配符路由拦截
-			api.GET("/system/config/site", systemConfigHandler.GetSiteConfig)
-			api.GET("/system/config/public", systemConfigHandler.GetPublicConfig)
-
 			// 需要认证的路由
 			protected.GET("/system/config",
 				middleware.RequirePermission(rbacService, "settings:read"),
