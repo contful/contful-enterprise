@@ -3,18 +3,9 @@
   <PageHeader
     :title="t('settings.systemConfig')"
     :subtitle="t('settings.systemConfigDesc')"
-    :show-refresh="true"
-    @refresh="loadConfigs"
-  >
-    <template #primary-action>
-      <t-button theme="primary" @click="openCreateDialog">
-        <template #icon><t-icon name="add" /></template>
-        {{ t('settings.addConfig') }}
-      </t-button>
-    </template>
-  </PageHeader>
+  />
 
-  <!-- 搜索栏 -->
+  <!-- 工具栏 -->
   <div class="toolbar">
     <t-input
       v-model="keyword"
@@ -26,9 +17,19 @@
         <t-icon name="search" />
       </template>
     </t-input>
-    <t-button variant="outline" :loading="clearingCache" @click="handleClearCache">
-      {{ t('settings.clearCache') }}
-    </t-button>
+    <t-space>
+      <t-button variant="outline" :loading="clearingCache" theme="warning" @click="handleClearCache">
+        {{ t('settings.clearCache') }}
+      </t-button>
+      <t-button variant="outline" @click="loadConfigs">
+        <template #icon><t-icon name="refresh" /></template>
+        {{ t('common.refresh') }}
+      </t-button>
+      <t-button theme="primary" @click="openCreateDialog">
+        <template #icon><t-icon name="add" /></template>
+        {{ t('settings.addConfig') }}
+      </t-button>
+    </t-space>
   </div>
 
   <!-- 配置列表 -->
@@ -348,6 +349,9 @@ onMounted(() => {
 
 <style scoped>
 .toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
 }
 
