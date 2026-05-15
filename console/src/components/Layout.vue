@@ -40,7 +40,7 @@ const creating = ref(false)
 const MENU_PERMISSION_MAP: Record<string, string> = {
   '/': 'dashboard:read',
   '/sites': 'sites:read',
-  '/content/schemas': 'content_schema:read',
+  '/content/schemas': 'schema:read',
   '/content/entries': 'entry:read',
   '/assets': 'asset:read',
   '/users': 'users:read',

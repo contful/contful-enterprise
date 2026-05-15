@@ -307,43 +307,43 @@ func main() {
 
 			// 内容类型管理 (REST: /content/schemas)
 			protected.GET("/content/schemas",
-				middleware.RequirePermission(rbacService, "content_schema:read"),
+				middleware.RequirePermission(rbacService, "schema:read"),
 				schemaHandler.List)
 			protected.POST("/content/schemas",
-				middleware.RequirePermission(rbacService, "content_schema:write"),
+				middleware.RequirePermission(rbacService, "schema:write"),
 				schemaHandler.Create)
 			protected.GET("/content/schemas/:id",
-				middleware.RequirePermission(rbacService, "content_schema:read"),
+				middleware.RequirePermission(rbacService, "schema:read"),
 				schemaHandler.Get)
 			protected.PUT("/content/schemas/:id",
-				middleware.RequirePermission(rbacService, "content_schema:write"),
+				middleware.RequirePermission(rbacService, "schema:write"),
 				schemaHandler.Update)
 			protected.DELETE("/content/schemas/:id",
-				middleware.RequirePermission(rbacService, "content_schema:delete"),
+				middleware.RequirePermission(rbacService, "schema:delete"),
 				schemaHandler.Delete)
 			protected.POST("/content/schemas/:id/fields",
-				middleware.RequirePermission(rbacService, "content_schema:write"),
+				middleware.RequirePermission(rbacService, "schema:write"),
 				schemaHandler.CreateField)
 			protected.GET("/content/schemas/:id/fields",
-				middleware.RequirePermission(rbacService, "content_schema:read"),
+				middleware.RequirePermission(rbacService, "schema:read"),
 				schemaHandler.ListFields)
 			// 字段操作（嵌套在 :id 之下，避免与 /content/schemas/:id 冲突）
 			protected.PUT("/content/schemas/:id/fields/:fieldId",
-				middleware.RequirePermission(rbacService, "content_schema:write"),
+				middleware.RequirePermission(rbacService, "schema:write"),
 				schemaHandler.UpdateField)
 			protected.DELETE("/content/schemas/:id/fields/:fieldId",
-				middleware.RequirePermission(rbacService, "content_schema:delete"),
+				middleware.RequirePermission(rbacService, "schema:delete"),
 				schemaHandler.DeleteField)
 			protected.POST("/content/schemas/:id/fields/reorder",
-				middleware.RequirePermission(rbacService, "content_schema:write"),
+				middleware.RequirePermission(rbacService, "schema:write"),
 				schemaHandler.ReorderFields)
 
 			// 内容模型数据签名/验签
 			protected.POST("/content/schemas/:id/sign",
-				middleware.RequirePermission(rbacService, "content_schema:write"),
+				middleware.RequirePermission(rbacService, "schema:write"),
 				schemaHandler.Sign)
 			protected.POST("/content/schemas/:id/verify",
-				middleware.RequirePermission(rbacService, "content_schema:read"),
+				middleware.RequirePermission(rbacService, "schema:read"),
 				schemaHandler.Verify)
 
 			// 内容管理 (REST: /content/entries)

@@ -73,7 +73,7 @@ SELECT * FROM (VALUES
     ('00000000-0000-0000-0000-000000000305'::uuid, 'settings',       '系统设置',   'System Settings',  4),
     ('00000000-0000-0000-0000-000000000306'::uuid, 'audit',          '审计日志',   'Audit Logs',     5),
     ('00000000-0000-0000-0000-000000000307'::uuid, 'roles',          '角色管理',   'Role Management', 6),
-    ('00000000-0000-0000-0000-000000000308'::uuid, 'content_schema', '内容模型',   'Content Schemas', 7),
+    ('00000000-0000-0000-0000-000000000308'::uuid, 'schema', '内容模型',   'Content Schemas', 7),
     ('00000000-0000-0000-0000-000000000309'::uuid, 'entry',          '内容条目',   'Entries',        8),
     ('00000000-0000-0000-0000-000000000310'::uuid, 'asset',          '媒体文件',   'Assets',         9)
 ) AS t(id, group_key, label, label_en, sort_order)

@@ -171,7 +171,7 @@ func matchPermission(perms []string, required string) bool {
 		if p == required {
 			return true
 		}
-		// 通配符匹配：content_schema:* 可以匹配 content_schema:read
+		// 通配符匹配：schema:* 可以匹配 schema:read
 		if strings.HasSuffix(p, ":*") {
 			prefix := strings.TrimSuffix(p, ":*")
 			if strings.HasPrefix(required, prefix+":") {
@@ -380,7 +380,7 @@ func (s *RBACService) fallbackPermissionsMeta() map[string]interface{} {
 		"audit":          map[string]string{"read": "查看审计日志", "export": "导出审计日志"},
 		"roles":          map[string]string{"read": "查看角色", "write": "管理角色", "delete": "删除角色"},
 		"dashboard":      map[string]string{"read": "查看仪表盘"},
-		"content_schema": map[string]string{"read": "查看模型", "write": "管理模型", "delete": "删除模型"},
+		"schema": map[string]string{"read": "查看模型", "write": "管理模型", "delete": "删除模型"},
 		"entry":          map[string]string{"read": "查看条目", "write": "编辑条目", "publish": "发布", "delete": "删除条目"},
 		"asset":          map[string]string{"read": "查看文件", "write": "管理文件", "delete": "删除文件"},
 	}

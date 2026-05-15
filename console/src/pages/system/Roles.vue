@@ -191,7 +191,7 @@ function permGroupLabel(key: string) {
     audit: t('roles.perm.audit'),
     roles: t('roles.perm.roles'),
     dashboard: t('roles.perm.dashboard'),
-    content_schema: t('roles.perm.contentSchema'),
+    schema: t('roles.perm.contentSchema'),
     entry: t('roles.perm.entry'),
     asset: t('roles.perm.asset'),
   }

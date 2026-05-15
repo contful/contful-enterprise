@@ -16,7 +16,7 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/dashboard': 'dashboard:read',
   '/users': 'users:read',
   '/sites': 'sites:read',
-  '/content/schemas': 'content_schema:read',
+  '/content/schemas': 'schema:read',
   '/content/entries': 'entry:read',
   '/assets': 'asset:read',
   '/tokens': 'tokens:read',
