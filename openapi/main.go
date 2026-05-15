@@ -148,7 +148,7 @@ func main() {
 		idStr := c.Param("id")
 		entryID, err := parseUUID(idStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid id"))
+			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid id, expected UUID format (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"))
 			return
 		}
 

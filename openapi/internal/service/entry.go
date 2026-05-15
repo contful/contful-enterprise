@@ -97,9 +97,11 @@ func (s *EntryService) ListBySlug(ctx context.Context, siteID uuid.UUID, slug st
 		PageSize: pageSize,
 	}
 
-	// 5. 写入缓存
-	if err := s.cacheSvc.Set(ctx, cacheKey, resp); err != nil {
-		log.Printf("[Cache] Set failed: %v", err)
+	// 5. 写入缓存（跳过空结果，避免缓存穿透导致新发布内容不可见）
+	if total > 0 {
+		if err := s.cacheSvc.Set(ctx, cacheKey, resp); err != nil {
+			log.Printf("[Cache] Set failed: %v", err)
+		}
 	}
 
 	return resp, nil

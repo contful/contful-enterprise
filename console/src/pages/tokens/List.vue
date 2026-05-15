@@ -292,6 +292,7 @@ const columns = computed(() => [
   {
     colKey: 'expires_time',
     title: t('apiTokens.tableExpires'),
+    width: 190,
     cell: (_h: any, { row }: { row: ApiToken }) => formatDate(row.expires_time),
   },
   {
@@ -306,12 +307,13 @@ const columns = computed(() => [
       const tok = row as unknown as Record<string, any>
       const time = tok.last_used_time
       if (!time) return h('span', { style: 'color: var(--color-text-placeholder)' }, '—')
-      return new Date(time).toLocaleDateString()
+      return formatDate(time)
     },
   },
   {
     colKey: 'created_time',
     title: t('common.createdAt'),
+    width: 190,
     cell: (_h: any, { row }: { row: ApiToken }) => formatDate(row.created_time),
   },
   {
