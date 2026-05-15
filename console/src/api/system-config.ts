@@ -2,23 +2,27 @@ import request from '@/utils/request'
 import type { PasswordPolicy, SystemConfig } from '@/types/system-config'
 
 // 获取密码策略（公开 API，无需认证）
-export const getPasswordPolicy = (): Promise<PasswordPolicy> => {
-  return request.get('/system/config/password/policy')
+export const getPasswordPolicy = async (): Promise<PasswordPolicy> => {
+  const res = await request.get('/system/config/password/policy')
+  return (res as any).data
 }
 
 // 获取公开配置
-export const getPublicConfig = (): Promise<Record<string, string>> => {
-  return request.get('/system/config/public')
+export const getPublicConfig = async (): Promise<Record<string, string>> => {
+  const res = await request.get('/system/config/public')
+  return (res as any).data
 }
 
 // 获取所有配置（需要 settings:read 权限）
-export const getSystemConfigs = (): Promise<SystemConfig[]> => {
-  return request.get('/system/config')
+export const getSystemConfigs = async (): Promise<SystemConfig[]> => {
+  const res = await request.get('/system/config')
+  return (res as any).data
 }
 
 // 获取单个配置
-export const getSystemConfig = (key: string): Promise<SystemConfig> => {
-  return request.get(`/system/config/${key}`)
+export const getSystemConfig = async (key: string): Promise<SystemConfig> => {
+  const res = await request.get(`/system/config/${key}`)
+  return (res as any).data
 }
 
 // 更新配置（需要 settings:write 权限）
