@@ -291,7 +291,7 @@ onMounted(() => {
       :cancel-btn="{ content: t('common.cancel') }"
       :close-on-overlay-click="true"
       :close-on-esc-keydown="true"
-      :on-confirm="submitForm"
+      @confirm="submitForm"
     >
       <t-form :data="formData" :rules="formRules" label-align="left" :label-width="100">
         <t-form-item :label="t('common.name')" name="name">

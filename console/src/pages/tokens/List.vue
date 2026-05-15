@@ -418,8 +418,8 @@ onMounted(() => {
       :width="520"
       :confirm-btn="newToken ? { content: t('common.close'), theme: 'default', variant: 'outline' as const } : { content: editingToken ? t('common.save') : t('common.create'), theme: 'primary' as const, loading: submitting }"
       :cancel-btn="!!newToken"
-      :on-confirm="newToken ? closeModal : handleSubmit"
-      :on-close="closeModal"
+      @confirm="newToken ? closeModal() : handleSubmit()"
+      @close="closeModal"
     >
       <!-- 新 Token 显示区 -->
       <div v-if="newToken" class="new-token-display">
