@@ -483,6 +483,9 @@ func main() {
 			protected.DELETE("/system/config/:key",
 				middleware.RequirePermission(rbacService, "settings:write"),
 				systemConfigHandler.Delete)
+			protected.POST("/system/config/cache/clear",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				systemConfigHandler.ClearCache)
 
 			// ─── 权限元数据 ─────────────────────────────
 			protected.GET("/permissions",

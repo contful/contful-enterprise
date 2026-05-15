@@ -216,3 +216,18 @@ func (r *SystemConfigRepository) Delete(ctx context.Context, key string) error {
 	}
 	return nil
 }
+
+// ClearCache 清除所有 system_config 的 Redis 缓存
+func (r *SystemConfigRepository) ClearCache(ctx context.Context) error {
+	if r.redis == nil {
+		return nil
+	}
+	keys, err := r.redis.Keys(context.Background(), configCachePrefix+"*").Result()
+	if err != nil {
+		return err
+	}
+	if len(keys) > 0 {
+		return r.redis.Del(context.Background(), keys...).Err()
+	}
+	return nil
+}

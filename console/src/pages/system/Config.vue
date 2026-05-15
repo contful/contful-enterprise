@@ -26,6 +26,9 @@
         <t-icon name="search" />
       </template>
     </t-input>
+    <t-button variant="outline" :loading="clearingCache" @click="handleClearCache">
+      {{ t('settings.clearCache') }}
+    </t-button>
   </div>
 
   <!-- 配置列表 -->
@@ -176,7 +179,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import PageHeader from '@/components/PageHeader.vue'
-import { getSystemConfigs, updateSystemConfig, createSystemConfig, deleteSystemConfig } from '@/api/system-config'
+import { getSystemConfigs, updateSystemConfig, createSystemConfig, deleteSystemConfig, clearSystemConfigCache } from '@/api/system-config'
 import type { SystemConfig } from '@/types/system/config'
 
 const { t } = useI18n()
@@ -184,6 +187,7 @@ const { t } = useI18n()
 const loading = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
+const clearingCache = ref(false)
 const configs = ref<SystemConfig[]>([])
 const keyword = ref('')
 const dialogVisible = ref(false)
@@ -322,6 +326,18 @@ const handleDelete = async () => {
     MessagePlugin.error(error?.response?.data?.msg || t('settings.cannotDeleteSystem'))
   } finally {
     deleting.value = false
+  }
+}
+
+const handleClearCache = async () => {
+  clearingCache.value = true
+  try {
+    await clearSystemConfigCache()
+    MessagePlugin.success(t('common.success'))
+  } catch (error: any) {
+    MessagePlugin.error(error?.response?.data?.msg || t('common.error'))
+  } finally {
+    clearingCache.value = false
   }
 }
 

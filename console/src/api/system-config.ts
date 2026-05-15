@@ -70,3 +70,8 @@ export const createSystemConfig = async (data: Partial<SystemConfig>): Promise<S
 export const deleteSystemConfig = (key: string): Promise<void> => {
   return request.delete(`/system/config/${key}`)
 }
+
+// 清除 Redis 缓存
+export const clearSystemConfigCache = (): Promise<void> => {
+  return request.post('/system/config/cache/clear')
+}

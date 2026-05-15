@@ -18,6 +18,7 @@
     "status": "Status",
     "description": "Description",
     "actions": "Actions",
+    "selectPlaceholder": "Select",
     "edit": "Edit",
     "create": "Create",
     "update": "Update",
@@ -698,6 +699,7 @@
     "customConfigTag": "Custom",
     "configKeyPlaceholder": "Config key, e.g. custom_feature_enabled",
     "configValuePlaceholder": "Enter config value",
+    "clearCache": "Clear Cache",
     "edit": "Edit",
     "operation": "Operation"
   },

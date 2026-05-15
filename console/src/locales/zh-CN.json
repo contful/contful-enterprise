@@ -18,6 +18,7 @@
     "status": "状态",
     "description": "描述",
     "actions": "操作",
+    "selectPlaceholder": "请选择",
     "edit": "编辑",
     "create": "创建",
     "update": "更新",
@@ -705,6 +706,7 @@
     "customConfigTag": "自定义",
     "configKeyPlaceholder": "请输入配置键名，如 custom_feature_enabled",
     "configValuePlaceholder": "请输入配置值",
+    "clearCache": "清除缓存",
     "edit": "编辑",
     "operation": "操作"
   },

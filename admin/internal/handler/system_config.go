@@ -188,6 +188,15 @@ func (h *SystemConfigHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "config deleted"}))
 }
 
+// ClearCache 清除所有系统配置的 Redis 缓存
+func (h *SystemConfigHandler) ClearCache(c *gin.Context) {
+	if err := h.configRepo.ClearCache(c.Request.Context()); err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "failed to clear cache"))
+		return
+	}
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "cache cleared"}))
+}
+
 // validateValue 验证配置值是否符合类型
 func (h *SystemConfigHandler) validateValue(value string, valueType string) bool {
 	switch valueType {
