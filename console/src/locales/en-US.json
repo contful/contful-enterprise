@@ -427,7 +427,18 @@
     "resetPasswordSuccess": "Password reset successfully",
     "resetPasswordFailed": "Failed to reset password",
     "assignRoles": "Assign Roles",
-    "selectRoles": "Select system roles"
+    "selectRoles": "Select system roles",
+    "sign": "Sign",
+    "signSuccess": "Signature updated",
+    "signFailed": "Signature failed",
+    "verify": "Verify",
+    "verifyResult": "Verification Result",
+    "verifyStatus": "Status",
+    "verifyPass": "Valid",
+    "verifyFail": "Invalid",
+    "verifyAlgorithm": "Algorithm",
+    "verifySignature": "Signature",
+    "verifyFailed": "Verification failed"
   },
   "apiTokens": {
     "title": "API Tokens",

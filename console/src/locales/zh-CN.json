@@ -428,7 +428,18 @@
     "resetPasswordSuccess": "密码重置成功",
     "resetPasswordFailed": "密码重置失败",
     "assignRoles": "分配角色",
-    "selectRoles": "请选择系统角色"
+    "selectRoles": "请选择系统角色",
+    "sign": "签名",
+    "signSuccess": "签名成功",
+    "signFailed": "签名失败",
+    "verify": "验签",
+    "verifyResult": "验签结果",
+    "verifyStatus": "验签状态",
+    "verifyPass": "通过",
+    "verifyFail": "未通过",
+    "verifyAlgorithm": "签名算法",
+    "verifySignature": "签名值",
+    "verifyFailed": "验签失败"
   },
   "apiTokens": {
     "title": "API Token",

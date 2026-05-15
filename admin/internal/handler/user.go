@@ -341,3 +341,43 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(nil))
 }
+
+// Sign 对用户数据重新签名
+// POST /users/:id/sign
+func (h *UserHandler) Sign(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	if err := h.userService.SignUser(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "签名成功"}))
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeUser, "user:sign",
+			service.WithResource("user", id))
+	}
+}
+
+// Verify 验签用户数据
+// POST /users/:id/verify
+func (h *UserHandler) Verify(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	result, err := h.userService.VerifyUser(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(result))
+}

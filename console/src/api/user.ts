@@ -82,3 +82,20 @@ export function updatePassword(id: string, oldPassword: string, newPassword: str
 export function resetPassword(id: string, newPassword: string) {
   return post<void>(`/users/${id}/reset-password`, { new_password: newPassword })
 }
+
+// 数据签名/验签
+export interface VerifyResult {
+  valid: boolean
+  algorithm: string
+  signature: string
+  payload: string
+  reason?: string
+}
+
+export function signUser(id: string) {
+  return post(`/users/${id}/sign`)
+}
+
+export function verifyUser(id: string) {
+  return post<VerifyResult>(`/users/${id}/verify`)
+}

@@ -284,6 +284,14 @@ func main() {
 				middleware.RequirePermission(rbacService, "users:write"),
 				userHandler.ResetPassword)
 
+			// 用户数据签名/验签
+			protected.POST("/users/:id/sign",
+				middleware.RequirePermission(rbacService, "users:write"),
+				userHandler.Sign)
+			protected.POST("/users/:id/verify",
+				middleware.RequirePermission(rbacService, "users:read"),
+				userHandler.Verify)
+
 			// 用户-角色关联管理
 			protected.GET("/users/:id/roles",
 				middleware.RequirePermission(rbacService, "roles:read"),

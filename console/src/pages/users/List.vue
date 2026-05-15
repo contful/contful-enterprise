@@ -40,6 +40,8 @@
         <t-space size="small">
           <t-button variant="outline" size="small" @click="openViewDialog(row)">{{ t('common.view') }}</t-button>
           <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
+          <t-button variant="outline" size="small" theme="warning" :loading="signingId === row.id" @click="handleSign(row)">{{ t('users.sign') }}</t-button>
+          <t-button variant="outline" size="small" :loading="verifyingId === row.id" @click="handleVerify(row)">{{ t('users.verify') }}</t-button>
           <t-button v-if="userStore.user?.is_super_admin && row.id !== userStore.user?.id" variant="outline" size="small" @click="openResetPasswordDialog(row)">{{ t('users.resetPassword') }}</t-button>
           <t-button theme="danger" variant="outline" size="small" :disabled="row.is_super_admin" @click="handleDelete(row)">{{ t('common.delete') }}</t-button>
         </t-space>
@@ -228,6 +230,7 @@ function handleError(err: unknown) {
 }
 import PageHeader from '@/components/PageHeader.vue'
 import { resetPassword } from '@/api/user'
+import { signUser, verifyUser } from '@/api/user'
 import { listSystemRoles, getUserRoles, assignUserRole, removeUserRole } from '@/api/rbac'
 import type { SystemRole } from '@/api/rbac'
 
@@ -311,6 +314,8 @@ const resetPwdVisible = ref(false)
 const resetting = ref(false)
 const resetPwdError = ref('')
 const resetTargetUserId = ref('')
+const signingId = ref('')
+const verifyingId = ref('')
 const resetPwdForm = reactive({
   newPassword: '',
   confirmPassword: '',
@@ -550,6 +555,44 @@ const handleResetPassword = async () => {
   }
 }
 
+const handleSign = async (user: User) => {
+  signingId.value = user.id
+  try {
+    await signUser(user.id)
+    showSuccess(t('users.signSuccess'))
+  } catch (error: any) {
+    showError(error?.response?.data?.msg || t('users.signFailed'))
+  } finally {
+    signingId.value = ''
+  }
+}
+
+const handleVerify = async (user: User) => {
+  verifyingId.value = user.id
+  try {
+    const res: any = await verifyUser(user.id)
+    const result = res.data
+    const dialog = DialogPlugin.alert({
+      header: t('users.verifyResult'),
+      body: h('div', { style: 'line-height:2' }, [
+        h('p', [
+          h('strong', t('users.verifyStatus') + '：'),
+          h('span', { style: `color:${result.valid ? 'var(--td-success-color)' : 'var(--td-error-color)'};font-weight:bold` },
+            result.valid ? t('users.verifyPass') : t('users.verifyFail')),
+        ]),
+        h('p', [h('strong', t('users.verifyAlgorithm') + '：'), result.algorithm || '-']),
+        h('p', [h('strong', t('users.verifySignature') + '：'), h('code', { style: 'font-size:12px;word-break:break-all' }, result.signature || '-')]),
+        result.reason ? h('p', { style: 'color:var(--td-error-color)' }, result.reason) : null,
+      ]),
+      confirmBtn: t('common.close'),
+    })
+  } catch (error: any) {
+    showError(error?.response?.data?.msg || t('users.verifyFailed'))
+  } finally {
+    verifyingId.value = ''
+  }
+}
+
 // t-table columns
 const columns = computed(() => [
   {
@@ -575,7 +618,7 @@ const columns = computed(() => [
   {
     colKey: 'operations',
     title: t('users.actions'),
-    width: 320,
+    width: 440,
   },
 ])
 

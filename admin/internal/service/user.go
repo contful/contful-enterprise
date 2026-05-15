@@ -5,9 +5,11 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 	"golang.org/x/crypto/bcrypt"
@@ -258,5 +260,67 @@ func toUserResponse(u *model.SystemUser) *model.UserResponse {
 		resp.DeletedAt = &u.DeletedAt.Time
 	}
 	return resp
+}
+
+// VerifyUserResult 用户验签结果
+type VerifyUserResult struct {
+	Valid     bool   `json:"valid"`
+	Algorithm string `json:"algorithm"`
+	Signature string `json:"signature"`
+	Payload   string `json:"payload"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+// SignUser 对用户数据重新签名
+func (s *UserService) SignUser(ctx context.Context, id uuid.UUID) error {
+	user, err := s.userRepo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	signer := audit.GetSigner(ctx)
+	if signer == nil {
+		return errors.New("数据签名器未启用")
+	}
+
+	payload := CanonicalSystemUserPayload(user.Email, user.PasswordHash, user.Nickname, string(user.Status), user.IsSuperAdmin)
+	sig, err := signer.Sign("system_users", user.ID, payload)
+	if err != nil {
+		return fmt.Errorf("签名失败: %w", err)
+	}
+
+	user.DataSignature = sig
+	return s.userRepo.Update(ctx, user)
+}
+
+// VerifyUser 验签用户数据
+func (s *UserService) VerifyUser(ctx context.Context, id uuid.UUID) (*VerifyUserResult, error) {
+	user, err := s.userRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	signer := audit.GetSigner(ctx)
+	if signer == nil {
+		return &VerifyUserResult{Valid: false, Reason: "数据签名器未启用"}, nil
+	}
+
+	payload := CanonicalSystemUserPayload(user.Email, user.PasswordHash, user.Nickname, string(user.Status), user.IsSuperAdmin)
+
+	valid, err := signer.Verify("system_users", user.ID, payload, user.DataSignature)
+	if err != nil {
+		return nil, fmt.Errorf("验签失败: %w", err)
+	}
+
+	result := &VerifyUserResult{
+		Valid:     valid,
+		Algorithm: signer.Algorithm(),
+		Signature: user.DataSignature,
+		Payload:   payload,
+	}
+	if !valid {
+		result.Reason = "数据签名不匹配，数据可能已被篡改"
+	}
+	return result, nil
 }
 
