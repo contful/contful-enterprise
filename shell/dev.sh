@@ -225,14 +225,18 @@ start_admin() {
         "$BUILD_DIR/admin-server" > "$LOG_DIR/admin.log" 2>&1 &
     echo $! > "$LOG_DIR/admin.pid"
 
-    # 等待启动
-    sleep 2
-
-    if check_port $ADMIN_PORT; then
-        log_success "Admin API 已启动 (http://localhost:$ADMIN_PORT)"
-    else
-        log_error "Admin API 启动失败，查看日志: tail -f $LOG_DIR/admin.log"
-    fi
+    # 等待启动（最多等待 15 秒，避免 sleep 2 单次检查的竞态误报）
+    local max_wait=15
+    local waited=0
+    while [ $waited -lt $max_wait ]; do
+        sleep 1
+        waited=$((waited + 1))
+        if check_port $ADMIN_PORT; then
+            log_success "Admin API 已启动 (http://localhost:$ADMIN_PORT)"
+            return
+        fi
+    done
+    log_error "Admin API 启动失败（等待 ${max_wait}s 后仍未就绪），查看日志: tail -f $LOG_DIR/admin.log"
 }
 
 stop_admin() {
@@ -278,14 +282,18 @@ start_openapi() {
         "$BUILD_DIR/openapi-server" > "$LOG_DIR/openapi.log" 2>&1 &
     echo $! > "$LOG_DIR/openapi.pid"
 
-    # 等待启动
-    sleep 2
-
-    if check_port $OPENAPI_PORT; then
-        log_success "Open API 已启动 (http://localhost:$OPENAPI_PORT)"
-    else
-        log_error "Open API 启动失败，查看日志: tail -f $LOG_DIR/openapi.log"
-    fi
+    # 等待启动（最多等待 15 秒，避免 sleep 2 单次检查的竞态误报）
+    local max_wait=15
+    local waited=0
+    while [ $waited -lt $max_wait ]; do
+        sleep 1
+        waited=$((waited + 1))
+        if check_port $OPENAPI_PORT; then
+            log_success "Open API 已启动 (http://localhost:$OPENAPI_PORT)"
+            return
+        fi
+    done
+    log_error "Open API 启动失败（等待 ${max_wait}s 后仍未就绪），查看日志: tail -f $LOG_DIR/openapi.log"
 }
 
 stop_openapi() {
@@ -327,14 +335,18 @@ start_console() {
     nohup npm run dev > "$LOG_DIR/console.log" 2>&1 &
     echo $! > "$LOG_DIR/console.pid"
 
-    # 等待启动
-    sleep 5
-
-    if check_port $CONSOLE_PORT; then
-        log_success "Console 已启动 (http://localhost:$CONSOLE_PORT)"
-    else
-        log_error "Console 启动失败，查看日志: tail -f $LOG_DIR/console.log"
-    fi
+    # 等待启动（最多等待 20 秒，Vite 首次启动较慢）
+    local max_wait=20
+    local waited=0
+    while [ $waited -lt $max_wait ]; do
+        sleep 1
+        waited=$((waited + 1))
+        if check_port $CONSOLE_PORT; then
+            log_success "Console 已启动 (http://localhost:$CONSOLE_PORT)"
+            return
+        fi
+    done
+    log_error "Console 启动失败（等待 ${max_wait}s 后仍未就绪），查看日志: tail -f $LOG_DIR/console.log"
 }
 
 stop_console() {
