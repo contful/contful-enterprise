@@ -91,12 +91,12 @@ func (h *AuditHandler) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, model.AuditLogListResponse{
+	c.JSON(http.StatusOK, model.NewSuccessResponse(model.AuditLogListResponse{
 		Items:    logs,
 		Total:    total,
 		Page:     page,
 		PageSize: pageSize,
-	})
+	}))
 }
 
 // Get 获取审计日志详情
@@ -114,5 +114,5 @@ func (h *AuditHandler) Get(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, log)
+	c.JSON(http.StatusOK, model.NewSuccessResponse(log))
 }
