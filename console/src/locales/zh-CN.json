@@ -888,12 +888,16 @@
     "nameRequired": "请填写角色名称",
     "role": "角色",
     "perm": {
-      "systemUsers": "用户管理",
-      "systemSites": "站点管理",
-      "systemTokens": "API Token",
-      "systemSettings": "系统设置",
-      "systemAudit": "审计日志",
-      "systemRoles": "角色管理"
+      "users": "用户管理",
+      "sites": "站点管理",
+      "tokens": "API Token",
+      "settings": "系统设置",
+      "audit": "审计日志",
+      "roles": "角色管理",
+      "dashboard": "仪表盘",
+      "contentSchema": "内容模型",
+      "entry": "内容条目",
+      "asset": "媒体文件"
     }
   },
   "permission": {

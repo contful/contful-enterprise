@@ -18,17 +18,7 @@ export interface SystemRole {
 }
 
 export interface PermissionsMeta {
-  system: Record<string, Record<string, string>>
-  users: Record<string, string>
-  sites: Record<string, string>
-  tokens: Record<string, string>
-  settings: Record<string, string>
-  audit: Record<string, string>
-  roles: Record<string, string>
-  dashboard: Record<string, string>
-  content_schema: Record<string, string>
-  entry: Record<string, string>
-  asset: Record<string, string>
+  [group: string]: Record<string, string>
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -884,12 +884,16 @@
     "nameRequired": "Role name is required",
     "role": "Role",
     "perm": {
-      "systemUsers": "User Management",
-      "systemSites": "Site Management",
-      "systemTokens": "API Tokens",
-      "systemSettings": "System Settings",
-      "systemAudit": "Audit Logs",
-      "systemRoles": "Role Management"
+      "users": "User Management",
+      "sites": "Site Management",
+      "tokens": "API Tokens",
+      "settings": "System Settings",
+      "audit": "Audit Logs",
+      "roles": "Role Management",
+      "dashboard": "Dashboard",
+      "contentSchema": "Content Schemas",
+      "entry": "Entries",
+      "asset": "Assets"
     }
   },
   "permission": {

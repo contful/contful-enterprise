@@ -127,17 +127,15 @@ const permMeta = ref<Record<string, any>>({})
 
 // ─── 计算属性 ──────────────────────────────────────────────────
 
-// 系统级权限树（从 permMeta.system 展开）
+// 权限树（从后端平铺 map 构建）
 const permTree = computed(() => {
   const tree: Record<string, Record<string, string>> = {}
   const meta = permMeta.value
   if (!meta) return tree
 
-  // system 组（system:users:read 格式）
-  if (meta.system) {
-    for (const [subGroup, actions] of Object.entries(meta.system)) {
-      const key = `system:${subGroup}`
-      tree[key] = actions as Record<string, string>
+  for (const [group, actions] of Object.entries(meta)) {
+    if (typeof actions === 'object' && actions !== null) {
+      tree[group] = actions as Record<string, string>
     }
   }
   return tree
@@ -186,12 +184,16 @@ const columns = computed(() => [
 
 function permGroupLabel(key: string) {
   const labels: Record<string, string> = {
-    'system:users': t('roles.perm.systemUsers'),
-    'system:sites': t('roles.perm.systemSites'),
-    'system:tokens': t('roles.perm.systemTokens'),
-    'system:settings': t('roles.perm.systemSettings'),
-    'system:audit': t('roles.perm.systemAudit'),
-    'system:roles': t('roles.perm.systemRoles'),
+    users: t('roles.perm.users'),
+    sites: t('roles.perm.sites'),
+    tokens: t('roles.perm.tokens'),
+    settings: t('roles.perm.settings'),
+    audit: t('roles.perm.audit'),
+    roles: t('roles.perm.roles'),
+    dashboard: t('roles.perm.dashboard'),
+    content_schema: t('roles.perm.contentSchema'),
+    entry: t('roles.perm.entry'),
+    asset: t('roles.perm.asset'),
   }
   return labels[key] || key
 }
@@ -296,11 +298,10 @@ async function loadPermMeta() {
     const res = await getSystemPermissions()
     permMeta.value = res.data || {}
     // 初始化 permChecked 键
-    const meta = res.data
-    if (meta?.system) {
-      for (const [subGroup, actions] of Object.entries(meta.system)) {
+    for (const [group, actions] of Object.entries(permMeta.value)) {
+      if (typeof actions === 'object' && actions !== null) {
         for (const action of Object.keys(actions as object)) {
-          permChecked[`system:${subGroup}:${action}`] = false
+          permChecked[`${group}:${action}`] = false
         }
       }
     }
