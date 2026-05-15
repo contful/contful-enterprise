@@ -175,3 +175,20 @@ export function deleteField(schemaId: string, fieldId: string) {
 export function reorderFields(schemaId: string, orders: Record<string, number>) {
   return post(`/content/schemas/${schemaId}/fields/reorder`, { orders })
 }
+
+// 数据签名/验签
+export interface SchemaVerifyResult {
+  valid: boolean
+  algorithm: string
+  signature: string
+  payload: string
+  reason?: string
+}
+
+export function signSchema(id: string) {
+  return post(`/content/schemas/${id}/sign`)
+}
+
+export function verifySchema(id: string) {
+  return post<SchemaVerifyResult>(`/content/schemas/${id}/verify`)
+}

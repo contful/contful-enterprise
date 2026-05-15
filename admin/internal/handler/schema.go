@@ -41,6 +41,10 @@ func (h *SchemaHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		contentSchemas.PUT("/:id/fields/:fieldId", h.UpdateField)
 		contentSchemas.DELETE("/:id/fields/:fieldId", h.DeleteField)
 		contentSchemas.POST("/:id/fields/reorder", h.ReorderFields)
+
+		// 数据签名/验签
+		contentSchemas.POST("/:id/sign", h.Sign)
+		contentSchemas.POST("/:id/verify", h.Verify)
 	}
 }
 
@@ -249,6 +253,39 @@ func (h *SchemaHandler) ReorderFields(c *gin.Context) {
 	}
 
 	middleware.OK(c, nil)
+}
+
+// Sign 对内容模型数据重新签名
+func (h *SchemaHandler) Sign(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		middleware.BadRequest(c, "invalid id")
+		return
+	}
+
+	if err := h.csService.SignSchema(c.Request.Context(), id); err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, gin.H{"message": "签名成功"})
+}
+
+// Verify 验签内容模型数据
+func (h *SchemaHandler) Verify(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		middleware.BadRequest(c, "invalid id")
+		return
+	}
+
+	result, err := h.csService.VerifySchema(c.Request.Context(), id)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, result)
 }
 
 // handleError 处理错误

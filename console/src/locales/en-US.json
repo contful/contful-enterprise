@@ -857,7 +857,16 @@
     "tableActions": "Actions",
     "manageFields": "Manage Fields",
     "enableDisable": "Enable/Disable",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "sign": "Sign",
+    "signSuccess": "Signature updated",
+    "verify": "Verify",
+    "verifyResult": "Verification Result",
+    "verifyStatus": "Status",
+    "verifyPass": "Valid",
+    "verifyFail": "Invalid",
+    "verifyAlgorithm": "Algorithm",
+    "verifySignature": "Signature"
   },
   "roles": {
     "title": "Role",

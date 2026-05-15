@@ -336,6 +336,14 @@ func main() {
 				middleware.RequirePermission(rbacService, "content_schema:write"),
 				schemaHandler.ReorderFields)
 
+			// 内容模型数据签名/验签
+			protected.POST("/content/schemas/:id/sign",
+				middleware.RequirePermission(rbacService, "content_schema:write"),
+				schemaHandler.Sign)
+			protected.POST("/content/schemas/:id/verify",
+				middleware.RequirePermission(rbacService, "content_schema:read"),
+				schemaHandler.Verify)
+
 			// 内容管理 (REST: /content/entries)
 			protected.GET("/content/entries",
 				middleware.RequirePermission(rbacService, "entry:read"),

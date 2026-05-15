@@ -861,7 +861,16 @@
     "tableActions": "操作",
     "manageFields": "管理字段",
     "enableDisable": "启用/禁用",
-    "loading": "加载中"
+    "loading": "加载中",
+    "sign": "签名",
+    "signSuccess": "签名成功",
+    "verify": "验签",
+    "verifyResult": "验签结果",
+    "verifyStatus": "验签状态",
+    "verifyPass": "通过",
+    "verifyFail": "未通过",
+    "verifyAlgorithm": "签名算法",
+    "verifySignature": "签名值"
   },
   "roles": {
     "title": "角色",

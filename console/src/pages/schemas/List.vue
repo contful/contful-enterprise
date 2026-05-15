@@ -12,6 +12,8 @@ import {
   createContentSchema,
   updateContentSchema,
   deleteContentSchema,
+  signSchema,
+  verifySchema,
   type ContentSchema,
   type ContentSchemaCreate,
   type ContentSchemaUpdate,
@@ -42,6 +44,8 @@ const dialogVisible = ref(false)
 const dialogTitle = computed(() => isEditing.value ? t('contentSchemas.formTitleEdit') : t('contentSchemas.formTitleCreate'))
 const isEditing = ref(false)
 const editingId = ref('')
+const signingId = ref('')
+const verifyingId = ref('')
 const submitting = ref(false)
 
 const formData = ref<ContentSchemaCreate>({
@@ -168,6 +172,44 @@ const handleDelete = (row: ContentSchema) => {
   })
 }
 
+const handleSign = async (row: ContentSchema) => {
+  signingId.value = row.id
+  try {
+    await signSchema(row.id)
+    MessagePlugin.success(t('contentSchemas.signSuccess'))
+  } catch (e) {
+    handleError(e)
+  } finally {
+    signingId.value = ''
+  }
+}
+
+const handleVerify = async (row: ContentSchema) => {
+  verifyingId.value = row.id
+  try {
+    const res: any = await verifySchema(row.id)
+    const result = res.data
+    DialogPlugin.alert({
+      header: t('contentSchemas.verifyResult'),
+      body: h('div', { style: 'line-height:2' }, [
+        h('p', [
+          h('strong', t('contentSchemas.verifyStatus') + '：'),
+          h('span', { style: `color:${result.valid ? 'var(--td-success-color)' : 'var(--td-error-color)'};font-weight:bold` },
+            result.valid ? t('contentSchemas.verifyPass') : t('contentSchemas.verifyFail')),
+        ]),
+        h('p', [h('strong', t('contentSchemas.verifyAlgorithm') + '：'), result.algorithm || '-']),
+        h('p', [h('strong', t('contentSchemas.verifySignature') + '：'), h('code', { style: 'font-size:12px;word-break:break-all' }, result.signature || '-')]),
+        result.reason ? h('p', { style: 'color:var(--td-error-color)' }, result.reason) : null,
+      ]),
+      confirmBtn: t('common.close'),
+    })
+  } catch (e) {
+    handleError(e)
+  } finally {
+    verifyingId.value = ''
+  }
+}
+
 // 跳转到字段管理
 const goToFields = (row: ContentSchema) => {
   router.push(`/content/schemas/${row.id}/fields`)
@@ -219,7 +261,7 @@ const columns = computed(() => [
       h2('span', { class: 'description' }, row.description || '-'),
   },
   { colKey: 'updated_time', title: t('common.updatedAt'), width: 180, cell: (_h: any, { row }: { row: ContentSchema }) => formatDate(row.updated_time) },
-  { colKey: 'operations', title: t('common.actions'), width: 280 },
+  { colKey: 'operations', title: t('common.actions'), width: 400 },
 ])
 
 onMounted(() => {
@@ -277,6 +319,8 @@ onMounted(() => {
         <t-space size="small">
           <t-button variant="outline" size="small" @click="goToFields(row)">{{ t('contentSchemas.manageFields') }}</t-button>
           <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
+          <t-button variant="outline" size="small" theme="warning" :loading="signingId === row.id" @click="handleSign(row)">{{ t('contentSchemas.sign') }}</t-button>
+          <t-button variant="outline" size="small" :loading="verifyingId === row.id" @click="handleVerify(row)">{{ t('contentSchemas.verify') }}</t-button>
           <t-button theme="danger" variant="outline" size="small" @click="handleDelete(row)">{{ t('common.delete') }}</t-button>
         </t-space>
       </template>

@@ -5,9 +5,11 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 
@@ -443,5 +445,67 @@ func isValidFieldName(name string) bool {
 	// 必须是字母开头，只能包含字母、数字、下划线
 	validName := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*$`)
 	return validName.MatchString(name)
+}
+
+// VerifySchemaResult 内容模型验签结果
+type VerifySchemaResult struct {
+	Valid     bool   `json:"valid"`
+	Algorithm string `json:"algorithm"`
+	Signature string `json:"signature"`
+	Payload   string `json:"payload"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+// SignSchema 对内容模型数据重新签名
+func (s *SchemaService) SignSchema(ctx context.Context, id uuid.UUID) error {
+	ct, err := s.csRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	signer := audit.GetSigner(ctx)
+	if signer == nil {
+		return errors.New("数据签名器未启用")
+	}
+
+	payload := CanonicalSchemaPayload(ct.Name, ct.Slug, ct.Description, string(ct.Kind), ct.VersioningEnabled)
+	sig, err := signer.Sign("schemas", ct.ID, payload)
+	if err != nil {
+		return fmt.Errorf("签名失败: %w", err)
+	}
+
+	ct.DataSignature = sig
+	return s.csRepo.Update(ctx, ct)
+}
+
+// VerifySchema 验签内容模型数据
+func (s *SchemaService) VerifySchema(ctx context.Context, id uuid.UUID) (*VerifySchemaResult, error) {
+	ct, err := s.csRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	signer := audit.GetSigner(ctx)
+	if signer == nil {
+		return &VerifySchemaResult{Valid: false, Reason: "数据签名器未启用"}, nil
+	}
+
+	payload := CanonicalSchemaPayload(ct.Name, ct.Slug, ct.Description, string(ct.Kind), ct.VersioningEnabled)
+
+	valid, err := signer.Verify("schemas", ct.ID, payload, ct.DataSignature)
+	if err != nil {
+		return nil, fmt.Errorf("验签失败: %w", err)
+	}
+
+	result := &VerifySchemaResult{
+		Valid:     valid,
+		Algorithm: signer.Algorithm(),
+		Signature: ct.DataSignature,
+		Payload:   payload,
+	}
+	if !valid {
+		result.Reason = "数据签名不匹配，数据可能已被篡改"
+	}
+	return result, nil
 }
 
