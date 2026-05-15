@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { PasswordPolicy, SystemConfig } from '@/types/system-config'
+import type { PasswordPolicy, SystemConfig } from '@/types/system/config'
 
 // 获取密码策略（公开 API，无需认证）
 export const getPasswordPolicy = async (): Promise<PasswordPolicy> => {

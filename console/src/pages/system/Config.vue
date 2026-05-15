@@ -130,7 +130,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { getSystemConfigs, updateSystemConfig } from '@/api/system-config'
-import type { SystemConfig } from '@/types/system-config'
+import type { SystemConfig } from '@/types/system/config'
 
 const { t } = useI18n()
 
