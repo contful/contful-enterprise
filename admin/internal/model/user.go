@@ -92,11 +92,12 @@ type LoginRequest struct {
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	User             *UserResponse `json:"user"`
-	AccessToken       string        `json:"access_token"`
-	RefreshToken      string        `json:"refresh_token"`
-	PasswordExpired   bool          `json:"password_expired,omitempty"`    // 密码是否已过期
-	PasswordExpireDays *int        `json:"password_expire_days,omitempty"` // 密码还有多少天过期（负数表示已过期）
+	User              *UserResponse `json:"user"`
+	AccessToken        string        `json:"access_token"`
+	RefreshToken       string        `json:"refresh_token"`
+	PasswordExpired    bool          `json:"password_expired,omitempty"`
+	PasswordExpireDays *int          `json:"password_expire_days,omitempty"`
+	MFASetupRequired   bool          `json:"mfa_setup_required,omitempty"` // MFA 强制开启但用户未设置
 }
 
 // MFARequiredResponse 登录步骤 1 — 需要 MFA 验证时的响应

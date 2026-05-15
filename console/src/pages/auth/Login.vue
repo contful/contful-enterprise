@@ -273,6 +273,9 @@ const onLogin = async () => {
         path: '/mfa',
         // 不再通过 query 传递敏感信息
       })
+    } else if (result.mfa_setup_required) {
+      // MFA 强制开启但用户未设置，跳转到 MFA 设置页
+      router.push('/mfa')
     } else if (result.password_expired) {
       // 密码已过期，强制修改密码
       MessagePlugin.warning(t('auth.passwordExpired'))

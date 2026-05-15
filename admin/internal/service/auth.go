@@ -499,6 +499,7 @@ func (s *AuthService) IssueTokens(ctx context.Context, user *model.SystemUser, i
 		RefreshToken:       refreshToken,
 		PasswordExpired:    passwordExpired,
 		PasswordExpireDays: passwordExpireDaysCount,
+		MFASetupRequired:   mfaReq,
 	}, nil
 }
 
