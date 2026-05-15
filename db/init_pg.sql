@@ -151,6 +151,7 @@ CREATE TABLE system_users (
     totp_secret VARCHAR(512),                       -- AES-256-GCM 加密的 TOTP 密钥
     recovery_codes TEXT,                             -- AES-256-GCM 加密的恢复码 (JSON 数组)
     password_changed_time TIMESTAMPTZ,               -- 密码最后修改时间
+    data_signature VARCHAR(256) NOT NULL DEFAULT '',   -- 防篡改签名（HMAC-SHA256 hex）
     last_login_time TIMESTAMPTZ, -- [PG-ONLY: → MySQL DATETIME]
     last_login_ip INET,           -- [PG-ONLY: → MySQL VARCHAR(45)]
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -388,6 +389,7 @@ CREATE TABLE schemas (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
     signature_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    data_signature VARCHAR(256) NOT NULL DEFAULT '',   -- 防篡改签名（HMAC-SHA256 hex）
     created_by UUID,
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),

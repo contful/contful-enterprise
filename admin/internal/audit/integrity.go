@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/model"
@@ -24,19 +25,20 @@ func WithSigningKey(ctx context.Context, key string) context.Context {
 	return context.WithValue(ctx, signingKeyCtxKey{}, key)
 }
 
-// CallbackName GORM callback 名称
-const CallbackName = "audit:integrity_sign"
-
-// Register 注册 BeforeCreate callback，自动为 AuditLog 生成数据签名
+// Register 注册 GORM callbacks：audit_logs / system_users / schemas 的 BeforeCreate/BeforeUpdate 签名
 func Register(db *gorm.DB) {
-	if db.Dialector.Name() == "postgres" {
-		db.Callback().Create().Before("gorm:create").Register(CallbackName, signAuditLog)
+	if db.Dialector.Name() != "postgres" {
+		return
 	}
+	// audit_logs
+	db.Callback().Create().Before("gorm:create").Register("audit:sign_create", signBeforeCreate)
+	// system_users + schemas
+	db.Callback().Create().Before("gorm:create").Register("business:sign_create", signBusinessBeforeCreate)
+	db.Callback().Update().Before("gorm:update").Register("business:sign_update", signBusinessBeforeUpdate)
 }
 
-// signAuditLog 在 AuditLog 插入前计算并写入 data_signature（仅存 hex 签名）
-func signAuditLog(scope *gorm.DB) {
-	// 仅处理 audit_logs 表
+// signBeforeCreate 处理 audit_logs 的 BeforeCreate 签名
+func signBeforeCreate(scope *gorm.DB) {
 	if scope.Statement.Table != "audit_logs" {
 		return
 	}
@@ -47,7 +49,6 @@ func signAuditLog(scope *gorm.DB) {
 		return
 	}
 
-	// 获取签名密钥（从 context 注入）
 	signingKey := ""
 	if ctx := scope.Statement.Context; ctx != nil {
 		if key, ok := ctx.Value(signingKeyCtxKey{}).(string); ok {
@@ -60,13 +61,67 @@ func signAuditLog(scope *gorm.DB) {
 		return
 	}
 
-	// 构建规范 payload 并计算 HMAC-SHA256 签名
 	payload := canonicalAuditPayload(&auditLog)
 	h := hmac.New(sha256.New, []byte(signingKey))
 	h.Write([]byte(payload))
 	signature := hex.EncodeToString(h.Sum(nil))
 
 	scope.Statement.SetColumn("data_signature", signature)
+}
+
+// signBusinessBeforeCreate 处理 system_users / schemas 的 BeforeCreate 签名
+func signBusinessBeforeCreate(scope *gorm.DB) {
+	signBusiness(scope)
+}
+
+// signBusinessBeforeUpdate 处理 system_users / schemas 的 BeforeUpdate 签名
+func signBusinessBeforeUpdate(scope *gorm.DB) {
+	signBusiness(scope)
+}
+
+// signBusiness 对 system_users / schemas 执行签名
+func signBusiness(scope *gorm.DB) {
+	table := scope.Statement.Table
+	if table != "system_users" && table != "schemas" {
+		return
+	}
+
+	signer := GetSigner(scope.Statement.Context)
+	if signer == nil {
+		return
+	}
+
+	var entityType string
+	var id uuid.UUID
+	var payload string
+
+	switch table {
+	case "system_users":
+		if u, ok := scope.Statement.ReflectValue.Interface().(model.SystemUser); ok {
+			entityType = "system_users"
+			id = u.ID
+			payload = fmt.Sprintf("email=%s&password_hash=%s&nickname=%s&status=%s&is_super_admin=%t",
+				u.Email, u.PasswordHash, u.Nickname, u.Status, u.IsSuperAdmin)
+		} else {
+			return
+		}
+
+	case "schemas":
+		if s, ok := scope.Statement.ReflectValue.Interface().(model.ContentSchema); ok {
+			entityType = "schemas"
+			id = s.ID
+			payload = fmt.Sprintf("name=%s&slug=%s&description=%s&kind=%s&versioning_enabled=%t",
+				s.Name, s.Slug, s.Description, s.Kind, s.VersioningEnabled)
+		} else {
+			return
+		}
+	}
+
+	sig, err := signer.Sign(entityType, id, payload)
+	if err != nil {
+		return
+	}
+	scope.Statement.SetColumn("data_signature", sig)
 }
 
 // canonicalAuditPayload 构建 AuditLog 规范 payload

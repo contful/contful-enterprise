@@ -109,6 +109,14 @@ func main() {
 	// 初始化 Service（不再需要 configRepo）
 	configService := service.NewConfigService(crypter, cfg)
 
+	// 初始化数据签名器（默认 HMAC-SHA256，用户可替换实现 audit.DataSigner）
+	dataSigner, err := service.NewDefaultSigner(cfg.Audit.SigningKey)
+	if err != nil {
+		logger.Warn().Err(err).Msg("数据签名器未启用（签名密钥无效或未配置）")
+	} else if dataSigner.IsEnabled() {
+		logger.Info().Str("alg", dataSigner.Algorithm()).Msg("数据签名器已就绪")
+	}
+
 	// 初始化 Audit Service（审计日志）
 	auditService := service.NewAuditService(auditRepo, configService)
 	logger.Info().Msg("Audit 服务已就绪")
@@ -176,6 +184,14 @@ func main() {
 	// 初始化 Gin
 	r := gin.New()
 	r.Use(gin.Recovery())
+
+	// 注入 DataSigner 到请求 context（供 GORM callback 使用）
+	if dataSigner != nil && dataSigner.IsEnabled() {
+		r.Use(func(c *gin.Context) {
+			c.Request = c.Request.WithContext(audit.WithSigner(c.Request.Context(), dataSigner))
+			c.Next()
+		})
+	}
 
 	// 注：CORS 由部署环境的反向代理（nginx）处理，不需要在这里注册中间件
 

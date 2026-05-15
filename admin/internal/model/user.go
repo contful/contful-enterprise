@@ -35,6 +35,7 @@ type SystemUser struct {
 	CreatedTime   time.Time   `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedTime   time.Time   `json:"updated_time" gorm:"type:timestamptz;not null;default:now()"`
 	PasswordChangedTime *time.Time `json:"password_changed_time" gorm:"type:timestamptz"` // 密码最后修改时间（用于密码过期检查）
+	DataSignature   string         `json:"-" gorm:"type:varchar(256);not null;default:''"` // 防篡改签名（HMAC-SHA256 hex）
 	DeletedAt   gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"` // 软删除时间戳
 }
 

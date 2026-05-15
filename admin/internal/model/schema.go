@@ -33,6 +33,7 @@ type ContentSchema struct {
 	SignatureEnabled     bool             `json:"signature_enabled" gorm:"default:false"` // 是否启用数据签名
 	IsActive             bool             `json:"is_active" gorm:"default:true"`
 	SortOrder            int              `json:"sort_order" gorm:"default:0"`
+	DataSignature       string           `json:"-" gorm:"type:varchar(256);not null;default:''"` // 防篡改签名（HMAC-SHA256 hex）
 	CreatedBy            *uuid.UUID       `json:"created_by" gorm:"type:uuid"`
 	CreatedTime            time.Time        `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime            time.Time        `json:"updated_time" gorm:"autoUpdateTime"`
