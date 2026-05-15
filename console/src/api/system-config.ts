@@ -29,3 +29,14 @@ export const getSystemConfig = async (key: string): Promise<SystemConfig> => {
 export const updateSystemConfig = (key: string, data: Partial<SystemConfig>): Promise<void> => {
   return request.put(`/system/config/${key}`, data)
 }
+
+// 创建配置（需要 settings:write 权限）
+export const createSystemConfig = async (data: Partial<SystemConfig>): Promise<SystemConfig> => {
+  const res = await request.post('/system/config', data)
+  return res.data.data
+}
+
+// 删除配置（需要 settings:write 权限，仅自定义配置可删除）
+export const deleteSystemConfig = (key: string): Promise<void> => {
+  return request.delete(`/system/config/${key}`)
+}

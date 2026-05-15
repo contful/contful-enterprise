@@ -111,6 +111,48 @@ func (h *SystemConfigHandler) GetPasswordPolicy(c *gin.Context) {
 	c.JSON(http.StatusOK, model.NewSuccessResponse(policy))
 }
 
+// Create 创建自定义配置（需要认证 + settings:write 权限）
+func (h *SystemConfigHandler) Create(c *gin.Context) {
+	var req struct {
+		ConfigKey   string `json:"config_key" binding:"required"`
+		ConfigValue string `json:"config_value"`
+		ValueType   string `json:"value_type" binding:"required,oneof=string number boolean json"`
+		Description string `json:"description"`
+		IsPublic    bool   `json:"is_public"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, err.Error()))
+		return
+	}
+
+	if !h.validateValue(req.ConfigValue, req.ValueType) {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid value for type "+req.ValueType))
+		return
+	}
+
+	config, err := h.configRepo.Create(c.Request.Context(), req.ConfigKey, req.ConfigValue, req.ValueType, req.Description, req.IsPublic)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "failed to create config"))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(config))
+}
+
+// Delete 删除自定义配置（需要认证 + settings:write 权限，系统配置不可删除）
+func (h *SystemConfigHandler) Delete(c *gin.Context) {
+	key := c.Param("key")
+
+	err := h.configRepo.Delete(c.Request.Context(), key)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "cannot delete system config or config not found"))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "config deleted"}))
+}
+
 // validateValue 验证配置值是否符合类型
 func (h *SystemConfigHandler) validateValue(value string, valueType string) bool {
 	switch valueType {

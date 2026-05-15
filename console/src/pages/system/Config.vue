@@ -1,173 +1,208 @@
 <template>
-  <div class="system-config">
-    <t-card>
-      <template #title>
-        <span>{{ t('settings.systemConfig') }}</span>
-      </template>
-      <template #subtitle>
-        <span class="subtitle">{{ t('settings.systemConfigDesc') }}</span>
-      </template>
+  <!-- 页面标题 -->
+  <PageHeader
+    :title="t('settings.systemConfig')"
+    :subtitle="t('settings.systemConfigDesc')"
+    :show-refresh="true"
+    @refresh="loadConfigs"
+  >
+    <template #primary-action>
+      <t-button theme="primary" @click="openCreateDialog">
+        <template #icon><t-icon name="add" /></template>
+        {{ t('settings.addConfig') }}
+      </t-button>
+    </template>
+  </PageHeader>
 
-      <!-- 搜索栏 -->
-      <t-input
-        v-model="keyword"
-        :placeholder="t('common.searchPlaceholder')"
-        clearable
-        style="width: 320px; margin-bottom: 16px"
-        @change="handleSearch"
-      >
-        <template #prefix-icon>
-          <t-icon name="search" />
-        </template>
-      </t-input>
+  <!-- 配置列表 -->
+  <t-table
+    :data="configs"
+    :columns="columns"
+    :loading="loading"
+    row-key="config_key"
+    hover
+    stripe
+    size="medium"
+  >
+    <template #keyCell="{ row }">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <code class="config-key">{{ row.config_key }}</code>
+        <t-tag v-if="row.is_system" theme="primary" variant="light" size="small">
+          {{ t('settings.systemConfigTag') }}
+        </t-tag>
+        <t-tag v-else theme="default" variant="light" size="small">
+          {{ t('settings.customConfigTag') }}
+        </t-tag>
+      </div>
+    </template>
 
-      <t-loading :loading="loading" style="min-height: 200px">
-        <t-table
-          :data="filteredConfigs"
-          :columns="columns"
-          row-key="config_key"
-          :bordered="true"
-          :hover="true"
-          :stripe="true"
-          size="medium"
-          :empty="t('common.noData')"
+    <template #valueCell="{ row }">
+      <template v-if="row.value_type === 'boolean'">
+        <t-tag :theme="row.config_value === 'true' ? 'success' : 'danger'" variant="light" size="small">
+          {{ row.config_value }}
+        </t-tag>
+      </template>
+      <template v-else-if="row.config_value === ''">
+        <span class="empty-value">—</span>
+      </template>
+      <template v-else>
+        <span class="config-value">{{ row.config_value }}</span>
+      </template>
+    </template>
+
+    <template #typeCell="{ row }">
+      <t-tag variant="outline" size="small">{{ row.value_type }}</t-tag>
+    </template>
+
+    <template #publicCell="{ row }">
+      <t-switch v-model="row.is_public" size="small" :disabled="saving" @change="(val: boolean) => handleTogglePublic(row, val)" />
+    </template>
+
+    <template #operations="{ row }">
+      <t-space size="small">
+        <t-button variant="text" theme="primary" size="small" @click="openEditDialog(row)">
+          {{ t('common.edit') }}
+        </t-button>
+        <t-button
+          v-if="!row.is_system"
+          variant="text"
+          theme="danger"
+          size="small"
+          @click="openDeleteDialog(row)"
         >
-          <template #keyCell="{ row }">
-            <code class="config-key">{{ row.config_key }}</code>
-          </template>
+          {{ t('common.delete') }}
+        </t-button>
+      </t-space>
+    </template>
+  </t-table>
 
-          <template #valueCell="{ row }">
-            <template v-if="row.value_type === 'boolean'">
-              <t-tag :theme="row.config_value === 'true' ? 'success' : 'danger'" variant="light">
-                {{ row.config_value }}
-              </t-tag>
-            </template>
-            <template v-else-if="row.config_value === ''">
-              <span class="empty-value">—</span>
-            </template>
-            <template v-else>
-              <span class="config-value">{{ row.config_value }}</span>
-            </template>
-          </template>
+  <!-- 创建/编辑配置弹窗 -->
+  <t-dialog
+    v-model:visible="dialogVisible"
+    :header="editingConfig ? t('settings.editConfig') : t('settings.createConfig')"
+    :width="560"
+    :confirm-btn="{ content: saving ? t('common.saving') : t('common.save'), theme: 'primary' as const, loading: saving }"
+    :cancel-btn="{ content: t('common.cancel') }"
+    @confirm="handleSave"
+  >
+    <t-form :data="form" label-align="top">
+      <t-form-item :label="`${t('settings.configKey')} *`" v-if="!editingConfig">
+        <t-input
+          v-model="form.config_key"
+          :placeholder="t('settings.configKeyPlaceholder')"
+          clearable
+        />
+      </t-form-item>
+      <t-form-item v-else :label="t('settings.configKey')">
+        <t-input :value="form.config_key" disabled />
+      </t-form-item>
 
-          <template #typeCell="{ row }">
-            <t-tag variant="outline" size="small">{{ row.value_type }}</t-tag>
-          </template>
+      <t-form-item :label="t('settings.configValue')" :help="form.description">
+        <t-input
+          v-if="form.value_type === 'string'"
+          v-model="form.config_value"
+          :placeholder="t('settings.configValuePlaceholder')"
+        />
+        <t-input-number
+          v-else-if="form.value_type === 'number'"
+          v-model="form.config_value_number"
+          :placeholder="t('settings.configValuePlaceholder')"
+          style="width: 100%"
+        />
+        <t-switch
+          v-else-if="form.value_type === 'boolean'"
+          v-model="form.config_value_bool"
+        />
+        <t-textarea
+          v-else-if="form.value_type === 'json'"
+          v-model="form.config_value"
+          :placeholder="t('settings.enterJson')"
+          :autosize="{ minRows: 3, maxRows: 10 }"
+        />
+      </t-form-item>
 
-          <template #publicCell="{ row }">
-            <t-switch v-model="row.is_public" size="small" @change="(val: boolean) => handleTogglePublic(row, val)" />
-          </template>
+      <t-form-item :label="t('settings.valueType')">
+        <t-select v-model="form.value_type" :disabled="!!editingConfig">
+          <t-option value="string" label="String" />
+          <t-option value="number" label="Number" />
+          <t-option value="boolean" label="Boolean" />
+          <t-option value="json" label="JSON" />
+        </t-select>
+      </t-form-item>
 
-          <template #operationCell="{ row }">
-            <t-button theme="primary" variant="text" size="small" @click="handleEdit(row)">
-              {{ t('common.edit') }}
-            </t-button>
-          </template>
-        </t-table>
-      </t-loading>
-    </t-card>
+      <t-form-item :label="t('settings.description')">
+        <t-textarea
+          v-model="form.description"
+          :placeholder="t('settings.enterDescription')"
+          :autosize="{ minRows: 2, maxRows: 4 }"
+        />
+      </t-form-item>
 
-    <!-- 编辑配置对话框 -->
-    <t-dialog
-      v-model:visible="editDialogVisible"
-      :header="t('settings.editConfig')"
-      :width="560"
-      :confirm-on-enter="true"
-      @confirm="handleSave"
-    >
-      <t-form :data="editForm" label-align="top">
-        <t-form-item :label="t('settings.configKey')">
-          <t-input v-model="editForm.config_key" disabled />
-        </t-form-item>
+      <t-form-item :label="t('settings.isPublic')">
+        <t-switch v-model="form.is_public" :disabled="!!(editingConfig?.is_system)" />
+      </t-form-item>
+    </t-form>
+  </t-dialog>
 
-        <t-form-item :label="t('settings.configValue')" :help="editForm.description">
-          <t-input
-            v-if="editForm.value_type === 'string'"
-            v-model="editForm.config_value"
-            :placeholder="t('settings.enterValue')"
-          />
-          <t-input-number
-            v-else-if="editForm.value_type === 'number'"
-            v-model="editForm.config_value_number"
-            :placeholder="t('settings.enterValue')"
-            style="width: 100%"
-          />
-          <t-switch
-            v-else-if="editForm.value_type === 'boolean'"
-            v-model="editForm.config_value_bool"
-          />
-          <t-textarea
-            v-else-if="editForm.value_type === 'json'"
-            v-model="editForm.config_value"
-            :placeholder="t('settings.enterJson')"
-            :autosize="{ minRows: 3, maxRows: 10 }"
-          />
-        </t-form-item>
-
-        <t-form-item :label="t('settings.valueType')">
-          <t-select v-model="editForm.value_type" disabled>
-            <t-option value="string" label="String" />
-            <t-option value="number" label="Number" />
-            <t-option value="boolean" label="Boolean" />
-            <t-option value="json" label="JSON" />
-          </t-select>
-        </t-form-item>
-
-        <t-form-item :label="t('settings.description')">
-          <t-textarea v-model="editForm.description" :placeholder="t('settings.enterDescription')" :autosize="{ minRows: 2, maxRows: 4 }" />
-        </t-form-item>
-
-        <t-form-item :label="t('settings.isPublic')">
-          <t-switch v-model="editForm.is_public" />
-        </t-form-item>
-      </t-form>
-    </t-dialog>
-  </div>
+  <!-- 删除确认弹窗 -->
+  <t-dialog
+    v-model:visible="deleteVisible"
+    :header="t('common.confirmDelete')"
+    theme="danger"
+    :confirm-btn="{ content: deleting ? t('common.deleting') : t('common.delete'), theme: 'danger' as const, loading: deleting }"
+    :cancel-btn="{ content: t('common.cancel') }"
+    @confirm="handleDelete"
+  >
+    <p>{{ t('settings.deleteConfigConfirm', { key: deletingConfig?.config_key }) }}</p>
+  </t-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { getSystemConfigs, updateSystemConfig } from '@/api/system-config'
+import PageHeader from '@/components/PageHeader.vue'
+import { getSystemConfigs, updateSystemConfig, createSystemConfig, deleteSystemConfig } from '@/api/system-config'
 import type { SystemConfig } from '@/types/system/config'
 
 const { t } = useI18n()
 
 const loading = ref(false)
+const saving = ref(false)
+const deleting = ref(false)
 const configs = ref<SystemConfig[]>([])
-const keyword = ref('')
-const editDialogVisible = ref(false)
+const dialogVisible = ref(false)
+const deleteVisible = ref(false)
+const editingConfig = ref<SystemConfig | null>(null)
+const deletingConfig = ref<SystemConfig | null>(null)
 
-const editForm = reactive({
+const form = reactive({
   config_key: '',
   config_value: '',
   config_value_bool: false,
   config_value_number: 0,
-  value_type: 'string',
+  value_type: 'string' as string,
   description: '',
   is_public: false,
 })
 
 const columns = [
-  { colKey: 'config_key', title: t('settings.configKey'), cell: 'keyCell', width: 220 },
-  { colKey: 'value', title: t('settings.configValue'), cell: 'valueCell', width: 180 },
+  { colKey: 'config_key', title: t('settings.configKey'), cell: 'keyCell', width: 280 },
+  { colKey: 'value', title: t('settings.configValue'), cell: 'valueCell', width: 160 },
   { colKey: 'value_type', title: t('settings.valueType'), cell: 'typeCell', width: 90 },
   { colKey: 'description', title: t('settings.description'), ellipsis: true },
   { colKey: 'is_public', title: t('settings.isPublic'), cell: 'publicCell', width: 90, align: 'center' as const },
-  { colKey: 'operation', title: t('common.operation'), cell: 'operationCell', width: 80 },
+  { colKey: 'operations', title: t('common.operation'), cell: 'operations', width: 140 },
 ]
 
-const filteredConfigs = computed(() => {
-  if (!keyword.value) return configs.value
-  const kw = keyword.value.toLowerCase()
-  return configs.value.filter(
-    c => c.config_key.toLowerCase().includes(kw) || c.description.toLowerCase().includes(kw)
-  )
-})
-
-const handleSearch = () => {
-  // computed 自动响应 keyword 变化
+const resetForm = () => {
+  form.config_key = ''
+  form.config_value = ''
+  form.config_value_bool = false
+  form.config_value_number = 0
+  form.value_type = 'string'
+  form.description = ''
+  form.is_public = false
 }
 
 const loadConfigs = async () => {
@@ -181,15 +216,27 @@ const loadConfigs = async () => {
   }
 }
 
-const handleEdit = (row: SystemConfig) => {
-  editForm.config_key = row.config_key
-  editForm.config_value = row.config_value
-  editForm.config_value_bool = row.config_value === 'true'
-  editForm.config_value_number = row.value_type === 'number' ? Number(row.config_value) : 0
-  editForm.value_type = row.value_type
-  editForm.description = row.description
-  editForm.is_public = row.is_public
-  editDialogVisible.value = true
+const openCreateDialog = () => {
+  editingConfig.value = null
+  resetForm()
+  dialogVisible.value = true
+}
+
+const openEditDialog = (row: SystemConfig) => {
+  editingConfig.value = row
+  form.config_key = row.config_key
+  form.config_value = row.config_value
+  form.config_value_bool = row.config_value === 'true'
+  form.config_value_number = row.value_type === 'number' ? Number(row.config_value) : 0
+  form.value_type = row.value_type
+  form.description = row.description
+  form.is_public = row.is_public
+  dialogVisible.value = true
+}
+
+const openDeleteDialog = (row: SystemConfig) => {
+  deletingConfig.value = row
+  deleteVisible.value = true
 }
 
 const handleTogglePublic = async (row: SystemConfig, val: boolean) => {
@@ -203,31 +250,57 @@ const handleTogglePublic = async (row: SystemConfig, val: boolean) => {
 }
 
 const handleSave = async () => {
-  let value: string
-  if (editForm.value_type === 'boolean') {
-    value = editForm.config_value_bool ? 'true' : 'false'
-  } else if (editForm.value_type === 'number') {
-    value = String(editForm.config_value_number)
-  } else {
-    if (!editForm.config_value) {
-      MessagePlugin.error(t('settings.valueRequired'))
-      return
-    }
-    value = editForm.config_value
+  if (!editingConfig.value && !form.config_key) {
+    MessagePlugin.error(t('settings.valueRequired'))
+    return
   }
 
+  const value = form.value_type === 'boolean'
+    ? (form.config_value_bool ? 'true' : 'false')
+    : form.value_type === 'number'
+      ? String(form.config_value_number)
+      : form.config_value
+
+  saving.value = true
   try {
-    await updateSystemConfig(editForm.config_key, {
-      config_value: value,
-      value_type: editForm.value_type,
-      description: editForm.description,
-      is_public: editForm.is_public,
-    })
+    if (editingConfig.value) {
+      await updateSystemConfig(form.config_key, {
+        config_value: value,
+        value_type: form.value_type,
+        description: form.description,
+        is_public: form.is_public,
+      })
+    } else {
+      await createSystemConfig({
+        config_key: form.config_key,
+        config_value: value,
+        value_type: form.value_type,
+        description: form.description,
+        is_public: form.is_public,
+      })
+    }
     MessagePlugin.success(t('settings.updateSuccess'))
-    editDialogVisible.value = false
+    dialogVisible.value = false
     await loadConfigs()
   } catch (error: any) {
     MessagePlugin.error(error?.response?.data?.msg || t('settings.updateFailed'))
+  } finally {
+    saving.value = false
+  }
+}
+
+const handleDelete = async () => {
+  if (!deletingConfig.value) return
+  deleting.value = true
+  try {
+    await deleteSystemConfig(deletingConfig.value.config_key)
+    MessagePlugin.success(t('common.success'))
+    deleteVisible.value = false
+    await loadConfigs()
+  } catch (error: any) {
+    MessagePlugin.error(error?.response?.data?.msg || t('settings.cannotDeleteSystem'))
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -237,16 +310,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.system-config {
-  padding: 24px;
-}
-
-.subtitle {
-  color: var(--td-text-color-secondary);
-  font-size: 14px;
-  font-weight: 400;
-}
-
 .config-key {
   font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
   font-size: 13px;

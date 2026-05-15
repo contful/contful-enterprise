@@ -687,7 +687,16 @@
     "operation": "操作",
     "updateFailed": "更新失敗",
     "updateSuccess": "更新成功",
-    "valueRequired": "值不能為空"
+    "valueRequired": "值不能為空",
+    "addConfig": "新增設定",
+    "createConfig": "建立設定",
+    "deleteConfig": "刪除設定",
+    "deleteConfigConfirm": "確定刪除設定「{key}」嗎？此操作無法復原。",
+    "cannotDeleteSystem": "系統設定不可刪除",
+    "systemConfigTag": "系統",
+    "customConfigTag": "自訂",
+    "configKeyPlaceholder": "請輸入設定鍵名，如 custom_feature_enabled",
+    "configValuePlaceholder": "請輸入設定值"
   },
   "site": {
     "selectSite": "選擇站台",

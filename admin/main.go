@@ -475,6 +475,12 @@ func main() {
 			protected.PUT("/system/config/:key",
 				middleware.RequirePermission(rbacService, "settings:write"),
 				systemConfigHandler.Update)
+			protected.POST("/system/config",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				systemConfigHandler.Create)
+			protected.DELETE("/system/config/:key",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				systemConfigHandler.Delete)
 
 			// ─── 权限元数据 ─────────────────────────────
 			protected.GET("/permissions",

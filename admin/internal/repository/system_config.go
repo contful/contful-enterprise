@@ -23,6 +23,7 @@ type SystemConfig struct {
 	ValueType   string    `gorm:"type:varchar(20);not null;default:'string'" json:"value_type"`
 	Description string    `gorm:"type:text" json:"description"`
 	IsPublic    bool      `gorm:"not null;default:false" json:"is_public"`
+	IsSystem    bool      `gorm:"not null;default:false" json:"is_system"`
 	CreatedTime string    `gorm:"type:timestamptz;not null;default:now()" json:"created_time"`
 	UpdatedTime string    `gorm:"type:timestamptz;not null;default:now()" json:"updated_time"`
 }
@@ -181,5 +182,37 @@ func (r *SystemConfigRepository) Set(ctx context.Context, key, value, valueType,
 		}
 	}
 
+	return nil
+}
+
+// Create 创建新配置（仅自定义配置）
+func (r *SystemConfigRepository) Create(ctx context.Context, key, value, valueType, description string, isPublic bool) (*SystemConfig, error) {
+	config := SystemConfig{
+		ConfigKey:   key,
+		ConfigValue: value,
+		ValueType:   valueType,
+		Description: description,
+		IsPublic:    isPublic,
+		IsSystem:    false,
+	}
+	if err := r.db.WithContext(ctx).Create(&config).Error; err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+// Delete 删除配置（仅非系统配置可删除）
+func (r *SystemConfigRepository) Delete(ctx context.Context, key string) error {
+	result := r.db.WithContext(ctx).Where("config_key = ? AND is_system = FALSE", key).Delete(&SystemConfig{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	// 删除 Redis 缓存
+	if r.redis != nil {
+		r.redis.Del(context.Background(), configCacheKey(key))
+	}
 	return nil
 }

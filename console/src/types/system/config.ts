@@ -16,6 +16,7 @@ export interface SystemConfig {
   value_type: string
   description: string
   is_public: boolean
+  is_system: boolean
   created_time: string
   updated_time: string
 }
