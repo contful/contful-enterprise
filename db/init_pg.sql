@@ -381,14 +381,10 @@ CREATE TABLE schemas (
     slug VARCHAR(100) NOT NULL,
     description TEXT,
     kind content_type_kind NOT NULL DEFAULT 'collection',
-    display_config JSONB NOT NULL DEFAULT '{}',
-    api_config JSONB NOT NULL DEFAULT '{"publicRead":false,"publicWrite":false}',
-    preview_config JSONB NOT NULL DEFAULT '{}',
     versioning_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     draft_autosave_interval INT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
-    signature_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     data_signature VARCHAR(256) NOT NULL DEFAULT '',   -- 防篡改签名（HMAC-SHA256 hex）
     created_by UUID,
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -415,14 +411,10 @@ COMMENT ON COLUMN schemas.name IS '模型名称';
 COMMENT ON COLUMN schemas.slug IS '模型别名（API 中使用）';
 COMMENT ON COLUMN schemas.description IS '模型描述';
 COMMENT ON COLUMN schemas.kind IS '类型：collection=集合、single=单页';
-COMMENT ON COLUMN schemas.display_config IS '前端显示配置 JSON';
-COMMENT ON COLUMN schemas.api_config IS 'API 配置 JSON：publicRead/publicWrite 等';
-COMMENT ON COLUMN schemas.preview_config IS '预览配置 JSON';
 COMMENT ON COLUMN schemas.versioning_enabled IS '是否启用版本历史';
 COMMENT ON COLUMN schemas.draft_autosave_interval IS '草稿自动保存间隔（秒）';
 COMMENT ON COLUMN schemas.is_active IS '是否启用';
 COMMENT ON COLUMN schemas.sort_order IS '排序权重';
-COMMENT ON COLUMN schemas.signature_enabled IS '是否启用数据签名（该内容类型下的条目自动签名）';
 COMMENT ON COLUMN schemas.created_by IS '创建者';
 COMMENT ON COLUMN schemas.created_time IS '创建时间';
 COMMENT ON COLUMN schemas.updated_time IS '更新时间';

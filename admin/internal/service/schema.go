@@ -73,22 +73,11 @@ func (s *SchemaService) Create(ctx context.Context, siteID uuid.UUID, userID *uu
 		Slug:                 slug,
 		Description:          req.Description,
 		Kind:                 req.Kind,
-		DisplayConfig:        req.DisplayConfig,
-		APISConfig:           req.APISConfig,
-		PreviewConfig:        req.PreviewConfig,
 		VersioningEnabled:    req.VersioningEnabled,
 		DraftAutosaveInterval: req.DraftAutosaveInterval,
 		IsActive:             true,
 		SortOrder:            req.SortOrder,
 		CreatedBy:            userID,
-	}
-
-	// 默认 API 配置
-	if ct.APISConfig == nil {
-		ct.APISConfig = model.JSONB{
-			"publicRead":  false,
-			"publicWrite": false,
-		}
 	}
 
 	if err := s.csRepo.Create(ctx, ct); err != nil {
@@ -199,15 +188,6 @@ func (s *SchemaService) Update(ctx context.Context, siteID uuid.UUID, id uuid.UU
 	}
 	if req.Description != nil {
 		ct.Description = *req.Description
-	}
-	if req.DisplayConfig != nil {
-		ct.DisplayConfig = *req.DisplayConfig
-	}
-	if req.APISConfig != nil {
-		ct.APISConfig = *req.APISConfig
-	}
-	if req.PreviewConfig != nil {
-		ct.PreviewConfig = *req.PreviewConfig
 	}
 	if req.VersioningEnabled != nil {
 		ct.VersioningEnabled = *req.VersioningEnabled

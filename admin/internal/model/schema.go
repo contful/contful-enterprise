@@ -25,12 +25,8 @@ type ContentSchema struct {
 	Slug                 string           `json:"slug" gorm:"size:100;not null;index"`
 	Description          string           `json:"description" gorm:"type:text"`
 	Kind                 ContentSchemaKind  `json:"kind" gorm:"type:schema_kind;not null;default:'collection'"`
-	DisplayConfig        JSONB            `json:"display_config" gorm:"type:jsonb;default:'{}'"`
-	APISConfig           JSONB            `json:"api_config" gorm:"column:api_config;type:jsonb;default:'{\"publicRead\":false,\"publicWrite\":false}'"`
-	PreviewConfig        JSONB            `json:"preview_config" gorm:"type:jsonb;default:'{}'"`
 	VersioningEnabled    bool             `json:"versioning_enabled" gorm:"default:false"`
 	DraftAutosaveInterval *int            `json:"draft_autosave_interval" gorm:"default:null"`
-	SignatureEnabled     bool             `json:"signature_enabled" gorm:"default:false"` // 是否启用数据签名
 	IsActive             bool             `json:"is_active" gorm:"default:true"`
 	SortOrder            int              `json:"sort_order" gorm:"default:0"`
 	DataSignature       string           `json:"-" gorm:"type:varchar(256);not null;default:''"` // 防篡改签名（HMAC-SHA256 hex）

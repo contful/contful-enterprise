@@ -12,12 +12,6 @@ export interface ContentSchema {
   slug: string
   description: string
   kind: 'collection' | 'single'
-  display_config: Record<string, any>
-  api_config: {
-    publicRead: boolean
-    publicWrite: boolean
-  }
-  preview_config: Record<string, any>
   versioning_enabled: boolean
   draft_autosave_interval: number | null
   is_active: boolean
@@ -81,9 +75,6 @@ export interface ContentSchemaCreate {
   slug: string
   description?: string
   kind: 'collection' | 'single'
-  display_config?: Record<string, any>
-  api_config?: { publicRead?: boolean; publicWrite?: boolean }
-  preview_config?: Record<string, any>
   versioning_enabled?: boolean
   draft_autosave_interval?: number
   sort_order?: number
@@ -94,9 +85,6 @@ export interface ContentSchemaUpdate {
   slug?: string
   description?: string
   kind?: 'collection' | 'single'
-  display_config?: Record<string, any>
-  api_config?: { publicRead?: boolean; publicWrite?: boolean }
-  preview_config?: Record<string, any>
   versioning_enabled?: boolean
   draft_autosave_interval?: number
   is_active?: boolean

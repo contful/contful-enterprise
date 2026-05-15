@@ -116,11 +116,6 @@ func (s *IntegrityService) SignEntry(entry *model.Entry, values []model.EntryVal
 		return nil
 	}
 
-	// 如果内容类型未启用签名，跳过
-	if entry.ContentSchema != nil && !entry.ContentSchema.SignatureEnabled {
-		return nil
-	}
-
 	payload := s.buildEntryCanonicalPayload(entry, values)
 	return s.sign(entry.ID.String(), payload, func(sig model.JSONB) {
 		entry.DataSignature = sig

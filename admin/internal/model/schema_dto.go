@@ -16,9 +16,6 @@ type ContentSchemaCreate struct {
 	Slug                 string          `json:"slug" binding:"required,min=1,max=100"`
 	Description          string          `json:"description"`
 	Kind                 ContentSchemaKind `json:"kind" binding:"required,oneof=collection single"`
-	DisplayConfig        JSONB           `json:"display_config"`
-	APISConfig           JSONB           `json:"api_config"`
-	PreviewConfig        JSONB           `json:"preview_config"`
 	VersioningEnabled    bool            `json:"versioning_enabled"`
 	DraftAutosaveInterval *int           `json:"draft_autosave_interval"`
 	SortOrder            int             `json:"sort_order"`
@@ -30,9 +27,6 @@ type ContentSchemaUpdate struct {
 	Slug                 *string          `json:"slug" binding:"omitempty,min=1,max=100"`
 	Description          *string          `json:"description"`
 	Kind                 *ContentSchemaKind `json:"kind" binding:"omitempty,oneof=collection single"`
-	DisplayConfig        *JSONB           `json:"display_config"`
-	APISConfig           *JSONB           `json:"api_config"`
-	PreviewConfig        *JSONB           `json:"preview_config"`
 	VersioningEnabled    *bool            `json:"versioning_enabled"`
 	DraftAutosaveInterval *int            `json:"draft_autosave_interval"`
 	IsActive             *bool            `json:"is_active"`
@@ -47,9 +41,6 @@ type ContentSchemaResponse struct {
 	Slug                 string                `json:"slug"`
 	Description          string                `json:"description"`
 	Kind                 ContentSchemaKind       `json:"kind"`
-	DisplayConfig        map[string]interface{} `json:"display_config"`
-	APISConfig           map[string]interface{} `json:"api_config"`
-	PreviewConfig        map[string]interface{} `json:"preview_config"`
 	VersioningEnabled    bool                  `json:"versioning_enabled"`
 	DraftAutosaveInterval *int                 `json:"draft_autosave_interval"`
 	IsActive             bool                  `json:"is_active"`
@@ -84,17 +75,6 @@ func (ct *ContentSchema) ToResponse() ContentSchemaResponse {
 		CreatedBy:            ct.CreatedBy,
 		CreatedTime:            ct.CreatedTime,
 		UpdatedTime:            ct.UpdatedTime,
-	}
-
-	// 解析 JSONB 字段
-	if ct.DisplayConfig != nil {
-		resp.DisplayConfig = ct.DisplayConfig.Map()
-	}
-	if ct.APISConfig != nil {
-		resp.APISConfig = ct.APISConfig.Map()
-	}
-	if ct.PreviewConfig != nil {
-		resp.PreviewConfig = ct.PreviewConfig.Map()
 	}
 
 	// 转换字段
