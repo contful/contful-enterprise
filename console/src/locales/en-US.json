@@ -82,7 +82,7 @@
     "configs": "Config",
     "contentSchemas": "Schemas",
     "auditLogs": "Logs",
-    "systemConfig": "System Config"
+    "systemConfig": "Settings"
   },
   "auth": {
     "login": "Login",
@@ -666,7 +666,7 @@
     "slugModified": "Modified",
     "unsavedChanges": "You have unsaved changes",
     "selectPlaceholder": "Select",
-    "systemConfig": "System Config",
+    "systemConfig": "System Settings",
     "configKey": "Config Key",
     "configValue": "Config Value",
     "valueType": "Value Type",

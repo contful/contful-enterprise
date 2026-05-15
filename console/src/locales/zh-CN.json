@@ -82,7 +82,7 @@
     "configs": "配置",
     "contentSchemas": "模型",
     "auditLogs": "日志",
-    "systemConfig": "系统配置"
+    "systemConfig": "设置"
   },
   "auth": {
     "login": "登录",
@@ -673,7 +673,7 @@
     "slugModified": "已修改",
     "unsavedChanges": "存在未保存的更改",
     "selectPlaceholder": "请选择",
-    "systemConfig": "系统配置",
+    "systemConfig": "系统设置",
     "configKey": "配置键名",
     "configValue": "配置值",
     "valueType": "值类型",

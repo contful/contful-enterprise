@@ -82,7 +82,7 @@
     "configs": "設定",
     "contentSchemas": "模型",
     "auditLogs": "日誌",
-    "systemConfig": "系統設定"
+    "systemConfig": "設定"
   },
   "auth": {
     "login": "登入",
@@ -672,7 +672,7 @@
     "slugModified": "已修改",
     "unsavedChanges": "存在未儲存的變更",
     "selectPlaceholder": "請選擇",
-    "systemConfig": "系統設定",
+    "systemConfig": "系統設置",
     "configKey": "設定鍵",
     "configValue": "設定值",
     "valueType": "值類型",
