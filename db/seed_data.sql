@@ -46,18 +46,6 @@ SELECT
     NOW()
 WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000101'::uuid);
 
--- 插件管理员角色
-INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
-SELECT
-    '00000000-0000-0000-0000-000000000102'::uuid,
-    '插件管理员',
-    '插件管理员',
-    TRUE,
-    '["plugins:read", "plugins:write", "plugins:install", "plugins:uninstall"]'::jsonb,
-    NOW(),
-    NOW()
-WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000102'::uuid);
-
 -- 审计员角色（仅可查看和导出审计日志）
 INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
