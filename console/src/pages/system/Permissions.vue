@@ -4,6 +4,9 @@
   <div class="toolbar">
     <span></span>
     <t-space>
+      <t-button variant="outline" :loading="clearingCache" @click="clearCache">
+        {{ t('permissions.clearCache') }}
+      </t-button>
       <t-button variant="outline" @click="loadData">
         <template #icon><t-icon name="refresh" /></template>
         {{ t('common.refresh') }}
@@ -111,6 +114,7 @@ import {
   createPermission,
   updatePermission,
   deletePermission,
+  clearPermissionCache,
   type PermissionGroup,
 } from '@/api/rbac'
 
@@ -118,6 +122,7 @@ const { t } = useI18n()
 
 const loading = ref(false)
 const saving = ref(false)
+const clearingCache = ref(false)
 const groups = ref<PermissionGroup[]>([])
 
 const groupDialogVisible = ref(false)
@@ -267,6 +272,19 @@ async function handleDeletePerm(id: string) {
     loadData()
   } catch (e: any) {
     MessagePlugin.error(e?.msg || t('common.error'))
+  }
+}
+
+async function clearCache() {
+  clearingCache.value = true
+  try {
+    await clearPermissionCache()
+    MessagePlugin.success(t('common.success'))
+    loadData()
+  } catch (e: any) {
+    MessagePlugin.error(e?.msg || t('common.error'))
+  } finally {
+    clearingCache.value = false
   }
 }
 

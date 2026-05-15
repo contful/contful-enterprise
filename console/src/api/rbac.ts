@@ -120,6 +120,11 @@ export function deletePermission(id: string) {
   return del(`/system/permissions/${id}`)
 }
 
+/** 清除权限元数据缓存 */
+export function clearPermissionCache() {
+  return post('/system/permissions/cache/clear')
+}
+
 // ─────────────────────────────────────────────────────────────
 // 用户-角色关联管理
 // ─────────────────────────────────────────────────────────────

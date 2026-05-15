@@ -243,3 +243,9 @@ func (h *PermissionHandler) invalidateCache() {
 		h.rbacService.InvalidatePermissionCache()
 	}
 }
+
+// ClearCache 手动清除权限元数据缓存
+func (h *PermissionHandler) ClearCache(c *gin.Context) {
+	h.invalidateCache()
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "缓存已清除"}))
+}

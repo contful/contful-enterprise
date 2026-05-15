@@ -922,6 +922,7 @@
     "sortOrder": "Sort Order",
     "perms": "items",
     "noData": "No permissions configured",
-    "fillRequired": "Required fields must be filled"
+    "fillRequired": "Required fields must be filled",
+    "clearCache": "Clear Cache"
   }
 }

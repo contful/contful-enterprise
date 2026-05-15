@@ -926,6 +926,7 @@
     "sortOrder": "排序",
     "perms": "项",
     "noData": "暂无权限配置",
-    "fillRequired": "请填写必填项"
+    "fillRequired": "请填写必填项",
+    "clearCache": "清除缓存"
   }
 }

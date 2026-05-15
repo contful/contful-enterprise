@@ -550,6 +550,9 @@ func main() {
 			protected.DELETE("/system/permissions/:id",
 				middleware.RequirePermission(rbacService, "roles:write"),
 				permHandler.DeletePermission)
+			protected.POST("/system/permissions/cache/clear",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				permHandler.ClearCache)
 		}
 	}
 
