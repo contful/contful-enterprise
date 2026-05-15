@@ -59,8 +59,6 @@
           size="large"
           maxlength="6"
           :autofocus="true"
-          inputmode="numeric"
-          @keyup.enter="onVerify"
         >
           <template #prefix-icon><t-icon name="lock-on" /></template>
         </t-input>
@@ -90,7 +88,6 @@
           :placeholder="t('auth.mfaRecoveryPlaceholder')"
           size="large"
           :autofocus="true"
-          @keyup.enter="onRecover"
         >
           <template #prefix-icon><t-icon name="key" /></template>
         </t-input>
