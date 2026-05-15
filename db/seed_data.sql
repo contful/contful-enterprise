@@ -112,6 +112,7 @@ INSERT INTO system_config (config_key, config_value, value_type, description, is
 VALUES
     ('password_expire_days', '90', 'number', '密码有效期（天），0 表示永不过期', FALSE, TRUE, NOW(), NOW()),
     ('site_name', 'Contful', 'string', '系统名称', TRUE, TRUE, NOW(), NOW()),
+    ('site_description', '开源 Headless CMS', 'string', '系统描述', TRUE, TRUE, NOW(), NOW()),
     ('logo_url', '', 'string', '系统 Logo 图片地址', TRUE, TRUE, NOW(), NOW()),
     ('login_background_url', '', 'string', '登录页背景图片地址', TRUE, TRUE, NOW(), NOW()),
     ('password_min_length', '8', 'number', '密码最小长度', FALSE, TRUE, NOW(), NOW()),
@@ -119,9 +120,9 @@ VALUES
     ('password_require_lowercase', 'true', 'boolean', '密码必须包含小写字母', FALSE, TRUE, NOW(), NOW()),
     ('password_require_number', 'true', 'boolean', '密码必须包含数字', FALSE, TRUE, NOW(), NOW()),
     ('password_require_special', 'false', 'boolean', '密码必须包含特殊字符', FALSE, TRUE, NOW(), NOW()),
-    ('mfa_enforced', 'false', 'boolean', '是否强制所有用户启用 MFA 双因子认证', FALSE, TRUE, NOW(), NOW()),
-    ('login_max_attempts', '5', 'number', '登录失败次数上限（连续失败达到此值后锁定）', FALSE, TRUE, NOW(), NOW()),
-    ('login_lock_duration', '30', 'number', '账号锁定时长（分钟）', FALSE, TRUE, NOW(), NOW())
+    ('mfa_enforced', 'false', 'boolean', '是否强制所有用户启用 MFA 双因子认证', TRUE, TRUE, NOW(), NOW()),
+    ('login_max_attempts', '5', 'number', '登录失败次数上限（连续失败达到此值后锁定）', TRUE, TRUE, NOW(), NOW()),
+    ('login_lock_duration', '30', 'number', '账号锁定时长（分钟）', TRUE, TRUE, NOW(), NOW())
 ON CONFLICT (config_key) DO NOTHING;
 
 -- =============================================================================

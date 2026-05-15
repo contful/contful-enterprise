@@ -5,12 +5,12 @@
         <div class="auth-header">
           <img
             :src="logoUrl"
-            alt="Contful"
+            :alt="siteName"
             class="auth-logo"
             role="heading"
             aria-level="1"
           />
-          <p class="auth-subtitle">{{ t('auth.openSource') }} Headless CMS</p>
+          <p class="auth-subtitle">{{ siteDescription }}</p>
         </div>
       </template>
 
@@ -122,7 +122,7 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import JSEncrypt from 'jsencrypt'
 import { useUserStore } from '@/stores/user'
 import { updatePassword } from '@/api/user'
-import { getPasswordPolicy } from '@/api/system-config'
+import { getPasswordPolicy, getSiteConfig } from '@/api/system-config'
 import { get } from '@/utils/request'
 
 const { t } = useI18n()
@@ -139,7 +139,13 @@ const loginForm = reactive({
   password: '',
 })
 
-// 密码策略（从后端读取）
+const logoUrl = ref('/assets/logo.png')
+const siteName = ref('Contful')
+const siteDescription = ref(t('auth.openSource') + ' Headless CMS')
+const loginBackgroundUrl = ref('')
+const mfaEnforced = ref(false)
+const loginMaxAttempts = ref(5)
+const loginLockDuration = ref(30)
 const passwordPolicy = ref({
   min_length: 8,
   require_uppercase: true,
@@ -149,12 +155,23 @@ const passwordPolicy = ref({
   expire_days: 90,
 })
 
-// 组件挂载时获取密码策略
+// 组件挂载时获取站点配置和密码策略
 onMounted(async () => {
   try {
-    passwordPolicy.value = await getPasswordPolicy()
+    const [siteConfig, policy] = await Promise.all([
+      getSiteConfig(),
+      getPasswordPolicy(),
+    ])
+    if (siteConfig.site_name) siteName.value = siteConfig.site_name
+    if (siteConfig.site_description) siteDescription.value = siteConfig.site_description
+    if (siteConfig.logo_url) logoUrl.value = siteConfig.logo_url
+    if (siteConfig.login_background_url) loginBackgroundUrl.value = siteConfig.login_background_url
+    mfaEnforced.value = siteConfig.mfa_enforced
+    loginMaxAttempts.value = siteConfig.login_max_attempts
+    loginLockDuration.value = siteConfig.login_lock_duration
+    passwordPolicy.value = policy
   } catch (error) {
-    console.warn('Failed to load password policy, using defaults', error)
+    console.warn('Failed to load site config, using defaults', error)
   }
 })
 
@@ -168,8 +185,6 @@ const loginRules = computed(() => ({
     { min: passwordPolicy.value.min_length, message: t('auth.passwordMinLength', { min: passwordPolicy.value.min_length }) },
   ],
 }))
-
-const logoUrl = '/assets/logo.png'
 
 // 密码过期相关状态
 const passwordExpiredDialogVisible = ref(false)

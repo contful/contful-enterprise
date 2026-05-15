@@ -154,8 +154,8 @@ request.interceptors.request.use(
     const url = (config.url || '').replace(config.baseURL || '', '')
     console.log(`[Interceptor] 请求: ${config.method?.toUpperCase()} ${url}`)
     // 跳过不需要 Token 的请求（登录、注册、刷新等）
-    if (url.startsWith('/auth/')) {
-      console.log('[Interceptor] 跳过 auth 路径，不附加 Token')
+    if (url.startsWith('/auth/') || url.startsWith('/system/config/')) {
+      console.log('[Interceptor] 跳过公开路径，不附加 Token')
       return config
     }
 

@@ -136,6 +136,21 @@ func (h *SystemConfigHandler) GetPasswordPolicy(c *gin.Context) {
 	c.JSON(http.StatusOK, model.NewSuccessResponse(policy))
 }
 
+// GetSiteConfig 获取站点公开配置（登录页需要，无需认证）
+func (h *SystemConfigHandler) GetSiteConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	result := gin.H{
+		"site_name":           h.configRepo.GetString(ctx, "site_name", "Contful"),
+		"site_description":    h.configRepo.GetString(ctx, "site_description", ""),
+		"logo_url":            h.configRepo.GetString(ctx, "logo_url", ""),
+		"login_background_url": h.configRepo.GetString(ctx, "login_background_url", ""),
+		"mfa_enforced":        h.configRepo.GetBool(ctx, "mfa_enforced", false),
+		"login_max_attempts":  h.configRepo.GetInt(ctx, "login_max_attempts", 5),
+		"login_lock_duration": h.configRepo.GetInt(ctx, "login_lock_duration", 30),
+	}
+	c.JSON(http.StatusOK, model.NewSuccessResponse(result))
+}
+
 // Create 创建自定义配置（需要认证 + settings:write 权限）
 func (h *SystemConfigHandler) Create(c *gin.Context) {
 	var req struct {

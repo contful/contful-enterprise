@@ -1,6 +1,23 @@
 import request from '@/utils/request'
 import type { PasswordPolicy, SystemConfig } from '@/types/system/config'
 
+// 站点公开配置（登录页使用，无需认证）
+export interface SiteConfig {
+  site_name: string
+  site_description: string
+  logo_url: string
+  login_background_url: string
+  mfa_enforced: boolean
+  login_max_attempts: number
+  login_lock_duration: number
+}
+
+// 获取站点公开配置（无需认证）
+export const getSiteConfig = async (): Promise<SiteConfig> => {
+  const res = await request.get('/system/config/site')
+  return res.data.data
+}
+
 // 获取密码策略（公开 API，无需认证）
 export const getPasswordPolicy = async (): Promise<PasswordPolicy> => {
   const res = await request.get('/system/config/password/policy')
