@@ -197,7 +197,6 @@ const columns = computed(() => [
   { colKey: 'category', title: t('audit.column.category'), width: 100 },
   { colKey: 'level', title: t('audit.column.level'), width: 80 },
   { colKey: 'resource_type', title: t('audit.column.resourceType'), width: 120 },
-  { colKey: 'user_id', title: t('audit.column.userId'), width: 160 },
   { colKey: 'ip_address', title: t('audit.column.ipAddress'), width: 140 },
   { colKey: 'created_time', title: t('audit.column.time'), width: 170 },
   { colKey: 'operation', title: t('audit.column.operation'), width: 80, fixed: 'right' as const },
