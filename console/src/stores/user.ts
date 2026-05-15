@@ -24,6 +24,7 @@ interface LoginResponse {
   refresh_token: string
   password_expired?: boolean
   password_expire_days?: number
+  mfa_setup_required?: boolean
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -115,6 +116,7 @@ export const useUserStore = defineStore('user', () => {
         return {
           success: true,
           mfa_required: false,
+          mfa_setup_required: loginData.mfa_setup_required || false,
           password_expired: loginData.password_expired || false,
           password_expire_days: loginData.password_expire_days,
         }
