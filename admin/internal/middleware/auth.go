@@ -82,30 +82,6 @@ func JWTAuth(getter claimsGetter) gin.HandlerFunc {
 		c.Set(ClaimsContextKey, claims)
 		c.Set(UserContextKey, claims.UserID)
 
-		// MFA 强制策略检查：如果系统要求 MFA 但用户未设置，仅允许 MFA 相关路由
-		if claims.MFASetupRequired {
-			allowedPaths := []string{"/mfa/setup", "/mfa/enable", "/mfa/status", "/auth/mfa"}
-			path := c.Request.URL.Path
-			allowed := false
-			for _, p := range allowedPaths {
-				if strings.Contains(path, p) {
-					allowed = true
-					break
-				}
-			}
-			// 也允许 refresh/logout 路由
-			if strings.HasSuffix(path, "/auth/refresh") || strings.HasSuffix(path, "/auth/logout") {
-				allowed = true
-			}
-			if !allowed {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-					"code": "mfa_setup_required",
-					"msg":  "MFA setup is required by system policy",
-				})
-				return
-			}
-		}
-
 		// 从请求头获取 site_id（前端必须传递）
 		siteIDStr := c.GetHeader(SiteIDHeader)
 		if siteIDStr != "" {
