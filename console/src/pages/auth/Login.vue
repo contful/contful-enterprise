@@ -275,6 +275,8 @@ const onLogin = async () => {
       })
     } else if (result.mfa_setup_required) {
       // MFA 强制开启但用户未设置，跳转到 MFA 设置页
+      sessionStorage.removeItem('mfa_token')
+      sessionStorage.removeItem('mfa_email')
       router.push('/mfa')
     } else if (result.password_expired) {
       // 密码已过期，强制修改密码
