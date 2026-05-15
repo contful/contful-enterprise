@@ -286,7 +286,7 @@ CREATE TABLE audit_logs (
     resource_id UUID,
     level audit_level NOT NULL DEFAULT 'info',
     category audit_type NOT NULL,
-    details JSONB,
+    details TEXT,
     ip_address INET,
     user_agent TEXT,
     data_signature JSONB NOT NULL DEFAULT '{}',
@@ -314,7 +314,7 @@ COMMENT ON COLUMN audit_logs.resource_type IS '资源类型';
 COMMENT ON COLUMN audit_logs.resource_id IS '资源 ID';
 COMMENT ON COLUMN audit_logs.level IS '日志级别：debug/info/warn/error';
 COMMENT ON COLUMN audit_logs.category IS '操作类别：auth/content/media/settings/user/system';
-COMMENT ON COLUMN audit_logs.details IS '操作详情 JSON';
+COMMENT ON COLUMN audit_logs.details IS '操作详情';
 COMMENT ON COLUMN audit_logs.ip_address IS '客户端 IP';
 COMMENT ON COLUMN audit_logs.user_agent IS '客户端 User-Agent';
 COMMENT ON COLUMN audit_logs.data_signature IS '审计日志完整性签名，防篡改';

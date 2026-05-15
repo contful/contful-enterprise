@@ -92,16 +92,16 @@ func (s *AuditService) Log(ctx context.Context, userID uuid.UUID, level model.Au
 
 // LogFromGin 从 Gin 上下文记录审计日志（自动提取用户信息）
 func (s *AuditService) LogFromGin(c *gin.Context, level model.AuditLevel, category model.AuditType, action string, opts ...LogOption) error {
-	// 从 Gin 上下文获取用户 ID
-	userIDStr, exists := c.Get("user_id")
+	// 从 Gin 上下文获取用户 ID（中间件存入 key="user"，类型 uuid.UUID）
+	userIDVal, exists := c.Get("user")
 	if !exists {
 		log.Warn().Msg("user_id not found in gin context, skipping audit log")
 		return nil
 	}
 
-	userID, err := uuid.Parse(userIDStr.(string))
-	if err != nil {
-		log.Warn().Err(err).Msg("invalid user_id in gin context, skipping audit log")
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		log.Warn().Msg("invalid user_id type in gin context, skipping audit log")
 		return nil
 	}
 
