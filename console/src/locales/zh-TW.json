@@ -118,6 +118,8 @@
     "mfaSetupSuccess": "MFA 已成功啟用",
     "mfaSetupFailed": "MFA 初始化失敗，請重試",
     "mfaSecret": "手動輸入金鑰：",
+    "passwordRequired": "密碼不能為空",
+    "passwordHint": "至少 8 位，包含大小寫字母與數字",
     "emailPlaceholder": "請輸入電子郵件地址",
     "mfaEmailMissing": "電子郵件不能為空",
     "changePassword": "修改密碼",

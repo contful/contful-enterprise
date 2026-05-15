@@ -118,6 +118,8 @@
     "mfaSetupSuccess": "MFA has been enabled",
     "mfaSetupFailed": "MFA setup failed, please try again",
     "mfaSecret": "Manual entry key:",
+    "passwordRequired": "Password is required",
+    "passwordHint": "At least 8 characters, containing uppercase, lowercase and numbers",
     "emailPlaceholder": "Enter email address",
     "mfaEmailMissing": "Email cannot be empty",
     "passwordExpired": "Your password has expired",

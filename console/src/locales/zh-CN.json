@@ -119,6 +119,8 @@
     "mfaSetupSuccess": "MFA 设置成功",
     "mfaSetupFailed": "MFA 初始化失败，请重试",
     "mfaSecret": "手动输入密钥：",
+    "passwordRequired": "请输入密码",
+    "passwordHint": "至少 8 位，包含大小写字母与数字",
     "emailPlaceholder": "请输入邮箱地址",
     "passwordExpired": "您的密码已过期",
     "passwordExpiredTitle": "密码已过期",
