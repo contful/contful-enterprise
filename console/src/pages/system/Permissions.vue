@@ -22,7 +22,7 @@
           <div class="group-header">
             <span class="group-label">{{ group.label }}</span>
             <t-tag variant="outline" size="small">{{ group.group_key }}</t-tag>
-            <span class="group-perm-count">{{ group.permissions.length }} {{ t('permissions.perms') }}</span>
+            <span class="group-perm-count">{{ group.permissions?.length ?? 0 }} {{ t('permissions.perms') }}</span>
           </div>
         </template>
         <template #headerRightContent>
@@ -34,7 +34,7 @@
             </t-popconfirm>
           </t-space>
         </template>
-        <t-table :data="group.permissions" :columns="permColumns" row-key="id" size="small" hover>
+        <t-table :data="group.permissions || []" :columns="permColumns" row-key="id" size="small" hover>
           <template #operations="{ row }">
             <t-space size="small">
               <t-button variant="text" size="small" @click="openPermDialog(group, row)">{{ t('common.edit') }}</t-button>
