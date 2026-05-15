@@ -21,7 +21,7 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/assets': 'asset:read',
   '/tokens': 'tokens:read',
   '/settings/tokens': 'tokens:read',
-  '/settings/system-config': 'settings:read',
+  '/settings/system/config': 'settings:read',
   '/system/roles': 'roles:read',
   '/audit/logs': 'audit:read',
 }
@@ -70,7 +70,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/settings/system-config',
+    path: '/settings/system/config',
     name: 'SystemConfig',
     component: () => import('@/pages/settings/SystemConfig.vue'),
     meta: { requiresAuth: true },

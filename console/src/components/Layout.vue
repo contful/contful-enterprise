@@ -47,7 +47,7 @@ const MENU_PERMISSION_MAP: Record<string, string> = {
   '/tokens': 'tokens:read',
   '/system/roles': 'roles:read',
   '/audit/logs': 'audit:read',
-  '/settings/system-config': 'settings:read',
+  '/settings/system/config': 'settings:read',
 }
 
 // 根据权限过滤菜单项
@@ -61,7 +61,7 @@ const filteredMenuItems = computed(() => {
     { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
     { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
     { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
-    { path: '/settings/system-config', icon: 'setting', label: t('menu.systemConfig'), name: 'SystemConfig', tIcon: 'setting' },
+    { path: '/settings/system/config', icon: 'setting', label: t('menu.systemConfig'), name: 'SystemConfig', tIcon: 'setting' },
     { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
   ]
 
