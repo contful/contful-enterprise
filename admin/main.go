@@ -179,6 +179,7 @@ func main() {
 	cacheHandler := handler.NewCacheHandler(cacheService)
 	systemRoleHandler := handler.NewSystemRoleHandler(rbacService, auditService)
 	systemConfigHandler := handler.NewSystemConfigHandler(systemConfigRepo, rbacService, auditService)
+	permHandler := handler.NewPermissionHandler(permRepo)
 	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
 	auditHandler := handler.NewAuditHandler(auditService)
 
@@ -526,6 +527,29 @@ func main() {
 				func(c *gin.Context) {
 					c.JSON(200, rbacService.GetPermissionsMeta())
 				})
+
+			// ─── 权限分组管理 ─────────────────────────
+			protected.GET("/system/permissions",
+				middleware.RequirePermission(rbacService, "roles:read"),
+				permHandler.List)
+			protected.POST("/system/permissions/group",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				permHandler.CreateGroup)
+			protected.PUT("/system/permissions/group/:id",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				permHandler.UpdateGroup)
+			protected.DELETE("/system/permissions/group/:id",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				permHandler.DeleteGroup)
+			protected.POST("/system/permissions",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				permHandler.CreatePermission)
+			protected.PUT("/system/permissions/:id",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				permHandler.UpdatePermission)
+			protected.DELETE("/system/permissions/:id",
+				middleware.RequirePermission(rbacService, "roles:write"),
+				permHandler.DeletePermission)
 		}
 	}
 

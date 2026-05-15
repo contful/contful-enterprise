@@ -903,5 +903,29 @@
   "permission": {
     "denied": "您没有访问该页面的权限",
     "required": "需要权限：{permission}"
+  },
+  "permissions": {
+    "title": "权限管理",
+    "subtitle": "管理系统权限分组与权限项",
+    "addGroup": "添加权限分组",
+    "editGroup": "编辑权限分组",
+    "deleteGroupConfirm": "确认删除权限分组「{name}」？组内所有权限项将一并删除。",
+    "addPerm": "添加权限项",
+    "editPerm": "编辑权限项",
+    "deletePermConfirm": "确认删除权限项「{action}」？",
+    "groupKey": "分组键",
+    "groupKeyHint": "如 users、sites",
+    "groupLabel": "分组名称",
+    "groupLabelHint": "如 用户管理",
+    "groupLabelEn": "英文名称",
+    "permAction": "操作键",
+    "permActionHint": "如 read、write",
+    "permLabel": "权限名称",
+    "permLabelHint": "如 查看用户",
+    "permLabelEn": "英文名称",
+    "sortOrder": "排序",
+    "perms": "项",
+    "noData": "暂无权限配置",
+    "fillRequired": "请填写必填项"
   }
 }

@@ -899,5 +899,29 @@
   "permission": {
     "denied": "You do not have permission to access this page",
     "required": "Permission required: {permission}"
+  },
+  "permissions": {
+    "title": "Permission Management",
+    "subtitle": "Manage permission groups and items",
+    "addGroup": "Add Group",
+    "editGroup": "Edit Group",
+    "deleteGroupConfirm": "Delete group \"{name}\"? All permissions in this group will also be deleted.",
+    "addPerm": "Add Permission",
+    "editPerm": "Edit Permission",
+    "deletePermConfirm": "Delete permission \"{action}\"?",
+    "groupKey": "Group Key",
+    "groupKeyHint": "e.g. users, sites",
+    "groupLabel": "Group Name",
+    "groupLabelHint": "e.g. User Management",
+    "groupLabelEn": "English Name",
+    "permAction": "Action Key",
+    "permActionHint": "e.g. read, write",
+    "permLabel": "Permission Name",
+    "permLabelHint": "e.g. View Users",
+    "permLabelEn": "English Name",
+    "sortOrder": "Sort Order",
+    "perms": "items",
+    "noData": "No permissions configured",
+    "fillRequired": "Required fields must be filled"
   }
 }

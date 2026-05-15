@@ -46,6 +46,7 @@ const MENU_PERMISSION_MAP: Record<string, string> = {
   '/users': 'users:read',
   '/tokens': 'tokens:read',
   '/system/roles': 'roles:read',
+  '/system/permissions': 'roles:read',
   '/audit/logs': 'audit:read',
   '/system/config': 'settings:read',
 }
@@ -61,6 +62,7 @@ const filteredMenuItems = computed(() => {
     { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
     { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
     { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
+    { path: '/system/permissions', icon: 'secured', label: t('permissions.title'), name: 'SystemPermissions', tIcon: 'secured' },
     { path: '/system/config', icon: 'setting', label: t('menu.systemConfig'), name: 'SystemConfig', tIcon: 'setting' },
     { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
   ]
