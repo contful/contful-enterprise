@@ -317,6 +317,7 @@ import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import request from '@/utils/request'
+import { getPasswordPolicy } from '@/api/system-config'
 
 const { t } = useI18n()
 const userStore = useUserStore()
@@ -495,15 +496,14 @@ const fetchMFAStatus = async () => {
 // 获取密码过期信息
 const fetchPasswordExpiry = async () => {
   try {
-    const [userRes, policyRes] = await Promise.all([
+    const [userRes, policy] = await Promise.all([
       request.get('/users/me'),
-      request.get('/system/config/password/policy'),
+      getPasswordPolicy(),
     ])
     const user = userRes.data.code === 200 ? userRes.data.data : null
-    const policy = policyRes.data.code === 200 ? policyRes.data.data : null
-    if (user && policy?.password_expire_days && policy.password_expire_days > 0) {
+    if (user && policy?.expire_days && policy.expire_days > 0) {
       const created = new Date(user.created_time).getTime()
-      const expireMs = created + policy.password_expire_days * 86400 * 1000
+      const expireMs = created + policy.expire_days * 86400 * 1000
       const remaining = Math.ceil((expireMs - Date.now()) / 86400000)
       passwordExpired.value = remaining <= 0
       passwordExpireDays.value = remaining
