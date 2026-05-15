@@ -10,14 +10,16 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
+	"github.com/contful/contful/admin/internal/service"
 )
 
 type PermissionHandler struct {
-	permRepo *repository.PermissionRepository
+	permRepo    *repository.PermissionRepository
+	rbacService *service.RBACService
 }
 
-func NewPermissionHandler(permRepo *repository.PermissionRepository) *PermissionHandler {
-	return &PermissionHandler{permRepo: permRepo}
+func NewPermissionHandler(permRepo *repository.PermissionRepository, rbacService *service.RBACService) *PermissionHandler {
+	return &PermissionHandler{permRepo: permRepo, rbacService: rbacService}
 }
 
 // List 获取权限分组及权限项列表
@@ -102,6 +104,7 @@ func (h *PermissionHandler) CreateGroup(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, model.NewSuccessResponse(g))
+	h.invalidateCache()
 }
 
 func (h *PermissionHandler) UpdateGroup(c *gin.Context) {
@@ -138,6 +141,7 @@ func (h *PermissionHandler) UpdateGroup(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "updated"}))
+	h.invalidateCache()
 }
 
 func (h *PermissionHandler) DeleteGroup(c *gin.Context) {
@@ -147,6 +151,7 @@ func (h *PermissionHandler) DeleteGroup(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "deleted"}))
+	h.invalidateCache()
 }
 
 // ── 权限项 CRUD ──
@@ -183,6 +188,7 @@ func (h *PermissionHandler) CreatePermission(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, model.NewSuccessResponse(p))
+	h.invalidateCache()
 }
 
 func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
@@ -219,6 +225,7 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "updated"}))
+	h.invalidateCache()
 }
 
 func (h *PermissionHandler) DeletePermission(c *gin.Context) {
@@ -228,4 +235,11 @@ func (h *PermissionHandler) DeletePermission(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "deleted"}))
+	h.invalidateCache()
+}
+
+func (h *PermissionHandler) invalidateCache() {
+	if h.rbacService != nil {
+		h.rbacService.InvalidatePermissionCache()
+	}
 }

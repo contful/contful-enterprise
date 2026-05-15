@@ -385,3 +385,10 @@ func (s *RBACService) fallbackPermissionsMeta() map[string]interface{} {
 		"asset":          map[string]string{"read": "查看文件", "write": "管理文件", "delete": "删除文件"},
 	}
 }
+
+// InvalidatePermissionCache 失效权限元数据缓存（权限 CRUD 后调用）
+func (s *RBACService) InvalidatePermissionCache() {
+	if s.redis != nil {
+		s.redis.Del(context.Background(), "permission:meta")
+	}
+}

@@ -179,7 +179,7 @@ func main() {
 	cacheHandler := handler.NewCacheHandler(cacheService)
 	systemRoleHandler := handler.NewSystemRoleHandler(rbacService, auditService)
 	systemConfigHandler := handler.NewSystemConfigHandler(systemConfigRepo, rbacService, auditService)
-	permHandler := handler.NewPermissionHandler(permRepo)
+	permHandler := handler.NewPermissionHandler(permRepo, rbacService)
 	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
 	auditHandler := handler.NewAuditHandler(auditService)
 
