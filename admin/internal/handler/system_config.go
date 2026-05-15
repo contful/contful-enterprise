@@ -122,33 +122,28 @@ func (h *SystemConfigHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "config updated"}))
 }
 
-// GetPasswordPolicy 获取密码策略（公开，注册页需要）
-func (h *SystemConfigHandler) GetPasswordPolicy(c *gin.Context) {
-	policy := gin.H{
-		"min_length":        h.configRepo.GetInt(c.Request.Context(), "password_min_length", 8),
-		"require_uppercase": h.configRepo.GetBool(c.Request.Context(), "password_require_uppercase", true),
-		"require_lowercase": h.configRepo.GetBool(c.Request.Context(), "password_require_lowercase", true),
-		"require_number":    h.configRepo.GetBool(c.Request.Context(), "password_require_number", true),
-		"require_special":   h.configRepo.GetBool(c.Request.Context(), "password_require_special", false),
-		"expire_days":       h.configRepo.GetInt(c.Request.Context(), "password_expire_days", 90),
-	}
-
-	c.JSON(http.StatusOK, model.NewSuccessResponse(policy))
-}
-
 // GetSiteConfig 获取站点公开配置（登录页需要，无需认证）
+// 返回：站点品牌、安全策略、密码强度规则
 func (h *SystemConfigHandler) GetSiteConfig(c *gin.Context) {
 	ctx := c.Request.Context()
-	result := gin.H{
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{
+		// 站点品牌
 		"site_name":           h.configRepo.GetString(ctx, "site_name", "Contful"),
 		"site_description":    h.configRepo.GetString(ctx, "site_description", ""),
 		"logo_url":            h.configRepo.GetString(ctx, "logo_url", ""),
 		"login_background_url": h.configRepo.GetString(ctx, "login_background_url", ""),
+		// 安全策略
 		"mfa_enforced":        h.configRepo.GetBool(ctx, "mfa_enforced", false),
 		"login_max_attempts":  h.configRepo.GetInt(ctx, "login_max_attempts", 5),
 		"login_lock_duration": h.configRepo.GetInt(ctx, "login_lock_duration", 30),
-	}
-	c.JSON(http.StatusOK, model.NewSuccessResponse(result))
+		// 密码策略
+		"password_min_length":        h.configRepo.GetInt(ctx, "password_min_length", 8),
+		"password_require_uppercase": h.configRepo.GetBool(ctx, "password_require_uppercase", true),
+		"password_require_lowercase": h.configRepo.GetBool(ctx, "password_require_lowercase", true),
+		"password_require_number":    h.configRepo.GetBool(ctx, "password_require_number", true),
+		"password_require_special":   h.configRepo.GetBool(ctx, "password_require_special", false),
+		"password_expire_days":       h.configRepo.GetInt(ctx, "password_expire_days", 90),
+	}))
 }
 
 // Create 创建自定义配置（需要认证 + settings:write 权限）

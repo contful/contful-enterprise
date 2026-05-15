@@ -122,7 +122,7 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import JSEncrypt from 'jsencrypt'
 import { useUserStore } from '@/stores/user'
 import { updatePassword } from '@/api/user'
-import { getPasswordPolicy, getSiteConfig } from '@/api/system-config'
+import { getSiteConfig } from '@/api/system-config'
 import { get } from '@/utils/request'
 
 const { t } = useI18n()
@@ -155,21 +155,25 @@ const passwordPolicy = ref({
   expire_days: 90,
 })
 
-// 组件挂载时获取站点配置和密码策略
+// 组件挂载时获取站点配置（品牌 + 策略 + 密码规则）
 onMounted(async () => {
   try {
-    const [siteConfig, policy] = await Promise.all([
-      getSiteConfig(),
-      getPasswordPolicy(),
-    ])
-    if (siteConfig.site_name) siteName.value = siteConfig.site_name
-    if (siteConfig.site_description) siteDescription.value = siteConfig.site_description
-    if (siteConfig.logo_url) logoUrl.value = siteConfig.logo_url
-    if (siteConfig.login_background_url) loginBackgroundUrl.value = siteConfig.login_background_url
-    mfaEnforced.value = siteConfig.mfa_enforced
-    loginMaxAttempts.value = siteConfig.login_max_attempts
-    loginLockDuration.value = siteConfig.login_lock_duration
-    passwordPolicy.value = policy
+    const config = await getSiteConfig()
+    if (config.site_name) siteName.value = config.site_name
+    if (config.site_description) siteDescription.value = config.site_description
+    if (config.logo_url) logoUrl.value = config.logo_url
+    if (config.login_background_url) loginBackgroundUrl.value = config.login_background_url
+    mfaEnforced.value = config.mfa_enforced
+    loginMaxAttempts.value = config.login_max_attempts
+    loginLockDuration.value = config.login_lock_duration
+    passwordPolicy.value = {
+      min_length: config.password_min_length,
+      require_uppercase: config.password_require_uppercase,
+      require_lowercase: config.password_require_lowercase,
+      require_number: config.password_require_number,
+      require_special: config.password_require_special,
+      expire_days: config.password_expire_days,
+    }
   } catch (error) {
     console.warn('Failed to load site config, using defaults', error)
   }

@@ -10,18 +10,31 @@ export interface SiteConfig {
   mfa_enforced: boolean
   login_max_attempts: number
   login_lock_duration: number
+  password_min_length: number
+  password_require_uppercase: boolean
+  password_require_lowercase: boolean
+  password_require_number: boolean
+  password_require_special: boolean
+  password_expire_days: number
 }
 
-// 获取站点公开配置（无需认证）
+// 获取站点公开配置（无需认证，含品牌/策略/密码规则）
 export const getSiteConfig = async (): Promise<SiteConfig> => {
   const res = await request.get('/system/config/site')
   return res.data.data
 }
 
-// 获取密码策略（公开 API，无需认证）
+// 获取密码策略（已合并到 getSiteConfig，保留兼容）
 export const getPasswordPolicy = async (): Promise<PasswordPolicy> => {
-  const res = await request.get('/system/config/password/policy')
-  return res.data.data
+  const site = await getSiteConfig()
+  return {
+    min_length: site.password_min_length,
+    require_uppercase: site.password_require_uppercase,
+    require_lowercase: site.password_require_lowercase,
+    require_number: site.password_require_number,
+    require_special: site.password_require_special,
+    expire_days: site.password_expire_days,
+  }
 }
 
 // 获取公开配置

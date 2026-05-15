@@ -462,10 +462,11 @@ func main() {
 				systemRoleHandler.Delete)
 
 			// ─── 系统配置管理 ─────────────────────────
-			// 公开配置（无需认证，登录/注册页需要）
+			// 公开配置（无需认证，登录/注册页使用）
+			// 注意：必须注册在 protected 组之前，避免 :key 通配符路由拦截
 			api.GET("/system/config/site", systemConfigHandler.GetSiteConfig)
 			api.GET("/system/config/public", systemConfigHandler.GetPublicConfig)
-			api.GET("/system/config/password/policy", systemConfigHandler.GetPasswordPolicy)
+
 			// 需要认证的路由
 			protected.GET("/system/config",
 				middleware.RequirePermission(rbacService, "settings:read"),
