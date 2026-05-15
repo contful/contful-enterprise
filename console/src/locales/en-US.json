@@ -667,6 +667,7 @@
     "unsavedChanges": "You have unsaved changes",
     "selectPlaceholder": "Select",
     "systemConfig": "System Settings",
+    "systemConfigDesc": "Manage global system configuration. Changes take effect immediately.",
     "configKey": "Config Key",
     "configValue": "Config Value",
     "valueType": "Value Type",

@@ -674,6 +674,7 @@
     "unsavedChanges": "存在未保存的更改",
     "selectPlaceholder": "请选择",
     "systemConfig": "系统设置",
+    "systemConfigDesc": "管理系统全局配置项，修改后即时生效",
     "configKey": "配置键名",
     "configValue": "配置值",
     "valueType": "值类型",

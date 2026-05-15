@@ -673,6 +673,7 @@
     "unsavedChanges": "存在未儲存的變更",
     "selectPlaceholder": "請選擇",
     "systemConfig": "系統設置",
+    "systemConfigDesc": "管理系統全域設定，修改後即時生效",
     "configKey": "設定鍵",
     "configValue": "設定值",
     "valueType": "值類型",
