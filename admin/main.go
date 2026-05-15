@@ -92,6 +92,7 @@ func main() {
 	tokenRepo := repository.NewAPITokenRepository(db)
 	systemRoleRepo := repository.NewSystemRoleRepository(db)
 	systemConfigRepo := repository.NewSystemConfigRepository(db, redisClient)
+	permRepo := repository.NewPermissionRepository(db)
 
 	// 初始化加密器（根据配置选择算法）
 	var crypter crypto.Crypter
@@ -122,7 +123,7 @@ func main() {
 	logger.Info().Msg("Audit 服务已就绪")
 
 	// 初始化 RBAC 服务（不再需要 siteRoleRepo 和 siteUserRepo）
-	rbacService := service.NewRBACService(db, redisClient, systemRoleRepo, userRepo)
+	rbacService := service.NewRBACService(db, redisClient, systemRoleRepo, userRepo, permRepo)
 
 	authService := service.NewAuthService(userRepo, siteRepo, systemConfigRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
 	userService := service.NewUserService(userRepo)

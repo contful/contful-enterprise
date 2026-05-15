@@ -31,10 +31,11 @@ type permCacheEntry struct {
 
 // RBACService RBAC 权限管理服务
 type RBACService struct {
-	db           *gorm.DB
-	redis        *redis.Client
+	db             *gorm.DB
+	redis          *redis.Client
 	systemRoleRepo *repository.SystemRoleRepository
-	userRepo     *repository.UserRepository
+	userRepo       *repository.UserRepository
+	permRepo       *repository.PermissionRepository
 }
 
 // NewRBACService 创建 RBAC 服务
@@ -43,12 +44,14 @@ func NewRBACService(
 	redis *redis.Client,
 	systemRoleRepo *repository.SystemRoleRepository,
 	userRepo *repository.UserRepository,
+	permRepo *repository.PermissionRepository,
 ) *RBACService {
 	return &RBACService{
 		db:             db,
 		redis:          redis,
 		systemRoleRepo: systemRoleRepo,
 		userRepo:       userRepo,
+		permRepo:       permRepo,
 	}
 }
 
@@ -317,8 +320,58 @@ func (s *RBACService) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]mod
 // 权限元数据（供前端渲染权限树）
 // ────────────────────────────────────────────────────────────
 
-// GetPermissionsMeta 返回完整权限 Key 清单
+// GetPermissionsMeta 返回权限元数据（从 DB 读取，缓存 5min）
 func (s *RBACService) GetPermissionsMeta() map[string]interface{} {
+	// Cache key
+	const cacheKey = "permission:meta"
+	const cacheTTL = 5 * time.Minute
+
+	// Try Redis cache
+	if s.redis != nil {
+		if cached, err := s.redis.Get(context.Background(), cacheKey).Result(); err == nil {
+			var meta map[string]interface{}
+			if json.Unmarshal([]byte(cached), &meta) == nil {
+				return meta
+			}
+		}
+	}
+
+	// Read from DB
+	groups, perms, err := s.permRepo.ListGroupsWithPermissions(context.Background())
+	if err != nil || len(groups) == 0 {
+		// Fallback to hardcoded
+		return s.fallbackPermissionsMeta()
+	}
+
+	// Build: { group_key: { action: label, ... }, ... }
+	meta := make(map[string]interface{})
+	permByGroup := make(map[uuid.UUID][]model.Permission)
+	for _, p := range perms {
+		permByGroup[p.GroupID] = append(permByGroup[p.GroupID], p)
+	}
+
+	for _, g := range groups {
+		actions := make(map[string]string)
+		if perms, ok := permByGroup[g.ID]; ok {
+			for _, p := range perms {
+				actions[p.Action] = p.Label
+			}
+		}
+		meta[g.GroupKey] = actions
+	}
+
+	// Write to Redis cache
+	if s.redis != nil {
+		if data, err := json.Marshal(meta); err == nil {
+			s.redis.Set(context.Background(), cacheKey, data, cacheTTL)
+		}
+	}
+
+	return meta
+}
+
+// fallbackPermissionsMeta 硬编码降级（DB 不可用时）
+func (s *RBACService) fallbackPermissionsMeta() map[string]interface{} {
 	return map[string]interface{}{
 		"users":          map[string]string{"read": "查看用户", "write": "管理用户", "delete": "删除用户"},
 		"sites":          map[string]string{"read": "查看站点", "write": "管理站点", "delete": "删除站点"},

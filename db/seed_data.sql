@@ -60,6 +60,63 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000103'::uuid);
 
 -- =============================================================================
+-- 2.5 权限元数据（分组 + 权限项，用于角色权限配置）
+-- =============================================================================
+
+-- 权限分组
+INSERT INTO system_permission_groups (id, group_key, label, label_en, sort_order)
+SELECT * FROM (VALUES
+    ('00000000-0000-0000-0000-000000000301'::uuid, 'dashboard',      '仪表盘',     'Dashboard',      0),
+    ('00000000-0000-0000-0000-000000000302'::uuid, 'users',          '用户管理',   'User Management', 1),
+    ('00000000-0000-0000-0000-000000000303'::uuid, 'sites',          '站点管理',   'Site Management',  2),
+    ('00000000-0000-0000-0000-000000000304'::uuid, 'tokens',         'API Token',  'API Tokens',     3),
+    ('00000000-0000-0000-0000-000000000305'::uuid, 'settings',       '系统设置',   'System Settings',  4),
+    ('00000000-0000-0000-0000-000000000306'::uuid, 'audit',          '审计日志',   'Audit Logs',     5),
+    ('00000000-0000-0000-0000-000000000307'::uuid, 'roles',          '角色管理',   'Role Management', 6),
+    ('00000000-0000-0000-0000-000000000308'::uuid, 'content_schema', '内容模型',   'Content Schemas', 7),
+    ('00000000-0000-0000-0000-000000000309'::uuid, 'entry',          '内容条目',   'Entries',        8),
+    ('00000000-0000-0000-0000-000000000310'::uuid, 'asset',          '媒体文件',   'Assets',         9)
+) AS t(id, group_key, label, label_en, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_permission_groups WHERE id = t.id::uuid);
+
+-- 权限项
+INSERT INTO system_permissions (group_id, action, label, label_en, sort_order)
+SELECT g.id, t.action, t.label, t.label_en, t.sort_order
+FROM (VALUES
+    ('00000000-0000-0000-0000-000000000301'::uuid, 'read',   '查看',      'View',             0),
+    ('00000000-0000-0000-0000-000000000302'::uuid, 'read',   '查看用户',  'View Users',        0),
+    ('00000000-0000-0000-0000-000000000302'::uuid, 'write',  '管理用户',  'Manage Users',      1),
+    ('00000000-0000-0000-0000-000000000302'::uuid, 'delete', '删除用户',  'Delete Users',      2),
+    ('00000000-0000-0000-0000-000000000303'::uuid, 'read',   '查看站点',  'View Sites',        0),
+    ('00000000-0000-0000-0000-000000000303'::uuid, 'write',  '管理站点',  'Manage Sites',      1),
+    ('00000000-0000-0000-0000-000000000303'::uuid, 'delete', '删除站点',  'Delete Sites',      2),
+    ('00000000-0000-0000-0000-000000000304'::uuid, 'read',   '查看 Token','View Tokens',       0),
+    ('00000000-0000-0000-0000-000000000304'::uuid, 'write',  '管理 Token','Manage Tokens',     1),
+    ('00000000-0000-0000-0000-000000000304'::uuid, 'delete', '删除 Token','Delete Tokens',     2),
+    ('00000000-0000-0000-0000-000000000305'::uuid, 'read',   '查看设置',  'View Settings',     0),
+    ('00000000-0000-0000-0000-000000000305'::uuid, 'write',  '修改设置',  'Edit Settings',     1),
+    ('00000000-0000-0000-0000-000000000306'::uuid, 'read',   '查看日志',  'View Logs',         0),
+    ('00000000-0000-0000-0000-000000000306'::uuid, 'export', '导出日志',  'Export Logs',       1),
+    ('00000000-0000-0000-0000-000000000307'::uuid, 'read',   '查看角色',  'View Roles',        0),
+    ('00000000-0000-0000-0000-000000000307'::uuid, 'write',  '管理角色',  'Manage Roles',      1),
+    ('00000000-0000-0000-0000-000000000307'::uuid, 'delete', '删除角色',  'Delete Roles',      2),
+    ('00000000-0000-0000-0000-000000000308'::uuid, 'read',   '查看模型',  'View Schemas',      0),
+    ('00000000-0000-0000-0000-000000000308'::uuid, 'write',  '管理模型',  'Manage Schemas',    1),
+    ('00000000-0000-0000-0000-000000000308'::uuid, 'delete', '删除模型',  'Delete Schemas',    2),
+    ('00000000-0000-0000-0000-000000000309'::uuid, 'read',   '查看条目',  'View Entries',      0),
+    ('00000000-0000-0000-0000-000000000309'::uuid, 'write',  '编辑条目',  'Edit Entries',      1),
+    ('00000000-0000-0000-0000-000000000309'::uuid, 'publish','发布条目',  'Publish Entries',   2),
+    ('00000000-0000-0000-0000-000000000309'::uuid, 'delete', '删除条目',  'Delete Entries',    3),
+    ('00000000-0000-0000-0000-000000000310'::uuid, 'read',   '查看文件',  'View Assets',       0),
+    ('00000000-0000-0000-0000-000000000310'::uuid, 'write',  '管理文件',  'Manage Assets',     1),
+    ('00000000-0000-0000-0000-000000000310'::uuid, 'delete', '删除文件',  'Delete Assets',     2)
+) AS t(group_id, action, label, label_en, sort_order)
+JOIN system_permission_groups g ON g.id = t.group_id::uuid
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_permissions p WHERE p.group_id = g.id AND p.action = t.action
+);
+
+-- =============================================================================
 -- 3. 系统用户
 -- =============================================================================
 

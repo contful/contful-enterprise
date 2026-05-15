@@ -66,6 +66,8 @@ DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS system_user_roles CASCADE;
 DROP TABLE IF EXISTS system_roles CASCADE;
 DROP TABLE IF EXISTS system_users CASCADE;
+DROP TABLE IF EXISTS system_permissions CASCADE;
+DROP TABLE IF EXISTS system_permission_groups CASCADE;
 DROP TABLE IF EXISTS system_config CASCADE;
 
 -- 删除 ENUM 类型（需先删除依赖的表）
@@ -240,6 +242,51 @@ COMMENT ON COLUMN system_user_roles.id IS '关联记录唯一标识符';
 COMMENT ON COLUMN system_user_roles.user_id IS '用户 ID';
 COMMENT ON COLUMN system_user_roles.role_id IS '系统角色 ID';
 COMMENT ON COLUMN system_user_roles.created_time IS '创建时间';
+
+-- =============================================================================
+-- 系统权限管理表
+-- =============================================================================
+
+-- 权限分组
+CREATE TABLE system_permission_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_key VARCHAR(50) UNIQUE NOT NULL,
+    label VARCHAR(100) NOT NULL,
+    label_en VARCHAR(100),
+    sort_order INT NOT NULL DEFAULT 0,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX idx_perm_group_key ON system_permission_groups(group_key);
+CREATE INDEX idx_perm_group_sort ON system_permission_groups(sort_order);
+
+COMMENT ON TABLE system_permission_groups IS '系统权限分组表';
+COMMENT ON COLUMN system_permission_groups.group_key IS '分组键（如 users、sites、tokens 等）';
+COMMENT ON COLUMN system_permission_groups.label IS '分组中文标签';
+COMMENT ON COLUMN system_permission_groups.label_en IS '分组英文标签';
+COMMENT ON COLUMN system_permission_groups.sort_order IS '排序权重';
+
+-- 权限项
+CREATE TABLE system_permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES system_permission_groups(id) ON DELETE CASCADE,
+    action VARCHAR(50) NOT NULL,
+    label VARCHAR(100) NOT NULL,
+    label_en VARCHAR(100),
+    sort_order INT NOT NULL DEFAULT 0,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(group_id, action)
+);
+
+CREATE INDEX idx_permissions_group ON system_permissions(group_id);
+CREATE INDEX idx_permissions_sort ON system_permissions(sort_order);
+
+COMMENT ON TABLE system_permissions IS '系统权限项表';
+COMMENT ON COLUMN system_permissions.group_id IS '所属权限分组 ID';
+COMMENT ON COLUMN system_permissions.action IS '操作键（如 read、write、delete 等）';
+COMMENT ON COLUMN system_permissions.label IS '权限中文标签';
+COMMENT ON COLUMN system_permissions.label_en IS '权限英文标签';
+COMMENT ON COLUMN system_permissions.sort_order IS '排序权重';
 
 -- =============================================================================
 -- 系统配置表
