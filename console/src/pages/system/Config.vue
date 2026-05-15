@@ -14,9 +14,23 @@
     </template>
   </PageHeader>
 
+  <!-- 搜索栏 -->
+  <div class="toolbar">
+    <t-input
+      v-model="keyword"
+      :placeholder="t('common.searchPlaceholder')"
+      clearable
+      style="width: 280px"
+    >
+      <template #prefix-icon>
+        <t-icon name="search" />
+      </template>
+    </t-input>
+  </div>
+
   <!-- 配置列表 -->
   <t-table
-    :data="configs"
+    :data="filteredConfigs"
     :columns="columns"
     :loading="loading"
     row-key="config_key"
@@ -158,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import PageHeader from '@/components/PageHeader.vue'
@@ -171,6 +185,7 @@ const loading = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
 const configs = ref<SystemConfig[]>([])
+const keyword = ref('')
 const dialogVisible = ref(false)
 const deleteVisible = ref(false)
 const editingConfig = ref<SystemConfig | null>(null)
@@ -192,8 +207,14 @@ const columns = [
   { colKey: 'value_type', title: t('settings.valueType'), cell: 'typeCell', width: 90 },
   { colKey: 'description', title: t('settings.description'), ellipsis: true },
   { colKey: 'is_public', title: t('settings.isPublic'), cell: 'publicCell', width: 90, align: 'center' as const },
-  { colKey: 'operations', title: t('common.operation'), cell: 'operations', width: 140 },
+  { colKey: 'operations', title: t('common.actions'), cell: 'operations', width: 140 },
 ]
+
+const filteredConfigs = computed(() => {
+  if (!keyword.value) return configs.value
+  const kw = keyword.value.toLowerCase()
+  return configs.value.filter(c => c.config_key.toLowerCase().includes(kw))
+})
 
 const resetForm = () => {
   form.config_key = ''
@@ -310,6 +331,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.toolbar {
+  margin-bottom: 16px;
+}
+
 .config-key {
   font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
   font-size: 13px;

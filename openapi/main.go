@@ -77,7 +77,6 @@ func main() {
 	entrySvc := service.NewEntryService(entryRepo, csRepo, cacheSvc)
 
 	// 站点配置服务（从 sites.settings JSONB 读取）
-	configSvc := service.NewConfigService(db)
 
 	// 初始化 Gin
 	gin.SetMode(gin.ReleaseMode)
@@ -172,8 +171,37 @@ func main() {
 		}))
 	})
 
-	// 站点配置路由（仅 default 分组，需 Token 认证）
+	// 站点配置路由（需 Token 认证）
+	// GET /api/v1/configs      — 无参数时返回公开配置键值对
 	// GET /api/v1/configs/:key — 获取指定 key 的配置值
+	api.GET("/configs", func(c *gin.Context) {
+		tc := middleware.GetTokenContext(c)
+		if tc == nil {
+			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "unauthorized"))
+			return
+		}
+
+		// 查询公开配置
+		var configs []struct {
+			ConfigKey   string `json:"config_key"`
+			ConfigValue string `json:"config_value"`
+		}
+		if err := db.WithContext(c.Request.Context()).
+			Table("system_config").
+			Where("is_public = ?", true).
+			Select("config_key, config_value").
+			Find(&configs).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+			return
+		}
+
+		result := make(map[string]string, len(configs))
+		for _, cfg := range configs {
+			result[cfg.ConfigKey] = cfg.ConfigValue
+		}
+		c.JSON(http.StatusOK, model.NewSuccessResponse(result))
+	})
+
 	api.GET("/configs/:key", func(c *gin.Context) {
 		tc := middleware.GetTokenContext(c)
 		if tc == nil {
@@ -185,16 +213,18 @@ func main() {
 			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "key is required"))
 			return
 		}
-		value, err := configSvc.GetValue(c.Request.Context(), tc.SiteID, key)
-		if err != nil {
-			if err == service.ErrConfigNotFound {
-				c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "config not found"))
-				return
-			}
-			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
+
+		var configValue string
+		err := db.WithContext(c.Request.Context()).
+			Table("system_config").
+			Where("config_key = ?", key).
+			Select("config_value").
+			Scan(&configValue).Error
+		if err != nil || configValue == "" {
+			c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "config not found"))
 			return
 		}
-		c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"key": key, "value": value}))
+		c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"key": key, "value": configValue}))
 	})
 
 	// 启动服务
