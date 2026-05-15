@@ -112,7 +112,7 @@
     "mfaTokenExpired": "MFA 工作階段已過期，請重新登入",
     "mfaSuccess": "驗證成功",
     "mfaSetupTitle": "設定雙因子認證",
-    "mfaSetupSubtitle": "請使用驗證器 App 掃描 QR 碼，然後輸入驗證碼完成綁定",
+    "mfaSetupSubtitle": "請使用 OTP 安全驗證 微信小程序 掃描 QR 碼，然後輸入驗證碼完成綁定",
     "mfaSetupHint": "推薦使用 Contful OTP 微信小程序或其他 TOTP 驗證器",
     "mfaEnableAndVerify": "驗證並啟用",
     "mfaSetupSuccess": "MFA 已成功啟用",

@@ -113,7 +113,7 @@
     "mfaSuccess": "验证成功",
     "mfaEmailMissing": "会话信息丢失，请重新登录",
     "mfaSetupTitle": "设置双因子认证",
-    "mfaSetupSubtitle": "请使用身份验证器 App 扫描二维码，然后输入验证码完成绑定",
+    "mfaSetupSubtitle": "请使用OTP安全验证 微信小程序 扫描二维码，然后输入验证码完成绑定",
     "mfaSetupHint": "推荐使用 Contful OTP 微信小程序或其他 TOTP 验证器",
     "mfaEnableAndVerify": "验证并启用",
     "mfaSetupSuccess": "MFA 设置成功",

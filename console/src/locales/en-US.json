@@ -112,7 +112,7 @@
     "mfaTokenExpired": "MFA session expired, please log in again",
     "mfaSuccess": "Verification successful",
     "mfaSetupTitle": "Set Up Two-Factor Authentication",
-    "mfaSetupSubtitle": "Scan the QR code with your authenticator app, then enter the code to complete setup",
+    "mfaSetupSubtitle": "Scan the QR code with OTP Authenticator Mini Program, then enter the code to complete setup",
     "mfaSetupHint": "We recommend Contful OTP WeChat Mini Program or other TOTP authenticators",
     "mfaEnableAndVerify": "Verify & Enable",
     "mfaSetupSuccess": "MFA has been enabled",
