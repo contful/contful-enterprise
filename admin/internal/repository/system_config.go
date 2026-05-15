@@ -165,12 +165,14 @@ func (r *SystemConfigRepository) Set(ctx context.Context, key, value, valueType,
 	} else if err != nil {
 		return err
 	} else {
-		// 更新现有配置
+		// 更新现有配置（显式指定字段，避免 Save 全字段更新引入 UpdatedTime 字符串精度问题）
 		config.ConfigValue = value
 		config.ValueType = valueType
 		config.Description = description
 		config.IsPublic = isPublic
-		if saveErr := r.db.WithContext(ctx).Save(&config).Error; saveErr != nil {
+		if saveErr := r.db.WithContext(ctx).Model(&config).Select(
+			"config_value", "value_type", "description", "is_public",
+		).Updates(&config).Error; saveErr != nil {
 			return saveErr
 		}
 	}

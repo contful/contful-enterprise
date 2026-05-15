@@ -153,8 +153,13 @@ request.interceptors.request.use(
   async (config) => {
     const url = (config.url || '').replace(config.baseURL || '', '')
     console.log(`[Interceptor] 请求: ${config.method?.toUpperCase()} ${url}`)
-    // 跳过不需要 Token 的请求（登录、注册、刷新等）
-    if (url.startsWith('/auth/') || url.startsWith('/system/config/')) {
+    // 跳过不需要 Token 的请求（登录、注册、刷新、RSA 公钥等公开端点）
+    if (url.startsWith('/auth/')) {
+      console.log('[Interceptor] 跳过公开路径 /auth/*，不附加 Token')
+      return config
+    }
+    // 精确匹配公开配置端点（site + public），其余 /system/config/* 需要鉴权
+    if (url === '/system/config/site' || url === '/system/config/public') {
       console.log('[Interceptor] 跳过公开路径，不附加 Token')
       return config
     }
