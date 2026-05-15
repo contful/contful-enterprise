@@ -18,7 +18,7 @@ export interface AuditLog {
   ip_address?: string
   user_agent?: string
   created_time: string
-  data_signature?: Record<string, any>
+  data_signature?: string
 }
 
 export interface AuditLogListResponse {

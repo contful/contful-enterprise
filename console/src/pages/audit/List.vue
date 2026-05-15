@@ -141,7 +141,7 @@
             <template #content>
               <div>
                 <strong>{{ t('audit.dataSignature') }}：</strong>
-                <pre class="signature-pre">{{ JSON.stringify(currentLog.data_signature, null, 2) }}</pre>
+                <pre class="signature-pre">{{ currentLog.data_signature || '-' }}</pre>
               </div>
             </template>
           </t-list-item>

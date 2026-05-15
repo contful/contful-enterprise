@@ -289,7 +289,7 @@ CREATE TABLE audit_logs (
     details TEXT,
     ip_address INET,
     user_agent TEXT,
-    data_signature JSONB NOT NULL DEFAULT '{}',
+    data_signature VARCHAR(128) NOT NULL DEFAULT '',
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

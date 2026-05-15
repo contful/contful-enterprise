@@ -138,17 +138,18 @@ func (s *IntegrityService) SignAsset(asset *model.Asset) error {
 	})
 }
 
-// SignAuditLog 为 AuditLog 生成签名（强制）
+// SignAuditLog 为 AuditLog 生成签名（强制，存储 hex HMAC-SHA256）
 func (s *IntegrityService) SignAuditLog(log *model.AuditLog) error {
 	if !s.IsEnabled() {
-		// 未启用时写入空 JSON
-		log.DataSignature = model.JSONB{}
+		log.DataSignature = ""
 		return nil
 	}
 	payload := s.buildAuditCanonicalPayload(log)
-	return s.sign(log.ID.String(), payload, func(sig model.JSONB) {
-		log.DataSignature = sig
-	})
+
+	mac := hmac.New(sha256.New, s.signingKey)
+	mac.Write([]byte(payload))
+	log.DataSignature = hex.EncodeToString(mac.Sum(nil))
+	return nil
 }
 
 // VerifyEntry 验签 Entry
@@ -169,13 +170,32 @@ func (s *IntegrityService) VerifyAsset(asset *model.Asset) (*VerifyResult, error
 	return s.verify(asset.ID.String(), payload, asset.DataSignature)
 }
 
-// VerifyAuditLog 验签 AuditLog
+// VerifyAuditLog 验签 AuditLog（对比 hex HMAC-SHA256）
 func (s *IntegrityService) VerifyAuditLog(log *model.AuditLog) (*VerifyResult, error) {
 	if !s.IsEnabled() {
 		return &VerifyResult{Valid: nil, Reason: "not_enabled"}, nil
 	}
+	if log.DataSignature == "" {
+		return &VerifyResult{Valid: nil, Reason: "not_signed"}, nil
+	}
+
 	payload := s.buildAuditCanonicalPayload(log)
-	return s.verify(log.ID.String(), payload, log.DataSignature)
+	mac := hmac.New(sha256.New, s.signingKey)
+	mac.Write([]byte(payload))
+	expectedSig := hex.EncodeToString(mac.Sum(nil))
+
+	if subtle.ConstantTimeCompare([]byte(log.DataSignature), []byte(expectedSig)) != 1 {
+		return &VerifyResult{
+			Valid:  boolPtr(false),
+			Alg:    s.alg,
+			Reason: "signature_invalid",
+		}, nil
+	}
+
+	return &VerifyResult{
+		Valid: boolPtr(true),
+		Alg:   s.alg,
+	}, nil
 }
 
 // VerifyRaw 验签原始 data_signature JSON

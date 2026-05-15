@@ -44,7 +44,7 @@ type AuditLog struct {
 	IPAddress     string     `json:"ip_address" gorm:"type:inet"`
 	UserAgent     string     `json:"user_agent" gorm:"type:text"`
 	CreatedTime   time.Time  `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
-	DataSignature JSONB      `json:"data_signature" gorm:"type:jsonb;not null;default:'{}'"` // 防篡改签名
+	DataSignature string    `json:"data_signature" gorm:"type:varchar(128);not null;default:''"` // HMAC 防篡改签名
 }
 
 func (AuditLog) TableName() string {
