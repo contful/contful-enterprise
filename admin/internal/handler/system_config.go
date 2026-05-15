@@ -66,15 +66,15 @@ func (h *SystemConfigHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, model.NewSuccessResponse(config))
 }
 
-// Update 更新配置（需要认证 + settings:write 权限）
+// Update 更新配置（需要认证 + settings:write 权限，支持部分更新）
 func (h *SystemConfigHandler) Update(c *gin.Context) {
 	key := c.Param("key")
 
 	var req struct {
-		ConfigValue string `json:"config_value" binding:"required"`
-		ValueType   string `json:"value_type" binding:"required,oneof=string number boolean json"`
-		Description string `json:"description"`
-		IsPublic    bool   `json:"is_public"`
+		ConfigValue *string `json:"config_value"`
+		ValueType   *string `json:"value_type" binding:"omitempty,oneof=string number boolean json"`
+		Description *string `json:"description"`
+		IsPublic    *bool   `json:"is_public"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -82,13 +82,38 @@ func (h *SystemConfigHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// 验证值类型
-	if !h.validateValue(req.ConfigValue, req.ValueType) {
-		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid value for type "+req.ValueType))
+	// 读取当前配置，保留未传入的字段
+	current, err := h.configRepo.GetByKey(c.Request.Context(), key)
+	if err != nil {
+		c.JSON(http.StatusNotFound, model.NewErrorResponse(model.CodeNotFound, "config not found"))
 		return
 	}
 
-	err := h.configRepo.Set(c.Request.Context(), key, req.ConfigValue, req.ValueType, req.Description, req.IsPublic)
+	configValue := current.ConfigValue
+	valueType := current.ValueType
+	description := current.Description
+	isPublic := current.IsPublic
+
+	if req.ConfigValue != nil {
+		configValue = *req.ConfigValue
+	}
+	if req.ValueType != nil {
+		valueType = *req.ValueType
+	}
+	if req.Description != nil {
+		description = *req.Description
+	}
+	if req.IsPublic != nil {
+		isPublic = *req.IsPublic
+	}
+
+	// 验证值类型
+	if req.ConfigValue != nil && !h.validateValue(configValue, valueType) {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid value for type "+valueType))
+		return
+	}
+
+	err = h.configRepo.Set(c.Request.Context(), key, configValue, valueType, description, isPublic)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "failed to update config"))
 		return
