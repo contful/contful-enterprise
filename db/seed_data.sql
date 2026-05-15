@@ -119,7 +119,9 @@ VALUES
     ('password_require_lowercase', 'true', 'boolean', '密码必须包含小写字母', FALSE, NOW(), NOW()),
     ('password_require_number', 'true', 'boolean', '密码必须包含数字', FALSE, NOW(), NOW()),
     ('password_require_special', 'false', 'boolean', '密码必须包含特殊字符', FALSE, NOW(), NOW()),
-    ('mfa_enforced', 'false', 'boolean', '是否强制所有用户启用 MFA 双因子认证', FALSE, NOW(), NOW())
+    ('mfa_enforced', 'false', 'boolean', '是否强制所有用户启用 MFA 双因子认证', FALSE, NOW(), NOW()),
+    ('login_max_attempts', '5', 'number', '登录失败次数上限（连续失败达到此值后锁定）', FALSE, NOW(), NOW()),
+    ('login_lock_duration', '30', 'number', '账号锁定时长（分钟）', FALSE, NOW(), NOW())
 ON CONFLICT (config_key) DO NOTHING;
 
 -- =============================================================================

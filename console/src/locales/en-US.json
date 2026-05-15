@@ -81,7 +81,8 @@
     "apiTokens": "API Tokens",
     "configs": "Config",
     "contentSchemas": "Schemas",
-    "auditLogs": "Logs"
+    "auditLogs": "Logs",
+    "systemConfig": "System Config"
   },
   "auth": {
     "login": "Login",

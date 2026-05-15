@@ -39,9 +39,7 @@ type AuthService struct {
 	redis           *redis.Client
 	jwtSecret       []byte
 	accessTTL       time.Duration
-	// P2-002: 账户锁定配置
-	lockMaxAttempts int           // 最大失败次数，默认 5
-	lockDuration    time.Duration // 锁定时长，默认 15 分钟
+	// P2-002: 账户锁定默认值（实际从 system_config 动态读取）
 }
 
 func NewAuthService(
@@ -60,10 +58,8 @@ func NewAuthService(
 		auditRepo:       auditRepo,
 		configSvc:       configSvc,
 		redis:           redisClient,
-		jwtSecret:       []byte(jwtSecret),
-		accessTTL:       15 * time.Minute,
-		lockMaxAttempts: 5,
-		lockDuration:    15 * time.Minute,
+		jwtSecret:     []byte(jwtSecret),
+		accessTTL:     15 * time.Minute,
 	}
 }
 
@@ -114,26 +110,29 @@ func loginAttemptsKey(email string) string {
 	return "login_attempts:" + email
 }
 
-// isAccountLocked 检查账户是否被锁定
+// isAccountLocked 检查账户是否被锁定（从 system_config 动态读取阈值）
 func (s *AuthService) isAccountLocked(ctx context.Context, email string) (bool, time.Duration, error) {
 	key := loginAttemptsKey(email)
 	count, err := s.redis.Get(ctx, key).Int()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return false, 0, err
 	}
-	if count >= s.lockMaxAttempts {
+
+	maxAttempts := s.configRepo.GetInt(ctx, "login_max_attempts", 5)
+	if count >= maxAttempts {
 		ttl := s.redis.TTL(ctx, key).Val()
 		return true, ttl, nil
 	}
 	return false, 0, nil
 }
 
-// incrementLoginAttempts 增加失败计数
+// incrementLoginAttempts 增加失败计数（从 system_config 动态读取锁定时长）
 func (s *AuthService) incrementLoginAttempts(ctx context.Context, email string) error {
 	key := loginAttemptsKey(email)
+	lockMinutes := s.configRepo.GetInt(ctx, "login_lock_duration", 30)
 	pipe := s.redis.Pipeline()
 	pipe.Incr(ctx, key)
-	pipe.Expire(ctx, key, s.lockDuration)
+	pipe.Expire(ctx, key, time.Duration(lockMinutes)*time.Minute)
 	_, err := pipe.Exec(ctx)
 	return err
 }

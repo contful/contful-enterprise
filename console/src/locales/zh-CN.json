@@ -81,7 +81,8 @@
     "apiTokens": "API 令牌",
     "configs": "配置",
     "contentSchemas": "模型",
-    "auditLogs": "日志"
+    "auditLogs": "日志",
+    "systemConfig": "系统配置"
   },
   "auth": {
     "login": "登录",

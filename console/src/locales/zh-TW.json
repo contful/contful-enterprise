@@ -81,7 +81,8 @@
     "apiTokens": "API 權杖",
     "configs": "設定",
     "contentSchemas": "模型",
-    "auditLogs": "日誌"
+    "auditLogs": "日誌",
+    "systemConfig": "系統設定"
   },
   "auth": {
     "login": "登入",
