@@ -75,12 +75,12 @@ WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000
 -- 3. 系统用户
 -- =============================================================================
 
--- 默认管理员用户（密码：Admin@123）
+-- 默认管理员用户（密码：contful@com）
 INSERT INTO system_users (id, email, password_hash, nickname, status, is_super_admin, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000001'::uuid,
     'admin@contful.com',
-    '$2a$10$65v1ImEvTC/GCPqBctpsiuAy/J04X1BHX7AKBufYsSV7kvuNSfJMu',  -- 密码：Admin@123
+    '$2a$10$65v1ImEvTC/GCPqBctpsiuAy/J04X1BHX7AKBufYsSV7kvuNSfJMu',  -- 密码：contful@com
     'Administrator',
     'active',
     TRUE,
