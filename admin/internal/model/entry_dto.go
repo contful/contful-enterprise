@@ -136,11 +136,11 @@ func (e *Entry) ToResponse() EntryResponse {
 		}
 	}
 
-	// 解析字段值
+	// 解析字段值（从 JSONB {"value": X} 包装中提取原始值）
 	if len(e.Values) > 0 {
 		for _, v := range e.Values {
 			if v.Field != nil {
-				resp.Values[v.Field.Name] = v.Value.Interface()
+				resp.Values[v.Field.Name] = unwrapEntryValue(v.Value)
 			}
 		}
 	}
@@ -192,4 +192,17 @@ type BatchResponse struct {
 	SuccessCount int `json:"success_count"`
 	FailedCount  int `json:"failed_count"`
 	FailedIDs    []uuid.UUID `json:"failed_ids,omitempty"`
+}
+
+// unwrapEntryValue 从 JSONB {"value": X} 包装中提取原始值
+func unwrapEntryValue(v JSONB) interface{} {
+	if v == nil {
+		return nil
+	}
+	// 单键 "value" → 解包
+	if inner, ok := v["value"]; ok && len(v) == 1 {
+		return inner
+	}
+	// 其他情况直接返回 map（如 media: {url, alt}）
+	return v.Interface()
 }
