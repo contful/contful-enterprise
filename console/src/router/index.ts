@@ -21,7 +21,7 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/assets': 'asset:read',
   '/tokens': 'tokens:read',
   '/settings/tokens': 'tokens:read',
-  '/settings/system/config': 'settings:read',
+  '/system/config': 'settings:read',
   '/system/roles': 'roles:read',
   '/audit/logs': 'audit:read',
 }

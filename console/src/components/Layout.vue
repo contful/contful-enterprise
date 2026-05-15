@@ -47,7 +47,7 @@ const MENU_PERMISSION_MAP: Record<string, string> = {
   '/tokens': 'tokens:read',
   '/system/roles': 'roles:read',
   '/audit/logs': 'audit:read',
-  '/settings/system/config': 'settings:read',
+  '/system/config': 'settings:read',
 }
 
 // 根据权限过滤菜单项
