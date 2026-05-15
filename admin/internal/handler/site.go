@@ -17,12 +17,13 @@ import (
 
 // SiteHandler 站点处理器
 type SiteHandler struct {
-	siteService *service.SiteService
+	siteService  *service.SiteService
+	auditService *service.AuditService
 }
 
 // NewSiteHandler 新建处理器
-func NewSiteHandler(siteService *service.SiteService) *SiteHandler {
-	return &SiteHandler{siteService: siteService}
+func NewSiteHandler(siteService *service.SiteService, auditService *service.AuditService) *SiteHandler {
+	return &SiteHandler{siteService: siteService, auditService: auditService}
 }
 
 // Create 创建站点
@@ -43,6 +44,11 @@ func (h *SiteHandler) Create(c *gin.Context) {
 	if err != nil {
 		h.handleError(c, err)
 		return
+	}
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeSetting, "site:create",
+			service.WithResource("site", resp.ID))
 	}
 
 	middleware.Created(c, resp.ToResponse())
@@ -135,6 +141,11 @@ func (h *SiteHandler) Update(c *gin.Context) {
 		return
 	}
 
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeSetting, "site:update",
+			service.WithResource("site", id))
+	}
+
 	middleware.OK(c, resp.ToResponse())
 }
 
@@ -149,6 +160,11 @@ func (h *SiteHandler) Delete(c *gin.Context) {
 	if err := h.siteService.Delete(c.Request.Context(), id); err != nil {
 		h.handleError(c, err)
 		return
+	}
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelWarn, model.AuditTypeSetting, "site:delete",
+			service.WithResource("site", id))
 	}
 
 	c.Status(http.StatusNoContent)

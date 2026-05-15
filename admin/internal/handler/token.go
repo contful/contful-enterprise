@@ -18,11 +18,12 @@ import (
 // APITokenHandler API Token 处理器
 type APITokenHandler struct {
 	tokenService *service.APITokenService
+	auditService *service.AuditService
 }
 
 // NewAPITokenHandler 新建处理器
-func NewAPITokenHandler(tokenService *service.APITokenService) *APITokenHandler {
-	return &APITokenHandler{tokenService: tokenService}
+func NewAPITokenHandler(tokenService *service.APITokenService, auditService *service.AuditService) *APITokenHandler {
+	return &APITokenHandler{tokenService: tokenService, auditService: auditService}
 }
 
 // RegisterRoutes 注册路由
@@ -90,6 +91,11 @@ func (h *APITokenHandler) Create(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, err.Error()))
 		return
+	}
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeSystem, "token:create",
+			service.WithResource("token", token.ID))
 	}
 
 	// 返回包含明文 Token 的响应
@@ -227,6 +233,11 @@ func (h *APITokenHandler) Revoke(c *gin.Context) {
 	if err := h.tokenService.Revoke(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, err.Error()))
 		return
+	}
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelWarn, model.AuditTypeSystem, "token:revoke",
+			service.WithResource("token", id))
 	}
 
 	c.Status(http.StatusNoContent)

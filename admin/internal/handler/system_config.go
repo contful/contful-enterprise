@@ -14,14 +14,16 @@ import (
 )
 
 type SystemConfigHandler struct {
-	configRepo  *repository.SystemConfigRepository
-	rbacService *service.RBACService
+	configRepo   *repository.SystemConfigRepository
+	rbacService  *service.RBACService
+	auditService *service.AuditService
 }
 
-func NewSystemConfigHandler(configRepo *repository.SystemConfigRepository, rbacService *service.RBACService) *SystemConfigHandler {
+func NewSystemConfigHandler(configRepo *repository.SystemConfigRepository, rbacService *service.RBACService, auditService *service.AuditService) *SystemConfigHandler {
 	return &SystemConfigHandler{
-		configRepo:  configRepo,
-		rbacService: rbacService,
+		configRepo:   configRepo,
+		rbacService:  rbacService,
+		auditService: auditService,
 	}
 }
 
@@ -119,6 +121,11 @@ func (h *SystemConfigHandler) Update(c *gin.Context) {
 		return
 	}
 
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeSetting, "config:update",
+			service.WithResource("config", current.ID))
+	}
+
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "config updated"}))
 }
 
@@ -172,6 +179,11 @@ func (h *SystemConfigHandler) Create(c *gin.Context) {
 		return
 	}
 
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelInfo, model.AuditTypeSetting, "config:create",
+			service.WithResource("config", config.ID))
+	}
+
 	c.JSON(http.StatusOK, model.NewSuccessResponse(config))
 }
 
@@ -183,6 +195,11 @@ func (h *SystemConfigHandler) Delete(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "cannot delete system config or config not found"))
 		return
+	}
+
+	if h.auditService != nil {
+		_ = h.auditService.LogFromGin(c, model.AuditLevelWarn, model.AuditTypeSetting, "config:delete",
+			service.WithDetails("key="+key))
 	}
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"message": "config deleted"}))
