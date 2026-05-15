@@ -70,7 +70,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/settings/system/config',
+    path: '/system/config',
     name: 'SystemConfig',
     component: () => import('@/pages/settings/SystemConfig.vue'),
     meta: { requiresAuth: true },

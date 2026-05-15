@@ -61,7 +61,7 @@ const filteredMenuItems = computed(() => {
     { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
     { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
     { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
-    { path: '/settings/system/config', icon: 'setting', label: t('menu.systemConfig'), name: 'SystemConfig', tIcon: 'setting' },
+    { path: '/system/config', icon: 'setting', label: t('menu.systemConfig'), name: 'SystemConfig', tIcon: 'setting' },
     { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
   ]
 
