@@ -139,6 +139,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			c.JSON(http.StatusForbidden, model.NewErrorResponse(model.CodeForbidden, "user is inactive"))
 		case errors.Is(err, repository.ErrUserSuspended):
 			c.JSON(http.StatusForbidden, model.NewErrorResponse(model.CodeForbidden, "user is suspended"))
+		case errors.Is(err, service.ErrAccountLocked):
+			c.JSON(http.StatusLocked, model.NewErrorResponse(model.CodeLocked, err.Error()))
 		default:
 			c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
 		}

@@ -49,5 +49,6 @@ const (
 	CodeForbidden     = 403
 	CodeNotFound      = 404
 	CodeConflict      = 409
+	CodeLocked        = 423
 	CodeInternalError = 500
 )

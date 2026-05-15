@@ -28,6 +28,9 @@ import (
 // P2-002: 账户锁定机制 — 连续失败登录后锁定账户
 // P2-004: 登录失败记录审计日志
 
+// ErrAccountLocked 账户因多次登录失败被临时锁定
+var ErrAccountLocked = errors.New("account is temporarily locked due to too many failed attempts")
+
 // AuthService 认证服务
 type AuthService struct {
 	userRepo        *repository.UserRepository
@@ -195,7 +198,7 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest, ip str
 			Str("email", req.Email).
 			Str("remaining", ttl.String()).
 			Msg("login blocked: account locked")
-		return nil, errors.New("account is temporarily locked due to too many failed attempts")
+		return nil, ErrAccountLocked
 	}
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
