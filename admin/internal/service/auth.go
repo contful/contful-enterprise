@@ -29,7 +29,7 @@ import (
 // P2-004: 登录失败记录审计日志
 
 // ErrAccountLocked 账户因多次登录失败被临时锁定
-var ErrAccountLocked = errors.New("account is temporarily locked due to too many failed attempts")
+var ErrAccountLocked = errors.New("账户已被临时锁定，请稍后再试")
 
 // AuthService 认证服务
 type AuthService struct {
