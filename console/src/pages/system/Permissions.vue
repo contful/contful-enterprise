@@ -2,6 +2,7 @@
   <PageHeader :title="t('permissions.title')" :subtitle="t('permissions.subtitle')" />
 
   <div class="toolbar">
+    <span></span>
     <t-space>
       <t-button variant="outline" @click="loadData">
         <template #icon><t-icon name="refresh" /></template>

@@ -901,7 +901,7 @@
     "required": "Permission required: {permission}"
   },
   "permissions": {
-    "title": "Permission Management",
+    "title": "Permissions",
     "subtitle": "Manage permission groups and items",
     "addGroup": "Add Group",
     "editGroup": "Edit Group",

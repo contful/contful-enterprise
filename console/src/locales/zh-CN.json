@@ -905,7 +905,7 @@
     "required": "需要权限：{permission}"
   },
   "permissions": {
-    "title": "权限管理",
+    "title": "权限",
     "subtitle": "管理系统权限分组与权限项",
     "addGroup": "添加权限分组",
     "editGroup": "编辑权限分组",
