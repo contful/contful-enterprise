@@ -68,7 +68,8 @@
     "view": "查看",
     "saveSuccess": "保存成功",
     "deleteSuccess": "删除成功",
-    "createSuccess": "创建成功"
+    "createSuccess": "创建成功",
+    "clearCache": "清除缓存"
   },
   "menu": {
     "dashboard": "仪表盘",
@@ -311,7 +312,6 @@
     "select": "请选择",
     "yes": "是",
     "no": "否",
-    "clearCache": "清除缓存",
     "clearCacheHint": "清除 OpenAPI 内容缓存",
     "cacheCleared": "已清除 {count} 条缓存记录"
   },
@@ -483,10 +483,6 @@
     "revokeWarning": "撤销后，使用此 Token 的应用将无法再访问 API。确定要撤销吗？",
     "revokeSuccess": "Token 已撤销",
     "active": "活跃",
-    "expired": "已过期",
-    "allowedIPs": "允许 IP",
-    "allowedIPsPlaceholder": "可选，留空允许所有 IP",
-    "allowedIPsHint": "仅允许指定 IP 使用此 Token，多个 IP 用逗号分隔",
     "permissions": "权限",
     "rateLimit": "速率限制",
     "rateLimitUnit": "请求/小时",
@@ -510,7 +506,6 @@
     "tableRateLimit": "限流",
     "tableStatus": "状态",
     "updateSuccess": "Token 已更新",
-    "active": "活跃",
     "copy": "复制",
     "description": "描述",
     "descriptionPlaceholder": "描述此 Token 的用途",
@@ -600,7 +595,7 @@
     "isActive": "是否激活",
     "configs": "站点配置",
     "configsSubtitle": "键值配置管理，支持加密存储和分组",
-    "addConfig": "新增配置",
+    "addConfig": "添加配置",
     "addFirstConfig": "添加第一个配置",
     "noConfigs": "暂无配置项",
     "key": "配置键",
@@ -711,7 +706,6 @@
     "updateSuccess": "更新成功",
     "updateFailed": "更新失败",
     "valueRequired": "配置值不能为空",
-    "addConfig": "添加配置",
     "createConfig": "创建配置",
     "deleteConfig": "删除配置",
     "deleteConfigConfirm": "确定删除配置「{key}」吗？此操作不可恢复。",
@@ -720,7 +714,6 @@
     "customConfigTag": "自定义",
     "configKeyPlaceholder": "请输入配置键名，如 custom_feature_enabled",
     "configValuePlaceholder": "请输入配置值",
-    "clearCache": "清除缓存",
     "edit": "编辑",
     "operation": "操作"
   },
@@ -907,7 +900,7 @@
     "denied": "您没有访问该页面的权限",
     "required": "需要权限：{permission}"
   },
-    "permissions": {
+  "permissions": {
     "title": "权限管理",
     "subtitle": "管理系统权限分组与权限项",
     "addGroup": "添加权限分组",
@@ -929,7 +922,6 @@
     "sortOrder": "排序",
     "perms": "项",
     "noData": "暂无权限配置",
-    "fillRequired": "请填写必填项",
-    "clearCache": "清除缓存"
+    "fillRequired": "请填写必填项"
   }
 }

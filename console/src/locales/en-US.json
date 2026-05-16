@@ -68,7 +68,8 @@
     "view": "View",
     "saveSuccess": "Saved successfully",
     "deleteSuccess": "Deleted successfully",
-    "createSuccess": "Created successfully"
+    "createSuccess": "Created successfully",
+    "clearCache": "Clear Cache"
   },
   "menu": {
     "dashboard": "Dashboard",
@@ -310,7 +311,6 @@
     "select": "Select",
     "yes": "Yes",
     "no": "No",
-    "clearCache": "Clear Cache",
     "clearCacheHint": "Clear OpenAPI content cache",
     "cacheCleared": "Cleared {count} cache entries"
   },
@@ -482,10 +482,6 @@
     "revokeWarning": "After revocation, applications using this token will lose API access. Confirm revocation?",
     "revokeSuccess": "Token revoked",
     "active": "Active",
-    "expired": "Expired",
-    "allowedIPs": "Allowed IPs",
-    "allowedIPsPlaceholder": "Optional, leave empty to allow all",
-    "allowedIPsHint": "Restrict token usage to specified IPs, comma separated",
     "permissions": "Permissions",
     "rateLimit": "Rate Limit",
     "rateLimitUnit": "req/hour",
@@ -509,7 +505,6 @@
     "tableRateLimit": "Rate Limit",
     "tableStatus": "Status",
     "updateSuccess": "Token updated",
-    "active": "Active",
     "copy": "Copy",
     "description": "Description",
     "descriptionPlaceholder": "Describe the purpose of this token",
@@ -704,7 +699,6 @@
     "updateSuccess": "Update success",
     "updateFailed": "Update failed",
     "valueRequired": "Value required",
-    "addConfig": "Add Config",
     "createConfig": "Create Config",
     "deleteConfig": "Delete Config",
     "deleteConfigConfirm": "Are you sure you want to delete config \"{key}\"? This action cannot be undone.",
@@ -713,7 +707,6 @@
     "customConfigTag": "Custom",
     "configKeyPlaceholder": "Config key, e.g. custom_feature_enabled",
     "configValuePlaceholder": "Enter config value",
-    "clearCache": "Clear Cache",
     "edit": "Edit",
     "operation": "Operation"
   },
@@ -925,7 +918,6 @@
     "sortOrder": "Sort Order",
     "perms": "items",
     "noData": "No permissions configured",
-    "fillRequired": "Required fields must be filled",
-    "clearCache": "Clear Cache"
+    "fillRequired": "Required fields must be filled"
   }
 }

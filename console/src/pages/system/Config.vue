@@ -19,7 +19,7 @@
     </t-input>
     <t-space>
       <t-button variant="outline" :loading="clearingCache" theme="warning" @click="handleClearCache">
-        {{ t('settings.clearCache') }}
+        {{ t('common.clearCache') }}
       </t-button>
       <t-button variant="outline" @click="loadConfigs">
         <template #icon><t-icon name="refresh" /></template>
