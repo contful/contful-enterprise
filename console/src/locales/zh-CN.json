@@ -876,7 +876,7 @@
     "verifySignature": "签名值"
   },
   "roles": {
-    "title": "角色",
+    "title": "角色管理",
     "subtitle": "管理系统级角色及其权限配置",
     "addRole": "新建角色",
     "createTitle": "新建系统角色",
@@ -907,8 +907,8 @@
     "denied": "您没有访问该页面的权限",
     "required": "需要权限：{permission}"
   },
-  "permissions": {
-    "title": "权限",
+    "permissions": {
+    "title": "权限管理",
     "subtitle": "管理系统权限分组与权限项",
     "addGroup": "添加权限分组",
     "editGroup": "编辑权限分组",
