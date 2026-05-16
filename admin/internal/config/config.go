@@ -474,6 +474,9 @@ func readEnvOverrides(v *viper.Viper) {
 		"SERVER_PORT":      "server.port",
 		"SECRET":           "security.secret",
 		"SECRET_ALGORITHM": "security.algorithm",
+		// RSA 密钥路径
+		"RSA_PUBKEY_PATH":  "security.rsa_pubkey_path",
+		"RSA_PRIVKEY_PATH": "security.rsa_privkey_path",
 		// 存储配置
 		"STORAGE_DRIVER":             "storage.driver",
 		"STORAGE_UPLOAD_DIR":         "storage.upload_dir",

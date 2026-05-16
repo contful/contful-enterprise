@@ -47,10 +47,13 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # 安全密钥 — 生产环境务必替换默认值（openssl rand -hex 32）
+      - SECRET=${SECRET:-ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea}
       # 可选配置
-      # - SECRET=ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
       # - CONTFUL_MODE=api  # 仅启动 API，不启动 nginx
       # - LOG_LEVEL=debug
+    # RSA 密钥对已内置于 Docker 镜像（/app/rsa_public.pem / rsa_private.pem）
+    # 如需替换：挂载自定义密钥并设置 RSA_PUBKEY_PATH / RSA_PRIVKEY_PATH
     # 配置文件模式（取消注释可覆盖环境变量）
     # volumes:
     #   - ../conf/console.yaml:/app/conf/config.yml:ro
@@ -84,8 +87,9 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # 安全密钥 — 与 Console 服务共用同一密钥
+      - SECRET=${SECRET:-ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea}
       # 可选配置
-      # - SECRET=ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
       # - CONTFUL_SERVER_PORT=8080
       # - LOG_LEVEL=debug
     # 配置文件模式（取消注释可覆盖环境变量）
