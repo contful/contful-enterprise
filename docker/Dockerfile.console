@@ -16,10 +16,10 @@
 #   可通过 --build-arg TARGETOS/TARGETARCH 覆盖
 #
 # 构建示例（推荐在 contful/ 目录执行）:
-#   docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
+#   docker build -f docker/Dockerfile.console -t contful/console:postgresql-latest .
 #
 # 或从父目录执行（指定构建上下文为 contful/）:
-#   docker build -f contful/docker/Dockerfile.console -t contful/console:pg-amd64-latest contful/
+#   docker build -f contful/docker/Dockerfile.console -t contful/console:postgresql-latest contful/
 #
 # 部署模式（通过 CONTFUL_MODE 环境变量选择）:
 #   console (默认)   - 同时运行 Console SPA (nginx :80) + Admin API (内部 :9080)
@@ -33,7 +33,7 @@
 # ---- Stage 1: Go Admin API 编译 ----
 FROM golang:1.25-alpine AS go-builder
 
-ARG DB_TYPE=pg
+ARG DB_TYPE=postgresql
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 

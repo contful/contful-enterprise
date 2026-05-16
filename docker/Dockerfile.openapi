@@ -16,17 +16,17 @@
 #   可通过 --build-arg TARGETOS/TARGETARCH 覆盖
 #
 # 构建示例（推荐在 contful/ 目录执行）:
-#   docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-latest .
+#   docker build -f docker/Dockerfile.openapi -t contful/openapi:postgresql-latest .
 #
 # 或从父目录执行（指定构建上下文为 contful/）:
-#   docker build -f contful/docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest contful/
+#   docker build -f contful/docker/Dockerfile.openapi -t contful/openapi:postgresql-latest contful/
 #
 # =============================================================================
 
 # ---- Stage 1: Go 编译 ----
 FROM golang:1.25-alpine AS builder
 
-ARG DB_TYPE=pg
+ARG DB_TYPE=postgresql
 # 自动获取构建平台
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
