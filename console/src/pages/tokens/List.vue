@@ -417,7 +417,7 @@ onMounted(() => {
       :header="newToken ? t('apiTokens.tokenShownOnce') : (editingToken ? t('apiTokens.editTitle') : t('apiTokens.createTitle'))"
       :width="520"
       :confirm-btn="newToken ? { content: t('common.close'), theme: 'default', variant: 'outline' as const } : { content: editingToken ? t('common.save') : t('common.create'), theme: 'primary' as const, loading: submitting }"
-      :cancel-btn="!!newToken"
+      :cancel-btn="newToken ? null : t('common.cancel')"
       @confirm="newToken ? closeModal() : handleSubmit()"
       @close="closeModal"
     >
