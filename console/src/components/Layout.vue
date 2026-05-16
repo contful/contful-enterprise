@@ -52,33 +52,65 @@ const MENU_PERMISSION_MAP: Record<string, string> = {
 }
 
 // 根据权限过滤菜单项
+interface MenuGroup {
+  label: string
+  items: { path: string; icon: string; label: string; name: string; tIcon: string }[]
+}
+
 const filteredMenuItems = computed(() => {
-  const allItems = [
-    { path: '/', icon: 'dashboard', label: t('menu.dashboard'), name: 'Dashboard', tIcon: 'dashboard' },
-    { path: '/sites', icon: 'layers', label: t('menu.sites'), name: 'Sites', tIcon: 'layers' },
-    { path: '/content/schemas', icon: 'schema', label: t('menu.contentSchemas'), name: 'ContentSchemas', tIcon: 'server' },
-    { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
-    { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
-    { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
-    { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
-    { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
-    { path: '/system/permissions', icon: 'secured', label: t('permissions.title'), name: 'SystemPermissions', tIcon: 'secured' },
-    { path: '/system/config', icon: 'setting', label: t('menu.systemConfig'), name: 'SystemConfig', tIcon: 'setting' },
-    { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
+  const allGroups: MenuGroup[] = [
+    {
+      label: t('menu.dashboard'),
+      items: [
+        { path: '/', icon: 'dashboard', label: t('menu.dashboard'), name: 'Dashboard', tIcon: 'dashboard' },
+      ],
+    },
+    {
+      label: t('menu.contentManagement'),
+      items: [
+        { path: '/sites', icon: 'layers', label: t('menu.sites'), name: 'Sites', tIcon: 'layers' },
+        { path: '/content/schemas', icon: 'schema', label: t('menu.contentSchemas'), name: 'ContentSchemas', tIcon: 'server' },
+        { path: '/content/entries', icon: 'article', label: t('menu.contentEntries'), name: 'Content', tIcon: 'article' },
+        { path: '/assets', icon: 'image', label: t('menu.media'), name: 'Media', tIcon: 'image' },
+      ],
+    },
+    {
+      label: t('menu.accessControl'),
+      items: [
+        { path: '/tokens', icon: 'key', label: t('menu.tokens'), name: 'ApiTokens', tIcon: 'key' },
+      ],
+    },
+    {
+      label: t('menu.systemManagement'),
+      items: [
+        { path: '/system/config', icon: 'setting', label: t('menu.systemConfig'), name: 'SystemConfig', tIcon: 'setting' },
+        { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
+        { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
+        { path: '/system/permissions', icon: 'secured', label: t('permissions.title'), name: 'SystemPermissions', tIcon: 'secured' },
+      ],
+    },
+    {
+      label: t('menu.auditLogs'),
+      items: [
+        { path: '/audit/logs', icon: 'file-search', label: t('menu.auditLogs'), name: 'AuditLogs', tIcon: 'file-search' },
+      ],
+    },
   ]
 
   // super_admin 看到所有菜单
   if (userStore.isSuperAdmin) {
-    return allItems
+    return allGroups
   }
 
-  // 根据权限过滤菜单项
-  return allItems.filter(item => {
-    const requiredPermission = MENU_PERMISSION_MAP[item.path]
-    if (!requiredPermission) return true
-    return userStore.hasPermission(requiredPermission)
-  })
-})
+  // 根据权限过滤每个分组内的菜单项
+  return allGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      const requiredPermission = MENU_PERMISSION_MAP[item.path]
+      if (!requiredPermission) return true
+      return userStore.hasPermission(requiredPermission)
+    }),
+  })).filter(group => group.items.length > 0) // 移除空分组
 
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/'
@@ -298,18 +330,21 @@ onMounted(async () => {
       <!-- 侧边栏 -->
       <aside class="sidebar">
         <nav class="sidebar-nav">
-          <router-link
-            v-for="item in filteredMenuItems"
-            :key="item.path"
-            :to="item.path"
-            class="nav-item"
-            :class="{ active: isActive(item.path) }"
-          >
-            <span class="nav-icon">
-              <Icon :name="item.tIcon" />
-            </span>
-            <span class="nav-label">{{ item.label }}</span>
-          </router-link>
+          <template v-for="group in filteredMenuItems" :key="group.label">
+            <div class="nav-group-label">{{ group.label }}</div>
+            <router-link
+              v-for="item in group.items"
+              :key="item.path"
+              :to="item.path"
+              class="nav-item"
+              :class="{ active: isActive(item.path) }"
+            >
+              <span class="nav-icon">
+                <Icon :name="item.tIcon" />
+              </span>
+              <span class="nav-label">{{ item.label }}</span>
+            </router-link>
+          </template>
         </nav>
         <div class="sidebar-footer">
           <span class="version-text">v{{ version }}</span>
@@ -527,6 +562,19 @@ onMounted(async () => {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
+}
+
+.nav-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px 14px 8px;
+}
+
+.nav-group-label:first-child {
+  padding-top: 0;
 }
 
 .sidebar-footer {
