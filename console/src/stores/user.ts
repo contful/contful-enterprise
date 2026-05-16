@@ -166,16 +166,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const fetchUser = async () => {
-    // 如果没有 AccessToken，尝试从 Cookie 刷新恢复会话
-    if (!getAccessToken()) {
-      const restored = await initializeSession()
-      if (!restored) {
-        clearUser()
-        clearAuthSession()
-        return false
-      }
-    }
-
+    // initializeSession() 由 router.beforeEach 统一处理，此处直接请求用户信息
     try {
       const res = await request.get('/users/me')
       const body = res.data as any

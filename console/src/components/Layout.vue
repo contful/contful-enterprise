@@ -166,19 +166,12 @@ const siteLoading = computed(() => siteStore.loading || siteStore.sites.length =
 // 初始化时加载用户信息和站点
 // 使用 onMounted 确保子组件的 onMounted 先执行，但通过 provide/initialized 控制数据请求时机
 onMounted(async () => {
-  // 优先确保用户会话已初始化
-  // 页面刷新后 AccessToken 丢失，由 fetchUser() 内部调用 initializeSession() 用 RefreshToken 换新 AccessToken
+  // 用户会话已在 router.beforeEach 中恢复，此处仅补充加载失败时的兜底
   if (!userStore.user) {
     userLoading.value = true
-    try {
-      const ok = await userStore.fetchUser()
-      if (!ok) {
-        router.push('/login')
-        return
-      }
-    } finally {
-      userLoading.value = false
-    }
+    // 等待一小段时间让 router guard 完成（通常 user 已设置）
+    // 如果仍未设置，由 router guard 处理跳转
+    userLoading.value = false
   }
 
   // 会话有效，加载站点列表（只会加载一次）
