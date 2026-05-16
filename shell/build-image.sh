@@ -15,21 +15,21 @@
 #   ./shell/build-image.sh openapi      # 构建 Open API 镜像（当前架构）
 #
 # 环境变量:
-#   DB_TYPE    数据库类型 (pg=PostgreSQL)
-#              支持逗号分隔，默认值: pg
+#   DB_TYPE    数据库类型 (postgresql=PostgreSQL)
+#              支持逗号分隔，默认值: postgresql
 #
 # 示例:
-#   ./shell/build-image.sh                       # 构建所有镜像（pg，当前架构）
+#   ./shell/build-image.sh                       # postgresql
 #
 # 构建的镜像标签（每个平台构建时打两个标签）:
-#   contful/console:pg-amd64-latest   + pg-latest   （在 amd64 机器上）
-#   contful/console:pg-arm64-latest   + pg-latest   （在 arm64 机器上）
+#   contful/console:postgresql-amd64-latest   + postgresql-latest   （在 amd64 机器上）
+#   contful/console:postgresql-arm64-latest   + postgresql-latest   （在 arm64 机器上）
 #   contful/openapi:（同上）
 #
 # 说明:
-#   - 无后缀标签（如 pg-latest）表示该平台 native 架构的镜像
-#   - 带架构后缀标签（如 pg-arm64-latest）可明确区分架构
-#   - 不同平台构建的 pg-latest 对应各自平台的架构
+#   - 无后缀标签（如 postgresql-latest）表示该平台 native 架构的镜像
+#   - 带架构后缀标签（如 postgresql-arm64-latest）可明确区分架构
+#   - 不同平台构建的 postgresql-latest 对应各自平台的架构
 # =============================================================================
 
 set -e
@@ -45,7 +45,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # 数据库类型（默认 PostgreSQL）
-DB_TYPES="${DB_TYPE:-pg}"
+DB_TYPES="${DB_TYPE:-postgresql}"
 
 # 自动检测当前平台架构
 get_platform() {
@@ -180,10 +180,10 @@ show_images() {
     log_info "当前 Contful 镜像:"
     echo ""
     echo "  Console:"
-    docker images contful/console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "(pg|dm)" || echo "    (无)"
+    docker images contful/console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "(postgresql|mysql|dameng)" || echo "    (无)"
     echo ""
     echo "  Open API:"
-    docker images contful/openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "(pg|dm)" || echo "    (无)"
+    docker images contful/openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "(postgresql|mysql|dameng)" || echo "    (无)"
     echo ""
 }
 
@@ -200,19 +200,19 @@ show_help() {
     echo "  help      显示此帮助信息"
     echo ""
     echo "环境变量:"
-    echo "  DB_TYPE   数据库类型 (pg=PostgreSQL)"
-    echo "            支持逗号分隔多个类型，默认值: pg"
+    echo "  DB_TYPE   数据库类型 (postgresql=PostgreSQL)"
+    echo "            支持逗号分隔多个类型，默认值: postgresql"
     echo ""
     echo "示例:"
     echo "  $0                              # 构建所有镜像（pg，当前架构）"
     echo "  $0 console                      # 仅构建 Console 镜像"
     echo ""
     echo "构建的镜像标签（每个平台打两个标签）:"
-    echo "  contful/console:pg-amd64-latest   + pg-latest   （amd64 机器）"
-    echo "  contful/console:pg-arm64-latest   + pg-latest   （arm64 机器）"
+    echo "  contful/console:postgresql-amd64-latest   + postgresql-latest   （amd64 机器）"
+    echo "  contful/console:postgresql-arm64-latest   + postgresql-latest   （arm64 机器）"
     echo "  contful/openapi:（同上）"
     echo ""
-    echo "说明：无后缀标签（如 pg-latest）对应当前平台的 native 架构"
+    echo "说明：无后缀标签（如 postgresql-latest）对应当前平台的 native 架构"
     echo ""
 }
 

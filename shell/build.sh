@@ -13,7 +13,7 @@
 #   ./shell/build.sh openapi      # 构建 Open API 镜像
 #
 # 构建参数:
-#   DB_TYPE=pg  # PostgreSQL（默认）
+#   DB_TYPE=postgresql  # PostgreSQL（默认）
 #
 # 示例:
 #   ./shell/build.sh                        # 构建所有（PostgreSQL 版本）
@@ -43,7 +43,7 @@ CONSOLE_DIR="$PROJECT_DIR/console"
 BUILD_DIR="$PROJECT_DIR/build"
 
 # 数据库类型（默认 PostgreSQL）
-DB_TYPE="${DB_TYPE:-pg}"
+DB_TYPE="${DB_TYPE:-postgresql}"
 
 # =============================================================================
 # 辅助函数
@@ -169,8 +169,8 @@ show_help() {
     echo "  all       构建所有（默认）"
     echo ""
     echo "环境变量:"
-    echo "  DB_TYPE   数据库类型 (pg=PostgreSQL)"
-    echo "            默认值: pg"
+    echo "  DB_TYPE   数据库类型 (postgresql=PostgreSQL)"
+    echo "            默认值: postgresql"
     echo ""
     echo "示例:"
     echo "  $0                        # 构建所有（PostgreSQL 版本）"
