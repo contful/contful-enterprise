@@ -106,6 +106,11 @@ case "$SERVICE_TYPE" in
 
     "openapi")
         start_service "openapi-server" "$SERVICE_PORT" "openapi.log"
+        if ! wait_for_port "$SERVICE_PORT"; then
+            echo "[Entrypoint] ERROR: openapi-server failed to start. Check /app/logs/openapi.log"
+            exit 1
+        fi
+        echo "[Entrypoint] Open API ready on :$SERVICE_PORT"
         wait
         ;;
 

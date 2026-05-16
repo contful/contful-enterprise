@@ -46,7 +46,7 @@ services:
   # Valkey 缓存（Redis 兼容）
   # ---------------------------------------------------------------------------
   valkey:
-    image: valkey/valkey:8-alpine
+    image: valkey/valkey:9-alpine
     container_name: contful-valkey
     command: valkey-server --appendonly yes
     volumes:
