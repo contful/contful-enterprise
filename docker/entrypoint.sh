@@ -68,11 +68,34 @@ start_service() {
     fi
 }
 
+# 等待端口就绪（最多 30s）
+wait_for_port() {
+    local port="$1"
+    local max_wait=30
+    local waited=0
+    echo -n "[Entrypoint] Waiting for :$port "
+    while [ $waited -lt $max_wait ]; do
+        if wget -q -O- http://127.0.0.1:$port/health >/dev/null 2>&1; then
+            echo " OK ($waited s)"
+            return 0
+        fi
+        sleep 1
+        waited=$((waited + 1))
+        echo -n "."
+    done
+    echo " TIMEOUT"
+    return 1
+}
+
 case "$SERVICE_TYPE" in
     "console")
         start_service "admin-api" "$SERVICE_PORT" "admin-api.log"
 
         if [ "$MODE" = "console" ]; then
+            if ! wait_for_port "$SERVICE_PORT"; then
+                echo "[Entrypoint] ERROR: admin-api failed to start. Check /app/logs/admin-api.log"
+                exit 1
+            fi
             echo "[Entrypoint] Starting Console SPA on :80..."
             exec /usr/local/openresty/bin/openresty -g "daemon off;"
         else
