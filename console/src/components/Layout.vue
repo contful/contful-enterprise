@@ -110,7 +110,8 @@ const filteredMenuItems = computed(() => {
       if (!requiredPermission) return true
       return userStore.hasPermission(requiredPermission)
     }),
-  })).filter(group => group.items.length > 0) // 移除空分组
+  })).filter(group => group.items.length > 0)
+}) // 移除空分组
 
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/'
