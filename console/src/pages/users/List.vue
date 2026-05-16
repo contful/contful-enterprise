@@ -59,13 +59,13 @@
     >
       <t-form :data="createForm" label-align="top">
         <t-form-item :label="`${t('users.email')} *`">
-          <t-input v-model="createForm.email" type="email" :placeholder="t('users.enterEmail')" clearable />
+          <t-input v-model="createForm.email" :placeholder="t('users.enterEmail')" clearable />
           <template v-if="createError && createError.includes('@')" #help>
             <span class="form-error">{{ createError }}</span>
           </template>
         </t-form-item>
         <t-form-item :label="`${t('users.password')} *`">
-          <t-input v-model="createForm.password" type="password" :placeholder="t('users.enterPassword')" clearable />
+          <t-input v-model="createForm.password" :placeholder="t('users.enterPassword')" clearable />
           <!-- 密码强度条 -->
           <div class="password-strength">
             <div class="strength-bar">
@@ -192,7 +192,7 @@
     >
       <t-form label-align="top">
         <t-form-item :label="t('users.newPassword')">
-          <t-input v-model="resetPwdForm.newPassword" type="password" :placeholder="t('users.enterPassword')" clearable />
+          <t-input v-model="resetPwdForm.newPassword" :placeholder="t('users.enterPassword')" clearable />
           <!-- 密码强度条 -->
           <div class="password-strength">
             <div class="strength-bar">
@@ -203,7 +203,7 @@
           <p class="password-hint">{{ t('users.passwordHint') }}</p>
         </t-form-item>
         <t-form-item :label="t('users.confirmPassword')">
-          <t-input v-model="resetPwdForm.confirmPassword" type="password" :placeholder="t('users.confirmPasswordHint')" clearable />
+          <t-input v-model="resetPwdForm.confirmPassword" :placeholder="t('users.confirmPasswordHint')" clearable />
         </t-form-item>
         <t-alert v-if="resetPwdError" theme="error" :message="resetPwdError" closable @close="resetPwdError = ''" />
       </t-form>
