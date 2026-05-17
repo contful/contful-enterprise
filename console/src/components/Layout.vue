@@ -239,6 +239,7 @@ onMounted(async () => {
         </div>
         <t-button
           shape="square" variant="text"
+          :aria-label="sidebarCollapsed ? t('a11y.expandSidebar') : t('a11y.collapseSidebar')"
           style="flex-shrink: 0"
           @click="sidebarCollapsed = !sidebarCollapsed"
         >
@@ -330,7 +331,7 @@ onMounted(async () => {
     <div class="app-body">
       <!-- 侧边栏 -->
       <aside class="sidebar">
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav" aria-label="主导航">
           <template v-for="group in filteredMenuItems" :key="group.label">
             <div class="nav-group-label">{{ group.label }}</div>
             <router-link
@@ -339,6 +340,7 @@ onMounted(async () => {
               :to="item.path"
               class="nav-item"
               :class="{ active: isActive(item.path) }"
+              :aria-current="isActive(item.path) ? 'page' : undefined"
             >
               <span class="nav-icon">
                 <Icon :name="item.tIcon" />
@@ -353,7 +355,7 @@ onMounted(async () => {
       </aside>
 
       <!-- 主内容区 -->
-      <main class="main-content">
+      <main id="main-content" class="main-content">
         <div class="content-wrapper">
           <slot />
         </div>

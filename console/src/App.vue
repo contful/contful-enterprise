@@ -43,6 +43,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <a href="#main-content" class="skip-link">跳到主要内容</a>
   <Layout v-if="!isAuthPage">
     <router-view />
   </Layout>

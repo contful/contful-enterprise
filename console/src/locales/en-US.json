@@ -919,5 +919,10 @@
     "perms": "items",
     "noData": "No permissions configured",
     "fillRequired": "Required fields must be filled"
+  },
+  "a11y": {
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "skipToContent": "Skip to main content"
   }
 }
