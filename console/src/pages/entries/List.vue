@@ -28,6 +28,7 @@ import {
   type Entry,
 } from '@/api/entry'
 import PageHeader from '@/components/PageHeader.vue'
+import TableToolbar from '@/components/common/TableToolbar.vue'
 
 // 类型守卫：处理 unknown 类型的 error 参数
 const handleError = (error: unknown) => showError(error as Parameters<typeof showError>[0])
@@ -442,8 +443,8 @@ onMounted(() => {
       <!-- 主内容区 -->
       <main class="content-main">
         <template v-if="selectedType">
-          <div class="content-toolbar">
-            <div class="toolbar-left">
+          <TableToolbar>
+            <template #left>
               <h2>{{ selectedType.name }}</h2>
               <t-select
                 v-model="statusFilter"
@@ -486,9 +487,9 @@ onMounted(() => {
               <t-button variant="outline" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; loadEntries()">
                 {{ sortOrder === 'asc' ? t('content.asc') : t('content.desc') }}
               </t-button>
-            </div>
+            </template>
 
-            <div class="toolbar-right">
+            <template #right>
               <t-button variant="outline" @click="loadEntries">
                 <template #icon><t-icon name="refresh" /></template>
                 {{ t('common.refresh') }}
@@ -519,8 +520,8 @@ onMounted(() => {
                   {{ t('content.batchDelete') }}
                 </t-button>
               </div>
-            </div>
-          </div>
+            </template>
+          </TableToolbar>
 
           <!-- 表格 — 保留原生 table（动态列复杂）但优化样式 -->
           <div class="card table-wrap">
