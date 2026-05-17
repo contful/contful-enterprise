@@ -41,7 +41,7 @@
           <t-button variant="outline" size="small" @click="openViewDialog(row)">{{ t('common.view') }}</t-button>
           <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
           <t-button variant="outline" size="small" theme="warning" :loading="signingId === row.id" @click="handleSign(row)">{{ t('users.sign') }}</t-button>
-          <t-button variant="outline" size="small" :loading="verifyingId === row.id" @click="handleVerify(row)">{{ t('users.verify') }}</t-button>
+          <t-button variant="outline" size="small" theme="success" :loading="verifyingId === row.id" @click="handleVerify(row)">{{ t('users.verify') }}</t-button>
           <t-button v-if="userStore.user?.is_super_admin && row.id !== userStore.user?.id" variant="outline" size="small" @click="openResetPasswordDialog(row)">{{ t('users.resetPassword') }}</t-button>
           <t-button theme="danger" variant="outline" size="small" :disabled="row.is_super_admin" @click="handleDelete(row)">{{ t('common.delete') }}</t-button>
         </t-space>

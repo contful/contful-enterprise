@@ -320,7 +320,7 @@ onMounted(() => {
           <t-button variant="outline" size="small" @click="goToFields(row)">{{ t('contentSchemas.manageFields') }}</t-button>
           <t-button variant="outline" size="small" @click="openEditDialog(row)">{{ t('common.edit') }}</t-button>
           <t-button variant="outline" size="small" theme="warning" :loading="signingId === row.id" @click="handleSign(row)">{{ t('contentSchemas.sign') }}</t-button>
-          <t-button variant="outline" size="small" :loading="verifyingId === row.id" @click="handleVerify(row)">{{ t('contentSchemas.verify') }}</t-button>
+          <t-button variant="outline" size="small" theme="success" :loading="verifyingId === row.id" @click="handleVerify(row)">{{ t('contentSchemas.verify') }}</t-button>
           <t-button theme="danger" variant="outline" size="small" @click="handleDelete(row)">{{ t('common.delete') }}</t-button>
         </t-space>
       </template>
