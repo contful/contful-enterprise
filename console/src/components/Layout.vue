@@ -275,7 +275,7 @@ onMounted(async () => {
               </template>
             </t-button>
           </t-tooltip>
-      </div>
+        </div>
       </div>
       <!-- 占位，撑开左右两端的间距 -->
       <div class="header-spacer"></div>
