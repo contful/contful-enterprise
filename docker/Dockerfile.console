@@ -49,10 +49,10 @@ ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY admin/ .
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/admin-api .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/admin .
 
 # UPX 压缩（可减少 50-60% 体积）
-RUN upx --best /app/admin-api && rm -f /usr/bin/upx
+RUN upx --best /app/admin && rm -f /usr/bin/upx
 
 # ---- Stage 2: 前端构建 ----
 FROM node:22-alpine AS frontend-builder
@@ -104,7 +104,7 @@ RUN addgroup -S contful \
 USER contful
 
 # 复制 Go 二进制
-COPY --chown=contful:contful --from=go-builder /app/admin-api /app/admin-api
+COPY --chown=contful:contful --from=go-builder /app/admin /app/admin
 
 # 复制 RSA 密钥对（用于登录密码加密传输）
 COPY --chown=contful:contful conf/rsa_public.pem conf/rsa_private.pem /app/

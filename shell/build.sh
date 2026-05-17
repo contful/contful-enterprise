@@ -19,8 +19,8 @@
 #   ./shell/build.sh                        # 构建所有（PostgreSQL 版本）
 #
 # 构建产物:
-#   build/admin-server    - Admin API 二进制
-#   build/openapi-server  - Open API 二进制
+#   build/admin    - Admin API 二进制
+#   build/openapi  - Open API 二进制
 #   console/dist/         - 前端静态文件
 #
 # =============================================================================
@@ -107,9 +107,9 @@ build_console() {
 
     # 构建 Admin API
     cd "$ADMIN_DIR"
-    go build -tags="${DB_TYPE}" -ldflags="-s -w" -o "$BUILD_DIR/admin-server" .
+    go build -tags="${DB_TYPE}" -ldflags="-s -w" -o "$BUILD_DIR/admin" .
 
-    if [ -f "$BUILD_DIR/admin-server" ]; then
+    if [ -f "$BUILD_DIR/admin" ]; then
         log_success "Console 构建完成"
     else
         log_error "Console 构建失败"
@@ -124,10 +124,10 @@ build_openapi() {
     mkdir -p "$BUILD_DIR"
 
     cd "$OPENAPI_DIR"
-    go build -tags="${DB_TYPE}" -ldflags="-s -w" -o "$BUILD_DIR/openapi-server" .
+    go build -tags="${DB_TYPE}" -ldflags="-s -w" -o "$BUILD_DIR/openapi" .
 
-    if [ -f "$BUILD_DIR/openapi-server" ]; then
-        log_success "Open API 构建完成: $BUILD_DIR/openapi-server"
+    if [ -f "$BUILD_DIR/openapi" ]; then
+        log_success "Open API 构建完成: $BUILD_DIR/openapi"
     else
         log_error "Open API 构建失败"
         exit 1
@@ -150,8 +150,8 @@ build_all() {
     echo ""
     echo "产物位置:"
     echo "  - Console 前端: $CONSOLE_DIR/dist"
-    echo "  - Admin API:     $BUILD_DIR/admin-server"
-    echo "  - Open API:      $BUILD_DIR/openapi-server"
+    echo "  - Admin API:     $BUILD_DIR/admin"
+    echo "  - Open API:      $BUILD_DIR/openapi"
 }
 
 # =============================================================================

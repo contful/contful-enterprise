@@ -43,10 +43,10 @@ ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY openapi/ .
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/openapi-server .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/openapi .
 
 # UPX 压缩（可减少 50-60% 体积）
-RUN upx --best /app/openapi-server && rm -f /usr/bin/upx
+RUN upx --best /app/openapi && rm -f /usr/bin/upx
 
 # ---- Stage 2: 运行 ----
 FROM alpine:latest AS runner
@@ -66,7 +66,7 @@ RUN chown -R contful:contful /app
 WORKDIR /app
 
 # 复制 Go 二进制
-COPY --chown=contful:contful --from=builder /app/openapi-server .
+COPY --chown=contful:contful --from=builder /app/openapi .
 
 # 复制默认配置文件（Go 程序会自动用环境变量覆盖）
 COPY --chown=contful:contful conf/openapi.yaml /app/conf/openapi.yaml

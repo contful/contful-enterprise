@@ -206,7 +206,7 @@ start_admin() {
     # 编译到 build 目录
     log_info "编译 Admin API..."
     cd "$ADMIN_DIR"
-    go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/admin-server" .
+    go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/admin" .
 
     # 后台运行（使用 env 内联传递，与 openapi 保持一致，避免 export 在 nohup 子进程中的问题）
     nohup env \
@@ -222,7 +222,7 @@ start_admin() {
         SECRET="${SECRET:-}" \
         LOG_LEVEL="${LOG_LEVEL:-info}" \
         STORAGE_UPLOAD_DIR="$UPLOAD_DIR" \
-        "$BUILD_DIR/admin-server" > "$LOG_DIR/admin.log" 2>&1 &
+        "$BUILD_DIR/admin" > "$LOG_DIR/admin.log" 2>&1 &
     echo $! > "$LOG_DIR/admin.pid"
 
     # 等待启动（最多等待 15 秒，避免 sleep 2 单次检查的竞态误报）
@@ -265,7 +265,7 @@ start_openapi() {
     # 编译到 build 目录
     log_info "编译 Open API..."
     cd "$OPENAPI_DIR"
-    go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/openapi-server" .
+    go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/openapi" .
 
     # 后台运行（直接传入环境变量，避免被 .env 的 SERVER_PORT 污染）
     nohup env \
@@ -279,7 +279,7 @@ start_openapi() {
         REDIS_PORT="${REDIS_PORT:-6379}" \
         REDIS_PASSWORD="${REDIS_PASSWORD}" \
         STORAGE_UPLOAD_DIR="$UPLOAD_DIR" \
-        "$BUILD_DIR/openapi-server" > "$LOG_DIR/openapi.log" 2>&1 &
+        "$BUILD_DIR/openapi" > "$LOG_DIR/openapi.log" 2>&1 &
     echo $! > "$LOG_DIR/openapi.pid"
 
     # 等待启动（最多等待 15 秒，避免 sleep 2 单次检查的竞态误报）

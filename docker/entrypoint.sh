@@ -17,7 +17,7 @@
 #   2. config.yml
 #   3. 内置默认值（最低）
 #
-# 支持服务: console (admin-api) / openapi (openapi-server)
+# 支持服务: console (admin) / openapi (openapi)
 # =============================================================================
 
 set -e
@@ -26,10 +26,10 @@ set -e
 mkdir -p /app/logs /app/uploads
 
 # 检测服务类型
-if [ -f "/app/admin-api" ]; then
+if [ -f "/app/admin" ]; then
     SERVICE_TYPE="console"
     SERVICE_PORT="${CONTFUL_SERVER_PORT:-9080}"
-elif [ -f "/app/openapi-server" ]; then
+elif [ -f "/app/openapi" ]; then
     SERVICE_TYPE="openapi"
     SERVICE_PORT="${CONTFUL_SERVER_PORT:-8080}"
 else
@@ -89,11 +89,11 @@ wait_for_port() {
 
 case "$SERVICE_TYPE" in
     "console")
-        start_service "admin-api" "$SERVICE_PORT" "admin-api.log"
+        start_service "admin" "$SERVICE_PORT" "admin.log"
 
         if [ "$MODE" = "console" ]; then
             if ! wait_for_port "$SERVICE_PORT"; then
-                echo "[Entrypoint] ERROR: admin-api failed to start. Check /app/logs/admin-api.log"
+                echo "[Entrypoint] ERROR: admin failed to start. Check /app/logs/admin.log"
                 exit 1
             fi
             echo "[Entrypoint] Starting Console SPA on :80..."
@@ -105,9 +105,9 @@ case "$SERVICE_TYPE" in
         ;;
 
     "openapi")
-        start_service "openapi-server" "$SERVICE_PORT" "openapi.log"
+        start_service "openapi" "$SERVICE_PORT" "openapi.log"
         if ! wait_for_port "$SERVICE_PORT"; then
-            echo "[Entrypoint] ERROR: openapi-server failed to start. Check /app/logs/openapi.log"
+            echo "[Entrypoint] ERROR: openapi failed to start. Check /app/logs/openapi.log"
             exit 1
         fi
         echo "[Entrypoint] Open API ready on :$SERVICE_PORT"
