@@ -7,6 +7,7 @@ import { ref, computed, onMounted, inject, type Ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/Icon.vue'
+import StatCard from '@/components/common/StatCard.vue'
 import { getDashboardStats } from '@/api/api'
 import { showError } from '@/utils/request'
 
@@ -87,77 +88,83 @@ const quickActions = computed(() => {
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
-      <div class="stat-card" @click="router.push('/sites')">
-        <div class="stat-icon" style="background: #fef2f2; color: #ef4444;">
+      <StatCard
+        variant="sites"
+        :value="stats.sites"
+        :label="t('dashboard.sites')"
+        @click="router.push('/sites')"
+      >
+        <template #icon>
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"/>
           </svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.sites }}</div>
-          <div class="stat-label">{{ t('dashboard.sites') }}</div>
-        </div>
-      </div>
+        </template>
+      </StatCard>
 
-      <div class="stat-card" @click="router.push('/content/entries')">
-        <div class="stat-icon" style="background: #eff6ff; color: #3b82f6;">
+      <StatCard
+        variant="entries"
+        :value="stats.entries"
+        :label="t('dashboard.contentEntries')"
+        @click="router.push('/content/entries')"
+      >
+        <template #icon>
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v10h8V4H6z"/>
           </svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.entries }}</div>
-          <div class="stat-label">{{ t('dashboard.contentEntries') }}</div>
-        </div>
-      </div>
+        </template>
+      </StatCard>
 
-      <div class="stat-card" @click="router.push('/content/schemas')">
-        <div class="stat-icon" style="background: #f3e8ff; color: #8b5cf6;">
+      <StatCard
+        variant="schemas"
+        :value="stats.schemas"
+        :label="t('dashboard.schemas')"
+        @click="router.push('/content/schemas')"
+      >
+        <template #icon>
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 011 1H4a1 1 0 01-1-1v-2z"/>
           </svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.schemas }}</div>
-          <div class="stat-label">{{ t('dashboard.schemas') }}</div>
-        </div>
-      </div>
+        </template>
+      </StatCard>
 
-      <div class="stat-card" @click="router.push('/assets')">
-        <div class="stat-icon" style="background: #ecfdf5; color: #10b981;">
+      <StatCard
+        variant="assets"
+        :value="stats.assets"
+        :label="t('dashboard.mediaFiles')"
+        @click="router.push('/assets')"
+      >
+        <template #icon>
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
           </svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.assets }}</div>
-          <div class="stat-label">{{ t('dashboard.mediaFiles') }}</div>
-        </div>
-      </div>
+        </template>
+      </StatCard>
 
-      <div class="stat-card" @click="router.push('/users')">
-        <div class="stat-icon" style="background: #fef3c7; color: #f59e0b;">
+      <StatCard
+        variant="users"
+        :value="stats.users"
+        :label="t('dashboard.users')"
+        @click="router.push('/users')"
+      >
+        <template #icon>
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
           </svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.users }}</div>
-          <div class="stat-label">{{ t('dashboard.users') }}</div>
-        </div>
-      </div>
+        </template>
+      </StatCard>
 
-      <div class="stat-card" @click="router.push('/tokens')">
-        <div class="stat-icon" style="background: #fce7f3; color: #ec4899;">
+      <StatCard
+        variant="tokens"
+        :value="stats.apiTokens"
+        :label="t('dashboard.apiTokens')"
+        @click="router.push('/tokens')"
+      >
+        <template #icon>
           <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
             <path d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
           </svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.apiTokens }}</div>
-          <div class="stat-label">{{ t('dashboard.apiTokens') }}</div>
-        </div>
-      </div>
+        </template>
+      </StatCard>
     </div>
 
     <!-- 快速操作 -->
@@ -193,109 +200,65 @@ const quickActions = computed(() => {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
+.card {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.stat-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-}
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--color-text);
-  text-align: center;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: var(--color-text-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
 }
 
 .card-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 16px;
-}
-
-.quick-actions {
-  /* full width, no max-width needed */
+  margin-bottom: var(--space-4);
 }
 
 .actions-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .action-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 20px;
-  background: transparent;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-hover);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--color-text);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
+  font-family: inherit;
 }
 
 .action-item:hover {
-  background: var(--color-hover);
+  background: var(--color-primary-light);
   border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .action-icon {
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
 .action-label {
-  font-size: 14px;
   font-weight: 500;
-  color: var(--color-text);
   white-space: nowrap;
-}
-
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>
