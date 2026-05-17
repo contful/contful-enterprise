@@ -373,7 +373,7 @@
     "subtitle": "管理系统用户与权限",
     "addUser": "添加用户",
     "noUsers": "暂无用户",
-    "noUsersHint": "点击「添加用户」创建第一个用户",
+    "noUsersHint": "创建第一个用户账号",
     "createUserDialog": "创建用户弹窗",
     "editUserDialog": "编辑用户弹窗",
     "createUser": "添加用户",

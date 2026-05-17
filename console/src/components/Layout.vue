@@ -627,10 +627,13 @@ onMounted(async () => {
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
+  transition: opacity var(--transition-normal);
 }
 
 .app-layout.collapsed .nav-label {
-  display: none;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
 }
 
 /* 主内容区 */

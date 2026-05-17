@@ -46,6 +46,12 @@
           <t-button theme="danger" variant="outline" size="small" :disabled="row.is_super_admin" @click="handleDelete(row)">{{ t('common.delete') }}</t-button>
         </t-space>
       </template>
+      <template #empty>
+        <div class="empty-state">
+          <p class="empty-title">{{ t('users.noUsers') }}</p>
+          <p class="empty-desc">{{ t('users.noUsersHint') }}</p>
+        </div>
+      </template>
     </t-table>
 
     <!-- 创建用户弹窗 — t-dialog + t-form -->
