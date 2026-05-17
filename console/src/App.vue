@@ -45,9 +45,11 @@ onUnmounted(() => {
 <template>
   <a href="#main-content" class="skip-link">跳到主要内容</a>
   <Layout v-if="!isAuthPage">
-    <router-view v-slot="{ Component }">
+    <router-view v-slot="{ Component, route: r }">
       <transition name="fade" mode="out-in">
-        <component :is="Component" />
+        <div :key="r.path" class="page-transition-wrapper">
+          <component :is="Component" />
+        </div>
       </transition>
     </router-view>
   </Layout>
@@ -268,5 +270,9 @@ button {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.page-transition-wrapper {
+  min-height: 100%;
 }
 </style>
