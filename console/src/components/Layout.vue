@@ -418,7 +418,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   padding: 0 20px;
-  background: #fff;
+  background: var(--color-header-bg);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
@@ -548,10 +548,10 @@ onMounted(async () => {
 /* 侧边栏 */
 .sidebar {
   width: 220px;
-  background: #1e293b;
+  background: var(--color-sidebar);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width var(--transition-normal);
   flex-shrink: 0;
 }
 
@@ -561,17 +561,17 @@ onMounted(async () => {
 
 .sidebar-nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: var(--space-4) var(--space-3);
   overflow-y: auto;
 }
 
 .nav-group-label {
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-sidebar-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 16px 14px 8px;
+  padding: var(--space-4) 14px var(--space-2);
 }
 
 .nav-group-label:first-child {
@@ -579,30 +579,30 @@ onMounted(async () => {
 }
 
 .sidebar-footer {
-  padding: 12px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: var(--space-3) 14px;
+  border-top: 1px solid var(--color-sidebar-hover);
   text-align: center;
 }
 
 .version-text {
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-sidebar-text-secondary);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 10px 14px;
-  margin-bottom: 4px;
-  border-radius: 8px;
-  color: #94a3b8;
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-md);
+  color: var(--color-sidebar-text);
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-sidebar-hover);
   color: #fff;
 }
 

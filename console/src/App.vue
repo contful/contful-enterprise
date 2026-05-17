@@ -50,47 +50,9 @@ onUnmounted(() => {
 </template>
 
 <style>
-:root {
-  /* 亮色主题 */
-  --color-primary: #3b82f6;
-  --color-primary-light: #eff6ff;
-  --color-success: #10b981;
-  --color-success-light: #ecfdf5;
-  --color-warning: #f59e0b;
-  --color-warning-light: #fffbeb;
-  --color-error: #ef4444;
-  --color-error-light: #fef2f2;
-
-  --color-bg: #f8fafc;
-  --color-sidebar: #1e293b;
-  --color-card: #ffffff;
-  --color-border: #e2e8f0;
-  --color-hover: #f1f5f9;
-  --color-text: #1e293b;
-  --color-text-secondary: #64748b;
-}
-
-[data-theme="dark"] {
-  --color-bg: #0f172a;
-  --color-sidebar: #1e293b;
-  --color-card: #1e293b;
-  --color-border: #334155;
-  --color-hover: #334155;
-  --color-text: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* ==========================================================================
+   Utility Classes (Tokens 已迁移至 src/styles/index.css)
+   ========================================================================== */
 
 a {
   color: inherit;
@@ -140,7 +102,7 @@ button {
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: var(--color-primary-hover);
 }
 
 .btn-secondary {
