@@ -60,8 +60,8 @@
       <t-form :data="createForm" label-align="top">
         <t-form-item :label="`${t('users.email')} *`">
           <t-input v-model="createForm.email" :placeholder="t('users.enterEmail')" clearable />
-          <template v-if="createError && createError.includes('@')" #help>
-            <span class="form-error">{{ createError }}</span>
+          <template v-if="createError" #help>
+            {{ createError }}
           </template>
         </t-form-item>
         <t-form-item :label="`${t('users.password')} *`">

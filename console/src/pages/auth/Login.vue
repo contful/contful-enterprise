@@ -1,5 +1,10 @@
 <template>
-  <div class="auth-container" :style="loginBackgroundUrl ? { backgroundImage: `url(${loginBackgroundUrl})` } : undefined">
+  <div
+    class="auth-container"
+    :style="loginBackgroundUrl
+      ? { backgroundImage: `url(${loginBackgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : undefined"
+  >
     <t-card class="auth-card">
       <template #header>
         <div class="auth-header">
