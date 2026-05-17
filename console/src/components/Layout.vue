@@ -574,10 +574,17 @@ onMounted(async () => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: var(--space-4) 14px var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity var(--transition-normal);
 }
 
 .nav-group-label:first-child {
   padding-top: 0;
+}
+
+.app-layout.collapsed .nav-group-label {
+  opacity: 0;
 }
 
 .sidebar-footer {
