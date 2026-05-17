@@ -10,6 +10,7 @@ import Icon from '@/components/Icon.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import { getDashboardStats } from '@/api/api'
 import { showError } from '@/utils/request'
+import PageHeader from '@/components/PageHeader.vue'
 
 function handleError(err: unknown) {
   if (err instanceof Error) {
@@ -79,12 +80,10 @@ const quickActions = computed(() => {
 
 <template>
   <div class="dashboard">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('dashboard.title') }}</h1>
-        <p class="page-subtitle">{{ t('dashboard.welcome') }}</p>
-      </div>
-    </div>
+    <PageHeader
+      :title="t('dashboard.title')"
+      :subtitle="t('dashboard.welcome')"
+    />
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
