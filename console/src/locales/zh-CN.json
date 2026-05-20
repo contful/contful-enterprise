@@ -87,7 +87,8 @@
     "configs": "配置",
     "contentSchemas": "内容模型",
     "auditLogs": "审计日志",
-    "systemConfig": "系统设置"
+    "systemConfig": "系统设置",
+    "license": "License 信息"
   },
   "auth": {
     "login": "登录",
@@ -893,7 +894,8 @@
       "dashboard": "仪表盘",
       "contentSchema": "内容模型",
       "entry": "内容条目",
-      "asset": "媒体文件"
+      "asset": "媒体文件",
+      "license": "License 信息"
     }
   },
   "permission": {
@@ -928,5 +930,22 @@
     "collapseSidebar": "收起侧栏",
     "expandSidebar": "展开侧栏",
     "skipToContent": "跳到主要内容"
+  },
+  "license": {
+    "title": "License 信息",
+    "subtitle": "查看企业 License 授权状态与详情",
+    "active": "已授权",
+    "expired": "已过期",
+    "unlicensed": "未检测到有效的 License，系统将以社区版模式运行。如需商业支持，请联系 contful.com 获取授权。",
+    "expiryNotice": "您的 License 已过期。系统功能不受影响，但不再享有官方维保服务。请及时续费以恢复技术支持。",
+    "productName": "产品名称",
+    "productVersion": "产品版本",
+    "productCode": "产品编码",
+    "customer": "授权客户",
+    "type": "许可类型",
+    "trial": "试用",
+    "commercial": "商业",
+    "issuedDate": "签发日期",
+    "expiryDate": "到期日期"
   }
 }

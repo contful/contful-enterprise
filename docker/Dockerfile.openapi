@@ -1,9 +1,9 @@
 # =============================================================================
-# Contful Open API 镜像
+# Contful Enterprise Open API 镜像
 # =============================================================================
 #
-# 构建上下文: contful/ 目录（Dockerfile 的父目录）
-# 构建命令需在 contful/ 目录执行，或使用完整路径指定构建上下文
+# 构建上下文: contful-enterprise/ 目录（Dockerfile 的父目录）
+# 构建命令需在 contful-enterprise/ 目录执行，或使用完整路径指定构建上下文
 #
 # 镜像加速（可选）:
 #   国内用户可在 Docker Desktop 中配置 registry-mirrors:
@@ -15,11 +15,11 @@
 #   自动根据构建主机平台选择 GOARCH（amd64/arm64）
 #   可通过 --build-arg TARGETOS/TARGETARCH 覆盖
 #
-# 构建示例（推荐在 contful/ 目录执行）:
-#   docker build -f docker/Dockerfile.openapi -t contful/openapi:postgresql-latest .
+# 构建示例（推荐在 contful-enterprise/ 目录执行）:
+#   docker build -f docker/Dockerfile.openapi -t contful/enterprise-openapi:postgresql-latest .
 #
-# 或从父目录执行（指定构建上下文为 contful/）:
-#   docker build -f contful/docker/Dockerfile.openapi -t contful/openapi:postgresql-latest contful/
+# 或从父目录执行（指定构建上下文为 contful-enterprise/）:
+#   docker build -f contful-enterprise/docker/Dockerfile.openapi -t contful/enterprise-openapi:postgresql-latest contful-enterprise/
 #
 # =============================================================================
 

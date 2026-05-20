@@ -83,7 +83,8 @@
     "configs": "設定",
     "contentSchemas": "模型",
     "auditLogs": "日誌",
-    "systemConfig": "設定"
+    "systemConfig": "設定",
+    "license": "授權資訊"
   },
   "auth": {
     "login": "登入",
@@ -884,11 +885,29 @@
       "systemTokens": "API Token",
       "systemSettings": "系統設定",
       "systemAudit": "稽核日誌",
-      "systemRoles": "角色管理"
+      "systemRoles": "角色管理",
+      "systemLicense": "授權資訊"
     }
   },
   "permission": {
     "denied": "您沒有存取此頁面的權限",
     "required": "需要權限：{permission}"
+  },
+  "license": {
+    "title": "授權資訊",
+    "subtitle": "檢視企業授權狀態與詳情",
+    "active": "已授權",
+    "expired": "已過期",
+    "unlicensed": "未偵測到有效的授權，系統將以社群版模式運行。如需商業支援，請聯繫 contful.com 獲取授權。",
+    "expiryNotice": "您的授權已過期。系統功能不受影響，但不再享有官方維護服務。請及時續約以恢復技術支援。",
+    "productName": "產品名稱",
+    "productVersion": "產品版本",
+    "productCode": "產品編碼",
+    "customer": "授權客戶",
+    "type": "許可類型",
+    "trial": "試用",
+    "commercial": "商業",
+    "issuedDate": "簽發日期",
+    "expiryDate": "到期日期"
   }
 }

@@ -87,7 +87,8 @@
     "configs": "Config",
     "contentSchemas": "Content Schemas",
     "auditLogs": "Audit Logs",
-    "systemConfig": "System Settings"
+    "systemConfig": "System Settings",
+    "license": "License Info"
   },
   "auth": {
     "login": "Login",
@@ -889,7 +890,8 @@
       "dashboard": "Dashboard",
       "contentSchema": "Content Schemas",
       "entry": "Entries",
-      "asset": "Assets"
+      "asset": "Assets",
+      "license": "License Info"
     }
   },
   "permission": {
@@ -924,5 +926,22 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "skipToContent": "Skip to main content"
+  },
+  "license": {
+    "title": "License Info",
+    "subtitle": "View enterprise license status and details",
+    "active": "Licensed",
+    "expired": "Expired",
+    "unlicensed": "No valid license detected. The system is running in community mode. For commercial support, please contact contful.com to obtain a license.",
+    "expiryNotice": "Your license has expired. System functionality is unaffected, but official maintenance and support are no longer available. Please renew to restore technical support.",
+    "productName": "Product Name",
+    "productVersion": "Product Version",
+    "productCode": "Product Code",
+    "customer": "Customer",
+    "type": "License Type",
+    "trial": "Trial",
+    "commercial": "Commercial",
+    "issuedDate": "Issued Date",
+    "expiryDate": "Expiry Date"
   }
 }

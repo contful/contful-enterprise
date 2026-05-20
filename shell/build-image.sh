@@ -119,8 +119,8 @@ build_single_arch() {
         --no-cache \
         --platform "$platform" \
         --build-arg DB_TYPE="$db_type" \
-        -t "contful/${image_name}:${tag_arch}" \
-        -t "contful/${image_name}:${tag_latest}" \
+        -t "contful/enterprise-${image_name}:${tag_arch}" \
+        -t "contful/enterprise-${image_name}:${tag_latest}" \
         -f "$dockerfile" \
         "$PROJECT_DIR"
 
@@ -147,7 +147,7 @@ build_multi_arch() {
         --no-cache \
         --platform "linux/amd64,linux/arm64" \
         --build-arg DB_TYPE="$db_type" \
-        -t "contful/${image_name}:${tag_latest}" \
+        -t "contful/enterprise-${image_name}:${tag_latest}" \
         -f "$dockerfile" \
         --load \
         "$PROJECT_DIR"
@@ -215,10 +215,10 @@ show_images() {
     log_info "当前 Contful 镜像:"
     echo ""
     echo "  Console:"
-    docker images contful/console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
+    docker images contful/enterprise-console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
     echo ""
     echo "  Open API:"
-    docker images contful/openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
+    docker images contful/enterprise-openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
     echo ""
 }
 
@@ -253,12 +253,12 @@ Contful Docker 镜像构建脚本
 
 镜像标签规则:
   多架构构建:
-    contful/console:postgresql-latest   (amd64 + arm64)
-    contful/openapi:postgresql-latest   (amd64 + arm64)
+    contful/enterprise-console:postgresql-latest   (amd64 + arm64)
+    contful/enterprise-openapi:postgresql-latest   (amd64 + arm64)
 
   单架构构建:
-    contful/console:postgresql-latest        + postgresql-arm64-latest  (arm64 机器)
-    contful/console:postgresql-latest        + postgresql-amd64-latest  (amd64 机器)
+    contful/enterprise-console:postgresql-latest        + postgresql-arm64-latest  (arm64 机器)
+    contful/enterprise-console:postgresql-latest        + postgresql-amd64-latest  (amd64 机器)
 EOF
 }
 

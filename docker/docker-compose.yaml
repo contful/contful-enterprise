@@ -36,7 +36,7 @@ services:
   # Console 服务（Console SPA + Admin API，OpenResty 对外 :80 :443）
   # ---------------------------------------------------------------------------
   console:
-    image: contful/console:postgresql-latest
+    image: contful/enterprise-console:postgresql-latest
     # 环境变量模式（推荐）
     environment:
       - DB_HOST=postgres
@@ -76,7 +76,7 @@ services:
   # Open API 服务（无状态，可水平扩展）
   # ---------------------------------------------------------------------------
   openapi:
-    image: contful/openapi:postgresql-latest
+    image: contful/enterprise-openapi:postgresql-latest
     # 环境变量模式（推荐）
     environment:
       - DB_HOST=postgres

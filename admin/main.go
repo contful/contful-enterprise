@@ -24,6 +24,7 @@ import (
 	"github.com/contful/contful/admin/internal/config"
 	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/handler"
+	lic "github.com/contful/contful/admin/internal/license"
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/repository"
@@ -165,6 +166,22 @@ func main() {
 		logger.Fatal().Err(err).Msg("failed to parse RSA private key")
 	}
 	logger.Info().Msg("RSA key pair loaded")
+
+	// 加载企业 License（conf/license.dat）
+	licenseInfo, licenseErr := lic.Load()
+	licenseHandler := lic.NewHandler(licenseInfo)
+	if licenseErr != nil {
+		logger.Warn().Err(licenseErr).Msg("license not loaded — running in unlicensed mode")
+	} else {
+		logger.Info().
+			Str("customer", licenseInfo.Customer).
+			Str("product", licenseInfo.ProductName).
+			Str("version", licenseInfo.ProductVersion).
+			Str("status", licenseInfo.Status()).
+			Bool("is_trial", licenseInfo.IsTrial).
+			Time("expiry", licenseInfo.ExpiryDate).
+			Msg("license loaded")
+	}
 
 	// 初始化 Handler
 	authHandler := handler.NewAuthHandler(authService, string(rsaPubKeyPEM), rsaPrivKey)
@@ -502,6 +519,8 @@ func main() {
 
 			// ─── 系统配置管理 ─────────────────────────
 			// 需要认证的路由
+			// License 信息（无需特定权限，所有认证用户可查看）
+			protected.GET("/system/license", licenseHandler.GetInfo)
 			protected.GET("/system/config",
 				middleware.RequirePermission(rbacService, "settings:read"),
 				systemConfigHandler.List)

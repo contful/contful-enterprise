@@ -24,6 +24,7 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/system/config': 'settings:read',
   '/system/roles': 'roles:read',
   '/system/permissions': 'roles:read',
+  '/system/license': 'license:read',
   '/audit/logs': 'audit:read',
 }
 
@@ -144,6 +145,12 @@ const routes: RouteRecordRaw[] = [
     path: '/system/permissions',
     name: 'SystemPermissions',
     component: () => import('@/pages/system/Permissions.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/system/license',
+    name: 'SystemLicense',
+    component: () => import('@/pages/system/License.vue'),
     meta: { requiresAuth: true },
   },
   {
