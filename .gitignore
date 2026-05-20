@@ -27,8 +27,8 @@ vendor/
 
 # 构建产物
 dist/
-build/                    # Go 编译产物（二进制文件）
-bin/                      # 二进制文件
+build/
+bin/
 *.exe
 *.dll
 *.so
@@ -45,10 +45,10 @@ go.work
 *.pid
 tmp/
 temp/
-logs/                     # 日志目录
+logs/
 
 # 上传文件（开发环境）
-uploads/                  # 用户上传文件
+uploads/
 
 # 测试覆盖率
 coverage/
@@ -61,7 +61,7 @@ coverage/
 
 # Docker
 docker/*.log
-docker/conf/config.yml    # 实际配置文件（不提交）
+docker/conf/config.yml
 
 # 报告
 audit-report-*.md
