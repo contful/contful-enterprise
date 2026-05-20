@@ -63,6 +63,9 @@ coverage/
 docker/*.log
 docker/conf/config.yml
 
+# AI 工作记忆（本地助手数据）
+.workbuddy/
+
 # 报告
 audit-report-*.md
 
