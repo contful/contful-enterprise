@@ -55,7 +55,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE
 RUN upx --best /app/admin && rm -f /usr/bin/upx
 
 # ---- Stage 2: 前端构建 ----
-FROM node:24-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 
 # 前端使用 /admin/api/v1（nginx 反向代理，无需端口）
 ARG API_BASE_URL=/admin/api/v1
