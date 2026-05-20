@@ -926,6 +926,10 @@
     "noData": "暂无权限配置",
     "fillRequired": "请填写必填项"
   },
+  "edition": {
+    "community": "社区版",
+    "enterprise": "企业版"
+  },
   "a11y": {
     "collapseSidebar": "收起侧栏",
     "expandSidebar": "展开侧栏",

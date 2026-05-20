@@ -13,6 +13,8 @@ import LangSwitcher from './LangSwitcher.vue'
 
 const { t } = useI18n()
 const version = '1.0.0'
+const edition = import.meta.env.VITE_EDITION || 'community'
+const editionLabel = edition === 'enterprise' ? t('edition.enterprise') : t('edition.community')
 
 const router = useRouter()
 const route = useRoute()
@@ -352,7 +354,7 @@ onMounted(async () => {
           </template>
         </nav>
         <div class="sidebar-footer">
-          <span class="version-text">v{{ version }}</span>
+          <span class="version-text">{{ editionLabel }} v{{ version }}</span>
         </div>
       </aside>
 
@@ -412,7 +414,8 @@ onMounted(async () => {
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--color-bg);
 }
 
@@ -547,6 +550,7 @@ onMounted(async () => {
 .app-body {
   display: flex;
   flex: 1;
+  overflow: hidden;
 }
 
 /* 侧边栏 */
