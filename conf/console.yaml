@@ -30,7 +30,7 @@ database:
   port: 5432
   user: postgres
   password: CHANGE_ME
-  name: contful
+  name: contful_ent
   ssl_mode: disable
   max_open_conns: 100
   max_idle_conns: 10
