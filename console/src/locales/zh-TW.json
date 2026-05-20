@@ -887,6 +887,10 @@
       "systemRoles": "角色管理"
     }
   },
+  "edition": {
+    "community": "社群版",
+    "enterprise": "企業版"
+  },
   "permission": {
     "denied": "您沒有存取此頁面的權限",
     "required": "需要權限：{permission}"

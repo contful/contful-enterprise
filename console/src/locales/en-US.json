@@ -920,6 +920,10 @@
     "noData": "No permissions configured",
     "fillRequired": "Required fields must be filled"
   },
+  "edition": {
+    "community": "Community",
+    "enterprise": "Enterprise"
+  },
   "a11y": {
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
