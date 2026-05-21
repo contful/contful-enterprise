@@ -14,15 +14,36 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/model"
 )
 
 // signingKeyCtxKey context key 类型
 type signingKeyCtxKey struct{}
 
+// hasherCtxKey context key 类型（用于注入 HMAC 哈希器，支持 SM3 切换）
+type hasherCtxKey struct{}
+
 // WithSigningKey 将签名密钥注入 context（供 callback 使用）
 func WithSigningKey(ctx context.Context, key string) context.Context {
 	return context.WithValue(ctx, signingKeyCtxKey{}, key)
+}
+
+// WithHasher 将 HMAC 哈希器注入 context（供 callback 使用）。
+// hasher 为 nil 时回退到 SHA-256（保持向后兼容）。
+func WithHasher(ctx context.Context, hasher crypto.Hasher) context.Context {
+	return context.WithValue(ctx, hasherCtxKey{}, hasher)
+}
+
+// getHasher 从 context 获取 Hasher，返回 nil 时调用方回退 SHA-256
+func getHasher(ctx context.Context) crypto.Hasher {
+	if ctx == nil {
+		return nil
+	}
+	if h, ok := ctx.Value(hasherCtxKey{}).(crypto.Hasher); ok {
+		return h
+	}
+	return nil
 }
 
 // Register 注册 GORM callbacks：audit_logs / system_users / schemas 的 BeforeCreate/BeforeUpdate 签名
@@ -62,11 +83,19 @@ func signBeforeCreate(scope *gorm.DB) {
 	}
 
 	payload := canonicalAuditPayload(&auditLog)
-	h := hmac.New(sha256.New, []byte(signingKey))
-	h.Write([]byte(payload))
-	signature := hex.EncodeToString(h.Sum(nil))
 
-	scope.Statement.SetColumn("data_signature", signature)
+	// 优先使用 context 注入的 Hasher（国密模式时为 SM3），回退 SHA-256
+	hasher := getHasher(scope.Statement.Context)
+	var sigHex string
+	if hasher != nil {
+		sigHex = hex.EncodeToString(hasher.HMAC([]byte(signingKey), []byte(payload)))
+	} else {
+		h := hmac.New(sha256.New, []byte(signingKey))
+		h.Write([]byte(payload))
+		sigHex = hex.EncodeToString(h.Sum(nil))
+	}
+
+	scope.Statement.SetColumn("data_signature", sigHex)
 }
 
 // signBusinessBeforeCreate 处理 system_users / schemas 的 BeforeCreate 签名

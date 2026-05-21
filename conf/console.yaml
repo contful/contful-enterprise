@@ -48,11 +48,17 @@ redis:
 # 用于加密存储的敏感字段（API Token、Webhook 密钥等）
 security:
   secret: ef3594a7274376527e4a31fc99341a27e372e7e7f3295c796684ef6a0149afea
-  algorithm: aes-256-gcm  # aes-256-gcm（默认）/ sm4-gcm（国密）
-  # RSA 密钥对（用于前端登录密码加密传输）
-  # 生产环境请替换 conf/ 目录下的 rsa_public.pem / rsa_private.pem
-  rsa_pubkey_path: "rsa_public.pem"
-  rsa_privkey_path: "rsa_private.pem"
+  # 加密模式（一个开关，全链路切换）
+  # rsa（默认）: RSA-2048 + SHA-256 + AES-256-GCM（国际算法）
+  # sm          : SM2 + SM3 + SM4-GCM（国密全套，用于等保/信创合规）
+  crypto_mode: rsa
+  # 对称加密算法（由 crypto_mode 自动选择，可手动覆盖）
+  algorithm: aes-256-gcm  # aes-256-gcm / sm4-gcm
+  # 非对称密钥对（用于前端登录密码加密传输）
+  # crypto_mode=rsa 时加载 RSA 密钥对，crypto_mode=sm 时加载 SM2 密钥对
+  # 生产环境请替换 conf/ 目录下的 public.pem / private.pem
+  pubkey_path: "public.pem"
+  privkey_path: "private.pem"
 
 # JWT 配置（Admin 登录鉴权，从 security.secret 自动派生）
 jwt:

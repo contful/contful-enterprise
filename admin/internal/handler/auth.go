@@ -3,7 +3,6 @@
 package handler
 
 import (
-	"crypto/rsa"
 	"errors"
 	"log"
 	"net/http"
@@ -20,9 +19,12 @@ import (
 )
 
 type AuthHandler struct {
-	authService *service.AuthService
-	rsaPubKey   string
-	rsaPrivKey  *rsa.PrivateKey
+	authService   *service.AuthService
+	asymCrypter   crypto.AsymmetricCrypter // 非对称加密器（RSA 或 SM2）
+	asymPubKey    string                   // 公钥 PEM（RSA 或 SM2）
+	asymPrivKey   string                   // 私钥 PEM（RSA 或 SM2）
+	cryptoMode    string                   // 加密模式（rsa 或 sm）
+	sm2PubKeyHex  string                   // SM2 原始公钥 hex（仅 SM2 模式，供前端 sm-crypto 使用）
 }
 
 // setRefreshTokenCookie 将 refresh_token 写入 HttpOnly Cookie
@@ -39,11 +41,26 @@ func clearRefreshTokenCookie(c *gin.Context) {
 	c.SetCookie("refresh_token", "", -1, "/", "", secure, true)
 }
 
-func NewAuthHandler(authService *service.AuthService, rsaPubKey string, rsaPrivKey *rsa.PrivateKey) *AuthHandler {
-	return &AuthHandler{authService: authService, rsaPubKey: rsaPubKey, rsaPrivKey: rsaPrivKey}
+func NewAuthHandler(authService *service.AuthService, asymCrypter crypto.AsymmetricCrypter, pubKeyPEM, privKeyPEM, cryptoMode string) *AuthHandler {
+	h := &AuthHandler{
+		authService: authService,
+		asymCrypter: asymCrypter,
+		asymPubKey:  pubKeyPEM,
+		asymPrivKey: privKeyPEM,
+		cryptoMode:  cryptoMode,
+	}
+
+	// SM2 模式：提取原始公钥 hex（供前端 sm-crypto 使用）
+	if cryptoMode == crypto.ModeSM {
+		if hex, err := crypto.SM2PubKeyToHex(pubKeyPEM); err == nil {
+			h.sm2PubKeyHex = hex
+		}
+	}
+
+	return h
 }
 
-// PublicKey 获取 RSA 公钥和一次性 Anti-Replay Token
+// PublicKey 获取非对称加密公钥（RSA 或 SM2）和一次性 Anti-Replay Token
 // GET /admin/api/v1/auth/public/key
 func (h *AuthHandler) PublicKey(c *gin.Context) {
 	token, tokenID, err := h.authService.GenerateRSAToken(c.Request.Context())
@@ -51,11 +68,20 @@ func (h *AuthHandler) PublicKey(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "failed to generate token"))
 		return
 	}
-	c.JSON(http.StatusOK, model.NewSuccessResponse(map[string]string{
-		"public_key": h.rsaPubKey,
-		"token_id":   tokenID,
-		"token":      token,
-	}))
+
+	data := map[string]string{
+		"public_key":  h.asymPubKey,
+		"crypto_mode": h.cryptoMode,
+		"token_id":    tokenID,
+		"token":       token,
+	}
+
+	// SM2 模式：额外返回原始公钥 hex（前端 sm-crypto 需要此格式）
+	if h.cryptoMode == crypto.ModeSM && h.sm2PubKeyHex != "" {
+		data["sm2_public_key_hex"] = h.sm2PubKeyHex
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(data))
 }
 
 // Register 注册
@@ -99,16 +125,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// RSA 加密密码处理
+	// 非对称加密密码处理（RSA 或 SM2，根据 crypto_mode 自动选择）
 	if req.EncryptedPassword != "" && req.TokenID != "" && req.RSAToken != "" {
 		// 验证 Anti-Replay Token
 		if !h.authService.ValidateAndConsumeRSAToken(c.Request.Context(), req.TokenID, req.RSAToken) {
 			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid or expired security token"))
 			return
 		}
-		// 解密密码
-		if h.rsaPrivKey != nil {
-			plaintext, err := crypto.RSADecrypt(h.rsaPrivKey, req.EncryptedPassword)
+		// 解密密码（RSA 或 SM2）
+		if h.asymCrypter != nil {
+			plaintext, err := h.asymCrypter.AsymDecrypt([]byte(h.asymPrivKey), []byte(req.EncryptedPassword))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "failed to decrypt password"))
 				return

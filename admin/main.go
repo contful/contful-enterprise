@@ -110,8 +110,12 @@ func main() {
 	// 初始化 Service（不再需要 configRepo）
 	configService := service.NewConfigService(crypter, cfg)
 
-	// 初始化数据签名器（默认 HMAC-SHA256，用户可替换实现 audit.DataSigner）
-	dataSigner, err := service.NewDefaultSigner(cfg.Audit.SigningKey)
+	// 初始化数据签名器（根据 crypto_mode 自动选择 HMAC-SHA256 或 HMAC-SM3）
+	var auditHasher crypto.Hasher
+	if provider := config.GetCryptoProvider(); provider != nil {
+		auditHasher = provider
+	}
+	dataSigner, err := service.NewDefaultSigner(cfg.Audit.SigningKey, auditHasher)
 	if err != nil {
 		logger.Warn().Err(err).Msg("数据签名器未启用（签名密钥无效或未配置）")
 	} else if dataSigner.IsEnabled() {
@@ -148,26 +152,48 @@ func main() {
 	assetService := service.NewAssetService(assetRepo, storageProvider)
 	assetService.SetConfigService(configService)
 
-	// 加载 RSA 密钥对（用于登录密码加密传输）
-	// 路径相对于配置文件目录（conf/）或工作目录，多个搜索路径
-	rsaPubPath := resolveConfigPath(cfg.Security.RSAPublicKeyPath)
-	rsaPrivPath := resolveConfigPath(cfg.Security.RSAPrivateKeyPath)
-	rsaPubKeyPEM, err := os.ReadFile(rsaPubPath)
-	if err != nil {
-		logger.Fatal().Err(err).Str("path", rsaPubPath).Msg("failed to read RSA public key file")
+	// 初始化非对称加密器（RSA 或 SM2，由 crypto_mode 决定）
+	// 优先从文件加载密钥对，不存在时自动生成
+	pubPath := resolveConfigPath(cfg.Security.PublicKeyPath)
+	privPath := resolveConfigPath(cfg.Security.PrivateKeyPath)
+	var asymCrypter crypto.AsymmetricCrypter
+	var asyPubKeyPEM, asyPrivKeyPEM string
+
+	// 获取 Provider 提供的 AsymmetricCrypter（与 crypto_mode 一致）
+	if provider := config.GetCryptoProvider(); provider != nil {
+		asymCrypter = provider
+	} else {
+		// fallback: 没有 Provider 时使用 RSA
+		asymCrypter = crypto.NewRSACrypter()
 	}
-	rsaPrivKeyPEM, err := os.ReadFile(rsaPrivPath)
-	if err != nil {
-		logger.Fatal().Err(err).Str("path", rsaPrivPath).Msg("failed to read RSA private key file")
+
+	// 优先从文件加载密钥对（兼容已有部署）
+	pubBytes, pubErr := os.ReadFile(pubPath)
+	privBytes, privErr := os.ReadFile(privPath)
+	if pubErr == nil && privErr == nil {
+		asyPubKeyPEM = string(pubBytes)
+		asyPrivKeyPEM = string(privBytes)
+		logger.Info().Str("mode", cfg.Security.CryptoMode).Msg("asymmetric key pair loaded from files")
+	} else {
+		// 文件不存在，自动生成
+		pub, priv, genErr := asymCrypter.GenerateKeyPair()
+		if genErr != nil {
+			logger.Fatal().Err(genErr).Msg("failed to generate key pair")
+		}
+		asyPubKeyPEM = pub
+		asyPrivKeyPEM = priv
+		// 写入文件以便下次启动复用
+		if err := os.WriteFile(pubPath, []byte(pub), 0600); err != nil {
+			logger.Warn().Err(err).Str("path", pubPath).Msg("failed to save public key")
+		}
+		if err := os.WriteFile(privPath, []byte(priv), 0600); err != nil {
+			logger.Warn().Err(err).Str("path", privPath).Msg("failed to save private key")
+		}
+		logger.Info().Str("mode", cfg.Security.CryptoMode).Msg("asymmetric key pair generated and saved")
 	}
-	rsaPrivKey, err := crypto.ParseRSAPrivateKey(string(rsaPrivKeyPEM))
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to parse RSA private key")
-	}
-	logger.Info().Msg("RSA key pair loaded")
 
 	// 初始化 Handler
-	authHandler := handler.NewAuthHandler(authService, string(rsaPubKeyPEM), rsaPrivKey)
+	authHandler := handler.NewAuthHandler(authService, asymCrypter, asyPubKeyPEM, asyPrivKeyPEM, cfg.Security.CryptoMode)
 	mfaHandler := handler.NewMFAHandler(mfaService, authService)
 	userHandler := handler.NewUserHandler(userService, auditService)
 	siteHandler := handler.NewSiteHandler(siteService, auditService)
@@ -187,10 +213,14 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	// 注入 DataSigner 到请求 context（供 GORM callback 使用）
+	// 注入 DataSigner + Hasher 到请求 context（供 GORM callback 使用）
 	if dataSigner != nil && dataSigner.IsEnabled() {
 		r.Use(func(c *gin.Context) {
-			c.Request = c.Request.WithContext(audit.WithSigner(c.Request.Context(), dataSigner))
+			ctx := audit.WithSigner(c.Request.Context(), dataSigner)
+			if auditHasher != nil {
+				ctx = audit.WithHasher(ctx, auditHasher)
+			}
+			c.Request = c.Request.WithContext(ctx)
 			c.Next()
 		})
 	}
@@ -224,7 +254,7 @@ func main() {
 		// 公开路由
 		auth := api.Group("/auth")
 		{
-			auth.GET("/public/key", authHandler.PublicKey) // RSA 公钥 + Anti-Replay Token
+			auth.GET("/public/key", authHandler.PublicKey) // 非对称加密公钥 + Anti-Replay Token
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)

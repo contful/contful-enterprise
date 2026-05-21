@@ -41,13 +41,19 @@ type SecurityConfig struct {
 	// Secret 主密钥（统一配置）
 	Secret string `mapstructure:"secret"`
 
-	// Algorithm 加密算法
+	// Algorithm 加密算法（由 crypto_mode 自动选择，也可手动覆盖）
 	Algorithm string `mapstructure:"algorithm"`
 
-	// RSA 密钥对文件路径（用于前端登录密码加密传输）
+	// CryptoMode 加密模式：rsa（国际算法）或 sm（国密全套）
+	// 默认 rsa：RSA-2048 + SHA-256 + AES-256-GCM
+	// sm：SM2 + SM3 + SM4-GCM 全链路国密
+	CryptoMode string `mapstructure:"crypto_mode"`
+
+	// 非对称密钥对文件路径（用于前端登录密码加密传输）
 	// 相对路径相对于配置文件目录（conf/）
-	RSAPublicKeyPath  string `mapstructure:"rsa_pubkey_path"`
-	RSAPrivateKeyPath string `mapstructure:"rsa_privkey_path"`
+	// crypto_mode=rsa 时加载 RSA 密钥对，crypto_mode=sm 时加载 SM2 密钥对
+	PublicKeyPath  string `mapstructure:"pubkey_path"`
+	PrivateKeyPath string `mapstructure:"privkey_path"`
 }
 
 // ServerConfig 服务配置
@@ -149,6 +155,9 @@ type FeaturesConfig struct {
 // 全局配置实例
 var globalConfig *Config
 
+// 全局加密 Provider（由 PostLoad 初始化）
+var globalCryptoProvider crypto.CryptoProvider
+
 // Load 加载配置
 func Load(configPaths ...string) (*Config, error) {
 	v := viper.New()
@@ -233,6 +242,12 @@ func Get() *Config {
 	return globalConfig
 }
 
+// GetCryptoProvider 获取全局加密 Provider（对称 + 非对称 + 哈希一站式）
+// 在 Load() 完成后可用，在此之前返回 nil
+func GetCryptoProvider() crypto.CryptoProvider {
+	return globalCryptoProvider
+}
+
 // Validate 验证配置
 func (c *Config) Validate() error {
 	// Secret 或 JWT Secret 至少配置一个
@@ -257,6 +272,11 @@ func (c *Config) Validate() error {
 		if !valid {
 			return fmt.Errorf("unsupported algorithm: %s, supported: %v", c.Security.Algorithm, SupportedAlgorithms)
 		}
+	}
+
+	// 验证 crypto_mode（仅支持 rsa/sm 或空）
+	if c.Security.CryptoMode != "" && c.Security.CryptoMode != crypto.ModeRSA && c.Security.CryptoMode != crypto.ModeSM {
+		return fmt.Errorf("unsupported crypto_mode: %s, supported: %s / %s", c.Security.CryptoMode, crypto.ModeRSA, crypto.ModeSM)
 	}
 
 	// 数据库配置必填
@@ -361,13 +381,34 @@ func (c *Config) PostLoad() {
 	// 审计签名密钥：派生 "audit-signing" info
 	c.Audit.SigningKey = deriveKey(c.Security.Secret, "audit-signing", 32)
 
-	// RSA 密钥对：从文件读取，未配置时自动生成
+	// 非对称密钥对：从文件读取，不存在时自动生成
 	// 公钥用于 PublicKey 端点，私钥用于密码解密
-	if c.Security.RSAPublicKeyPath == "" {
-		c.Security.RSAPublicKeyPath = "rsa_public.pem"
+	if c.Security.PublicKeyPath == "" {
+		c.Security.PublicKeyPath = "public.pem"
 	}
-	if c.Security.RSAPrivateKeyPath == "" {
-		c.Security.RSAPrivateKeyPath = "rsa_private.pem"
+	if c.Security.PrivateKeyPath == "" {
+		c.Security.PrivateKeyPath = "private.pem"
+	}
+
+	// CryptoMode 默认值
+	if c.Security.CryptoMode == "" {
+		c.Security.CryptoMode = crypto.ModeRSA
+	}
+
+	// 国密模式下自动切换对称加密算法
+	if c.Security.CryptoMode == crypto.ModeSM {
+		c.Security.Algorithm = crypto.AlgorithmSM4
+	}
+
+	// 初始化全局加密 Provider
+	if c.Security.Secret != "" {
+		provider, err := crypto.NewProvider(c.Security.CryptoMode, c.Security.Secret)
+		if err != nil {
+			// 日志警告但继续启动（Provider 为 nil 时调用方自行处理）
+			globalCryptoProvider = nil
+		} else {
+			globalCryptoProvider = provider
+		}
 	}
 }
 
@@ -474,9 +515,10 @@ func readEnvOverrides(v *viper.Viper) {
 		"SERVER_PORT":      "server.port",
 		"SECRET":           "security.secret",
 		"SECRET_ALGORITHM": "security.algorithm",
-		// RSA 密钥路径
-		"RSA_PUBKEY_PATH":  "security.rsa_pubkey_path",
-		"RSA_PRIVKEY_PATH": "security.rsa_privkey_path",
+		"CRYPTO_MODE":      "security.crypto_mode",
+		// 密钥路径
+		"PUBKEY_PATH":  "security.pubkey_path",
+		"PRIVKEY_PATH": "security.privkey_path",
 		// 存储配置
 		"STORAGE_DRIVER":             "storage.driver",
 		"STORAGE_UPLOAD_DIR":         "storage.upload_dir",

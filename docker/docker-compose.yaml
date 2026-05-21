@@ -52,8 +52,8 @@ services:
       # 可选配置
       # - CONTFUL_MODE=api  # 仅启动 API，不启动 nginx
       # - LOG_LEVEL=debug
-    # RSA 密钥对已内置于 Docker 镜像（/app/rsa_public.pem / rsa_private.pem）
-    # 如需替换：挂载自定义密钥并设置 RSA_PUBKEY_PATH / RSA_PRIVKEY_PATH
+    # 非对称密钥对已内置于 Docker 镜像（/app/public.pem / app/private.pem）
+    # 如需替换：挂载自定义密钥并设置 PUBKEY_PATH / PRIVKEY_PATH
     # 配置文件模式（取消注释可覆盖环境变量）
     # volumes:
     #   - ../conf/console.yaml:/app/conf/config.yml:ro

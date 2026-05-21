@@ -106,8 +106,8 @@ USER contful
 # 复制 Go 二进制
 COPY --chown=contful:contful --from=go-builder /app/admin /app/admin
 
-# 复制 RSA 密钥对（用于登录密码加密传输）
-COPY --chown=contful:contful conf/rsa_public.pem conf/rsa_private.pem /app/
+# 复制非对称密钥对（用于登录密码加密传输，RSA/SM2 通用）
+COPY --chown=contful:contful conf/public.pem conf/private.pem /app/
 
 # 复制前端静态文件（从前端构建 stage）
 COPY --chown=contful:contful --from=frontend-builder /app/dist /usr/share/nginx/html

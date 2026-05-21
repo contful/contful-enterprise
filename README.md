@@ -8,10 +8,10 @@
 
 | 层级 | 技术 |
 |------|------|
-| 后端 | Go 1.22+ / Gin / GORM |
-| 前端 | Vue 3.4+ / TDesign |
-| 数据库 | PostgreSQL 16+ |
-| 缓存 | Valkey 9+ |
+| 后端 | Go 1.25 / Gin / GORM |
+| 前端 | Vue 3.5 / TDesign / Vite 8 |
+| 数据库 | PostgreSQL 18 |
+| 缓存 | Valkey 9 |
 
 ## 项目结构
 
@@ -20,7 +20,7 @@ contful/
 ├── admin/            # Admin API 服务（:9080）
 ├── openapi/          # Open API 服务（:8080）
 ├── console/          # Vue 3 控制台（:3000）
-├── sql/              # 数据库初始化 SQL
+├── db/               # 数据库脚本（init_pg.sql + seed_data.sql）
 ├── docker/           # Docker 配置（Dockerfile + docker-compose.yaml）
 ├── shell/            # 构建脚本
 ├── build/            # 编译产物（.gitignore）
@@ -45,14 +45,80 @@ contful/
 
 - PostgreSQL 18
 - Valkey 9+
-- Go 1.22+
-- Node.js 18+
+- Go 1.25+
+- Node.js 24+
 
-### 方式一：Docker 部署
+### 方式一：直接拉取镜像（推荐）
+
+使用预构建的 Docker 镜像，无需本地编译。
+
+#### 1.1 准备数据库
+
+```bash
+# 使用项目提供的数据库编排启动 PostgreSQL + Valkey
+docker-compose -f docker/docker-database.yaml up -d
+
+# 或手动连接已有数据库，创建 contful 数据库
+# psql -h <host> -U postgres -c "CREATE DATABASE contful;"
+```
+
+#### 1.2 初始化数据库表结构和种子数据
+
+```bash
+# 导入建表脚本（会删除已有表并重建，仅用于全新部署）
+psql -h localhost -U postgres -d contful -f db/init_pg.sql
+
+# 导入种子数据（幂等，可重复执行）
+psql -h localhost -U postgres -d contful -f db/seed_data.sql
+```
+
+> **提示**：如果 PG 运行在 Docker 容器中，可使用以下方式导入：
+> ```bash
+> docker exec -i contful-postgres psql -U postgres -d contful < db/init_pg.sql
+> docker exec -i contful-postgres psql -U postgres -d contful < db/seed_data.sql
+> ```
+
+#### 1.3 创建环境变量文件
+
+```bash
+cat > .env << 'EOF'
+DB_PASSWORD=<你的数据库密码>
+REDIS_PASSWORD=<你的 Valkey 密码>
+SECRET=<openssl rand -hex 32 生成的密钥>
+EOF
+```
+
+#### 1.4 拉取并启动服务
+
+```bash
+# 拉取镜像
+docker pull contful/console:postgresql-latest
+docker pull contful/openapi:postgresql-latest
+
+# 启动服务
+docker-compose -f docker/docker-compose.yaml --env-file .env up -d
+
+# 查看日志确认启动成功
+docker logs -f contful-console
+```
+
+#### 1.5 访问
+
+| 服务 | 地址 |
+|------|------|
+| 管理后台 | http://localhost |
+| Open API | http://localhost:8080 |
+
+> **注意**：
+> - 镜像内置了默认非对称密钥对，生产环境请替换为自定义密钥（参见 [部署指南](https://contful.com/docs/deployment)）
+> - 数据库和缓存需要**手动创建并导入 SQL**——Docker 镜像不包含数据库服务，也不自动执行初始化脚本
+
+### 方式二：从源码构建 Docker 镜像
 
 ```bash
 # 1. 构建镜像（在 contful/ 目录执行）
 docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
+
 docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
 
 # 2. 编辑配置文件
@@ -60,7 +126,7 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
 #    - conf/openapi.yaml   # Open API 服务配置
 #    配置文件中已预置默认值，只需修改数据库密码等敏感信息
 
-# 3. 启动服务
+# 3. 启动服务（数据库需提前准备并导入 SQL，参见方式一的 1.1-1.3 步骤）
 docker-compose -f docker/docker-compose.yaml up -d
 
 # 访问
@@ -70,19 +136,15 @@ docker-compose -f docker/docker-compose.yaml up -d
 
 > **提示**：构建命令在 `contful/` 目录执行，构建上下文为当前目录。
 
-### 方式二：本地开发
+### 方式三：本地开发
 
 ```bash
-# 1. 复制环境变量配置
-cp conf/.env.example .env
-
-# 2. 启动数据库和缓存（使用远程或 Docker 本地）
-docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
-docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
+# 1. 启动数据库和缓存
+docker-compose -f docker/docker-database.yaml up -d
 
 # 2. 初始化数据库
-psql -h <host> -U <user> -d contful -f sql/init_pg.sql
-
+psql -h localhost -U postgres -d contful -f db/init_pg.sql
+psql -h localhost -U postgres -d contful -f db/seed_data.sql
 
 # 3. 构建
 ./shell/build.sh
@@ -95,7 +157,7 @@ psql -h <host> -U <user> -d contful -f sql/init_pg.sql
 #   Open API: http://localhost:8080/
 ```
 
-### 方式三：分别启动
+### 方式四：分别启动
 
 ```bash
 # 构建
@@ -148,8 +210,8 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 | `storage.driver` | `local` | 存储驱动：`local` / `oss` / `cos` / `obs` / `s3` |
 | `storage.local.root` | `uploads` | 本地存储根目录 |
 | `storage.local.base_url` | `/uploads` | 本地存储访问路径 |
-| `integrity.enabled` | `false` | 是否启用数据签名（HMAC-SHA256） |
-| `integrity.algorithm` | `HMAC-SHA256` | 签名算法 |
+| `integrity.enabled` | `false` | 是否启用数据签名（HMAC，算法取决于 `crypto_mode`） |
+| `integrity.algorithm` | `HMAC-SHA256` | 签名算法（`rsa` 模式为 HMAC-SHA256，`sm` 模式为 SM3） |
 | `integrity.signing_key` | _(空) | 签名密钥，AES-256-GCM 加密存储；`integrity.enabled=true` 时自动生成 |
 
 > **提示**：敏感配置（`integrity.signing_key` 等）通过 `CONTFUL_CONFIG_MASTER_KEY` 环境变量加密存储。

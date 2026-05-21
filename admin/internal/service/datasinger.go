@@ -13,18 +13,21 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/contful/contful/admin/internal/audit"
+	"github.com/contful/contful/admin/internal/crypto"
 )
 
-// DefaultSigner 默认签名器：HMAC-SHA256，实现 audit.DataSigner 接口。
+// DefaultSigner 默认签名器：HMAC-SHA256（或 HMAC-SM3，根据注入的 Hasher 决定）。
 // 用户可通过实现 audit.DataSigner 并注入 context（audit.WithSigner）替换为自有签名方法。
 type DefaultSigner struct {
-	key []byte
+	key    []byte
+	hasher crypto.Hasher // 注入的哈希器，nil 时回退 SHA-256
 }
 
-// NewDefaultSigner 创建默认签名器（key 为 hex 编码的 32 字节密钥）
-func NewDefaultSigner(keyHex string) (*DefaultSigner, error) {
+// NewDefaultSigner 创建默认签名器（key 为 hex 编码的 32 字节密钥）。
+// hasher 为 nil 时使用 SHA-256；国密模式应传入 SM3Hasher。
+func NewDefaultSigner(keyHex string, hasher crypto.Hasher) (*DefaultSigner, error) {
 	if keyHex == "" {
-		return &DefaultSigner{key: nil}, nil
+		return &DefaultSigner{key: nil, hasher: hasher}, nil
 	}
 	key, err := hex.DecodeString(keyHex)
 	if err != nil {
@@ -33,7 +36,7 @@ func NewDefaultSigner(keyHex string) (*DefaultSigner, error) {
 	if len(key) != 32 {
 		return nil, fmt.Errorf("签名密钥长度错误，需要 32 字节，当前 %d 字节", len(key))
 	}
-	return &DefaultSigner{key: key}, nil
+	return &DefaultSigner{key: key, hasher: hasher}, nil
 }
 
 // IsEnabled 签名器是否已启用
@@ -46,6 +49,13 @@ func (s *DefaultSigner) Algorithm() string {
 	if !s.IsEnabled() {
 		return "none"
 	}
+	if s.hasher != nil {
+		// 通过类型判断返回具体算法名（SM3Hasher 或 SHA256Hasher）
+		switch s.hasher.(type) {
+		case *crypto.SM3Hasher:
+			return "HMAC-SM3"
+		}
+	}
 	return "HMAC-SHA256"
 }
 
@@ -54,8 +64,13 @@ func (s *DefaultSigner) Sign(entityType string, entityID uuid.UUID, payload stri
 	if !s.IsEnabled() {
 		return "", nil
 	}
+	data := entityType + ":" + entityID.String() + ":" + payload
+	if s.hasher != nil {
+		return hex.EncodeToString(s.hasher.HMAC(s.key, []byte(data))), nil
+	}
+	// 回退 SHA-256（hasher 为 nil）
 	mac := hmac.New(sha256.New, s.key)
-	mac.Write([]byte(entityType + ":" + entityID.String() + ":" + payload))
+	mac.Write([]byte(data))
 	return hex.EncodeToString(mac.Sum(nil)), nil
 }
 
