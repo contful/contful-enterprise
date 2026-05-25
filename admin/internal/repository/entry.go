@@ -131,7 +131,7 @@ func (r *EntryRepository) ListByContentSchema(ctx context.Context, siteID uuid.U
 		if filter.Keyword != nil && *filter.Keyword != "" {
 			keyword := "%" + *filter.Keyword + "%"
 			query = query.Where(`EXISTS (
-				SELECT 1 FROM entry_values ev
+				SELECT 1 FROM contful_entry_values ev
 				WHERE ev.entry_id = entries.id
 				AND (ev.text_value ILIKE ? OR CAST(ev.value AS TEXT) ILIKE ?)
 			)`, keyword, keyword)

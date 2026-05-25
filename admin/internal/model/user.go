@@ -40,7 +40,7 @@ type SystemUser struct {
 }
 
 func (SystemUser) TableName() string {
-	return "system_users"
+	return "contful_system_users"
 }
 
 // SystemRole 系统角色
@@ -56,7 +56,7 @@ type SystemRole struct {
 }
 
 func (SystemRole) TableName() string {
-	return "system_roles"
+	return "contful_system_roles"
 }
 
 // SystemUserRole 系统用户-角色关联（多对多）
@@ -68,7 +68,7 @@ type SystemUserRole struct {
 }
 
 func (SystemUserRole) TableName() string {
-	return "system_user_roles"
+	return "contful_system_user_roles"
 }
 
 // ============================================

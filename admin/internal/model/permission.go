@@ -19,7 +19,7 @@ type PermissionGroup struct {
 }
 
 func (PermissionGroup) TableName() string {
-	return "system_permission_groups"
+	return "contful_system_permission_groups"
 }
 
 // Permission 权限项
@@ -37,5 +37,5 @@ type Permission struct {
 }
 
 func (Permission) TableName() string {
-	return "system_permissions"
+	return "contful_system_permissions"
 }

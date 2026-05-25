@@ -29,7 +29,7 @@ type SystemConfig struct {
 }
 
 func (SystemConfig) TableName() string {
-	return "system_config"
+	return "contful_system_config"
 }
 
 const (

@@ -81,7 +81,7 @@ type APIToken struct {
 
 // TableName 表名
 func (APIToken) TableName() string {
-	return "tokens"
+	return "contful_tokens"
 }
 
 // TokenHashPrefix 取 Token Hash 前缀用于日志脱敏

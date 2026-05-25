@@ -12,7 +12,7 @@
 -- 1. 默认站点
 -- =============================================================================
 
-INSERT INTO sites (id, name, slug, description, locale, timezone, is_active, settings)
+INSERT INTO contful_sites (id, name, slug, description, locale, timezone, is_active, settings)
 SELECT
     '00000000-0000-0000-0000-000000000001'::uuid,
     '默认站点',
@@ -22,14 +22,14 @@ SELECT
     'Asia/Shanghai',
     TRUE,
     '{}'::jsonb
-WHERE NOT EXISTS (SELECT 1 FROM sites WHERE id = '00000000-0000-0000-0000-000000000001'::uuid);
+WHERE NOT EXISTS (SELECT 1 FROM contful_sites WHERE id = '00000000-0000-0000-0000-000000000001'::uuid);
 
 -- =============================================================================
 -- 2. 系统角色
 -- =============================================================================
 
 -- 超级管理员角色（拥有全部系统级权限）
-INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
+INSERT INTO contful_system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000101'::uuid,
     '超级管理员',
@@ -44,10 +44,10 @@ SELECT
       "roles:read","roles:write","roles:delete"]'::jsonb,
     NOW(),
     NOW()
-WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000101'::uuid);
+WHERE NOT EXISTS (SELECT 1 FROM contful_system_roles WHERE id = '00000000-0000-0000-0000-000000000101'::uuid);
 
 -- 审计员角色（仅可查看和导出审计日志）
-INSERT INTO system_roles (id, name, description, is_system, permissions, created_time, updated_time)
+INSERT INTO contful_system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000103'::uuid,
     '审计人员',
@@ -57,14 +57,14 @@ SELECT
       "settings:read","audit:read","audit:export"]'::jsonb,
     NOW(),
     NOW()
-WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000103'::uuid);
+WHERE NOT EXISTS (SELECT 1 FROM contful_system_roles WHERE id = '00000000-0000-0000-0000-000000000103'::uuid);
 
 -- =============================================================================
 -- 2.5 权限元数据（分组 + 权限项，用于角色权限配置）
 -- =============================================================================
 
 -- 权限分组
-INSERT INTO system_permission_groups (id, group_key, label, label_en, sort_order)
+INSERT INTO contful_system_permission_groups (id, group_key, label, label_en, sort_order)
 SELECT * FROM (VALUES
     ('00000000-0000-0000-0000-000000000301'::uuid, 'dashboard',      '仪表盘',     'Dashboard',      0),
     ('00000000-0000-0000-0000-000000000302'::uuid, 'users',          '用户管理',   'User Management', 1),
@@ -77,10 +77,10 @@ SELECT * FROM (VALUES
     ('00000000-0000-0000-0000-000000000309'::uuid, 'entry',          '内容条目',   'Entries',        8),
     ('00000000-0000-0000-0000-000000000310'::uuid, 'asset',          '媒体文件',   'Assets',         9)
 ) AS t(id, group_key, label, label_en, sort_order)
-WHERE NOT EXISTS (SELECT 1 FROM system_permission_groups WHERE id = t.id::uuid);
+WHERE NOT EXISTS (SELECT 1 FROM contful_system_permission_groups WHERE id = t.id::uuid);
 
 -- 权限项
-INSERT INTO system_permissions (group_id, action, label, label_en, sort_order)
+INSERT INTO contful_system_permissions (group_id, action, label, label_en, sort_order)
 SELECT g.id, t.action, t.label, t.label_en, t.sort_order
 FROM (VALUES
     ('00000000-0000-0000-0000-000000000301'::uuid, 'read',   '查看',      'View',             0),
@@ -111,9 +111,9 @@ FROM (VALUES
     ('00000000-0000-0000-0000-000000000310'::uuid, 'write',  '管理文件',  'Manage Assets',     1),
     ('00000000-0000-0000-0000-000000000310'::uuid, 'delete', '删除文件',  'Delete Assets',     2)
 ) AS t(group_id, action, label, label_en, sort_order)
-JOIN system_permission_groups g ON g.id = t.group_id::uuid
+JOIN contful_system_permission_groups g ON g.id = t.group_id::uuid
 WHERE NOT EXISTS (
-    SELECT 1 FROM system_permissions p WHERE p.group_id = g.id AND p.action = t.action
+    SELECT 1 FROM contful_system_permissions p WHERE p.group_id = g.id AND p.action = t.action
 );
 
 -- =============================================================================
@@ -121,7 +121,7 @@ WHERE NOT EXISTS (
 -- =============================================================================
 
 -- 默认管理员用户（密码：contful@com）
-INSERT INTO system_users (id, email, password_hash, nickname, status, is_super_admin, created_time, updated_time)
+INSERT INTO contful_system_users (id, email, password_hash, nickname, status, is_super_admin, created_time, updated_time)
 SELECT
     '00000000-0000-0000-0000-000000000001'::uuid,
     'admin@contful.com',
@@ -131,20 +131,20 @@ SELECT
     TRUE,
     NOW(),
     NOW()
-WHERE NOT EXISTS (SELECT 1 FROM system_users WHERE id = '00000000-0000-0000-0000-000000000001'::uuid);
+WHERE NOT EXISTS (SELECT 1 FROM contful_system_users WHERE id = '00000000-0000-0000-0000-000000000001'::uuid);
 
 -- =============================================================================
 -- 4. 用户-角色关联
 -- =============================================================================
 
 -- 关联 admin 用户与 Super Admin 角色
-INSERT INTO system_user_roles (user_id, role_id, created_time)
+INSERT INTO contful_system_user_roles (user_id, role_id, created_time)
 SELECT
     '00000000-0000-0000-0000-000000000001'::uuid,
     '00000000-0000-0000-0000-000000000101'::uuid,
     NOW()
 WHERE NOT EXISTS (
-    SELECT 1 FROM system_user_roles 
+    SELECT 1 FROM contful_system_user_roles 
     WHERE user_id = '00000000-0000-0000-0000-000000000001'::uuid 
     AND role_id = '00000000-0000-0000-0000-000000000101'::uuid
 );
@@ -153,7 +153,7 @@ WHERE NOT EXISTS (
 -- 5. 系统配置
 -- =============================================================================
 
-INSERT INTO system_config (config_key, config_value, value_type, description, is_public, is_system, created_time, updated_time)
+INSERT INTO contful_system_config (config_key, config_value, value_type, description, is_public, is_system, created_time, updated_time)
 VALUES
     ('password_expire_days', '90', 'number', '密码有效期（天），0 表示永不过期', FALSE, TRUE, NOW(), NOW()),
     ('site_name', 'Contful', 'string', '系统名称', TRUE, TRUE, NOW(), NOW()),

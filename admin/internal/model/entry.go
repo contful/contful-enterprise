@@ -47,7 +47,7 @@ type Entry struct {
 
 // TableName 表名
 func (Entry) TableName() string {
-	return "entries"
+	return "contful_entries"
 }
 
 // EntryValue 内容字段值
@@ -71,7 +71,7 @@ type EntryValue struct {
 
 // TableName 表名
 func (EntryValue) TableName() string {
-	return "entry_values"
+	return "contful_entry_values"
 }
 
 // EntryVersion 内容版本历史
@@ -87,5 +87,5 @@ type EntryVersion struct {
 
 // TableName 表名
 func (EntryVersion) TableName() string {
-	return "entry_versions"
+	return "contful_entry_versions"
 }

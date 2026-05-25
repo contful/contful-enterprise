@@ -37,7 +37,7 @@ func CheckDB() {
 	}
 
 	query := `SELECT COUNT(*) FROM information_schema.tables
-		WHERE table_name IN ('system_users','sites','system_config','system_roles')
+		WHERE table_name IN ('contful_system_users','contful_sites','contful_system_config','contful_system_roles')
 		AND table_schema = 'public'
 		AND table_type = 'BASE TABLE'`
 
