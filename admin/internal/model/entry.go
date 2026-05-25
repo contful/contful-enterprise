@@ -29,6 +29,8 @@ type Entry struct {
 	VersionHistory JSONArray  `json:"version_history" gorm:"type:jsonb"`
 	PublishedTime  *time.Time `json:"published_time" gorm:"column:published_time;type:timestamptz"`
 	PublishedBy    *uuid.UUID `json:"published_by" gorm:"type:uuid"`
+	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time" gorm:"column:scheduled_publish_time;type:timestamptz"`
+	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time" gorm:"column:scheduled_unpublish_time;type:timestamptz"`
 	Relations      JSONBSlice `json:"relations" gorm:"type:jsonb;default:'[]'"`
 	SEOTitle       string     `json:"seo_title" gorm:"size:255"`
 	SEODescription string     `json:"seo_description" gorm:"type:text"`
@@ -47,7 +49,7 @@ type Entry struct {
 
 // TableName 表名
 func (Entry) TableName() string {
-	return "entries"
+	return "contful_entries"
 }
 
 // EntryValue 内容字段值
@@ -71,7 +73,7 @@ type EntryValue struct {
 
 // TableName 表名
 func (EntryValue) TableName() string {
-	return "entry_values"
+	return "contful_entry_values"
 }
 
 // EntryVersion 内容版本历史
@@ -87,5 +89,5 @@ type EntryVersion struct {
 
 // TableName 表名
 func (EntryVersion) TableName() string {
-	return "entry_versions"
+	return "contful_entry_versions"
 }

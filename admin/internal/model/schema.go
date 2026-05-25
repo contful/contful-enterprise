@@ -41,7 +41,7 @@ type ContentSchema struct {
 
 // TableName 表名
 func (ContentSchema) TableName() string {
-	return "schemas"
+	return "contful_schemas"
 }
 
 // Field 字段定义
@@ -65,7 +65,7 @@ type Field struct {
 
 // TableName 表名
 func (Field) TableName() string {
-	return "fields"
+	return "contful_fields"
 }
 
 // FieldType 字段类型枚举

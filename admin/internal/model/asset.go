@@ -71,7 +71,7 @@ type Asset struct {
 
 // TableName 表名
 func (Asset) TableName() string {
-	return "assets"
+	return "contful_assets"
 }
 
 // AssetFolder 资源文件夹
@@ -96,5 +96,5 @@ type AssetFolder struct {
 
 // TableName 表名
 func (AssetFolder) TableName() string {
-	return "asset_folders"
+	return "contful_asset_folders"
 }

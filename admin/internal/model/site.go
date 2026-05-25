@@ -38,7 +38,7 @@ type Site struct {
 
 // TableName 表名
 func (Site) TableName() string {
-	return "sites"
+	return "contful_sites"
 }
 
 // ============ DTO ============

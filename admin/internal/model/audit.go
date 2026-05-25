@@ -48,7 +48,7 @@ type AuditLog struct {
 }
 
 func (AuditLog) TableName() string {
-	return "audit_logs"
+	return "contful_audit_logs"
 }
 
 // AuditLogFilter 审计日志筛选条件
