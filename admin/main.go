@@ -21,6 +21,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/audit"
+	"github.com/contful/contful/admin/internal/cmd"
 	"github.com/contful/contful/admin/internal/config"
 	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/handler"
@@ -32,6 +33,25 @@ import (
 )
 
 func main() {
+	// CLI 子命令路由
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "check-db":
+			cmd.CheckDB()
+			return
+		case "gen-key":
+			cmd.GenKey()
+			return
+		case "version":
+			cmd.PrintVersion()
+			return
+		}
+	}
+	runServer()
+}
+
+// runServer 启动 HTTP 服务。
+func runServer() {
 	// 初始化配置
 	cfg, err := config.Load()
 	if err != nil {
