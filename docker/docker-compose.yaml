@@ -52,12 +52,15 @@ services:
       # 可选配置
       # - CONTFUL_MODE=api  # 仅启动 API，不启动 nginx
       # - LOG_LEVEL=debug
+      - CONTFUL_AUTO_INIT=${CONTFUL_AUTO_INIT:-true}
+      - CRYPTO_MODE=${CRYPTO_MODE:-rsa}
     # 非对称密钥对已内置于 Docker 镜像（/app/public.pem / app/private.pem）
     # 如需替换：挂载自定义密钥并设置 PUBKEY_PATH / PRIVKEY_PATH
     # 配置文件模式（取消注释可覆盖环境变量）
     # volumes:
     #   - ../conf/console.yaml:/app/conf/config.yml:ro
     volumes:
+      - ./conf/:/app/conf/    # 统一配置目录：密钥对 + config.yaml
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     healthcheck:
