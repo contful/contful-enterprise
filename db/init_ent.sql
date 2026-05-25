@@ -56,14 +56,14 @@ ALTER TABLE entries ADD COLUMN IF NOT EXISTS scheduled_unpublish_time TIMESTAMPT
 COMMENT ON COLUMN entries.scheduled_publish_time IS '[企业版] 计划发布时间，非空时表示已排期发布';
 COMMENT ON COLUMN entries.scheduled_unpublish_time IS '[企业版] 计划下架时间，非空时表示已排期下架';
 
--- 排期轮询专用索引（cron 每分钟查询到期条目）
+-- 排期轮询专用索引（cron 每 30 秒查询到期条目）
 CREATE INDEX IF NOT EXISTS idx_entries_scheduled_publish
     ON entries(scheduled_publish_time)
-    WHERE scheduled_publish_time IS NOT NULL AND status = 'draft';
+    WHERE scheduled_publish_time IS NOT NULL AND status = 'draft' AND deleted_time IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_entries_scheduled_unpublish
     ON entries(scheduled_unpublish_time)
-    WHERE scheduled_unpublish_time IS NOT NULL AND status = 'published';
+    WHERE scheduled_unpublish_time IS NOT NULL AND status = 'published' AND deleted_time IS NULL;
 
 -- 1.2 audit_logs 表：合规报告辅助索引（加速时间范围+类别联合查询）
 CREATE INDEX IF NOT EXISTS idx_audit_logs_category_created

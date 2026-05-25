@@ -18,7 +18,9 @@ type EntryCreate struct {
 	SEOTitle       string                 `json:"seo_title" binding:"omitempty,max=255"`
 	SEODescription string                 `json:"seo_description" binding:"omitempty,max=5000"`
 	SEOKeywords    []string               `json:"seo_keywords" binding:"omitempty,max=50,dive,max=100"`
-	SortWeight     int                    `json:"sort_weight"`
+	SortWeight              int        `json:"sort_weight"`
+	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time"`
+	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time"`
 }
 
 // EntryUpdate 更新条目请求
@@ -31,11 +33,19 @@ type EntryUpdate struct {
 	SEOKeywords    []string               `json:"seo_keywords" binding:"omitempty,max=50,dive,max=100"`
 	SortWeight     *int                   `json:"sort_weight"`
 	ChangeSummary  string                 `json:"change_summary" binding:"omitempty,max=500"`
+	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time"`
+	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time"`
 }
 
 // EntryPublish 发布条目请求
 type EntryPublish struct {
 	ChangeSummary string `json:"change_summary"` // 发布说明
+}
+
+// EntryScheduleRequest 定时排期请求
+type EntryScheduleRequest struct {
+	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time"`
+	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time"`
 }
 
 // EntryResponse 条目响应
@@ -49,6 +59,8 @@ type EntryResponse struct {
 	VersionHistory []EntryVersionInfo       `json:"version_history,omitempty"`
 	PublishedTime  *time.Time               `json:"published_time,omitempty"`
 	PublishedBy    *uuid.UUID               `json:"published_by,omitempty"`
+	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time,omitempty"`
+	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time,omitempty"`
 	Relations      []map[string]interface{} `json:"relations,omitempty"`
 	SEOTitle       string                   `json:"seo_title,omitempty"`
 	SEODescription string                   `json:"seo_description,omitempty"`
@@ -98,6 +110,8 @@ func (e *Entry) ToResponse() EntryResponse {
 		Version:        e.Version,
 		PublishedTime:  e.PublishedTime,
 		PublishedBy:    e.PublishedBy,
+		ScheduledPublishTime:   e.ScheduledPublishTime,
+		ScheduledUnpublishTime: e.ScheduledUnpublishTime,
 		SEOTitle:       e.SEOTitle,
 		SEODescription: e.SEODescription,
 		SEOKeywords:    e.SEOKeywords,

@@ -31,6 +31,7 @@ type Config struct {
 	MultiSite MultiSiteConfig `mapstructure:"multi_site"`
 	Features  FeaturesConfig  `mapstructure:"features"`
 	Security  SecurityConfig  `mapstructure:"security"`
+	Schedule  ScheduleConfig  `mapstructure:"schedule"`
 }
 
 // SupportedAlgorithms 支持的加密算法
@@ -41,11 +42,17 @@ type SecurityConfig struct {
 	// Secret 主密钥（统一配置）
 	Secret string `mapstructure:"secret"`
 
-	// Algorithm 加密算法
+	// Algorithm 加密算法（由 crypto_mode 自动选择，也可手动覆盖）
 	Algorithm string `mapstructure:"algorithm"`
+
+	// CryptoMode 加密模式：rsa（国际算法）或 sm（国密全套）
+	// 默认 rsa：RSA-2048 + SHA-256 + AES-256-GCM
+	// sm：SM2 + SM3 + SM4-GCM 全链路国密
+	CryptoMode string `mapstructure:"crypto_mode"`
 
 	// RSA 密钥对文件路径（用于前端登录密码加密传输）
 	// 相对路径相对于配置文件目录（conf/）
+	// crypto_mode=sm 时会自动生成 SM2 密钥对，RSA 路径被忽略
 	RSAPublicKeyPath  string `mapstructure:"rsa_pubkey_path"`
 	RSAPrivateKeyPath string `mapstructure:"rsa_privkey_path"`
 }
@@ -146,8 +153,17 @@ type FeaturesConfig struct {
 	MediaLibrary   bool `mapstructure:"media_library"`
 }
 
+// ScheduleConfig 定时排期配置
+type ScheduleConfig struct {
+	Enabled  bool `mapstructure:"enabled"`  // 是否启用定时发布/下架调度器
+	Interval int  `mapstructure:"interval"` // 扫描间隔（秒），默认 30
+}
+
 // 全局配置实例
 var globalConfig *Config
+
+// 全局加密 Provider（由 PostLoad 初始化）
+var globalCryptoProvider crypto.CryptoProvider
 
 // Load 加载配置
 func Load(configPaths ...string) (*Config, error) {
@@ -233,6 +249,12 @@ func Get() *Config {
 	return globalConfig
 }
 
+// GetCryptoProvider 获取全局加密 Provider（对称 + 非对称 + 哈希一站式）
+// 在 Load() 完成后可用，在此之前返回 nil
+func GetCryptoProvider() crypto.CryptoProvider {
+	return globalCryptoProvider
+}
+
 // Validate 验证配置
 func (c *Config) Validate() error {
 	// Secret 或 JWT Secret 至少配置一个
@@ -257,6 +279,11 @@ func (c *Config) Validate() error {
 		if !valid {
 			return fmt.Errorf("unsupported algorithm: %s, supported: %v", c.Security.Algorithm, SupportedAlgorithms)
 		}
+	}
+
+	// 验证 crypto_mode（仅支持 rsa/sm 或空）
+	if c.Security.CryptoMode != "" && c.Security.CryptoMode != crypto.ModeRSA && c.Security.CryptoMode != crypto.ModeSM {
+		return fmt.Errorf("unsupported crypto_mode: %s, supported: %s / %s", c.Security.CryptoMode, crypto.ModeRSA, crypto.ModeSM)
 	}
 
 	// 数据库配置必填
@@ -369,6 +396,32 @@ func (c *Config) PostLoad() {
 	if c.Security.RSAPrivateKeyPath == "" {
 		c.Security.RSAPrivateKeyPath = "rsa_private.pem"
 	}
+
+	// CryptoMode 默认值
+	if c.Security.CryptoMode == "" {
+		c.Security.CryptoMode = crypto.ModeRSA
+	}
+
+	// 定时排期默认值
+	if c.Schedule.Interval == 0 {
+		c.Schedule.Interval = 30
+	}
+
+	// 国密模式下自动切换对称加密算法
+	if c.Security.CryptoMode == crypto.ModeSM {
+		c.Security.Algorithm = crypto.AlgorithmSM4
+	}
+
+	// 初始化全局加密 Provider
+	if c.Security.Secret != "" {
+		provider, err := crypto.NewProvider(c.Security.CryptoMode, c.Security.Secret)
+		if err != nil {
+			// 日志警告但继续启动（Provider 为 nil 时调用方自行处理）
+			globalCryptoProvider = nil
+		} else {
+			globalCryptoProvider = provider
+		}
+	}
 }
 
 // GetDSN 获取 PostgreSQL DSN
@@ -454,6 +507,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("features.version_history", true)
 	v.SetDefault("features.api_tokens", true)
 	v.SetDefault("features.media_library", true)
+
+	// 定时排期
+	v.SetDefault("schedule.enabled", false)
+	v.SetDefault("schedule.interval", 30)
 }
 
 // readEnvOverrides 读取环境变量覆盖
@@ -474,6 +531,7 @@ func readEnvOverrides(v *viper.Viper) {
 		"SERVER_PORT":      "server.port",
 		"SECRET":           "security.secret",
 		"SECRET_ALGORITHM": "security.algorithm",
+		"CRYPTO_MODE":      "security.crypto_mode",
 		// RSA 密钥路径
 		"RSA_PUBKEY_PATH":  "security.rsa_pubkey_path",
 		"RSA_PRIVKEY_PATH": "security.rsa_privkey_path",

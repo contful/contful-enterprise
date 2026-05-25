@@ -41,7 +41,8 @@ SELECT
       "tokens:read","tokens:write","tokens:delete",
       "settings:read","settings:write",
       "audit:read","audit:export",
-      "roles:read","roles:write","roles:delete"]'::jsonb,
+      "roles:read","roles:write","roles:delete",
+      "schedule:write"]'::jsonb,
     NOW(),
     NOW()
 WHERE NOT EXISTS (SELECT 1 FROM system_roles WHERE id = '00000000-0000-0000-0000-000000000101'::uuid);
@@ -75,7 +76,8 @@ SELECT * FROM (VALUES
     ('00000000-0000-0000-0000-000000000307'::uuid, 'roles',          '角色管理',   'Role Management', 6),
     ('00000000-0000-0000-0000-000000000308'::uuid, 'schema', '内容模型',   'Content Schemas', 7),
     ('00000000-0000-0000-0000-000000000309'::uuid, 'entry',          '内容条目',   'Entries',        8),
-    ('00000000-0000-0000-0000-000000000310'::uuid, 'asset',          '媒体文件',   'Assets',         9)
+    ('00000000-0000-0000-0000-000000000310'::uuid, 'asset',          '媒体文件',   'Assets',         9),
+    ('00000000-0000-0000-0000-000000000311'::uuid, 'schedule',       '定时发布',   'Scheduled Publish', 10)
 ) AS t(id, group_key, label, label_en, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM system_permission_groups WHERE id = t.id::uuid);
 
@@ -109,7 +111,8 @@ FROM (VALUES
     ('00000000-0000-0000-0000-000000000309'::uuid, 'delete', '删除条目',  'Delete Entries',    3),
     ('00000000-0000-0000-0000-000000000310'::uuid, 'read',   '查看文件',  'View Assets',       0),
     ('00000000-0000-0000-0000-000000000310'::uuid, 'write',  '管理文件',  'Manage Assets',     1),
-    ('00000000-0000-0000-0000-000000000310'::uuid, 'delete', '删除文件',  'Delete Assets',     2)
+    ('00000000-0000-0000-0000-000000000310'::uuid, 'delete', '删除文件',  'Delete Assets',     2),
+    ('00000000-0000-0000-0000-000000000311'::uuid, 'write',  '管理排期',  'Manage Schedule',   0)
 ) AS t(group_id, action, label, label_en, sort_order)
 JOIN system_permission_groups g ON g.id = t.group_id::uuid
 WHERE NOT EXISTS (

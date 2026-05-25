@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/contful/contful/admin/internal/audit"
+	"github.com/contful/contful/admin/internal/config"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 )
@@ -544,6 +545,10 @@ func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, site
 			if key, _ := s.configSvc.GetAuditSigningKey(); key != "" {
 				bgCtx = audit.WithSigningKey(bgCtx, key)
 			}
+		}
+		// 注入 Hasher（国密模式时自动使用 SM3）
+		if provider := config.GetCryptoProvider(); provider != nil {
+			bgCtx = audit.WithHasher(bgCtx, provider)
 		}
 		if err := s.auditRepo.Create(bgCtx, auditLog); err != nil {
 			log.Error().Err(err).Msg("failed to create audit log")
