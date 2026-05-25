@@ -306,3 +306,85 @@ func (r *EntryRepository) WithTransaction(fn func(repo *EntryRepository) error) 
 		return fn(repo)
 	})
 }
+
+// ============ 排期相关查询 ============
+
+// FindDuePublish 查找到期待发布的条目
+func (r *EntryRepository) FindDuePublish(ctx context.Context) ([]model.Entry, error) {
+	var entries []model.Entry
+	err := r.db.WithContext(ctx).
+		Where("scheduled_publish_time <= NOW()").
+		Where("status = ?", model.EntryStatusDraft).
+		Where("deleted_time IS NULL").
+		Find(&entries).Error
+	return entries, err
+}
+
+// FindDueUnpublish 查找到期待下架的条目
+func (r *EntryRepository) FindDueUnpublish(ctx context.Context) ([]model.Entry, error) {
+	var entries []model.Entry
+	err := r.db.WithContext(ctx).
+		Where("scheduled_unpublish_time <= NOW()").
+		Where("status = ?", model.EntryStatusPublished).
+		Where("deleted_time IS NULL").
+		Find(&entries).Error
+	return entries, err
+}
+
+// ListScheduled 查询排期条目列表
+func (r *EntryRepository) ListScheduled(ctx context.Context, siteID uuid.UUID, filter *model.ScheduledEntryFilter) ([]model.Entry, int64, error) {
+	var entries []model.Entry
+	var total int64
+
+	query := r.db.WithContext(ctx).Model(&model.Entry{}).Where("site_id = ?", siteID)
+
+	if filter == nil {
+		filter = &model.ScheduledEntryFilter{}
+	}
+	if filter.Page < 1 {
+		filter.Page = 1
+	}
+	if filter.PageSize < 1 || filter.PageSize > 100 {
+		filter.PageSize = 50
+	}
+
+	// 根据 status 筛选
+	if filter.Status != nil {
+		switch *filter.Status {
+		case "pending_publish":
+			query = query.Where("scheduled_publish_time IS NOT NULL AND status = ?", model.EntryStatusDraft)
+		case "pending_unpublish":
+			query = query.Where("scheduled_unpublish_time IS NOT NULL AND status = ?", model.EntryStatusPublished)
+		case "all":
+			query = query.Where("(scheduled_publish_time IS NOT NULL OR scheduled_unpublish_time IS NOT NULL)")
+		}
+	} else {
+		query = query.Where("(scheduled_publish_time IS NOT NULL OR scheduled_unpublish_time IS NOT NULL)")
+	}
+
+	if filter.From != nil {
+		query = query.Where("(scheduled_publish_time >= ? OR scheduled_unpublish_time >= ?)", *filter.From, *filter.From)
+	}
+	if filter.To != nil {
+		query = query.Where("(scheduled_publish_time <= ? OR scheduled_unpublish_time <= ?)", *filter.To, *filter.To)
+	}
+
+	query = query.Where("deleted_time IS NULL")
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (filter.Page - 1) * filter.PageSize
+	err := query.
+		Preload("ContentSchema").
+		Order("COALESCE(scheduled_publish_time, scheduled_unpublish_time) ASC").
+		Offset(offset).
+		Limit(filter.PageSize).
+		Find(&entries).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return entries, total, nil
+}

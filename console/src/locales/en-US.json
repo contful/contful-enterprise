@@ -928,5 +928,21 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "skipToContent": "Skip to main content"
+  },
+  "schedule": {
+    "title": "Schedule",
+    "publishTime": "Scheduled Publish Time",
+    "unpublishTime": "Scheduled Unpublish Time",
+    "clearPublish": "Clear Publish Time",
+    "clearUnpublish": "Clear Unpublish Time",
+    "clearAll": "Clear All Schedule",
+    "noSchedule": "No schedule set",
+    "unpublishAfterPublish": "Unpublish time must be after publish time",
+    "pendingPublish": "Pending Publish",
+    "pendingUnpublish": "Pending Unpublish",
+    "listView": "List",
+    "calendarView": "Calendar",
+    "setSuccess": "Schedule set successfully",
+    "clearSuccess": "Schedule cleared"
   }
 }

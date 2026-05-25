@@ -894,5 +894,21 @@
   "permission": {
     "denied": "您沒有存取此頁面的權限",
     "required": "需要權限：{permission}"
+  },
+  "schedule": {
+    "title": "排程設定",
+    "publishTime": "定時發布時間",
+    "unpublishTime": "定時下架時間",
+    "clearPublish": "清除發布時間",
+    "clearUnpublish": "清除下架時間",
+    "clearAll": "清除全部排程",
+    "noSchedule": "暫無排程",
+    "unpublishAfterPublish": "下架時間必須晚於發布時間",
+    "pendingPublish": "待發布",
+    "pendingUnpublish": "待下架",
+    "listView": "列表",
+    "calendarView": "日曆",
+    "setSuccess": "排程設定成功",
+    "clearSuccess": "排程已清除"
   }
 }

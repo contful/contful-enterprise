@@ -154,6 +154,7 @@ func runServer() {
 	siteService := service.NewSiteService(db, siteRepo)
 	schemaService := service.NewSchemaService(schemaRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, schemaRepo, fieldRepo)
+	scheduleService := service.NewScheduleService(db, entryRepo, logger)
 	tokenService := service.NewAPITokenService(tokenRepo, crypter)
 	cacheService := service.NewCacheService(redisClient)
 
@@ -219,6 +220,7 @@ func runServer() {
 	siteHandler := handler.NewSiteHandler(siteService, auditService)
 	schemaHandler := handler.NewSchemaHandler(schemaService)
 	entryHandler := handler.NewEntryHandler(entryService, configService)
+	scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	assetHandler := handler.NewAssetHandler(assetService)
 	tokenHandler := handler.NewAPITokenHandler(tokenService, auditService)
 		integrityHandler := handler.NewIntegrityHandler(entryRepo, assetRepo, auditRepo, configService)
@@ -228,6 +230,11 @@ func runServer() {
 	permHandler := handler.NewPermissionHandler(permRepo, rbacService)
 	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
 	auditHandler := handler.NewAuditHandler(auditService)
+
+	// 启动排期调度器（后台 goroutine）
+	ctxCron, cancelCron := context.WithCancel(context.Background())
+	defer cancelCron()
+	go scheduleService.StartCron(ctxCron)
 
 	// 初始化 Gin
 	r := gin.New()
@@ -403,6 +410,10 @@ func runServer() {
 			protected.POST("/content/entries",
 				middleware.RequirePermission(rbacService, "entry:write"),
 				entryHandler.Create)
+			// 排期列表（静态路径必须在 :id 之前注册）
+			protected.GET("/content/entries/scheduled",
+				middleware.RequirePermission(rbacService, "entry:read"),
+				scheduleHandler.ListScheduled)
 			protected.GET("/content/entries/:id",
 				middleware.RequirePermission(rbacService, "entry:read"),
 				entryHandler.Get)
@@ -421,6 +432,13 @@ func runServer() {
 			protected.GET("/content/entries/:id/versions",
 				middleware.RequirePermission(rbacService, "entry:read"),
 				entryHandler.GetVersions)
+			// 排期操作
+			protected.PUT("/content/entries/:id/schedule",
+				middleware.RequirePermission(rbacService, "entry:write"),
+				entryHandler.SetSchedule)
+			protected.DELETE("/content/entries/:id/schedule",
+				middleware.RequirePermission(rbacService, "entry:write"),
+				entryHandler.ClearSchedule)
 			// 批量操作（静态路径在前，避免与 :id 冲突）
 			protected.POST("/content/entries/batch-publish",
 				middleware.RequirePermission(rbacService, "entry:publish"),

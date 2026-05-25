@@ -326,3 +326,47 @@ func (h *EntryHandler) handleError(c *gin.Context, err error) {
 		middleware.InternalError(c, err.Error())
 	}
 }
+
+// SetSchedule 设置条目排期
+func (h *EntryHandler) SetSchedule(c *gin.Context) {
+	siteID := middleware.GetSiteID(c)
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		middleware.BadRequest(c, "invalid entry id")
+		return
+	}
+
+	var req model.ScheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.BadRequest(c, err.Error())
+		return
+	}
+
+	entry, err := h.entryService.SetSchedule(c.Request.Context(), siteID, id, &req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, entry.ToResponse())
+}
+
+// ClearSchedule 清除条目排期
+func (h *EntryHandler) ClearSchedule(c *gin.Context) {
+	siteID := middleware.GetSiteID(c)
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		middleware.BadRequest(c, "invalid entry id")
+		return
+	}
+
+	entry, err := h.entryService.ClearSchedule(c.Request.Context(), siteID, id)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, entry.ToResponse())
+}

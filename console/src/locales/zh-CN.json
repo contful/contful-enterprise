@@ -932,5 +932,21 @@
     "collapseSidebar": "收起侧栏",
     "expandSidebar": "展开侧栏",
     "skipToContent": "跳到主要内容"
+  },
+  "schedule": {
+    "title": "排期设置",
+    "publishTime": "定时发布时间",
+    "unpublishTime": "定时下架时间",
+    "clearPublish": "清除发布时间",
+    "clearUnpublish": "清除下架时间",
+    "clearAll": "清除全部排期",
+    "noSchedule": "暂无排期",
+    "unpublishAfterPublish": "下架时间必须晚于发布时间",
+    "pendingPublish": "待发布",
+    "pendingUnpublish": "待下架",
+    "listView": "列表",
+    "calendarView": "日历",
+    "setSuccess": "排期设置成功",
+    "clearSuccess": "排期已清除"
   }
 }

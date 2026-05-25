@@ -15,6 +15,8 @@ export interface Entry {
   version_history?: EntryVersion[]
   published_time?: string
   published_by?: string
+  scheduled_publish_time?: string
+  scheduled_unpublish_time?: string
   seo_title?: string
   seo_description?: string
   seo_keywords?: string[]
@@ -40,6 +42,8 @@ export interface EntryCreate {
   seo_description?: string
   seo_keywords?: string[]
   sort_weight?: number
+  scheduled_publish_time?: string
+  scheduled_unpublish_time?: string
 }
 
 export interface EntryUpdate {
@@ -51,6 +55,8 @@ export interface EntryUpdate {
   seo_keywords?: string[]
   sort_weight?: number
   change_summary?: string
+  scheduled_publish_time?: string | null
+  scheduled_unpublish_time?: string | null
 }
 
 export interface EntryPublish {
@@ -143,4 +149,34 @@ export function batchUnpublishEntries(ids: string[]) {
 // 批量移动到归档
 export function batchArchiveEntries(ids: string[]) {
   return post('/content/entries/batch-archive', { ids })
+}
+
+// ============ 排期 API ============
+
+export interface ScheduleRequest {
+  scheduled_publish_time?: string | null
+  scheduled_unpublish_time?: string | null
+}
+
+export interface ScheduledEntryFilter {
+  status?: 'pending_publish' | 'pending_unpublish' | 'all'
+  from?: string
+  to?: string
+  page?: number
+  page_size?: number
+}
+
+// 设置排期
+export function setEntrySchedule(id: string, data: ScheduleRequest) {
+  return put<Entry>(`/content/entries/${id}/schedule`, data)
+}
+
+// 清除排期
+export function clearEntrySchedule(id: string) {
+  return del(`/content/entries/${id}/schedule`)
+}
+
+// 获取排期条目列表
+export function getScheduledEntries(params?: ScheduledEntryFilter) {
+  return get<ListResponse<Entry>>('/content/entries/scheduled', { params })
 }

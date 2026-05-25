@@ -530,6 +530,8 @@ CREATE TABLE contful_entries (
     version_history JSONB,
     published_time TIMESTAMPTZ,
     published_by UUID,
+    scheduled_publish_time TIMESTAMPTZ,
+    scheduled_unpublish_time TIMESTAMPTZ,
     relations JSONB NOT NULL DEFAULT '[]',
     seo_title VARCHAR(255),
     seo_description TEXT,
@@ -554,6 +556,8 @@ CREATE INDEX idx_entries_deleted ON contful_entries(deleted_time) WHERE deleted_
 CREATE INDEX idx_entries_deleted_time ON contful_entries(deleted_time) WHERE deleted_time IS NOT NULL;
 CREATE INDEX idx_entries_list ON contful_entries(schema_id, locale, status, published_time DESC);
 CREATE INDEX idx_entries_site_locale ON contful_entries(site_id, locale, status);
+CREATE INDEX idx_entries_scheduled_publish ON contful_entries(scheduled_publish_time) WHERE scheduled_publish_time IS NOT NULL AND status = 'draft' AND deleted_time IS NULL;
+CREATE INDEX idx_entries_scheduled_unpublish ON contful_entries(scheduled_unpublish_time) WHERE scheduled_unpublish_time IS NOT NULL AND status = 'published' AND deleted_time IS NULL;
 
 CREATE TRIGGER update_entries_updated_time
     BEFORE UPDATE ON contful_entries
@@ -569,6 +573,8 @@ COMMENT ON COLUMN contful_entries.version IS '当前版本号';
 COMMENT ON COLUMN contful_entries.version_history IS '版本历史 JSON';
 COMMENT ON COLUMN contful_entries.published_time IS '发布时间';
 COMMENT ON COLUMN contful_entries.published_by IS '发布者';
+COMMENT ON COLUMN contful_entries.scheduled_publish_time IS '定时发布时间';
+COMMENT ON COLUMN contful_entries.scheduled_unpublish_time IS '定时下架时间';
 COMMENT ON COLUMN contful_entries.relations IS '关联条目 JSON';
 COMMENT ON COLUMN contful_entries.seo_title IS 'SEO 标题';
 COMMENT ON COLUMN contful_entries.seo_description IS 'SEO 描述';
@@ -833,3 +839,19 @@ COMMENT ON COLUMN contful_tokens.created_by IS '创建者用户 ID';
 COMMENT ON COLUMN contful_tokens.created_time IS '创建时间';
 COMMENT ON COLUMN contful_tokens.updated_time IS '更新时间';
 COMMENT ON COLUMN contful_tokens.deleted_time IS '软删除时间';
+
+-- =============================================================================
+-- 生产环境迁移脚本 (v1.3.0 - 排期功能)
+-- 用于已有数据库的增量迁移，每个语句都是幂等的（IF NOT EXISTS / IF EXISTS）
+-- =============================================================================
+
+ALTER TABLE contful_entries ADD COLUMN IF NOT EXISTS scheduled_publish_time TIMESTAMPTZ;
+ALTER TABLE contful_entries ADD COLUMN IF NOT EXISTS scheduled_unpublish_time TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_entries_scheduled_publish
+    ON contful_entries(scheduled_publish_time)
+    WHERE scheduled_publish_time IS NOT NULL AND status = 'draft' AND deleted_time IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_entries_scheduled_unpublish
+    ON contful_entries(scheduled_unpublish_time)
+    WHERE scheduled_unpublish_time IS NOT NULL AND status = 'published' AND deleted_time IS NULL;

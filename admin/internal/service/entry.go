@@ -63,6 +63,8 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 		SortWeight:     req.SortWeight,
 		CreatedBy:      userID,
 		ContentSchema:    contentSchema,
+		ScheduledPublishTime:   req.ScheduledPublishTime,
+		ScheduledUnpublishTime: req.ScheduledUnpublishTime,
 	}
 
 	// 设置 SEO
@@ -194,6 +196,12 @@ func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uui
 	}
 	if req.SortWeight != nil {
 		entry.SortWeight = *req.SortWeight
+	}
+	if req.ScheduledPublishTime != nil {
+		entry.ScheduledPublishTime = req.ScheduledPublishTime
+	}
+	if req.ScheduledUnpublishTime != nil {
+		entry.ScheduledUnpublishTime = req.ScheduledUnpublishTime
 	}
 
 	// 事务: 更新条目 + 字段值 + 重新签名
@@ -351,6 +359,52 @@ func (s *EntryService) GetVersions(ctx context.Context, siteID uuid.UUID, id uui
 	}
 
 	return s.entryRepo.GetVersions(ctx, id)
+}
+
+// SetSchedule 设置排期时间
+func (s *EntryService) SetSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID, req *model.ScheduleRequest) (*model.Entry, error) {
+	entry, err := s.entryRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrEntryNotFound
+		}
+		return nil, err
+	}
+
+	if entry.SiteID != siteID {
+		return nil, ErrEntryNotFound
+	}
+
+	entry.ScheduledPublishTime = req.ScheduledPublishTime
+	entry.ScheduledUnpublishTime = req.ScheduledUnpublishTime
+
+	if err := s.entryRepo.Update(ctx, entry); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// ClearSchedule 清除排期时间
+func (s *EntryService) ClearSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.Entry, error) {
+	entry, err := s.entryRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrEntryNotFound
+		}
+		return nil, err
+	}
+
+	if entry.SiteID != siteID {
+		return nil, ErrEntryNotFound
+	}
+
+	entry.ScheduledPublishTime = nil
+	entry.ScheduledUnpublishTime = nil
+
+	if err := s.entryRepo.Update(ctx, entry); err != nil {
+		return nil, err
+	}
+	return entry, nil
 }
 
 // ============ 批量操作 ============
