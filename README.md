@@ -48,15 +48,73 @@ contful/
 - Go 1.25+
 - Node.js 24+
 
-## 🐳 Docker 部署（推荐）
+## 🐳 Docker 部署
 
-### 前置条件
+### 方式一：直接拉取镜像（推荐）
 
-- Docker + Docker Compose
-- PostgreSQL 14+ 实例
-- Valkey/Redis 7+ 实例
+无需从源码构建，直接使用 Docker Hub 上的预构建镜像：
 
-### 三步启动
+**1. 启动数据库和缓存**
+
+```bash
+docker compose -f docker/docker-database.yaml up -d
+```
+
+**2. 初始化数据库**
+
+```bash
+# 创建数据库（如果尚未创建）
+docker exec -i contful-postgres psql -U postgres -c "CREATE DATABASE contful;"
+
+# 导入表结构和种子数据
+docker exec -i contful-postgres psql -U postgres -d contful < db/init_pg.sql
+docker exec -i contful-postgres psql -U postgres -d contful < db/seed_data.sql
+```
+
+**3. 配置环境变量**
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入数据库和缓存连接信息
+```
+
+**4. 拉取镜像并启动**
+
+```bash
+docker pull contful/console:postgresql-latest
+docker pull contful/openapi:postgresql-latest
+docker compose -f docker/docker-compose.yaml --env-file .env up -d
+```
+
+**5. 访问**
+
+| 服务 | 地址 |
+|------|------|
+| 管理后台 | http://localhost |
+| Open API | http://localhost:8080 |
+
+> ⚠️ **注意**：Docker 镜像不包含数据库服务，需要单独启动 PostgreSQL + Valkey（步骤 1）。
+
+### 方式二：从源码构建 Docker 镜像
+
+前置条件：Docker + Docker Compose、PostgreSQL 14+ 实例、Valkey/Redis 7+ 实例。
+
+步骤 1-3 同方式一（启动 DB、初始化、配置 .env），然后：
+
+```bash
+# 构建镜像（在 contful/ 目录执行）
+docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
+docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
+
+# 启动
+docker compose -f docker/docker-compose.yaml --env-file .env up -d
+```
+
+> **提示**：构建命令在 `contful/` 目录执行，构建上下文为当前目录。
+
+### 方式三：Docker Compose 一键启动（含自动初始化）
+
+如果你的数据库为空，可以使用自动初始化模式：
 
 **1. 配置环境变量**
 
@@ -92,31 +150,11 @@ docker compose -f docker/docker-compose.yaml --env-file .env up -d
 | 如何重置数据库？ | 删表后重启容器即可自动重建 |
 | 如何更换密钥？ | `rm ./conf/*.pem && docker restart contful-console` |
 
-### 访问
-
-| 服务 | 地址 |
-|------|------|
-| 管理后台 | http://localhost |
-| Open API | http://localhost:8080 |
-
-### 从源码构建（可选）
-
-```bash
-# 1. 构建镜像（在 contful/ 目录执行）
-docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
-docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
-
-# 2. 启动（database 自动初始化）
-docker compose -f docker/docker-compose.yaml up -d
-```
-
-> **提示**：构建命令在 `contful/` 目录执行，构建上下文为当前目录。
-
-### 方式三：本地开发
+### 方式四：本地开发
 
 ```bash
 # 1. 启动数据库和缓存
-docker-compose -f docker/docker-database.yaml up -d
+docker compose -f docker/docker-database.yaml up -d
 
 # 2. 初始化数据库
 psql -h localhost -U postgres -d contful -f db/init_pg.sql
@@ -133,7 +171,7 @@ psql -h localhost -U postgres -d contful -f db/seed_data.sql
 #   Open API: http://localhost:8080/
 ```
 
-### 方式四：分别启动
+### 方式五：分别启动
 
 ```bash
 # 构建
