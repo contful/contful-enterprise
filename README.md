@@ -48,90 +48,66 @@ contful/
 - Go 1.25+
 - Node.js 24+
 
-### 方式一：直接拉取镜像（推荐）
+## 🐳 Docker 部署（推荐）
 
-使用预构建的 Docker 镜像，无需本地编译。
+### 前置条件
 
-#### 1.1 准备数据库
+- Docker + Docker Compose
+- PostgreSQL 14+ 实例
+- Valkey/Redis 7+ 实例
 
-```bash
-# 使用项目提供的数据库编排启动 PostgreSQL + Valkey
-docker-compose -f docker/docker-database.yaml up -d
+### 三步启动
 
-# 或手动连接已有数据库，创建 contful 数据库
-# psql -h <host> -U postgres -c "CREATE DATABASE contful;"
-```
-
-#### 1.2 初始化数据库表结构和种子数据
+**1. 配置环境变量**
 
 ```bash
-# 导入建表脚本（会删除已有表并重建，仅用于全新部署）
-psql -h localhost -U postgres -d contful -f db/init_pg.sql
-
-# 导入种子数据（幂等，可重复执行）
-psql -h localhost -U postgres -d contful -f db/seed_data.sql
+cp .env.example .env
+# 编辑 .env，填入你的数据库和缓存连接信息
 ```
 
-> **提示**：如果 PG 运行在 Docker 容器中，可使用以下方式导入：
-> ```bash
-> docker exec -i contful-postgres psql -U postgres -d contful < db/init_pg.sql
-> docker exec -i contful-postgres psql -U postgres -d contful < db/seed_data.sql
-> ```
-
-#### 1.3 创建环境变量文件
+**2. 准备挂载目录**
 
 ```bash
-cat > .env << 'EOF'
-DB_PASSWORD=<你的数据库密码>
-REDIS_PASSWORD=<你的 Valkey 密码>
-SECRET=<openssl rand -hex 32 生成的密钥>
-EOF
+mkdir -p conf uploads logs
 ```
 
-#### 1.4 拉取并启动服务
+**3. 一键启动**
 
 ```bash
-# 拉取镜像
-docker pull contful/console:postgresql-latest
-docker pull contful/openapi:postgresql-latest
-
-# 启动服务
-docker-compose -f docker/docker-compose.yaml --env-file .env up -d
-
-# 查看日志确认启动成功
-docker logs -f contful-console
+docker compose -f docker/docker-compose.yaml --env-file .env up -d
 ```
 
-#### 1.5 访问
+首次启动会自动完成：
+
+- ✅ 数据库表创建（`init_pg.sql`）
+- ✅ 种子数据导入（管理员账号等）
+- ✅ 非对称密钥对生成（登录加密）
+
+### 故障排查 FAQ
+
+| 问题 | 解决方案 |
+|------|----------|
+| 启动后 DB 未初始化？ | 确认 `DB_HOST` / `DB_NAME` 正确，空数据库会自动初始化 |
+| 容器反复重启？ | 检查 DB 连接参数，`docker logs contful-console` 查看详细日志 |
+| 如何重置数据库？ | 删表后重启容器即可自动重建 |
+| 如何更换密钥？ | `rm ./conf/*.pem && docker restart contful-console` |
+
+### 访问
 
 | 服务 | 地址 |
 |------|------|
 | 管理后台 | http://localhost |
 | Open API | http://localhost:8080 |
 
-> **注意**：
-> - 镜像内置了默认非对称密钥对，生产环境请替换为自定义密钥（参见 [部署指南](https://contful.com/docs/deployment)）
-> - 数据库和缓存需要**手动创建并导入 SQL**——Docker 镜像不包含数据库服务，也不自动执行初始化脚本
-
-### 方式二：从源码构建 Docker 镜像
+### 从源码构建（可选）
 
 ```bash
 # 1. 构建镜像（在 contful/ 目录执行）
 docker build -f docker/Dockerfile.console -t contful/console:pg-amd64-latest .
-
 docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-amd64-latest .
 
-# 2. 编辑配置文件
-#    - conf/console.yaml   # Console 服务配置
-#    - conf/openapi.yaml   # Open API 服务配置
-#    配置文件中已预置默认值，只需修改数据库密码等敏感信息
-
-# 3. 启动服务（数据库需提前准备并导入 SQL，参见方式一的 1.1-1.3 步骤）
-docker-compose -f docker/docker-compose.yaml up -d
-
-# 访问
-#   管理后台:  http://localhost         (Console + Admin API)
-#   Open API: http://localhost:8080/   (直连)
+# 2. 启动（database 自动初始化）
+docker compose -f docker/docker-compose.yaml up -d
 ```
 
 > **提示**：构建命令在 `contful/` 目录执行，构建上下文为当前目录。
