@@ -116,6 +116,7 @@ import {
   deletePermission,
   clearPermissionCache,
   type PermissionGroup,
+  type PermissionItem,
 } from '@/api/rbac'
 
 const { t } = useI18n()

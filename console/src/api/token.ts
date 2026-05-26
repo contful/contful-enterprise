@@ -7,6 +7,8 @@ import request from '@/utils/request'
 
 export type TokenStatus = 'active' | 'expired' | 'revoked'
 
+export type ApiToken = APITokenResponse
+
 export interface APITokenResponse {
   id: string
   site_id: string

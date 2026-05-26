@@ -308,12 +308,24 @@ func runServer() {
 			protected.POST("/auth/mfa/disable", mfaHandler.Disable)
 
 			// 站点管理
-			protected.GET("/sites/mine", siteHandler.MySites)
-			protected.GET("/sites", siteHandler.List)
-			protected.POST("/sites", siteHandler.Create)
-			protected.GET("/sites/:id", siteHandler.Get)
-			protected.PUT("/sites/:id", siteHandler.Update)
-			protected.DELETE("/sites/:id", siteHandler.Delete)
+		protected.GET("/sites/mine",
+			middleware.RequirePermission(rbacService, "sites:read"),
+			siteHandler.MySites)
+		protected.GET("/sites",
+			middleware.RequirePermission(rbacService, "sites:read"),
+			siteHandler.List)
+		protected.POST("/sites",
+			middleware.RequirePermission(rbacService, "sites:write"),
+			siteHandler.Create)
+		protected.GET("/sites/:id",
+			middleware.RequirePermission(rbacService, "sites:read"),
+			siteHandler.Get)
+		protected.PUT("/sites/:id",
+			middleware.RequirePermission(rbacService, "sites:write"),
+			siteHandler.Update)
+		protected.DELETE("/sites/:id",
+			middleware.RequirePermission(rbacService, "sites:delete"),
+			siteHandler.Delete)
 
 			// 用户管理
 			protected.GET("/users/me", authHandler.Me)

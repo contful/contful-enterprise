@@ -26,7 +26,14 @@ const router = useRouter()
 // 等待 Layout 初始化完成（确保 currentSiteId 已设置）
 const layoutInitialized = inject<Ref<boolean>>('layoutInitialized', ref(true))
 
-const stats = ref({
+const stats = ref<{
+  sites: number
+  schemas: number
+  entries: number
+  assets: number
+  users: number
+  apiTokens: number
+}>({
   sites: 0,
   schemas: 0,
   entries: 0,
@@ -39,7 +46,7 @@ const loading = ref(true)
 async function fetchDashboardData() {
   try {
     const res = await getDashboardStats()
-    const data = res.data
+    const data = res.data as Record<string, number> | undefined
     stats.value = {
       sites: data?.sites || 0,
       schemas: data?.schemas || 0,
