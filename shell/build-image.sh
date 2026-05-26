@@ -13,9 +13,11 @@
 #   ./shell/build-image.sh console     # 构建 Console 镜像（当前架构，本地）
 #   ./shell/build-image.sh openapi     # 构建 Open API 镜像（当前架构，本地）
 #   ./shell/build-image.sh --multi-arch # 构建多架构镜像并推送到 registry（amd64 + arm64）
+#   PROXY=true ./shell/build-image.sh --multi-arch  # 国内网络启用阿里云镜像加速
 #
 # 环境变量:
 #   DB_TYPE         数据库类型 (postgresql=PostgreSQL)，支持逗号分隔，默认: postgresql
+#   PROXY           设为 true 使用阿里云镜像加速（国内网络），默认: false
 #
 # 镜像标签规则:
 #   单架构构建: ${db_type}-latest + ${db_type}-${arch}-latest（本地）
