@@ -150,36 +150,127 @@ docker compose -f docker/docker-compose.yaml --env-file .env up -d
 | 如何重置数据库？ | 删表后重启容器即可自动重建 |
 | 如何更换密钥？ | `rm ./conf/*.pem && docker restart contful-console` |
 
-### 方式四：本地开发
+### 方式四：从源码安装（非 Docker）
+
+适用于没有 Docker 环境、或希望从源码编译部署的场景。
+
+**前置条件**
+
+| 组件 | 版本要求 |
+|------|----------|
+| Go | 1.25+ |
+| Node.js | 24+ |
+| PostgreSQL | 14+ |
+| Valkey / Redis | 7+ |
+
+**1. 克隆项目**
 
 ```bash
-# 1. 启动数据库和缓存
-docker compose -f docker/docker-database.yaml up -d
-
-# 2. 初始化数据库
-psql -h localhost -U postgres -d contful -f db/init_pg.sql
-psql -h localhost -U postgres -d contful -f db/seed_data.sql
-
-# 3. 构建
-./shell/build.sh
-
-# 4. 启动服务
-./shell/dev.sh start
-
-# 访问
-#   管理后台:  http://localhost:3000   (Console + Admin API :9080)
-#   Open API: http://localhost:8080/
+git clone https://github.com/contful/contful.git
+cd contful/contful
 ```
 
-### 方式五：分别启动
+**2. 创建数据库**
 
 ```bash
-# 构建
-./shell/build.sh console    # 构建 Console（Admin API + 前端）
-./shell/build.sh openapi    # 构建 Open API
+# 连接 PostgreSQL
+psql -U postgres
 
-# 单独启动某个服务
+# 在 psql 中执行
+CREATE DATABASE contful;
+\q
+```
+
+**3. 导入数据库表结构和种子数据**
+
+```bash
+psql -U postgres -d contful -f db/init_pg.sql
+psql -U postgres -d contful -f db/seed_data.sql
+```
+
+导入完成后，数据库包含默认管理员账号：`admin@contful.com` / `contful@com`。
+
+**4. 配置环境变量**
+
+```bash
+cp .env.example .env
+# 编辑 .env，填写你的数据库和缓存连接信息
+```
+
+关键配置项：
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=<你的数据库密码>
+DB_NAME=contful
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=<你的 Redis 密码>
+SECRET=<运行 openssl rand -hex 32 生成>
+CRYPTO_MODE=rsa
+```
+
+**5. 生成密钥对（用于登录加密）**
+
+```bash
+# RSA 模式（默认）
+openssl genrsa -out conf/private.pem 2048
+openssl rsa -in conf/private.pem -pubout -out conf/public.pem
+
+# SM2 模式（需 openssl 3.0+ 或 gmssl）
+# openssl ecparam -genkey -name SM2 -out conf/private.pem
+# openssl ec -in conf/private.pem -pubout -out conf/public.pem
+```
+
+**6. 调整配置文件**
+
+编辑 `conf/console.yaml`，确认密钥路径：
+
+```yaml
+security:
+  pubkey_path: "conf/public.pem"
+  privkey_path: "conf/private.pem"
+  crypto_mode: "rsa"
+```
+
+**7. 编译并启动**
+
+```bash
+# 编译后端
+./shell/build.sh
+
+# 启动全部服务
+./shell/dev.sh start
+```
+
+**8. 访问**
+
+| 服务 | 地址 |
+|------|------|
+| 管理后台 | http://localhost:3000 |
+| Admin API | http://localhost:9080 |
+| Open API | http://localhost:8080 |
+
+> 使用种子数据中的管理员账号登录：`admin@contful.com` / `contful@com`，首次登录后请立即修改密码。
+
+**9. 验证**
+
+```bash
+# Admin API 健康检查
+curl http://localhost:9080/health
+
+# 查看服务状态
+./shell/dev.sh status
+```
+
+### 方式五：服务管理
+
+```bash
 ./shell/dev.sh logs admin   # 查看 Admin API 日志
+./shell/dev.sh logs openapi # 查看 Open API 日志
+./shell/dev.sh logs console # 查看 Console 日志
 ./shell/dev.sh status       # 查看服务状态
 ./shell/dev.sh stop         # 停止所有服务
 ```
