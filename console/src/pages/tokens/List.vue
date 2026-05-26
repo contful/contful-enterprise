@@ -6,7 +6,6 @@
 import { ref, computed, onMounted, reactive, h, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
-import { Dropdown as TDropdown } from 'tdesign-vue-next'
 import {
   listApiTokens,
   createApiToken,
@@ -82,8 +81,10 @@ const loadTokens = async () => {
     const res = await listApiTokens({
       page: pagination.current,
       page_size: pagination.pageSize,
-      name: debouncedKeyword.value || undefined,
-      status: statusFilter.value || undefined,
+      filter: {
+        name: debouncedKeyword.value || undefined,
+        status: statusFilter.value || undefined,
+      },
     })
     tokens.value = res?.items || []
     pagination.total = res?.total || 0
@@ -169,14 +170,6 @@ const formatDate = (date: string | null | undefined) => {
 const isExpired = (expiresAt: string | null | undefined) => {
   if (!expiresAt) return false
   return new Date(expiresAt) < new Date()
-}
-
-// 获取状态标签
-const getStatusTag = (token: ApiToken): { theme: 'success' | 'warning' | 'danger' | 'default'; label: string } => {
-  const tok = token as unknown as Record<string, any>
-  if (tok.revoked || token.status === 'revoked') return { theme: 'danger', label: t('apiTokens.revoked') }
-  if (isExpired(token.expires_time) || token.status === 'expired') return { theme: 'warning', label: t('apiTokens.expired') }
-  return { theme: 'success', label: t('apiTokens.active') || 'Active' }
 }
 
 // 删除确认 → DialogPlugin.confirm

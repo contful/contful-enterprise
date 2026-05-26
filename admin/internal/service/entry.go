@@ -63,6 +63,8 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 		SortWeight:     req.SortWeight,
 		CreatedBy:      userID,
 		ContentSchema:    contentSchema,
+		ScheduledPublishTime:   req.ScheduledPublishTime,
+		ScheduledUnpublishTime: req.ScheduledUnpublishTime,
 	}
 
 	// 设置 SEO
@@ -74,14 +76,6 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 	}
 	if len(req.SEOKeywords) > 0 {
 		entry.SEOKeywords = req.SEOKeywords
-	}
-
-	// 设置定时排期
-	if req.ScheduledPublishTime != nil {
-		entry.ScheduledPublishTime = req.ScheduledPublishTime
-	}
-	if req.ScheduledUnpublishTime != nil {
-		entry.ScheduledUnpublishTime = req.ScheduledUnpublishTime
 	}
 
 	// 事务: 创建条目 + 字段值 + 签名
@@ -203,9 +197,10 @@ func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uui
 	if req.SortWeight != nil {
 		entry.SortWeight = *req.SortWeight
 	}
-	// 定时排期（指针支持设置/清空）
-	if req.ScheduledPublishTime != nil || req.ScheduledUnpublishTime != nil {
+	if req.ScheduledPublishTime != nil {
 		entry.ScheduledPublishTime = req.ScheduledPublishTime
+	}
+	if req.ScheduledUnpublishTime != nil {
 		entry.ScheduledUnpublishTime = req.ScheduledUnpublishTime
 	}
 
@@ -308,8 +303,6 @@ func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uu
 	entry.Version++
 	entry.PublishedTime = &now
 	entry.PublishedBy = userID
-	// 手动发布后清除定时排期，防止 cron 重复执行
-	entry.ScheduledPublishTime = nil
 
 	if err := s.entryRepo.Update(ctx, entry); err != nil {
 		return nil, err
@@ -342,8 +335,6 @@ func (s *EntryService) Unpublish(ctx context.Context, siteID uuid.UUID, id uuid.
 	entry.Status = model.EntryStatusDraft
 	entry.PublishedTime = nil
 	entry.PublishedBy = nil
-	// 手动下架后清除定时排期，防止 cron 重复执行
-	entry.ScheduledUnpublishTime = nil
 
 	if err := s.entryRepo.Update(ctx, entry); err != nil {
 		return nil, err
@@ -368,6 +359,52 @@ func (s *EntryService) GetVersions(ctx context.Context, siteID uuid.UUID, id uui
 	}
 
 	return s.entryRepo.GetVersions(ctx, id)
+}
+
+// SetSchedule 设置排期时间
+func (s *EntryService) SetSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID, req *model.ScheduleRequest) (*model.Entry, error) {
+	entry, err := s.entryRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrEntryNotFound
+		}
+		return nil, err
+	}
+
+	if entry.SiteID != siteID {
+		return nil, ErrEntryNotFound
+	}
+
+	entry.ScheduledPublishTime = req.ScheduledPublishTime
+	entry.ScheduledUnpublishTime = req.ScheduledUnpublishTime
+
+	if err := s.entryRepo.Update(ctx, entry); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// ClearSchedule 清除排期时间
+func (s *EntryService) ClearSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.Entry, error) {
+	entry, err := s.entryRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrEntryNotFound
+		}
+		return nil, err
+	}
+
+	if entry.SiteID != siteID {
+		return nil, ErrEntryNotFound
+	}
+
+	entry.ScheduledPublishTime = nil
+	entry.ScheduledUnpublishTime = nil
+
+	if err := s.entryRepo.Update(ctx, entry); err != nil {
+		return nil, err
+	}
+	return entry, nil
 }
 
 // ============ 批量操作 ============
@@ -457,66 +494,6 @@ func (s *EntryService) BatchUnpublish(ctx context.Context, siteID uuid.UUID, ids
 		SuccessCount: int(count),
 		FailedCount:  len(ids) - int(count),
 	}, nil
-}
-
-// ============ 定时排期 ============
-
-// SetSchedule 设置定时排期
-func (s *EntryService) SetSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID, req *model.EntryScheduleRequest) (*model.Entry, error) {
-	entry, err := s.entryRepo.GetByIDWithType(ctx, id)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrEntryNotFound
-		}
-		return nil, err
-	}
-
-	if entry.SiteID != siteID {
-		return nil, ErrEntryNotFound
-	}
-
-	if err := s.entryRepo.SetScheduleTimes(ctx, id, req.ScheduledPublishTime, req.ScheduledUnpublishTime); err != nil {
-		return nil, err
-	}
-
-	entry.ScheduledPublishTime = req.ScheduledPublishTime
-	entry.ScheduledUnpublishTime = req.ScheduledUnpublishTime
-	return entry, nil
-}
-
-// ClearSchedule 清除定时排期
-func (s *EntryService) ClearSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.Entry, error) {
-	entry, err := s.entryRepo.GetByIDWithType(ctx, id)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrEntryNotFound
-		}
-		return nil, err
-	}
-
-	if entry.SiteID != siteID {
-		return nil, ErrEntryNotFound
-	}
-
-	if err := s.entryRepo.ClearScheduleTimes(ctx, id); err != nil {
-		return nil, err
-	}
-
-	entry.ScheduledPublishTime = nil
-	entry.ScheduledUnpublishTime = nil
-	return entry, nil
-}
-
-// ListScheduled 列出有排期的条目
-func (s *EntryService) ListScheduled(ctx context.Context, siteID uuid.UUID, page, pageSize int) ([]model.Entry, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
-
-	return s.entryRepo.ListScheduled(ctx, siteID, page, pageSize)
 }
 
 // ============ 辅助方法 ============

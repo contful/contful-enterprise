@@ -29,6 +29,7 @@ import {
 } from '@/api/entry'
 import PageHeader from '@/components/PageHeader.vue'
 import TableToolbar from '@/components/common/TableToolbar.vue'
+import ScheduleCalendar from './ScheduleCalendar.vue'
 
 // 类型守卫：处理 unknown 类型的 error 参数
 const handleError = (error: unknown) => showError(error as Parameters<typeof showError>[0])
@@ -57,6 +58,13 @@ const total = ref(0)
 
 // 表单数据
 const formData = ref<Record<string, any>>({})
+
+// 排期时间
+const scheduledPublishTime = ref<string>('')
+const scheduledUnpublishTime = ref<string>('')
+
+// Tab 状态
+const activeTab = ref<string>('list')
 
 // 过滤器
 const statusFilter = ref<string>('')
@@ -162,6 +170,8 @@ const openEditModal = async (entry: Entry) => {
     const res = await getEntry(entry.id)
     editingEntry.value = res.data
     formData.value = { ...res.data.values || {} }
+    scheduledPublishTime.value = res.data.scheduled_publish_time || ''
+    scheduledUnpublishTime.value = res.data.scheduled_unpublish_time || ''
     showModal.value = true
   } catch (error) {
     handleError(error)
@@ -173,6 +183,8 @@ const closeModal = () => {
   showModal.value = false
   editingEntry.value = null
   formData.value = {}
+  scheduledPublishTime.value = ''
+  scheduledUnpublishTime.value = ''
 }
 
 // 提交表单
@@ -181,10 +193,16 @@ const handleSubmit = async () => {
   submitting.value = true
   try {
     if (editingEntry.value) {
-      await updateEntry(editingEntry.value.id, { values: formData.value } as any)
+      const updateData: any = { values: formData.value }
+      updateData.scheduled_publish_time = scheduledPublishTime.value || null
+      updateData.scheduled_unpublish_time = scheduledUnpublishTime.value || null
+      await updateEntry(editingEntry.value.id, updateData)
       showSuccess(t('content.updateSuccess'))
     } else {
-      await createEntry({ schema_id: selectedType.value.id, values: formData.value } as any)
+      const createData: any = { schema_id: selectedType.value.id, values: formData.value }
+      createData.scheduled_publish_time = scheduledPublishTime.value || undefined
+      createData.scheduled_unpublish_time = scheduledUnpublishTime.value || undefined
+      await createEntry(createData)
       showSuccess(t('content.createSuccess'))
     }
     closeModal()
@@ -333,22 +351,26 @@ const clearSearch = () => {
 }
 
 // 状态样式 → t-tag theme
-const getStatusTheme = (status: string): string => {
+const getStatusTheme = (entry: Entry): string => {
+  if (entry.scheduled_publish_time && entry.status === 'draft') return 'primary'
+  if (entry.scheduled_unpublish_time && entry.status === 'published') return 'warning'
   const map: Record<string, string> = {
     published: 'success',
     draft: 'warning',
     archived: 'default',
   }
-  return map[status] || 'default'
+  return map[entry.status] || 'default'
 }
 
-const getStatusLabel = (status: string) => {
+const getStatusLabel = (entry: Entry) => {
+  if (entry.scheduled_publish_time && entry.status === 'draft') return t('schedule.pendingPublish')
+  if (entry.scheduled_unpublish_time && entry.status === 'published') return t('schedule.pendingUnpublish')
   const map: Record<string, string> = {
     published: t('content.published'),
     draft: t('content.draft'),
     archived: t('content.archived'),
   }
-  return map[status] || status
+  return map[entry.status] || entry.status
 }
 
 // 格式化字段值
@@ -402,9 +424,7 @@ onMounted(() => {
       <!-- 无站点提示 -->
       <div v-if="!siteStore.currentSiteId" class="no-site-container">
         <div class="no-site-card">
-          <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-          </svg>
+          <t-icon name="home" size="64px" style="opacity:0.3" />
           <h3>{{ t('site.noSiteTitle') || '\u6682\u65e0\u7ad9\u70b9' }}</h3>
           <p>{{ t('site.noSiteHint') || '\u8bf7\u5148\u521b\u5efa\u4e00\u4e2a\u7ad9\u70b9\uff0c\u624d\u80fd\u7ba1\u7406\u5185\u5bb9' }}</p>
           <t-button theme="primary" @click="router.push('/')">{{ t('site.goToCreate') || '\u8fd4\u56de\u9996\u9875\u521b\u5efa\u7ad9\u70b9' }}</t-button>
@@ -426,11 +446,7 @@ onMounted(() => {
             :class="{ active: selectedType?.id === type.id }"
             @click="selectType(type)"
           >
-            <span class="type-icon">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
-              </svg>
-            </span>
+            <t-icon name="file" size="16px" class="type-icon" />
             <span class="type-name">{{ type.name }}</span>
             <span class="type-count">{{ entryCounts[type.id] || 0 }}</span>
           </button>
@@ -442,7 +458,10 @@ onMounted(() => {
 
       <!-- 主内容区 -->
       <main class="content-main">
-        <template v-if="selectedType">
+        <!-- Tab 切换 -->
+        <t-tabs v-model="activeTab" class="schedule-tabs">
+          <t-tab-panel value="list" :label="t('schedule.listView')">
+            <template v-if="selectedType">
           <TableToolbar>
             <template #left>
               <h2>{{ selectedType.name }}</h2>
@@ -577,8 +596,8 @@ onMounted(() => {
                     {{ formatFieldValue(entry.values?.[field.name]) }}
                   </td>
                   <td>
-                    <t-tag :theme="(getStatusTheme(entry.status) as any)" variant="light" size="small">
-                      {{ getStatusLabel(entry.status) }}
+                    <t-tag :theme="(getStatusTheme(entry) as any)" variant="light" size="small">
+                      {{ getStatusLabel(entry) }}
                     </t-tag>
                   </td>
                   <td>{{ formatDate(entry.updated_time) }}</td>
@@ -615,12 +634,19 @@ onMounted(() => {
         </template>
 
         <div v-else class="empty-state">
-          <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-            <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
-          </svg>
+          <t-icon name="file" size="64px" style="opacity:0.3" />
           <h3>{{ t('content.selectType') }}</h3>
           <p>{{ t('content.selectTypeHint') }}</p>
         </div>
+          </t-tab-panel>
+          <t-tab-panel value="calendar" :label="t('schedule.calendarView')">
+            <ScheduleCalendar
+              :selected-type="selectedType"
+              :content-schemas="contentSchemas"
+              @edit-entry="openEditModal"
+            />
+          </t-tab-panel>
+        </t-tabs>
       </main>
       </template>
     </div>
@@ -682,7 +708,7 @@ onMounted(() => {
           >
             <t-date-picker
               v-model="formData[field.name]"
-              enable-time-picker={false}
+              :enable-time-picker="false"
             />
           </t-form-item>
 
@@ -730,6 +756,47 @@ onMounted(() => {
             />
           </t-form-item>
         </template>
+      </t-form>
+
+      <!-- 排期设置 -->
+      <t-divider>{{ t('schedule.title') }}</t-divider>
+      <t-form :data="{ scheduledPublishTime, scheduledUnpublishTime }" label-align="top">
+        <t-form-item :label="t('schedule.publishTime')">
+          <t-date-picker
+            v-model="scheduledPublishTime"
+            enable-time-picker
+            :placeholder="t('schedule.publishTime')"
+            clearable
+            style="width: 100%"
+          >
+            <template #suffixIcon>
+              <t-button
+                v-if="scheduledPublishTime"
+                variant="text"
+                size="small"
+                @click="scheduledPublishTime = ''"
+              >{{ t('schedule.clearPublish') }}</t-button>
+            </template>
+          </t-date-picker>
+        </t-form-item>
+        <t-form-item :label="t('schedule.unpublishTime')">
+          <t-date-picker
+            v-model="scheduledUnpublishTime"
+            enable-time-picker
+            :placeholder="t('schedule.unpublishTime')"
+            clearable
+            style="width: 100%"
+          >
+            <template #suffixIcon>
+              <t-button
+                v-if="scheduledUnpublishTime"
+                variant="text"
+                size="small"
+                @click="scheduledUnpublishTime = ''"
+              >{{ t('schedule.clearUnpublish') }}</t-button>
+            </template>
+          </t-date-picker>
+        </t-form-item>
       </t-form>
     </t-dialog>
 </template>
@@ -837,6 +904,17 @@ onMounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.schedule-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-tabs :deep(.t-tabs__content) {
+  flex: 1;
+  overflow: auto;
 }
 
 .content-toolbar {

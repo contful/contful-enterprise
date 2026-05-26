@@ -18,7 +18,7 @@ type EntryCreate struct {
 	SEOTitle       string                 `json:"seo_title" binding:"omitempty,max=255"`
 	SEODescription string                 `json:"seo_description" binding:"omitempty,max=5000"`
 	SEOKeywords    []string               `json:"seo_keywords" binding:"omitempty,max=50,dive,max=100"`
-	SortWeight              int        `json:"sort_weight"`
+	SortWeight     int                    `json:"sort_weight"`
 	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time"`
 	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time"`
 }
@@ -40,12 +40,6 @@ type EntryUpdate struct {
 // EntryPublish 发布条目请求
 type EntryPublish struct {
 	ChangeSummary string `json:"change_summary"` // 发布说明
-}
-
-// EntryScheduleRequest 定时排期请求
-type EntryScheduleRequest struct {
-	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time"`
-	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time"`
 }
 
 // EntryResponse 条目响应

@@ -3,15 +3,20 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
+	"github.com/contful/contful/admin/internal/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -44,11 +49,12 @@ func isPasswordStrong(pwd string) bool {
 }
 
 type UserService struct {
-	userRepo *repository.UserRepository
+	userRepo        *repository.UserRepository
+	storageProvider storage.StorageProvider
 }
 
-func NewUserService(userRepo *repository.UserRepository) *UserService {
-	return &UserService{userRepo: userRepo}
+func NewUserService(userRepo *repository.UserRepository, storageProvider storage.StorageProvider) *UserService {
+	return &UserService{userRepo: userRepo, storageProvider: storageProvider}
 }
 
 // Create 创建用户（管理员操作）
@@ -322,5 +328,42 @@ func (s *UserService) VerifyUser(ctx context.Context, id uuid.UUID) (*VerifyUser
 		result.Reason = "数据签名不匹配，数据可能已被篡改"
 	}
 	return result, nil
+}
+
+// UploadAvatar 上传用户头像（通过 StorageProvider，支持本地/对象存储）
+func (s *UserService) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Reader, header *multipart.FileHeader) (string, error) {
+	// 读取文件内容
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("read avatar file: %w", err)
+	}
+
+	// 构造存储 Key：avatars/{userID}.{ext}
+	ext := filepath.Ext(header.Filename)
+	if ext == "" {
+		ext = ".jpg"
+	}
+	storageKey := filepath.Join("avatars", userID.String()+ext)
+
+	// 通过 StorageProvider 上传
+	_, err = s.storageProvider.Upload(ctx, storageKey, bytes.NewReader(data), int64(len(data)), &storage.WriteOptions{
+		ContentType: header.Header.Get("Content-Type"),
+	})
+	if err != nil {
+		return "", fmt.Errorf("upload avatar: %w", err)
+	}
+
+	// 获取访问 URL
+	avatarURL, err := s.storageProvider.URL(ctx, storageKey, 0)
+	if err != nil {
+		return "", fmt.Errorf("get avatar url: %w", err)
+	}
+
+	// 更新数据库中的 avatar_url
+	if err := s.userRepo.UpdateAvatarURL(ctx, userID, avatarURL); err != nil {
+		return "", fmt.Errorf("update avatar url: %w", err)
+	}
+
+	return avatarURL, nil
 }
 

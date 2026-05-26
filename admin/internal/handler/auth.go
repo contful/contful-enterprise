@@ -23,6 +23,8 @@ type AuthHandler struct {
 	asymCrypter   crypto.AsymmetricCrypter // 非对称加密器（RSA 或 SM2）
 	asymPubKey    string                   // 公钥 PEM（RSA 或 SM2）
 	asymPrivKey   string                   // 私钥 PEM（RSA 或 SM2）
+	cryptoMode    string                   // 加密模式（rsa 或 sm）
+	sm2PubKeyHex  string                   // SM2 原始公钥 hex（仅 SM2 模式，供前端 sm-crypto 使用）
 }
 
 // setRefreshTokenCookie 将 refresh_token 写入 HttpOnly Cookie
@@ -39,13 +41,23 @@ func clearRefreshTokenCookie(c *gin.Context) {
 	c.SetCookie("refresh_token", "", -1, "/", "", secure, true)
 }
 
-func NewAuthHandler(authService *service.AuthService, asymCrypter crypto.AsymmetricCrypter, pubKeyPEM, privKeyPEM string) *AuthHandler {
-	return &AuthHandler{
+func NewAuthHandler(authService *service.AuthService, asymCrypter crypto.AsymmetricCrypter, pubKeyPEM, privKeyPEM, cryptoMode string) *AuthHandler {
+	h := &AuthHandler{
 		authService: authService,
 		asymCrypter: asymCrypter,
 		asymPubKey:  pubKeyPEM,
 		asymPrivKey: privKeyPEM,
+		cryptoMode:  cryptoMode,
 	}
+
+	// SM2 模式：提取原始公钥 hex（供前端 sm-crypto 使用）
+	if cryptoMode == crypto.ModeSM {
+		if hex, err := crypto.SM2PubKeyToHex(pubKeyPEM); err == nil {
+			h.sm2PubKeyHex = hex
+		}
+	}
+
+	return h
 }
 
 // PublicKey 获取非对称加密公钥（RSA 或 SM2）和一次性 Anti-Replay Token
@@ -56,11 +68,20 @@ func (h *AuthHandler) PublicKey(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "failed to generate token"))
 		return
 	}
-	c.JSON(http.StatusOK, model.NewSuccessResponse(map[string]string{
-		"public_key": h.asymPubKey,
-		"token_id":   tokenID,
-		"token":      token,
-	}))
+
+	data := map[string]string{
+		"public_key":  h.asymPubKey,
+		"crypto_mode": h.cryptoMode,
+		"token_id":    tokenID,
+		"token":       token,
+	}
+
+	// SM2 模式：额外返回原始公钥 hex（前端 sm-crypto 需要此格式）
+	if h.cryptoMode == crypto.ModeSM && h.sm2PubKeyHex != "" {
+		data["sm2_public_key_hex"] = h.sm2PubKeyHex
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(data))
 }
 
 // Register 注册

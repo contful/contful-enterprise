@@ -4,7 +4,6 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"github.com/contful/contful/admin/internal/model"
 
@@ -308,92 +307,80 @@ func (r *EntryRepository) WithTransaction(fn func(repo *EntryRepository) error) 
 	})
 }
 
-// ============ 定时排期 ============
+// ============ 排期相关查询 ============
 
-// FindScheduledToPublish 查找到达定时发布时间的草稿条目
-func (r *EntryRepository) FindScheduledToPublish(ctx context.Context) ([]model.Entry, error) {
+// FindDuePublish 查找到期待发布的条目
+func (r *EntryRepository) FindDuePublish(ctx context.Context) ([]model.Entry, error) {
 	var entries []model.Entry
 	err := r.db.WithContext(ctx).
-		Where("status = ?", model.EntryStatusDraft).
-		Where("scheduled_publish_time IS NOT NULL").
 		Where("scheduled_publish_time <= NOW()").
+		Where("status = ?", model.EntryStatusDraft).
+		Where("deleted_time IS NULL").
 		Find(&entries).Error
 	return entries, err
 }
 
-// FindScheduledToUnpublish 查找到达定时下架时间的已发布条目
-func (r *EntryRepository) FindScheduledToUnpublish(ctx context.Context) ([]model.Entry, error) {
+// FindDueUnpublish 查找到期待下架的条目
+func (r *EntryRepository) FindDueUnpublish(ctx context.Context) ([]model.Entry, error) {
 	var entries []model.Entry
 	err := r.db.WithContext(ctx).
-		Where("status = ?", model.EntryStatusPublished).
-		Where("scheduled_unpublish_time IS NOT NULL").
 		Where("scheduled_unpublish_time <= NOW()").
+		Where("status = ?", model.EntryStatusPublished).
+		Where("deleted_time IS NULL").
 		Find(&entries).Error
 	return entries, err
 }
 
-// ExecuteScheduledPublish 执行定时发布：状态→published，记录发布时间，清除定时
-func (r *EntryRepository) ExecuteScheduledPublish(ctx context.Context, id uuid.UUID) (int64, error) {
-	result := r.db.WithContext(ctx).Model(&model.Entry{}).
-		Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"status":                 model.EntryStatusPublished,
-			"published_time":         gorm.Expr("NOW()"),
-			"scheduled_publish_time": nil,
-		})
-	return result.RowsAffected, result.Error
-}
-
-// ExecuteScheduledUnpublish 执行定时下架：状态→draft，清除发布时间和定时
-func (r *EntryRepository) ExecuteScheduledUnpublish(ctx context.Context, id uuid.UUID) (int64, error) {
-	result := r.db.WithContext(ctx).Model(&model.Entry{}).
-		Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"status":                   model.EntryStatusDraft,
-			"published_time":           nil,
-			"scheduled_unpublish_time": nil,
-		})
-	return result.RowsAffected, result.Error
-}
-
-// SetScheduleTimes 设置排期时间
-func (r *EntryRepository) SetScheduleTimes(ctx context.Context, id uuid.UUID, publishTime, unpublishTime *time.Time) error {
-	updates := map[string]interface{}{
-		"scheduled_publish_time":   publishTime,
-		"scheduled_unpublish_time": unpublishTime,
-	}
-	return r.db.WithContext(ctx).Model(&model.Entry{}).Where("id = ?", id).Updates(updates).Error
-}
-
-// ClearScheduleTimes 清除所有排期时间
-func (r *EntryRepository) ClearScheduleTimes(ctx context.Context, id uuid.UUID) error {
-	return r.db.WithContext(ctx).Model(&model.Entry{}).
-		Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"scheduled_publish_time":   nil,
-			"scheduled_unpublish_time": nil,
-		}).Error
-}
-
-// ListScheduled 列出有排期的条目（按站点过滤）
-func (r *EntryRepository) ListScheduled(ctx context.Context, siteID uuid.UUID, page, pageSize int) ([]model.Entry, int64, error) {
+// ListScheduled 查询排期条目列表
+func (r *EntryRepository) ListScheduled(ctx context.Context, siteID uuid.UUID, filter *model.ScheduledEntryFilter) ([]model.Entry, int64, error) {
 	var entries []model.Entry
 	var total int64
 
-	query := r.db.WithContext(ctx).Model(&model.Entry{}).
-		Where("site_id = ?", siteID).
-		Where("scheduled_publish_time IS NOT NULL OR scheduled_unpublish_time IS NOT NULL")
+	query := r.db.WithContext(ctx).Model(&model.Entry{}).Where("site_id = ?", siteID)
+
+	if filter == nil {
+		filter = &model.ScheduledEntryFilter{}
+	}
+	if filter.Page < 1 {
+		filter.Page = 1
+	}
+	if filter.PageSize < 1 || filter.PageSize > 100 {
+		filter.PageSize = 50
+	}
+
+	// 根据 status 筛选
+	if filter.Status != nil {
+		switch *filter.Status {
+		case "pending_publish":
+			query = query.Where("scheduled_publish_time IS NOT NULL AND status = ?", model.EntryStatusDraft)
+		case "pending_unpublish":
+			query = query.Where("scheduled_unpublish_time IS NOT NULL AND status = ?", model.EntryStatusPublished)
+		case "all":
+			query = query.Where("(scheduled_publish_time IS NOT NULL OR scheduled_unpublish_time IS NOT NULL)")
+		}
+	} else {
+		query = query.Where("(scheduled_publish_time IS NOT NULL OR scheduled_unpublish_time IS NOT NULL)")
+	}
+
+	if filter.From != nil {
+		query = query.Where("(scheduled_publish_time >= ? OR scheduled_unpublish_time >= ?)", *filter.From, *filter.From)
+	}
+	if filter.To != nil {
+		query = query.Where("(scheduled_publish_time <= ? OR scheduled_unpublish_time <= ?)", *filter.To, *filter.To)
+	}
+
+	query = query.Where("deleted_time IS NULL")
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	offset := (page - 1) * pageSize
+	offset := (filter.Page - 1) * filter.PageSize
 	err := query.
 		Preload("ContentSchema").
 		Order("COALESCE(scheduled_publish_time, scheduled_unpublish_time) ASC").
 		Offset(offset).
-		Limit(pageSize).
+		Limit(filter.PageSize).
 		Find(&entries).Error
 	if err != nil {
 		return nil, 0, err

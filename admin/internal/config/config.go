@@ -50,11 +50,11 @@ type SecurityConfig struct {
 	// sm：SM2 + SM3 + SM4-GCM 全链路国密
 	CryptoMode string `mapstructure:"crypto_mode"`
 
-	// RSA 密钥对文件路径（用于前端登录密码加密传输）
+	// 非对称密钥对文件路径（用于前端登录密码加密传输）
 	// 相对路径相对于配置文件目录（conf/）
-	// crypto_mode=sm 时会自动生成 SM2 密钥对，RSA 路径被忽略
-	RSAPublicKeyPath  string `mapstructure:"rsa_pubkey_path"`
-	RSAPrivateKeyPath string `mapstructure:"rsa_privkey_path"`
+	// crypto_mode=rsa 时加载 RSA 密钥对，crypto_mode=sm 时加载 SM2 密钥对
+	PublicKeyPath  string `mapstructure:"pubkey_path"`
+	PrivateKeyPath string `mapstructure:"privkey_path"`
 }
 
 // ServerConfig 服务配置
@@ -155,8 +155,8 @@ type FeaturesConfig struct {
 
 // ScheduleConfig 定时排期配置
 type ScheduleConfig struct {
-	Enabled  bool `mapstructure:"enabled"`  // 是否启用定时发布/下架调度器
-	Interval int  `mapstructure:"interval"` // 扫描间隔（秒），默认 30
+	Enabled  bool `mapstructure:"enabled"`
+	Interval int  `mapstructure:"interval"` // 扫描间隔（秒），默认 60
 }
 
 // 全局配置实例
@@ -388,23 +388,18 @@ func (c *Config) PostLoad() {
 	// 审计签名密钥：派生 "audit-signing" info
 	c.Audit.SigningKey = deriveKey(c.Security.Secret, "audit-signing", 32)
 
-	// RSA 密钥对：从文件读取，未配置时自动生成
+	// 非对称密钥对：从文件读取，不存在时自动生成
 	// 公钥用于 PublicKey 端点，私钥用于密码解密
-	if c.Security.RSAPublicKeyPath == "" {
-		c.Security.RSAPublicKeyPath = "rsa_public.pem"
+	if c.Security.PublicKeyPath == "" {
+		c.Security.PublicKeyPath = "conf/keys/public.pem"
 	}
-	if c.Security.RSAPrivateKeyPath == "" {
-		c.Security.RSAPrivateKeyPath = "rsa_private.pem"
+	if c.Security.PrivateKeyPath == "" {
+		c.Security.PrivateKeyPath = "conf/keys/private.pem"
 	}
 
 	// CryptoMode 默认值
 	if c.Security.CryptoMode == "" {
 		c.Security.CryptoMode = crypto.ModeRSA
-	}
-
-	// 定时排期默认值
-	if c.Schedule.Interval == 0 {
-		c.Schedule.Interval = 30
 	}
 
 	// 国密模式下自动切换对称加密算法
@@ -507,10 +502,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("features.version_history", true)
 	v.SetDefault("features.api_tokens", true)
 	v.SetDefault("features.media_library", true)
-
-	// 定时排期
 	v.SetDefault("schedule.enabled", false)
-	v.SetDefault("schedule.interval", 30)
+	v.SetDefault("schedule.interval", 60)
 }
 
 // readEnvOverrides 读取环境变量覆盖
@@ -532,9 +525,9 @@ func readEnvOverrides(v *viper.Viper) {
 		"SECRET":           "security.secret",
 		"SECRET_ALGORITHM": "security.algorithm",
 		"CRYPTO_MODE":      "security.crypto_mode",
-		// RSA 密钥路径
-		"RSA_PUBKEY_PATH":  "security.rsa_pubkey_path",
-		"RSA_PRIVKEY_PATH": "security.rsa_privkey_path",
+		// 密钥路径
+		"PUBKEY_PATH":  "security.pubkey_path",
+		"PRIVKEY_PATH": "security.privkey_path",
 		// 存储配置
 		"STORAGE_DRIVER":             "storage.driver",
 		"STORAGE_UPLOAD_DIR":         "storage.upload_dir",

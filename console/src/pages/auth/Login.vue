@@ -125,6 +125,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import JSEncrypt from 'jsencrypt'
+import { sm2 } from 'sm-crypto'
 import { useUserStore } from '@/stores/user'
 import { updatePassword } from '@/api/user'
 import { getSiteConfig } from '@/api/system-config'
@@ -242,21 +243,30 @@ const checkPasswordStrength = (pwd: string): boolean => {
 }
 
 const onLogin = async () => {
-  // 1. 获取 RSA 公钥 + Anti-Replay Token
+  // 1. 获取公钥（RSA 或 SM2，由 crypto_mode 决定）+ Anti-Replay Token
   let encryptedPassword = ''
   let tokenId = ''
   let rsaToken = ''
   try {
     const keyRes: any = await get('/auth/public/key')
     if (keyRes.code === 200 && keyRes.data?.public_key) {
-      const { public_key, token_id, token } = keyRes.data
+      const { public_key, crypto_mode, sm2_public_key_hex, token_id, token } = keyRes.data
       tokenId = token_id
       rsaToken = token
-      // 2. RSA 加密「密码@@token」
-      const encrypt = new JSEncrypt()
-      encrypt.setPublicKey(public_key)
       const plaintext = loginForm.password + '@@' + token
-      encryptedPassword = encrypt.encrypt(plaintext) || ''
+
+      if (crypto_mode === 'sm' && sm2_public_key_hex) {
+        // SM2 国密加密（密文格式 C1C3C2，Base64 编码）
+        const cipherHex = sm2.doEncrypt(plaintext, sm2_public_key_hex, 1)
+        // hex → bytes → base64（后端 AsymDecrypt 先 base64 decode 再 SM2 decrypt）
+        const bytes = new Uint8Array(cipherHex.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)))
+        encryptedPassword = btoa(String.fromCharCode(...bytes))
+      } else {
+        // RSA 加密（PKCS#1 v1.5，Base64 编码）
+        const encrypt = new JSEncrypt()
+        encrypt.setPublicKey(public_key)
+        encryptedPassword = encrypt.encrypt(plaintext) || ''
+      }
     }
   } catch {
     // 降级：加密失败时使用明文（保持兼容）

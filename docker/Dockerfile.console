@@ -83,7 +83,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 WORKDIR /app
 
 # 只安装 su-exec（进程切换），去掉 supervisor(Python) 和 gettext（模板替换）
-RUN apk add --no-cache su-exec
+RUN apk add --no-cache su-exec postgresql-client
 
 # 合并：创建用户 + 目录 + 权限（减少 Docker 层）
 # nginx 运行需要这些临时目录，预先创建
@@ -103,11 +103,14 @@ RUN addgroup -S contful \
                              /usr/local/openresty/nginx/scgi_temp
 USER contful
 
+# 创建配置子目录（密钥 + SSL 证书）
+RUN mkdir -p /app/conf/keys /app/conf/ssl
+
 # 复制 Go 二进制
 COPY --chown=contful:contful --from=go-builder /app/admin /app/admin
 
-# 复制 RSA 密钥对（用于登录密码加密传输）
-COPY --chown=contful:contful conf/rsa_public.pem conf/rsa_private.pem /app/
+# 复制 SQL 初始化脚本到镜像（含 DDL + 种子数据）
+COPY --chown=contful:contful db/init_pg.sql /app/db/init_pg.sql
 
 # 复制前端静态文件（从前端构建 stage）
 COPY --chown=contful:contful --from=frontend-builder /app/dist /usr/share/nginx/html

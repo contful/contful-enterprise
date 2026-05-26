@@ -3,7 +3,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import request, { setAccessToken, getAccessToken, logout as clearAuthSession, initializeSession } from '@/utils/request'
+import request, { setAccessToken, getAccessToken, logout as clearAuthSession } from '@/utils/request'
 import { useSiteStore } from '@/stores/site'
 
 interface User {

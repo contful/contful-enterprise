@@ -274,3 +274,13 @@ func (r *UserRepository) UpdateRecoveryCodes(ctx context.Context, userID uuid.UU
 			"updated_time":   time.Now(),
 		}).Error
 }
+
+// UpdateAvatarURL 更新用户头像地址
+func (r *UserRepository) UpdateAvatarURL(ctx context.Context, userID uuid.UUID, avatarURL string) error {
+	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"avatar_url":   avatarURL,
+			"updated_time": time.Now(),
+		}).Error
+}

@@ -454,9 +454,9 @@ const handleCreate = async () => {
     })
     showSuccess(t('users.createSuccess'))
     // 分配选中的角色
-    if (createForm.roleIds.length > 0 && newUser?.id) {
+    if (createForm.roleIds.length > 0 && newUser?.data?.id) {
       for (const roleId of createForm.roleIds) {
-        try { await assignUserRole(newUser.id, roleId) } catch { /* 逐个失败不影响 */ }
+        try { await assignUserRole(newUser.data.id, roleId) } catch { /* 逐个失败不影响 */ }
       }
     }
     createVisible.value = false
@@ -578,7 +578,7 @@ const handleVerify = async (user: User) => {
   try {
     const res: any = await verifyUser(user.id)
     const result = res.data
-    const dialog = DialogPlugin.alert({
+    DialogPlugin.alert({
       header: t('users.verifyResult'),
       body: h('div', { style: 'line-height:2' }, [
         h('p', [

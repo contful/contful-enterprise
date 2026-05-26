@@ -3,7 +3,7 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, computed, onMounted, nextTick, provide } from 'vue'
+import { ref, computed, nextTick, provide, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
@@ -12,7 +12,7 @@ import { showError, showSuccess } from '@/utils/request'
 import LangSwitcher from './LangSwitcher.vue'
 
 const { t } = useI18n()
-const version = '1.0.0'
+import { version } from '../../package.json'
 const edition = import.meta.env.VITE_EDITION || 'community'
 const editionLabel = edition === 'enterprise' ? t('edition.enterprise') : t('edition.community')
 
@@ -128,7 +128,7 @@ const handleLogout = async () => {
 }
 
 const user = computed(() => userStore.user)
-const userLoading = ref(false)
+const userLoading = ref(true)
 
 const goToProfile = () => {
   router.push('/profile')
@@ -200,37 +200,34 @@ const siteOptions = computed(() =>
 // 响应式跟踪 sites 加载状态，替代独立的 siteLoading ref
 const siteLoading = computed(() => siteStore.loading || siteStore.sites.length === 0)
 
-// 初始化时加载用户信息和站点
-// 使用 onMounted 确保子组件的 onMounted 先执行，但通过 provide/initialized 控制数据请求时机
-onMounted(async () => {
-  // 用户会话已在 router.beforeEach 中恢复，此处仅补充加载失败时的兜底
-  if (!userStore.user) {
-    userLoading.value = true
-    // 等待一小段时间让 router guard 完成（通常 user 已设置）
-    // 如果仍未设置，由 router guard 处理跳转
+// 监听用户数据恢复，加载站点列表和权限
+// 用 user（Vue ref）而非 isLoggedIn（computed），确保 Pinia 响应式正常触发
+watch(
+  () => userStore.user,
+  async (u) => {
+    if (!u) { userLoading.value = true; return }
     userLoading.value = false
-  }
 
-  // 会话有效，加载站点列表（只会加载一次）
-  if (userStore.isLoggedIn && siteStore.sites.length === 0) {
-    try {
-      await siteStore.fetchSites()
-    } catch {
-      // 站点列表加载失败不应阻塞页面渲染
+    if (siteStore.sites.length === 0) {
+      try {
+        await siteStore.fetchSites()
+      } catch {
+        // 站点列表加载失败不应阻塞页面渲染
+      }
     }
-  }
 
-  // 加载用户权限列表（只会加载一次）
-  if (userStore.isLoggedIn && !userStore.isSuperAdmin && userStore.permissions.length === 0) {
-    try {
-      await userStore.fetchPermissions()
-    } catch {
-      // 权限列表加载失败不应阻塞页面渲染
+    if (!userStore.isSuperAdmin && userStore.permissions.length === 0) {
+      try {
+        await userStore.fetchPermissions()
+      } catch {
+        // 权限列表加载失败不应阻塞页面渲染
+      }
     }
-  }
 
-  initialized.value = true
-})
+    initialized.value = true
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -303,12 +300,17 @@ onMounted(async () => {
             </template>
             <!-- 加载完成：显示用户信息 -->
             <template v-else-if="user">
-              <div class="avatar">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
+              <img
+                :src="user.avatar_url || '/assets/default.jpeg'"
+                class="avatar"
+                :alt="user.nickname || user.email"
+                @error="($event.target as HTMLImageElement).style.display='none'"
+              />
               <span class="user-name">{{ user.nickname || user.email }}</span>
             </template>
             <!-- 兜底：显示默认头像 -->
             <template v-else>
-              <div class="avatar">U</div>
+              <img src="/assets/default.jpeg" class="avatar" alt="User" />
             </template>
             <t-icon name="chevron-down" size="14px" style="color: var(--color-text-secondary)" />
           </div>
@@ -502,16 +504,10 @@ onMounted(async () => {
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 13px;
+  object-fit: cover;
   flex-shrink: 0;
 }
 

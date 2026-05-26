@@ -21,6 +21,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/audit"
+	"github.com/contful/contful/admin/internal/cmd"
 	"github.com/contful/contful/admin/internal/config"
 	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/handler"
@@ -28,12 +29,30 @@ import (
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/repository"
-	"github.com/contful/contful/admin/internal/scheduler"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/contful/contful/admin/internal/storage"
 )
 
 func main() {
+	// CLI 子命令路由
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "check-db":
+			cmd.CheckDB()
+			return
+		case "gen-key":
+			cmd.GenKey()
+			return
+		case "version":
+			cmd.PrintVersion()
+			return
+		}
+	}
+	runServer()
+}
+
+// runServer 启动 HTTP 服务。
+func runServer() {
 	// 初始化配置
 	cfg, err := config.Load()
 	if err != nil {
@@ -90,18 +109,6 @@ func main() {
 	schemaRepo := repository.NewSchemaRepository(db)
 	fieldRepo := repository.NewFieldRepository(db)
 	entryRepo := repository.NewEntryRepository(db)
-
-	// 初始化定时排期调度器
-	var scheduleSvc *scheduler.ScheduleService
-	if cfg.Schedule.Enabled {
-		scheduleSvc = scheduler.NewScheduleService(
-			entryRepo,
-			time.Duration(cfg.Schedule.Interval)*time.Second,
-			logger,
-		)
-		logger.Info().Int("interval", cfg.Schedule.Interval).Msg("定时排期调度器已就绪")
-	}
-
 	assetRepo := repository.NewAssetRepository(db)
 	tokenRepo := repository.NewAPITokenRepository(db)
 	systemRoleRepo := repository.NewSystemRoleRepository(db)
@@ -144,10 +151,10 @@ func main() {
 	rbacService := service.NewRBACService(db, redisClient, systemRoleRepo, userRepo, permRepo)
 
 	authService := service.NewAuthService(userRepo, siteRepo, systemConfigRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
-	userService := service.NewUserService(userRepo)
 	siteService := service.NewSiteService(db, siteRepo)
 	schemaService := service.NewSchemaService(schemaRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, schemaRepo, fieldRepo)
+	scheduleService := service.NewScheduleService(db, entryRepo, logger)
 	tokenService := service.NewAPITokenService(tokenRepo, crypter)
 	cacheService := service.NewCacheService(redisClient)
 
@@ -163,13 +170,27 @@ func main() {
 	}
 	logger.Info().Str("driver", cfg.Storage.Driver).Msg("存储驱动已就绪（全局单例）")
 
+	// 加载企业 License
+	licenseInfo, licenseErr := lic.Load()
+	licenseHandler := lic.NewHandler(licenseInfo)
+	if licenseErr != nil {
+		logger.Warn().Err(licenseErr).Msg("license not loaded — running in unlicensed mode")
+	} else {
+		logger.Info().
+			Str("customer", licenseInfo.Customer).
+			Str("product", licenseInfo.ProductName).
+			Str("version", licenseInfo.ProductVersion).
+			Msg("license loaded")
+	}
+
+	userService := service.NewUserService(userRepo, storageProvider)
 	assetService := service.NewAssetService(assetRepo, storageProvider)
 	assetService.SetConfigService(configService)
 
 	// 初始化非对称加密器（RSA 或 SM2，由 crypto_mode 决定）
 	// 优先从文件加载密钥对，不存在时自动生成
-	pubPath := resolveConfigPath(cfg.Security.RSAPublicKeyPath)
-	privPath := resolveConfigPath(cfg.Security.RSAPrivateKeyPath)
+	pubPath := resolveConfigPath(cfg.Security.PublicKeyPath)
+	privPath := resolveConfigPath(cfg.Security.PrivateKeyPath)
 	var asymCrypter crypto.AsymmetricCrypter
 	var asyPubKeyPEM, asyPrivKeyPEM string
 
@@ -206,29 +227,14 @@ func main() {
 		logger.Info().Str("mode", cfg.Security.CryptoMode).Msg("asymmetric key pair generated and saved")
 	}
 
-	// 加载企业 License（conf/license.dat）
-	licenseInfo, licenseErr := lic.Load()
-	licenseHandler := lic.NewHandler(licenseInfo)
-	if licenseErr != nil {
-		logger.Warn().Err(licenseErr).Msg("license not loaded — running in unlicensed mode")
-	} else {
-		logger.Info().
-			Str("customer", licenseInfo.Customer).
-			Str("product", licenseInfo.ProductName).
-			Str("version", licenseInfo.ProductVersion).
-			Str("status", licenseInfo.Status()).
-			Bool("is_trial", licenseInfo.IsTrial).
-			Time("expiry", licenseInfo.ExpiryDate).
-			Msg("license loaded")
-	}
-
 	// 初始化 Handler
-	authHandler := handler.NewAuthHandler(authService, asymCrypter, asyPubKeyPEM, asyPrivKeyPEM)
+	authHandler := handler.NewAuthHandler(authService, asymCrypter, asyPubKeyPEM, asyPrivKeyPEM, cfg.Security.CryptoMode)
 	mfaHandler := handler.NewMFAHandler(mfaService, authService)
 	userHandler := handler.NewUserHandler(userService, auditService)
 	siteHandler := handler.NewSiteHandler(siteService, auditService)
 	schemaHandler := handler.NewSchemaHandler(schemaService)
 	entryHandler := handler.NewEntryHandler(entryService, configService)
+	scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	assetHandler := handler.NewAssetHandler(assetService)
 	tokenHandler := handler.NewAPITokenHandler(tokenService, auditService)
 		integrityHandler := handler.NewIntegrityHandler(entryRepo, assetRepo, auditRepo, configService)
@@ -238,6 +244,11 @@ func main() {
 	permHandler := handler.NewPermissionHandler(permRepo, rbacService)
 	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
 	auditHandler := handler.NewAuditHandler(auditService)
+
+	// 启动排期调度器（后台 goroutine）
+	ctxCron, cancelCron := context.WithCancel(context.Background())
+	defer cancelCron()
+	go scheduleService.StartCron(ctxCron)
 
 	// 初始化 Gin
 	r := gin.New()
@@ -284,7 +295,7 @@ func main() {
 		// 公开路由
 		auth := api.Group("/auth")
 		{
-			auth.GET("/public/key", authHandler.PublicKey) // RSA 公钥 + Anti-Replay Token
+			auth.GET("/public/key", authHandler.PublicKey) // 非对称加密公钥 + Anti-Replay Token
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
@@ -311,17 +322,30 @@ func main() {
 			protected.POST("/auth/mfa/disable", mfaHandler.Disable)
 
 			// 站点管理
-			protected.GET("/sites/mine", siteHandler.MySites)
-			protected.GET("/sites", siteHandler.List)
-			protected.POST("/sites", siteHandler.Create)
-			protected.GET("/sites/:id", siteHandler.Get)
-			protected.PUT("/sites/:id", siteHandler.Update)
-			protected.DELETE("/sites/:id", siteHandler.Delete)
+		protected.GET("/sites/mine",
+			middleware.RequirePermission(rbacService, "sites:read"),
+			siteHandler.MySites)
+		protected.GET("/sites",
+			middleware.RequirePermission(rbacService, "sites:read"),
+			siteHandler.List)
+		protected.POST("/sites",
+			middleware.RequirePermission(rbacService, "sites:write"),
+			siteHandler.Create)
+		protected.GET("/sites/:id",
+			middleware.RequirePermission(rbacService, "sites:read"),
+			siteHandler.Get)
+		protected.PUT("/sites/:id",
+			middleware.RequirePermission(rbacService, "sites:write"),
+			siteHandler.Update)
+		protected.DELETE("/sites/:id",
+			middleware.RequirePermission(rbacService, "sites:delete"),
+			siteHandler.Delete)
 
 			// 用户管理
 			protected.GET("/users/me", authHandler.Me)
 			protected.PATCH("/users/me", userHandler.UpdateMe)
 			protected.PUT("/users/me/password", userHandler.UpdatePassword)
+			protected.POST("/users/me/avatar", userHandler.UploadAvatar)
 			protected.GET("/users",
 				middleware.RequirePermission(rbacService, "users:read"),
 				userHandler.List)
@@ -410,13 +434,13 @@ func main() {
 			protected.GET("/content/entries",
 				middleware.RequirePermission(rbacService, "entry:read"),
 				entryHandler.List)
-			// 排期列表（静态路径在前，避免被 :id 捕获）
-			protected.GET("/content/entries/scheduled",
-				middleware.RequirePermission(rbacService, "entry:read"),
-				entryHandler.ScheduledList)
 			protected.POST("/content/entries",
 				middleware.RequirePermission(rbacService, "entry:write"),
 				entryHandler.Create)
+			// 排期列表（静态路径必须在 :id 之前注册）
+			protected.GET("/content/entries/scheduled",
+				middleware.RequirePermission(rbacService, "entry:read"),
+				scheduleHandler.ListScheduled)
 			protected.GET("/content/entries/:id",
 				middleware.RequirePermission(rbacService, "entry:read"),
 				entryHandler.Get)
@@ -435,13 +459,13 @@ func main() {
 			protected.GET("/content/entries/:id/versions",
 				middleware.RequirePermission(rbacService, "entry:read"),
 				entryHandler.GetVersions)
-			// 定时排期
+			// 排期操作
 			protected.PUT("/content/entries/:id/schedule",
 				middleware.RequirePermission(rbacService, "entry:write"),
-				entryHandler.Schedule)
+				entryHandler.SetSchedule)
 			protected.DELETE("/content/entries/:id/schedule",
 				middleware.RequirePermission(rbacService, "entry:write"),
-				entryHandler.Unschedule)
+				entryHandler.ClearSchedule)
 			// 批量操作（静态路径在前，避免与 :id 冲突）
 			protected.POST("/content/entries/batch-publish",
 				middleware.RequirePermission(rbacService, "entry:publish"),
@@ -573,8 +597,6 @@ func main() {
 
 			// ─── 系统配置管理 ─────────────────────────
 			// 需要认证的路由
-			// License 信息（无需特定权限，所有认证用户可查看）
-			protected.GET("/system/license", licenseHandler.GetInfo)
 			protected.GET("/system/config",
 				middleware.RequirePermission(rbacService, "settings:read"),
 				systemConfigHandler.List)
@@ -593,6 +615,11 @@ func main() {
 			protected.POST("/system/config/cache/clear",
 				middleware.RequirePermission(rbacService, "settings:write"),
 				systemConfigHandler.ClearCache)
+
+			// ─── 企业 License ─────────────────────────
+			protected.GET("/system/license",
+				middleware.RequirePermission(rbacService, "settings:read"),
+				licenseHandler.GetInfo)
 
 			// ─── 权限元数据 ─────────────────────────────
 			protected.GET("/permissions",
@@ -638,11 +665,6 @@ func main() {
 		WriteTimeout: time.Duration(cfg.Server.WriteTimeout) * time.Second,
 	}
 
-	// 启动定时排期调度器
-	if scheduleSvc != nil {
-		scheduleSvc.Start(context.Background())
-	}
-
 	// Graceful shutdown
 	go func() {
 		logger.Info().Str("addr", addr).Msg("server listening")
@@ -655,11 +677,6 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	logger.Info().Msg("shutting down server...")
-
-	// 停止定时排期调度器
-	if scheduleSvc != nil {
-		scheduleSvc.Stop()
-	}
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Duration(cfg.Server.ShutdownTimeout)*time.Second)
 	defer shutdownCancel()

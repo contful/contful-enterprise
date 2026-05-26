@@ -53,10 +53,6 @@ func (h *EntryHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		entries.POST("/batch-delete", h.BatchDelete)
 		entries.POST("/batch-publish", h.BatchPublish)
 		entries.POST("/batch-unpublish", h.BatchUnpublish)
-		// 定时排期
-		entries.GET("/scheduled", h.ScheduledList)
-		entries.PUT("/:id/schedule", h.Schedule)
-		entries.DELETE("/:id/schedule", h.Unschedule)
 	}
 }
 
@@ -241,76 +237,6 @@ func (h *EntryHandler) Unpublish(c *gin.Context) {
 	middleware.OK(c, entry.ToResponse())
 }
 
-// Schedule 设置定时排期
-func (h *EntryHandler) Schedule(c *gin.Context) {
-	siteID := middleware.GetSiteID(c)
-
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		middleware.BadRequest(c, "invalid entry id")
-		return
-	}
-
-	var req model.EntryScheduleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		middleware.BadRequest(c, err.Error())
-		return
-	}
-
-	entry, err := h.entryService.SetSchedule(c.Request.Context(), siteID, id, &req)
-	if err != nil {
-		h.handleError(c, err)
-		return
-	}
-
-	middleware.OK(c, entry.ToResponse())
-}
-
-// Unschedule 清除定时排期
-func (h *EntryHandler) Unschedule(c *gin.Context) {
-	siteID := middleware.GetSiteID(c)
-
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		middleware.BadRequest(c, "invalid entry id")
-		return
-	}
-
-	entry, err := h.entryService.ClearSchedule(c.Request.Context(), siteID, id)
-	if err != nil {
-		h.handleError(c, err)
-		return
-	}
-
-	middleware.OK(c, entry.ToResponse())
-}
-
-// ScheduledList 列出有排期的条目
-func (h *EntryHandler) ScheduledList(c *gin.Context) {
-	siteID := middleware.GetSiteID(c)
-
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-
-	entries, total, err := h.entryService.ListScheduled(c.Request.Context(), siteID, page, pageSize)
-	if err != nil {
-		h.handleError(c, err)
-		return
-	}
-
-	items := make([]model.EntryResponseWithType, len(entries))
-	for i, e := range entries {
-		items[i] = e.ToResponseWithType()
-	}
-
-	middleware.OK(c, model.EntryListResponse{
-		Items:    items,
-		Total:    total,
-		Page:     page,
-		PageSize: pageSize,
-	})
-}
-
 // GetVersions 获取版本历史
 func (h *EntryHandler) GetVersions(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
@@ -399,4 +325,48 @@ func (h *EntryHandler) handleError(c *gin.Context, err error) {
 	default:
 		middleware.InternalError(c, err.Error())
 	}
+}
+
+// SetSchedule 设置条目排期
+func (h *EntryHandler) SetSchedule(c *gin.Context) {
+	siteID := middleware.GetSiteID(c)
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		middleware.BadRequest(c, "invalid entry id")
+		return
+	}
+
+	var req model.ScheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.BadRequest(c, err.Error())
+		return
+	}
+
+	entry, err := h.entryService.SetSchedule(c.Request.Context(), siteID, id, &req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, entry.ToResponse())
+}
+
+// ClearSchedule 清除条目排期
+func (h *EntryHandler) ClearSchedule(c *gin.Context) {
+	siteID := middleware.GetSiteID(c)
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		middleware.BadRequest(c, "invalid entry id")
+		return
+	}
+
+	entry, err := h.entryService.ClearSchedule(c.Request.Context(), siteID, id)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	middleware.OK(c, entry.ToResponse())
 }
