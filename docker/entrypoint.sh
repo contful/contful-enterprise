@@ -68,11 +68,8 @@ do_import() {
 
     psql $PSQL_CONN -c "SELECT pg_advisory_lock(12345)" >/dev/null
 
-    echo "[Init] Importing /app/db/init_pg.sql..."
+    echo "[Init] Importing /app/db/init_pg.sql (DDL + seed data)..."
     psql $PSQL_CONN -v ON_ERROR_STOP=1 -f /app/db/init_pg.sql
-
-    echo "[Init] Importing /app/db/seed_data.sql..."
-    psql $PSQL_CONN -v ON_ERROR_STOP=1 -f /app/db/seed_data.sql
 
     psql $PSQL_CONN -c "SELECT pg_advisory_unlock(12345)" >/dev/null
     echo "[Init] Database initialized successfully."

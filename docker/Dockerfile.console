@@ -106,9 +106,8 @@ USER contful
 # 复制 Go 二进制
 COPY --chown=contful:contful --from=go-builder /app/admin /app/admin
 
-# 复制 SQL 初始化脚本到镜像（🆕）
+# 复制 SQL 初始化脚本到镜像（含 DDL + 种子数据）
 COPY --chown=contful:contful db/init_pg.sql /app/db/init_pg.sql
-COPY --chown=contful:contful db/seed_data.sql /app/db/seed_data.sql
 
 # 复制前端静态文件（从前端构建 stage）
 COPY --chown=contful:contful --from=frontend-builder /app/dist /usr/share/nginx/html

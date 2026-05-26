@@ -20,7 +20,7 @@ contful/
 ├── admin/            # Admin API 服务（:9080）
 ├── openapi/          # Open API 服务（:8080）
 ├── console/          # Vue 3 控制台（:3000）
-├── db/               # 数据库脚本（init_pg.sql + seed_data.sql）
+├── db/               # 数据库初始化脚本（init_pg.sql：DDL + 种子数据）
 ├── docker/           # Docker 配置（Dockerfile + docker-compose.yaml）
 ├── shell/            # 构建脚本
 ├── build/            # 编译产物（.gitignore）
@@ -68,7 +68,6 @@ docker exec -i contful-postgres psql -U postgres -c "CREATE DATABASE contful;"
 
 # 导入表结构和种子数据
 docker exec -i contful-postgres psql -U postgres -d contful < db/init_pg.sql
-docker exec -i contful-postgres psql -U postgres -d contful < db/seed_data.sql
 ```
 
 **3. 配置环境变量**
@@ -184,8 +183,8 @@ CREATE DATABASE contful;
 **3. 导入数据库表结构和种子数据**
 
 ```bash
+# init_pg.sql 包含完整 DDL + 种子数据，一条命令即可
 psql -U postgres -d contful -f db/init_pg.sql
-psql -U postgres -d contful -f db/seed_data.sql
 ```
 
 导入完成后，数据库包含默认管理员账号：`admin@contful.com` / `contful@com`。
