@@ -331,6 +331,7 @@ func runServer() {
 			protected.GET("/users/me", authHandler.Me)
 			protected.PATCH("/users/me", userHandler.UpdateMe)
 			protected.PUT("/users/me/password", userHandler.UpdatePassword)
+			protected.POST("/users/me/avatar", userHandler.UploadAvatar)
 			protected.GET("/users",
 				middleware.RequirePermission(rbacService, "users:read"),
 				userHandler.List)

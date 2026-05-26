@@ -381,3 +381,57 @@ func (h *UserHandler) Verify(c *gin.Context) {
 
 	c.JSON(http.StatusOK, model.NewSuccessResponse(result))
 }
+
+// UploadAvatar 上传用户头像
+// POST /users/me/avatar
+func (h *UserHandler) UploadAvatar(c *gin.Context) {
+	userIDStr, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "unauthorized"))
+		return
+	}
+
+	var userID uuid.UUID
+	switch v := userIDStr.(type) {
+	case string:
+		uid, err := uuid.Parse(v)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
+			return
+		}
+		userID = uid
+	case uuid.UUID:
+		userID = v
+	default:
+		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "missing file"))
+		return
+	}
+	defer file.Close()
+
+	// 校验文件类型
+	contentType := header.Header.Get("Content-Type")
+	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/gif" && contentType != "image/webp" {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "only jpeg/png/gif/webp images are allowed"))
+		return
+	}
+
+	// 限制文件大小 2MB
+	if header.Size > 2*1024*1024 {
+		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "file size must be less than 2MB"))
+		return
+	}
+
+	avatarURL, err := h.userService.UploadAvatar(c.Request.Context(), userID, file, header)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "failed to upload avatar"))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"avatar_url": avatarURL}))
+}

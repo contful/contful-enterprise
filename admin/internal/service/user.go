@@ -6,6 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -322,5 +326,41 @@ func (s *UserService) VerifyUser(ctx context.Context, id uuid.UUID) (*VerifyUser
 		result.Reason = "数据签名不匹配，数据可能已被篡改"
 	}
 	return result, nil
+}
+
+// UploadAvatar 上传用户头像
+func (s *UserService) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Reader, header *multipart.FileHeader) (string, error) {
+	// 确保目录存在
+	avatarDir := "uploads/avatars"
+	if err := os.MkdirAll(avatarDir, 0755); err != nil {
+		return "", fmt.Errorf("create avatar dir: %w", err)
+	}
+
+	// 生成文件名：userID + 扩展名
+	ext := filepath.Ext(header.Filename)
+	if ext == "" {
+		ext = ".jpg"
+	}
+	filename := fmt.Sprintf("%s%s", userID.String(), ext)
+	filepath := filepath.Join(avatarDir, filename)
+
+	// 保存文件
+	dst, err := os.Create(filepath)
+	if err != nil {
+		return "", fmt.Errorf("create avatar file: %w", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", fmt.Errorf("write avatar file: %w", err)
+	}
+
+	// 更新数据库中的 avatar_url
+	avatarURL := fmt.Sprintf("/uploads/avatars/%s", filename)
+	if err := s.userRepo.UpdateAvatarURL(ctx, userID, avatarURL); err != nil {
+		return "", fmt.Errorf("update avatar url: %w", err)
+	}
+
+	return avatarURL, nil
 }
 
