@@ -222,3 +222,30 @@ ON CONFLICT (category, level) DO NOTHING;
 --   1. psql -f db/init_pg.sql     ← 社区版基础表
 --   2. psql -f db/init_ent.sql    ← 本文件（ALTER + 新建企业表）
 --   3. psql -f db/seed_data.sql   ← 种子数据
+
+-- =============================================================================
+-- 审计报告导出记录
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS ent_audit_report_exports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending','processing','completed','failed','expired')),
+    filter_json JSONB NOT NULL DEFAULT '{}',
+    format VARCHAR(10) NOT NULL DEFAULT 'csv'
+        CHECK (format IN ('csv','xlsx')),
+    file_path VARCHAR(500),
+    file_size BIGINT,
+    record_count BIGINT DEFAULT 0,
+    total_count   BIGINT DEFAULT 0,
+    error_msg     TEXT,
+    expires_time  TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
+    created_by    UUID,
+    created_time  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_time TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_ent_exports_status ON ent_audit_report_exports(status);
+CREATE INDEX IF NOT EXISTS idx_ent_exports_created ON ent_audit_report_exports(created_time DESC);
+CREATE INDEX IF NOT EXISTS idx_ent_exports_expires ON ent_audit_report_exports(expires_time)
+    WHERE status IN ('completed','failed','expired');

@@ -107,6 +107,7 @@ func runServer() {
 	userRepo := repository.NewUserRepository(db, redisClient)
 	siteRepo := repository.NewSiteRepository(db)
 	auditRepo := repository.NewAuditRepository(db)
+	auditExportRepo := repository.NewAuditExportRepository(db)
 	schemaRepo := repository.NewSchemaRepository(db)
 	fieldRepo := repository.NewFieldRepository(db)
 	entryRepo := repository.NewEntryRepository(db)
@@ -146,6 +147,7 @@ func runServer() {
 
 	// 初始化 Audit Service（审计日志）
 	auditService := service.NewAuditService(auditRepo, configService)
+	auditExportService := service.NewAuditExportService(auditExportRepo, auditRepo, auditService)
 	logger.Info().Msg("Audit 服务已就绪")
 
 	// 初始化 RBAC 服务（不再需要 siteRoleRepo 和 siteUserRepo）
@@ -246,6 +248,7 @@ func runServer() {
 	permHandler := handler.NewPermissionHandler(permRepo, rbacService)
 	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
 	auditHandler := handler.NewAuditHandler(auditService)
+	auditExportHandler := handler.NewAuditExportHandler(auditExportService)
 
 	// 启动排期调度器（后台 goroutine）
 	ctxCron, cancelCron := context.WithCancel(context.Background())
@@ -582,6 +585,23 @@ func runServer() {
 			protected.GET("/audit/logs/export/csv",
 				middleware.RequirePermission(rbacService, "audit:export"),
 				auditHandler.ExportCSV)
+
+			// ─── 审计导出任务管理 ─────────────────────────
+			protected.GET("/audit/exports",
+				middleware.RequirePermission(rbacService, "audit:export"),
+				auditExportHandler.List)
+			protected.POST("/audit/exports",
+				middleware.RequirePermission(rbacService, "audit:export"),
+				auditExportHandler.Create)
+			protected.GET("/audit/exports/:id",
+				middleware.RequirePermission(rbacService, "audit:export"),
+				auditExportHandler.Get)
+			protected.GET("/audit/exports/:id/download",
+				middleware.RequirePermission(rbacService, "audit:export"),
+				auditExportHandler.Download)
+			protected.DELETE("/audit/exports/:id",
+				middleware.RequirePermission(rbacService, "audit:export"),
+				auditExportHandler.Delete)
 
 			// ─── RBAC 系统角色管理 ──────────────────────
 			// 注：permissions 静态路由必须在 :id 之前注册
