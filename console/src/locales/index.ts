@@ -10,8 +10,11 @@ import { createI18n } from 'vue-i18n'
 import zhCN from './zh-CN.json'
 import zhTW from './zh-TW.json'
 import enUS from './en-US.json'
+import koKR from './ko-KR.json'
+import jaJP from './ja-JP.json'
+import frFR from './fr-FR.json'
 
-export type Locale = 'zh-CN' | 'zh-TW' | 'en-US'
+export type Locale = 'zh-CN' | 'zh-TW' | 'en-US' | 'ko-KR' | 'ja-JP' | 'fr-FR'
 
 const LOCALE_KEY = 'ct_console_locale'
 
@@ -22,7 +25,7 @@ const LOCALE_KEY = 'ct_console_locale'
 function detectLocale(): Locale {
   // 1. 优先读取用户已保存的语言偏好
   const saved = localStorage.getItem(LOCALE_KEY)
-  if (saved && ['zh-CN', 'zh-TW', 'en-US'].includes(saved)) {
+  if (saved && ['zh-CN', 'zh-TW', 'en-US', 'ko-KR', 'ja-JP', 'fr-FR'].includes(saved)) {
     return saved as Locale
   }
 
@@ -30,17 +33,27 @@ function detectLocale(): Locale {
   const navLang = navigator.language || 'zh-CN'
 
   if (navLang.startsWith('zh')) {
-    // 繁体中文：zh-TW / zh-HK / zh-MO / zh-SG（新加坡多为简体）
     const region = navLang.split('-')[1]?.toUpperCase()
     if (region && ['TW', 'HK', 'MO'].includes(region)) {
       return 'zh-TW'
     }
-    // 默认简体中文
     return 'zh-CN'
   }
 
   if (navLang.startsWith('en')) {
     return 'en-US'
+  }
+
+  if (navLang.startsWith('ko')) {
+    return 'ko-KR'
+  }
+
+  if (navLang.startsWith('ja')) {
+    return 'ja-JP'
+  }
+
+  if (navLang.startsWith('fr')) {
+    return 'fr-FR'
   }
 
   // 3. 默认简体中文
@@ -56,6 +69,9 @@ export const i18n = createI18n({
     'zh': zhCN,      // 兼容浏览器返回 zh 无地区后缀
     'zh-TW': zhTW,
     'en-US': enUS,
+    'ko-KR': koKR,
+    'ja-JP': jaJP,
+    'fr-FR': frFR,
   },
 })
 
@@ -83,4 +99,7 @@ export const localeOptions = [
   { value: 'zh-CN' as Locale, label: '🇨🇳 简体中文' },
   { value: 'zh-TW' as Locale, label: '🇭🇰 繁體中文' },
   { value: 'en-US' as Locale, label: '🇺🇸 English' },
+  { value: 'ja-JP' as Locale, label: '🇯🇵 日本語' },
+  { value: 'ko-KR' as Locale, label: '🇰🇷 한국어' },
+  { value: 'fr-FR' as Locale, label: '🇫🇷 Français' },
 ]
