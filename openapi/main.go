@@ -19,6 +19,7 @@ import (
 
 	"github.com/contful/contful/openapi/internal/config"
 	"github.com/contful/contful/openapi/internal/database"
+	"github.com/contful/contful/openapi/internal/metrics"
 	"github.com/contful/contful/openapi/internal/middleware"
 	"github.com/contful/contful/openapi/internal/model"
 	"github.com/contful/contful/openapi/internal/repository"
@@ -52,6 +53,9 @@ func main() {
 	}
 	logger.Info().Str("db_type", database.DBType).Msg("database connected")
 
+	// 初始化 Metrics（企业版）
+	metricsHandler := metrics.NewHandler(db)
+
 	// 初始化 Redis
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     cfg.Redis.GetAddr(),
@@ -83,6 +87,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
+	r.Use(metrics.Middleware()) // HTTP metrics (enterprise)
 
 	// 全局中间件
 	r.Use(middleware.SecurityHeadersMiddleware())
@@ -96,6 +101,9 @@ func main() {
 			"version": "1.0.0",
 		}))
 	})
+
+	// Prometheus metrics（企业版）
+	r.GET("/metrics", metricsHandler.Metrics)
 
 	// API 路由组
 	api := r.Group("/api/v1")

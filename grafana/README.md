@@ -22,9 +22,15 @@
 
 ```yaml
 scrape_configs:
-  - job_name: 'contful-enterprise'
+  - job_name: 'contful-admin'
     scrape_interval: 30s
     static_configs:
       - targets: ['localhost:9080']
+    metrics_path: '/metrics'
+
+  - job_name: 'contful-openapi'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:8080']
     metrics_path: '/metrics'
 ```
