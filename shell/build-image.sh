@@ -43,6 +43,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # 默认配置
 DB_TYPES="${DB_TYPE:-postgresql}"
 MULTI_ARCH=false
+PROXY="${PROXY:-false}"
 COMMAND="all"
 
 # 解析参数
@@ -122,6 +123,7 @@ build_single_arch() {
         --no-cache \
         --platform "$platform" \
         --build-arg DB_TYPE="$db_type" \
+        --build-arg PROXY="$PROXY" \
         -t "contful/${image_name}:${tag_arch}" \
         -t "contful/${image_name}:${tag_latest}" \
         -f "$dockerfile" \
@@ -150,6 +152,7 @@ build_multi_arch() {
         --no-cache \
         --platform "linux/amd64,linux/arm64" \
         --build-arg DB_TYPE="$db_type" \
+        --build-arg PROXY="$PROXY" \
         -t "contful/${image_name}:${tag_latest}" \
         -f "$dockerfile" \
         --push \
@@ -252,6 +255,7 @@ Contful Docker 镜像构建脚本
 
 环境变量:
   DB_TYPE        数据库类型，默认: postgresql
+  PROXY          设为 true 使用阿里云镜像加速（国内网络），默认: false
 
 示例:
   # 单架构构建（自动检测当前架构，本地 daemon）——最快
@@ -260,6 +264,10 @@ Contful Docker 镜像构建脚本
 
   # 多架构构建（amd64 + arm64）→ registry
   \$ $0 --multi-arch           # 构建所有镜像并推送
+
+  # 国内网络启用镜像加速
+  PROXY=true \$ $0             # 单架构 + 阿里云源
+  PROXY=true \$ $0 --multi-arch  # 多架构 + 阿里云源
   \$ $0 --multi-arch console   # 仅构建 Console 多架构并推送
 
 镜像标签:

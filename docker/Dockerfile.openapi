@@ -29,6 +29,12 @@ FROM golang:1.25-alpine AS builder
 ARG DB_TYPE=postgresql
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
+ARG PROXY=false
+
+# 国内用户: --build-arg PROXY=true 启用阿里云镜像加速
+RUN if [ "$PROXY" = "true" ]; then \
+        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
+    fi
 
 WORKDIR /app
 
@@ -46,6 +52,13 @@ RUN upx --best /app/openapi && rm -f /usr/bin/upx
 
 # ---- Stage 2: 运行 ----
 FROM alpine:latest AS runner
+
+ARG PROXY=false
+
+# 国内用户: --build-arg PROXY=true 启用阿里云镜像加速
+RUN if [ "$PROXY" = "true" ]; then \
+        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
+    fi
 
 WORKDIR /app
 
