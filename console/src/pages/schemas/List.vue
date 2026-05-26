@@ -284,8 +284,21 @@ onMounted(() => {
       </template>
     </PageHeader>
 
-    <!-- 数据表格 — t-table -->
+    <!-- 空状态 — t-empty 替换整张表 -->
+    <div v-if="dataList.length === 0 && !loading" class="schema-empty-wrapper">
+      <t-empty :description="t('contentSchemas.noTypes')">
+        <template #action>
+          <t-button theme="primary" @click="openCreateDialog">
+            <template #icon><t-icon name="add" /></template>
+            {{ t('contentSchemas.createTypeBtn') }}
+          </t-button>
+        </template>
+      </t-empty>
+    </div>
+
+    <!-- 数据表格 — t-table（有数据时显示） -->
     <t-table
+      v-else
       :data="dataList"
       :columns="columns"
       :loading="loading"
@@ -295,19 +308,6 @@ onMounted(() => {
       hover
       stripe
       size="medium"
-      :empty="() => h('div', { class: 'schema-empty' }, [
-        h('div', { class: 'empty-icon' }, [
-          h('svg', { width: 64, height: 64, viewBox: '0 0 20 20', fill: 'currentColor', style: { opacity: 0.3 } }, [
-            h('path', { d: 'M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z' })
-          ])
-        ]),
-        h('p', { class: 'empty-title' }, t('contentSchemas.noTypes')),
-        h('p', { class: 'empty-desc' }, t('contentSchemas.noTypesHint')),
-        h('t-button', {
-          theme: 'primary',
-          onClick: openCreateDialog,
-        }, () => t('contentSchemas.createTypeBtn')),
-      ])"
     >
       <!-- kind 列：自定义渲染 -->
       <template #kind-cell="{ row }">
@@ -411,27 +411,9 @@ onMounted(() => {
 
 /* === Action buttons — 已提取到 common.css === */
 
-/* === Empty state（t-table empty 插槽） === */
-.schema-empty {
-  text-align: center;
-  padding: 48px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.empty-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--color-text);
-  margin: 0;
-}
-
-.empty-desc {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin: 0;
+/* === Empty state === */
+.schema-empty-wrapper {
+  padding: 80px 20px;
 }
 
 /* Form hints */
