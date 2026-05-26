@@ -126,8 +126,8 @@ build_single_arch() {
         --platform "$platform" \
         --build-arg DB_TYPE="$db_type" \
         --build-arg PROXY="$PROXY" \
-        -t "contful/${image_name}:${tag_arch}" \
-        -t "contful/${image_name}:${tag_latest}" \
+        -t "contful/enterprise-${image_name}:${tag_arch}" \
+        -t "contful/enterprise-${image_name}:${tag_latest}" \
         -f "$dockerfile" \
         "$PROJECT_DIR"
 
@@ -144,7 +144,7 @@ build_multi_arch() {
 
     log_info "构建 ${image_name} 多架构镜像 → registry"
     log_info "  架构: amd64 + arm64"
-    log_info "  标签: contful/${image_name}:${tag_latest}"
+    log_info "  标签: contful/enterprise-${image_name}:${tag_latest}"
 
     [ ! -f "$dockerfile" ] && { log_error "Dockerfile 不存在: $dockerfile"; exit 1; }
 
@@ -155,7 +155,7 @@ build_multi_arch() {
         --platform "linux/amd64,linux/arm64" \
         --build-arg DB_TYPE="$db_type" \
         --build-arg PROXY="$PROXY" \
-        -t "contful/${image_name}:${tag_latest}" \
+        -t "contful/enterprise-${image_name}:${tag_latest}" \
         -f "$dockerfile" \
         --push \
         "$PROJECT_DIR"
@@ -233,10 +233,10 @@ show_images() {
     log_info "本地 Contful 镜像:"
     echo ""
     echo "  Console:"
-    docker images contful/console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
+    docker images contful/enterprise-console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
     echo ""
     echo "  Open API:"
-    docker images contful/openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
+    docker images contful/enterprise-openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
     echo ""
 }
 
@@ -273,8 +273,8 @@ Contful Docker 镜像构建脚本
   \$ $0 --multi-arch console   # 仅构建 Console 多架构并推送
 
 镜像标签:
-  单架构: contful/console:postgresql-latest + :postgresql-amd64-latest
-  多架构: contful/console:postgresql-latest（registry 上的 multi-arch 清单）
+  单架构: contful/enterprise-console:postgresql-latest + :postgresql-amd64-latest
+  多架构: contful/enterprise-console:postgresql-latest（registry 上的 multi-arch 清单）
 EOF
 }
 
