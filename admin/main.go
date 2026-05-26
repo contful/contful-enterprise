@@ -579,6 +579,9 @@ func runServer() {
 			protected.GET("/audit/logs/:id",
 				middleware.RequirePermission(rbacService, "audit:read"),
 				auditHandler.Get)
+			protected.GET("/audit/logs/export/csv",
+				middleware.RequirePermission(rbacService, "audit:export"),
+				auditHandler.ExportCSV)
 
 			// ─── RBAC 系统角色管理 ──────────────────────
 			// 注：permissions 静态路由必须在 :id 之前注册

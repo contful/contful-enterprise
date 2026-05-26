@@ -3,6 +3,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -35,56 +36,8 @@ func (h *AuditHandler) List(c *gin.Context) {
 		pageSize = 20
 	}
 
-	// 构建筛选条件
-	filter := &model.AuditLogFilter{}
-	
-	// 站点 ID（可选）
-	if siteIDStr := c.Query("site_id"); siteIDStr != "" {
-		if siteID, err := uuid.Parse(siteIDStr); err == nil {
-			filter.SiteID = &siteID
-		}
-	}
-	
-	// 用户 ID（可选）
-	if userIDStr := c.Query("user_id"); userIDStr != "" {
-		if userID, err := uuid.Parse(userIDStr); err == nil {
-			filter.UserID = &userID
-		}
-	}
-	
-	// 操作动作（可选）
-	if action := c.Query("action"); action != "" {
-		filter.Action = action
-	}
-	
-	// 资源类型（可选）
-	if resourceType := c.Query("resource_type"); resourceType != "" {
-		filter.ResourceType = resourceType
-	}
-	
-	// 日志类别（可选）
-	if category := c.Query("category"); category != "" {
-		filter.Category = model.AuditType(category)
-	}
-	
-	// 日志级别（可选）
-	if level := c.Query("level"); level != "" {
-		filter.Level = model.AuditLevel(level)
-	}
-	
-	// 时间范围（可选）
-	if startTimeStr := c.Query("start_time"); startTimeStr != "" {
-		if startTime, err := time.Parse(time.RFC3339, startTimeStr); err == nil {
-			filter.StartTime = startTime
-		}
-	}
-	if endTimeStr := c.Query("end_time"); endTimeStr != "" {
-		if endTime, err := time.Parse(time.RFC3339, endTimeStr); err == nil {
-			filter.EndTime = endTime
-		}
-	}
+	filter := parseAuditFilter(c)
 
-	// 查询列表
 	logs, total, err := h.auditService.List(c.Request.Context(), filter, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list audit logs"})
@@ -99,7 +52,77 @@ func (h *AuditHandler) List(c *gin.Context) {
 	}))
 }
 
-// Get 获取审计日志详情
+// ExportCSV 导出审计日志为 CSV 文件
+// GET /admin/api/v1/audit/logs/export/csv
+func (h *AuditHandler) ExportCSV(c *gin.Context) {
+	filter := parseAuditFilter(c)
+
+	maxRows, _ := strconv.Atoi(c.DefaultQuery("max_rows", "50000"))
+	if maxRows < 1 || maxRows > 100000 {
+		maxRows = 50000
+	}
+
+	csvBytes, count, total, err := h.auditService.ExportCSV(c.Request.Context(), filter, maxRows)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to export audit logs"})
+		return
+	}
+
+	filename := buildExportFilename(filter)
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	c.Header("X-Export-Count", strconv.FormatInt(count, 10))
+	c.Header("X-Export-Total", strconv.FormatInt(total, 10))
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
+}
+
+func buildExportFilename(filter *model.AuditLogFilter) string {
+	category := "all"
+	if filter.Category != "" {
+		category = string(filter.Category)
+	}
+	return fmt.Sprintf("audit_export_%s_%s.csv", category, time.Now().Format("20060102"))
+}
+
+// parseAuditFilter 从查询参数解析审计日志筛选条件
+func parseAuditFilter(c *gin.Context) *model.AuditLogFilter {
+	filter := &model.AuditLogFilter{}
+
+	if siteIDStr := c.Query("site_id"); siteIDStr != "" {
+		if siteID, err := uuid.Parse(siteIDStr); err == nil {
+			filter.SiteID = &siteID
+		}
+	}
+	if userIDStr := c.Query("user_id"); userIDStr != "" {
+		if userID, err := uuid.Parse(userIDStr); err == nil {
+			filter.UserID = &userID
+		}
+	}
+	if action := c.Query("action"); action != "" {
+		filter.Action = action
+	}
+	if resourceType := c.Query("resource_type"); resourceType != "" {
+		filter.ResourceType = resourceType
+	}
+	if category := c.Query("category"); category != "" {
+		filter.Category = model.AuditType(category)
+	}
+	if level := c.Query("level"); level != "" {
+		filter.Level = model.AuditLevel(level)
+	}
+	if startTimeStr := c.Query("start_time"); startTimeStr != "" {
+		if startTime, err := time.Parse(time.RFC3339, startTimeStr); err == nil {
+			filter.StartTime = startTime
+		}
+	}
+	if endTimeStr := c.Query("end_time"); endTimeStr != "" {
+		if endTime, err := time.Parse(time.RFC3339, endTimeStr); err == nil {
+			filter.EndTime = endTime
+		}
+	}
+
+	return filter
+}
 func (h *AuditHandler) Get(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)

@@ -3,7 +3,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/csv"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -179,6 +185,82 @@ func (s *AuditService) GetByID(ctx context.Context, id uuid.UUID) (*model.AuditL
 // GetSigningKey 获取签名密钥（供其他服务使用）
 func (s *AuditService) GetSigningKey(ctx context.Context) (string, error) {
 	return s.configSvc.GetAuditSigningKey()
+}
+
+// ExportCSV 导出审计日志为 CSV 格式
+// 返回: CSV 字节流、实际记录数、总数、error
+func (s *AuditService) ExportCSV(ctx context.Context, filter *model.AuditLogFilter, maxRows int) ([]byte, int64, int64, error) {
+	logs, total, err := s.auditRepo.ExportAll(ctx, filter, maxRows)
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("export query: %w", err)
+	}
+
+	var buf bytes.Buffer
+
+	// UTF-8 BOM（Excel/Numbers 兼容中文）
+	buf.Write([]byte{0xEF, 0xBB, 0xBF})
+
+	w := csv.NewWriter(&buf)
+
+	// 表头
+	headers := []string{
+		"id", "action", "category", "level", "resource_type", "resource_id",
+		"user_id", "site_id", "ip_address", "user_agent", "details",
+		"created_time", "data_signature",
+	}
+	if err := w.Write(headers); err != nil {
+		return nil, 0, 0, fmt.Errorf("write csv header: %w", err)
+	}
+
+	// 数据行
+	for _, log := range logs {
+		row := []string{
+			log.ID.String(),
+			log.Action,
+			string(log.Category),
+			string(log.Level),
+			log.ResourceType,
+			uuidOrEmpty(log.ResourceID),
+			uuidOrEmpty(log.UserID),
+			uuidOrEmpty(log.SiteID),
+			log.IPAddress,
+			log.UserAgent,
+			log.Details,
+			log.CreatedTime.Format("2006-01-02T15:04:05Z07:00"),
+			log.DataSignature,
+		}
+		if err := w.Write(row); err != nil {
+			return nil, 0, 0, fmt.Errorf("write csv row: %w", err)
+		}
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, 0, 0, fmt.Errorf("csv flush: %w", err)
+	}
+
+	// 追加 HMAC 签名行
+	bodyHash := sha256.Sum256(buf.Bytes())
+	sig := signBody(bodyHash[:])
+
+	sigLine := fmt.Sprintf("\n#SIGNATURE: %s\n", sig)
+	buf.WriteString(sigLine)
+
+	return buf.Bytes(), int64(len(logs)), total, nil
+}
+
+func uuidOrEmpty(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
+}
+
+func signBody(bodyHash []byte) string {
+	// 使用固定密钥签名，与审计日志数据签名独立
+	key := []byte("contful-audit-export-v1")
+	mac := hmac.New(sha256.New, key)
+	mac.Write(bodyHash)
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 // Helper: 从 HTTP 请求中提取 IP 和 User-Agent

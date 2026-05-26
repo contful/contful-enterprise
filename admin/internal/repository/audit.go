@@ -63,9 +63,43 @@ func (r *AuditRepository) List(ctx context.Context, filter *model.AuditLogFilter
 	var logs []model.AuditLog
 	var total int64
 
+	query := r.buildFilterQuery(ctx, filter)
+
+	// 统计总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Order("created_time DESC").Find(&logs).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return logs, total, nil
+}
+
+// ExportAll 查询满足筛选条件的所有记录（导出用，支持 maxRows 限制）
+func (r *AuditRepository) ExportAll(ctx context.Context, filter *model.AuditLogFilter, maxRows int) ([]model.AuditLog, int64, error) {
+	var logs []model.AuditLog
+	var total int64
+
+	query := r.buildFilterQuery(ctx, filter)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := query.Limit(maxRows).Order("created_time DESC").Find(&logs).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return logs, total, nil
+}
+
+func (r *AuditRepository) buildFilterQuery(ctx context.Context, filter *model.AuditLogFilter) *gorm.DB {
 	query := r.db.WithContext(ctx).Model(&model.AuditLog{})
 
-	// 应用筛选条件
 	if filter != nil {
 		if filter.SiteID != nil {
 			query = query.Where("site_id = ?", *filter.SiteID)
@@ -93,16 +127,5 @@ func (r *AuditRepository) List(ctx context.Context, filter *model.AuditLogFilter
 		}
 	}
 
-	// 统计总数
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	// 分页查询
-	offset := (page - 1) * pageSize
-	if err := query.Offset(offset).Limit(pageSize).Order("created_time DESC").Find(&logs).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return logs, total, nil
+	return query
 }
