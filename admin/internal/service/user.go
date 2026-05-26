@@ -3,12 +3,12 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -16,6 +16,7 @@ import (
 	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
+	"github.com/contful/contful/admin/internal/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -48,11 +49,12 @@ func isPasswordStrong(pwd string) bool {
 }
 
 type UserService struct {
-	userRepo *repository.UserRepository
+	userRepo        *repository.UserRepository
+	storageProvider storage.StorageProvider
 }
 
-func NewUserService(userRepo *repository.UserRepository) *UserService {
-	return &UserService{userRepo: userRepo}
+func NewUserService(userRepo *repository.UserRepository, storageProvider storage.StorageProvider) *UserService {
+	return &UserService{userRepo: userRepo, storageProvider: storageProvider}
 }
 
 // Create 创建用户（管理员操作）
@@ -328,35 +330,36 @@ func (s *UserService) VerifyUser(ctx context.Context, id uuid.UUID) (*VerifyUser
 	return result, nil
 }
 
-// UploadAvatar 上传用户头像
+// UploadAvatar 上传用户头像（通过 StorageProvider，支持本地/对象存储）
 func (s *UserService) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Reader, header *multipart.FileHeader) (string, error) {
-	// 确保目录存在
-	avatarDir := "uploads/avatars"
-	if err := os.MkdirAll(avatarDir, 0755); err != nil {
-		return "", fmt.Errorf("create avatar dir: %w", err)
+	// 读取文件内容
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("read avatar file: %w", err)
 	}
 
-	// 生成文件名：userID + 扩展名
+	// 构造存储 Key：avatars/{userID}.{ext}
 	ext := filepath.Ext(header.Filename)
 	if ext == "" {
 		ext = ".jpg"
 	}
-	filename := fmt.Sprintf("%s%s", userID.String(), ext)
-	filepath := filepath.Join(avatarDir, filename)
+	storageKey := filepath.Join("avatars", userID.String()+ext)
 
-	// 保存文件
-	dst, err := os.Create(filepath)
+	// 通过 StorageProvider 上传
+	_, err = s.storageProvider.Upload(ctx, storageKey, bytes.NewReader(data), int64(len(data)), &storage.WriteOptions{
+		ContentType: header.Header.Get("Content-Type"),
+	})
 	if err != nil {
-		return "", fmt.Errorf("create avatar file: %w", err)
+		return "", fmt.Errorf("upload avatar: %w", err)
 	}
-	defer dst.Close()
 
-	if _, err := io.Copy(dst, file); err != nil {
-		return "", fmt.Errorf("write avatar file: %w", err)
+	// 获取访问 URL
+	avatarURL, err := s.storageProvider.URL(ctx, storageKey, 0)
+	if err != nil {
+		return "", fmt.Errorf("get avatar url: %w", err)
 	}
 
 	// 更新数据库中的 avatar_url
-	avatarURL := fmt.Sprintf("/uploads/avatars/%s", filename)
 	if err := s.userRepo.UpdateAvatarURL(ctx, userID, avatarURL); err != nil {
 		return "", fmt.Errorf("update avatar url: %w", err)
 	}

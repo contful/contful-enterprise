@@ -150,7 +150,6 @@ func runServer() {
 	rbacService := service.NewRBACService(db, redisClient, systemRoleRepo, userRepo, permRepo)
 
 	authService := service.NewAuthService(userRepo, siteRepo, systemConfigRepo, auditRepo, redisClient, cfg.JWT.Secret, configService)
-	userService := service.NewUserService(userRepo)
 	siteService := service.NewSiteService(db, siteRepo)
 	schemaService := service.NewSchemaService(schemaRepo, fieldRepo, logger)
 	entryService := service.NewEntryService(entryRepo, schemaRepo, fieldRepo)
@@ -170,6 +169,7 @@ func runServer() {
 	}
 	logger.Info().Str("driver", cfg.Storage.Driver).Msg("存储驱动已就绪（全局单例）")
 
+	userService := service.NewUserService(userRepo, storageProvider)
 	assetService := service.NewAssetService(assetRepo, storageProvider)
 	assetService.SetConfigService(configService)
 
