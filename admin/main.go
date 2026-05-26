@@ -585,6 +585,9 @@ func runServer() {
 			protected.GET("/audit/logs/export/csv",
 				middleware.RequirePermission(rbacService, "audit:export"),
 				auditHandler.ExportCSV)
+			protected.GET("/audit/logs/export/xlsx",
+				middleware.RequirePermission(rbacService, "audit:export"),
+				auditHandler.ExportXLSX)
 
 			// ─── 审计导出任务管理 ─────────────────────────
 			protected.GET("/audit/exports",

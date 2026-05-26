@@ -76,12 +76,40 @@ func (h *AuditHandler) ExportCSV(c *gin.Context) {
 	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
 }
 
+// ExportXLSX 导出审计日志为 XLSX 文件（含条件着色 + 完整性声明 sheet）
+// GET /admin/api/v1/audit/logs/export/xlsx
+func (h *AuditHandler) ExportXLSX(c *gin.Context) {
+	filter := parseAuditFilter(c)
+
+	maxRows, _ := strconv.Atoi(c.DefaultQuery("max_rows", "50000"))
+	if maxRows < 1 || maxRows > 100000 {
+		maxRows = 50000
+	}
+
+	xlsxBytes, count, total, err := h.auditService.ExportXLSX(c.Request.Context(), filter, maxRows)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to export audit logs"})
+		return
+	}
+
+	filename := buildExportFilenameExt(filter, "xlsx")
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	c.Header("X-Export-Count", strconv.FormatInt(count, 10))
+	c.Header("X-Export-Total", strconv.FormatInt(total, 10))
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsxBytes)
+}
+
 func buildExportFilename(filter *model.AuditLogFilter) string {
+	return buildExportFilenameExt(filter, "csv")
+}
+
+func buildExportFilenameExt(filter *model.AuditLogFilter, ext string) string {
 	category := "all"
 	if filter.Category != "" {
 		category = string(filter.Category)
 	}
-	return fmt.Sprintf("audit_export_%s_%s.csv", category, time.Now().Format("20060102"))
+	return fmt.Sprintf("audit_export_%s_%s.%s", category, time.Now().Format("20060102"), ext)
 }
 
 // parseAuditFilter 从查询参数解析审计日志筛选条件
