@@ -28,6 +28,7 @@ import (
 	lic "github.com/contful/contful/admin/internal/license"
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/crypto"
+	"github.com/contful/contful/admin/internal/metrics"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/contful/contful/admin/internal/storage"
@@ -235,6 +236,7 @@ func runServer() {
 	schemaHandler := handler.NewSchemaHandler(schemaService)
 	entryHandler := handler.NewEntryHandler(entryService, configService)
 	scheduleHandler := handler.NewScheduleHandler(scheduleService)
+	metricsHandler := metrics.NewHandler(db)
 	assetHandler := handler.NewAssetHandler(assetService)
 	tokenHandler := handler.NewAPITokenHandler(tokenService, auditService)
 		integrityHandler := handler.NewIntegrityHandler(entryRepo, assetRepo, auditRepo, configService)
@@ -253,6 +255,7 @@ func runServer() {
 	// 初始化 Gin
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Use(metrics.Middleware()) // HTTP metrics (enterprise)
 
 	// 注入 DataSigner + Hasher 到请求 context（供 GORM callback 使用）
 	if dataSigner != nil && dataSigner.IsEnabled() {
@@ -288,6 +291,9 @@ func runServer() {
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "ready"})
 	})
+
+	// Prometheus metrics（企业版）
+	r.GET("/metrics", metricsHandler.Metrics)
 
 	// API 路由组
 	api := r.Group("/admin/api/v1")

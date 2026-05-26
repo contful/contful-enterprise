@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/contful/contful/admin/internal/model"
+	"github.com/contful/contful/admin/internal/metrics"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -69,12 +70,13 @@ func (s *ScheduleService) scan(ctx context.Context) {
 		}
 	}()
 
-	s.publishEntries(ctx)
-	s.unpublishEntries(ctx)
+	pub, pubSkip, pubErr := s.publishEntries(ctx)
+	unpub, unpubSkip, unpubErr := s.unpublishEntries(ctx)
+	metrics.G().RecordSchedule(pub, unpub, pubSkip+unpubSkip, pubErr+unpubErr)
 }
 
 // publishEntries 处理到期待发布的条目
-func (s *ScheduleService) publishEntries(ctx context.Context) {
+func (s *ScheduleService) publishEntries(ctx context.Context) (published, skipped, errors int64) {
 	entries, err := s.entryRepo.FindDuePublish(ctx)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("查询待发布条目失败")
@@ -97,21 +99,26 @@ func (s *ScheduleService) publishEntries(ctx context.Context) {
 
 			if err := s.entryRepo.Update(ctx, &entry); err != nil {
 				s.logger.Error().Err(err).Str("entry_id", entry.ID.String()).Msg("发布条目失败")
+				errors++
 				continue
 			}
+			published++
 			s.logger.Info().Str("entry_id", entry.ID.String()).Msg("条目已自动发布")
 		} else {
 			entry.ScheduledPublishTime = nil
 			if err := s.entryRepo.Update(ctx, &entry); err != nil {
 				s.logger.Error().Err(err).Str("entry_id", entry.ID.String()).Msg("清除已变更条目的排期失败")
+				errors++
 				continue
 			}
+			skipped++
 		}
 	}
+	return
 }
 
 // unpublishEntries 处理到期待下架的条目
-func (s *ScheduleService) unpublishEntries(ctx context.Context) {
+func (s *ScheduleService) unpublishEntries(ctx context.Context) (unpublished, skipped, errors int64) {
 	entries, err := s.entryRepo.FindDueUnpublish(ctx)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("查询待下架条目失败")
@@ -132,17 +139,21 @@ func (s *ScheduleService) unpublishEntries(ctx context.Context) {
 
 			if err := s.entryRepo.Update(ctx, &entry); err != nil {
 				s.logger.Error().Err(err).Str("entry_id", entry.ID.String()).Msg("下架条目失败")
+				errors++
 				continue
 			}
+			unpublished++
 			s.logger.Info().Str("entry_id", entry.ID.String()).Msg("条目已自动下架")
 		} else {
 			entry.ScheduledUnpublishTime = nil
 			if err := s.entryRepo.Update(ctx, &entry); err != nil {
 				s.logger.Error().Err(err).Str("entry_id", entry.ID.String()).Msg("清除已变更条目的排期失败")
+				errors++
 				continue
 			}
 		}
 	}
+	return
 }
 
 // ListScheduled 查询排期条目列表
