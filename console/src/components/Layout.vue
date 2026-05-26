@@ -198,12 +198,13 @@ const siteOptions = computed(() =>
 // 响应式跟踪 sites 加载状态，替代独立的 siteLoading ref
 const siteLoading = computed(() => siteStore.loading || siteStore.sites.length === 0)
 
-// 监听登录状态，登录成功后加载站点列表和权限
-// 用 watch 而非 onMounted，避免与 router.beforeEach 恢复会话的竞态
+// 监听用户数据恢复，加载站点列表和权限
+// 用 user（Vue ref）而非 isLoggedIn（computed），确保 Pinia 响应式正常触发
 watch(
-  () => userStore.isLoggedIn,
-  async (loggedIn) => {
-    if (!loggedIn) return
+  () => userStore.user,
+  async (u) => {
+    if (!u) { userLoading.value = true; return }
+    userLoading.value = false
 
     if (siteStore.sites.length === 0) {
       try {
@@ -297,12 +298,17 @@ watch(
             </template>
             <!-- 加载完成：显示用户信息 -->
             <template v-else-if="user">
-              <div class="avatar">{{ user.nickname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U' }}</div>
+              <img
+                :src="user.avatar_url || '/assets/default.jpeg'"
+                class="avatar"
+                :alt="user.nickname || user.email"
+                @error="($event.target as HTMLImageElement).style.display='none'"
+              />
               <span class="user-name">{{ user.nickname || user.email }}</span>
             </template>
             <!-- 兜底：显示默认头像 -->
             <template v-else>
-              <div class="avatar">U</div>
+              <img src="/assets/default.jpeg" class="avatar" alt="User" />
             </template>
             <t-icon name="chevron-down" size="14px" style="color: var(--color-text-secondary)" />
           </div>
@@ -496,16 +502,10 @@ watch(
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 13px;
+  object-fit: cover;
   flex-shrink: 0;
 }
 
