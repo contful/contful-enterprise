@@ -3,7 +3,7 @@
 // Copyright © 2026-present reepu.com
 // SPDX-License-Identifier: Apache-2.0
 
-import { ref, computed, onMounted, nextTick, provide } from 'vue'
+import { ref, computed, nextTick, provide, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
@@ -126,7 +126,7 @@ const handleLogout = async () => {
 }
 
 const user = computed(() => userStore.user)
-const userLoading = ref(false)
+const userLoading = ref(true)
 
 const goToProfile = () => {
   router.push('/profile')
@@ -198,37 +198,33 @@ const siteOptions = computed(() =>
 // 响应式跟踪 sites 加载状态，替代独立的 siteLoading ref
 const siteLoading = computed(() => siteStore.loading || siteStore.sites.length === 0)
 
-// 初始化时加载用户信息和站点
-// 使用 onMounted 确保子组件的 onMounted 先执行，但通过 provide/initialized 控制数据请求时机
-onMounted(async () => {
-  // 用户会话已在 router.beforeEach 中恢复，此处仅补充加载失败时的兜底
-  if (!userStore.user) {
-    userLoading.value = true
-    // 等待一小段时间让 router guard 完成（通常 user 已设置）
-    // 如果仍未设置，由 router guard 处理跳转
-    userLoading.value = false
-  }
+// 监听登录状态，登录成功后加载站点列表和权限
+// 用 watch 而非 onMounted，避免与 router.beforeEach 恢复会话的竞态
+watch(
+  () => userStore.isLoggedIn,
+  async (loggedIn) => {
+    if (!loggedIn) return
 
-  // 会话有效，加载站点列表（只会加载一次）
-  if (userStore.isLoggedIn && siteStore.sites.length === 0) {
-    try {
-      await siteStore.fetchSites()
-    } catch {
-      // 站点列表加载失败不应阻塞页面渲染
+    if (siteStore.sites.length === 0) {
+      try {
+        await siteStore.fetchSites()
+      } catch {
+        // 站点列表加载失败不应阻塞页面渲染
+      }
     }
-  }
 
-  // 加载用户权限列表（只会加载一次）
-  if (userStore.isLoggedIn && !userStore.isSuperAdmin && userStore.permissions.length === 0) {
-    try {
-      await userStore.fetchPermissions()
-    } catch {
-      // 权限列表加载失败不应阻塞页面渲染
+    if (!userStore.isSuperAdmin && userStore.permissions.length === 0) {
+      try {
+        await userStore.fetchPermissions()
+      } catch {
+        // 权限列表加载失败不应阻塞页面渲染
+      }
     }
-  }
 
-  initialized.value = true
-})
+    initialized.value = true
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
