@@ -45,12 +45,14 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # 默认配置
 DB_TYPES="${DB_TYPE:-postgresql}"
 MULTI_ARCH=false
+PUSH=false
 COMMAND="all"
 
 # 解析参数
 for arg in "$@"; do
     case "$arg" in
         --multi-arch) MULTI_ARCH=true ;;
+        --push)       PUSH=true ;;
         --single-arch) MULTI_ARCH=false ;;
         console|openapi|all|list|help|-h|--help) COMMAND="$arg" ;;
     esac
@@ -105,6 +107,40 @@ ensure_buildx_builder() {
     docker buildx use contful-builder
 }
 
+# 多架构构建本地版：逐个平台 build + load（Docker daemon 不支持多清单加载）
+build_multi_arch_local() {
+    local image_name="$1"
+    local db_type="$2"
+    local dockerfile="$3"
+
+    local tag_latest="${db_type}-latest"
+
+    log_info "构建 ${image_name} 多架构镜像（本地）..."
+    log_info "  架构: amd64 + arm64"
+    log_info "  标签: ${tag_latest} + ${db_type}-{arch}-latest"
+
+    [ ! -f "$dockerfile" ] && { log_error "Dockerfile 不存在: $dockerfile"; exit 1; }
+
+    ensure_buildx_builder
+
+    for arch in amd64 arm64; do
+        log_info "  构建 linux/${arch}..."
+        docker buildx build \
+            --no-cache \
+            --platform "linux/${arch}" \
+            --build-arg DB_TYPE="$db_type" \
+            -t "contful/${image_name}:${db_type}-${arch}-latest" \
+            -f "$dockerfile" \
+            --load \
+            "$PROJECT_DIR"
+        log_success "  contful/${image_name}:${db_type}-${arch}-latest 已加载到本地"
+    done
+
+    log_success "${image_name} 多架构镜像全部构建完成（本地 amd64 + arm64）"
+    log_warn   "提示: 本地 daemon 不支持多架构清单，需分别测试两个架构。"
+    log_warn   "      推送多架构清单到 registry 请用: $0 --multi-arch --push"
+}
+
 # 构建单架构镜像
 build_single_arch() {
     local image_name="$1"
@@ -133,8 +169,8 @@ build_single_arch() {
     log_success "${image_name}:${tag_arch} + :${tag_latest} 构建完成"
 }
 
-# 构建多架构镜像
-build_multi_arch() {
+# 构建多架构镜像（推送到 registry）
+build_multi_arch_push() {
     local image_name="$1"
     local db_type="$2"
     local dockerfile="$3"
@@ -173,7 +209,11 @@ build_console() {
         echo ""
 
         if [ "$MULTI_ARCH" = true ]; then
-            build_multi_arch "console" "$db_type" "$console_dockerfile"
+            if [ "$PUSH" = true ]; then
+                build_multi_arch_push "console" "$db_type" "$console_dockerfile"
+            else
+                build_multi_arch_local "console" "$db_type" "$console_dockerfile"
+            fi
         else
             local arch=$(get_native_arch)
             [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
@@ -192,7 +232,11 @@ build_openapi() {
         echo ""
 
         if [ "$MULTI_ARCH" = true ]; then
-            build_multi_arch "openapi" "$db_type" "$openapi_dockerfile"
+            if [ "$PUSH" = true ]; then
+                build_multi_arch_push "openapi" "$db_type" "$openapi_dockerfile"
+            else
+                build_multi_arch_local "openapi" "$db_type" "$openapi_dockerfile"
+            fi
         else
             local arch=$(get_native_arch)
             [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
