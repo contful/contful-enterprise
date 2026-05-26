@@ -278,9 +278,7 @@ onMounted(() => {
             :class="{ active: selectedFolder === null }"
             @click="selectFolder(null)"
           >
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-            </svg>
+            <t-icon name="folder" size="16px" />
             <span>{{ t('media.allFiles') }}</span>
           </div>
           <template v-for="folder in folders" :key="folder.id">
@@ -289,9 +287,7 @@ onMounted(() => {
               :class="{ active: selectedFolder === folder.id }"
               @click="selectFolder(folder.id)"
             >
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-              </svg>
+              <t-icon name="folder" size="16px" />
               <span>{{ folder.name }}</span>
             </div>
           </template>
@@ -379,9 +375,7 @@ onMounted(() => {
             <div class="asset-preview">
               <img v-if="isImage(asset)" :src="asset.url" :alt="asset.name" />
               <div v-else class="file-icon" :class="getFileIcon(asset.mime_type || '')">
-                <svg width="32" height="32" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M4 4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v7l-4-3-2 1.5L6 12V5z"/>
-                </svg>
+                <t-icon name="image" size="32px" />
               </div>
               <div class="asset-overlay">
                 <t-button theme="danger" size="small" @click.stop="confirmDelete(asset)">
@@ -397,9 +391,7 @@ onMounted(() => {
               </div>
             </div>
             <div v-if="selectedAssets.has(asset.id)" class="selected-badge">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-              </svg>
+              <t-icon name="check" size="16px" />
             </div>
           </div>
         </div>
@@ -501,10 +493,7 @@ onMounted(() => {
           <p>{{ t('media.uploading') }}</p>
         </div>
         <template v-else>
-          <svg width="48" height="48" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-            <path d="M10 3a1 1 0 011 1v5.586l1.707-1.707a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 9.586V4a1 1 0 011-1z"/>
-            <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/>
-          </svg>
+          <t-icon name="upload" size="48px" style="opacity:0.3" />
           <p>{{ t('media.dragTip') }}</p>
           <span class="upload-hint">{{ t('media.fileTypeTip') }}</span>
         </template>

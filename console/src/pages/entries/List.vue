@@ -424,9 +424,7 @@ onMounted(() => {
       <!-- 无站点提示 -->
       <div v-if="!siteStore.currentSiteId" class="no-site-container">
         <div class="no-site-card">
-          <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-          </svg>
+          <t-icon name="home" size="64px" style="opacity:0.3" />
           <h3>{{ t('site.noSiteTitle') || '\u6682\u65e0\u7ad9\u70b9' }}</h3>
           <p>{{ t('site.noSiteHint') || '\u8bf7\u5148\u521b\u5efa\u4e00\u4e2a\u7ad9\u70b9\uff0c\u624d\u80fd\u7ba1\u7406\u5185\u5bb9' }}</p>
           <t-button theme="primary" @click="router.push('/')">{{ t('site.goToCreate') || '\u8fd4\u56de\u9996\u9875\u521b\u5efa\u7ad9\u70b9' }}</t-button>
@@ -448,11 +446,7 @@ onMounted(() => {
             :class="{ active: selectedType?.id === type.id }"
             @click="selectType(type)"
           >
-            <span class="type-icon">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
-              </svg>
-            </span>
+            <t-icon name="file" size="16px" class="type-icon" />
             <span class="type-name">{{ type.name }}</span>
             <span class="type-count">{{ entryCounts[type.id] || 0 }}</span>
           </button>
@@ -640,9 +634,7 @@ onMounted(() => {
         </template>
 
         <div v-else class="empty-state">
-          <svg width="64" height="64" viewBox="0 0 20 20" fill="currentColor" opacity="0.3">
-            <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
-          </svg>
+          <t-icon name="file" size="64px" style="opacity:0.3" />
           <h3>{{ t('content.selectType') }}</h3>
           <p>{{ t('content.selectTypeHint') }}</p>
         </div>
