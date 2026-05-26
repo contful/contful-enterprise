@@ -94,8 +94,14 @@ check_buildx() {
 }
 
 ensure_buildx_builder() {
+    # 优先使用 Docker Desktop 自带的 desktop-linux（已预配 QEMU + 多平台支持）
+    if docker buildx inspect desktop-linux &> /dev/null; then
+        docker buildx use desktop-linux
+        return
+    fi
+    # 回退：创建 builder（CI 无 Docker Desktop 环境）
     docker buildx inspect contful-builder &> /dev/null || \
-        docker buildx create --name contful-builder --use &> /dev/null
+        docker buildx create --name contful-builder --driver docker-container --use &> /dev/null
     docker buildx use contful-builder
 }
 
@@ -143,16 +149,18 @@ build_multi_arch() {
 
     ensure_buildx_builder
 
+    # 多平台镜像只能推送到 registry，无法加载到本地 daemon
+    # 如需本地测试，去掉 --multi-arch 用单架构构建
     docker buildx build \
         --no-cache \
         --platform "linux/amd64,linux/arm64" \
         --build-arg DB_TYPE="$db_type" \
         -t "contful/${image_name}:${tag_latest}" \
         -f "$dockerfile" \
-        --load \
+        --push \
         "$PROJECT_DIR"
 
-    log_success "${image_name}:${tag_latest} (amd64 + arm64) 构建完成"
+    log_success "${image_name}:${tag_latest} (amd64 + arm64) 已推送到 registry"
 }
 
 # 构建 Console 镜像
