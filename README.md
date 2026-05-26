@@ -147,7 +147,7 @@ docker compose -f docker/docker-compose.yaml --env-file .env up -d
 | 启动后 DB 未初始化？ | 确认 `DB_HOST` / `DB_NAME` 正确，空数据库会自动初始化 |
 | 容器反复重启？ | 检查 DB 连接参数，`docker logs contful-console` 查看详细日志 |
 | 如何重置数据库？ | 删表后重启容器即可自动重建 |
-| 如何更换密钥？ | `rm ./conf/*.pem && docker restart contful-console` |
+| 如何更换密钥？ | `rm ./conf/keys/*.pem && docker restart contful-console` |
 
 ### 方式四：从源码安装（非 Docker）
 
@@ -215,12 +215,12 @@ CRYPTO_MODE=rsa
 
 ```bash
 # RSA 模式（默认）
-openssl genrsa -out conf/private.pem 2048
-openssl rsa -in conf/private.pem -pubout -out conf/public.pem
+openssl genrsa -out conf/keys/private.pem 2048
+openssl rsa -in conf/keys/private.pem -pubout -out conf/keys/public.pem
 
 # SM2 模式（需 openssl 3.0+ 或 gmssl）
-# openssl ecparam -genkey -name SM2 -out conf/private.pem
-# openssl ec -in conf/private.pem -pubout -out conf/public.pem
+# openssl ecparam -genkey -name SM2 -out conf/keys/private.pem
+# openssl ec -in conf/keys/private.pem -pubout -out conf/keys/public.pem
 ```
 
 **6. 调整配置文件**
@@ -229,8 +229,8 @@ openssl rsa -in conf/private.pem -pubout -out conf/public.pem
 
 ```yaml
 security:
-  pubkey_path: "conf/public.pem"
-  privkey_path: "conf/private.pem"
+  pubkey_path: "conf/keys/public.pem"
+  privkey_path: "conf/keys/private.pem"
   crypto_mode: "rsa"
 ```
 

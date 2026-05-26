@@ -54,8 +54,8 @@ services:
       # - LOG_LEVEL=debug
       - CONTFUL_AUTO_INIT=${CONTFUL_AUTO_INIT:-true}
       - CRYPTO_MODE=${CRYPTO_MODE:-rsa}
-    # 非对称密钥对已内置于 Docker 镜像（/app/public.pem / app/private.pem）
-    # 如需替换：挂载自定义密钥并设置 PUBKEY_PATH / PRIVKEY_PATH
+    # 密钥对已内置于镜像（/app/conf/keys/），自动生成
+    # 替换：挂载 conf/keys/public.pem + private.pem
     # 配置文件模式（取消注释可覆盖环境变量）
     # volumes:
     #   - ../conf/console.yaml:/app/conf/config.yml:ro

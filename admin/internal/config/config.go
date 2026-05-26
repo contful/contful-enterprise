@@ -384,10 +384,10 @@ func (c *Config) PostLoad() {
 	// 非对称密钥对：从文件读取，不存在时自动生成
 	// 公钥用于 PublicKey 端点，私钥用于密码解密
 	if c.Security.PublicKeyPath == "" {
-		c.Security.PublicKeyPath = "public.pem"
+		c.Security.PublicKeyPath = "conf/keys/public.pem"
 	}
 	if c.Security.PrivateKeyPath == "" {
-		c.Security.PrivateKeyPath = "private.pem"
+		c.Security.PrivateKeyPath = "conf/keys/private.pem"
 	}
 
 	// CryptoMode 默认值

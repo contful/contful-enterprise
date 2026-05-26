@@ -56,9 +56,9 @@ security:
   algorithm: aes-256-gcm  # aes-256-gcm / sm4-gcm
   # 非对称密钥对（用于前端登录密码加密传输）
   # crypto_mode=rsa 时加载 RSA 密钥对，crypto_mode=sm 时加载 SM2 密钥对
-  # 生产环境请替换 conf/ 目录下的 public.pem / private.pem
-  pubkey_path: "conf/public.pem"
-  privkey_path: "conf/private.pem"
+  # 生产环境请替换 conf/keys/ 目录下的 public.pem / private.pem
+  pubkey_path: "conf/keys/public.pem"
+  privkey_path: "conf/keys/private.pem"
 
 # JWT 配置（Admin 登录鉴权，从 security.secret 自动派生）
 jwt:

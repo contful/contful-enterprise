@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	defaultKeyDir   = "/app/conf"
+	defaultKeyDir   = "/app/conf/keys"
 	pubKeyFileName  = "public.pem"
 	privKeyFileName = "private.pem"
 )
@@ -20,9 +20,9 @@ const (
 // GenKey 生成非对称密钥对（RSA 或 SM2，由 CRYPTO_MODE 环境变量决定）。
 //
 // 行为:
-//   - 默认检查 /app/conf/public.pem 是否存在；已存在则跳过（SKIPPED）。
+//   - 默认检查 /app/conf/keys/public.pem 是否存在；已存在则跳过（SKIPPED）。
 //   - 传递 --force 标志可忽略已有文件，强制重新生成。
-//   - 生成后写入 /app/conf/public.pem (0644) 和 /app/conf/private.pem (0600)。
+//   - 生成后写入 /app/conf/keys/public.pem (0644) 和 /app/conf/keys/private.pem (0600)。
 //   - 输出 SHA-256 指纹到 stderr。
 func GenKey() {
 	mode := os.Getenv("CRYPTO_MODE")

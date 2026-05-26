@@ -103,6 +103,9 @@ RUN addgroup -S contful \
                              /usr/local/openresty/nginx/scgi_temp
 USER contful
 
+# 创建配置子目录（密钥 + SSL 证书）
+RUN mkdir -p /app/conf/keys /app/conf/ssl
+
 # 复制 Go 二进制
 COPY --chown=contful:contful --from=go-builder /app/admin /app/admin
 

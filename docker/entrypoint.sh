@@ -78,7 +78,7 @@ do_import() {
 # ─── Step 3: 密钥检查 ────────────────────────────────────────────────────────
 
 ensure_keys() {
-    if [ ! -f "/app/conf/public.pem" ] || [ ! -f "/app/conf/private.pem" ]; then
+    if [ ! -f "/app/conf/keys/public.pem" ] || [ ! -f "/app/conf/keys/private.pem" ]; then
         echo "[Entrypoint] Generating key pair..."
         "$BINARY" gen-key
     fi
