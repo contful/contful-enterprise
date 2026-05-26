@@ -12,7 +12,7 @@ import { showError, showSuccess } from '@/utils/request'
 import LangSwitcher from './LangSwitcher.vue'
 
 const { t } = useI18n()
-const version = '1.0.0'
+import { version } from '../../package.json'
 const edition = import.meta.env.VITE_EDITION || 'community'
 const editionLabel = edition === 'enterprise' ? t('edition.enterprise') : t('edition.community')
 
