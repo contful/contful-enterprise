@@ -5,28 +5,28 @@
 
 # =============================================================================
 # Contful Docker 镜像构建脚本
-# 支持单架构和多架构镜像构建
+# 支持单架构（本地）和多架构（推送 registry）构建
 # =============================================================================
 #
 # 用法:
-#   ./shell/build-image.sh              # 构建所有镜像（当前架构）
-#   ./shell/build-image.sh console     # 构建 Console 镜像（当前架构）
-#   ./shell/build-image.sh openapi     # 构建 Open API 镜像（当前架构）
-#   ./shell/build-image.sh --multi-arch # 构建多架构镜像（amd64 + arm64）
+#   ./shell/build-image.sh              # 构建所有镜像（当前架构，本地）
+#   ./shell/build-image.sh console     # 构建 Console 镜像（当前架构，本地）
+#   ./shell/build-image.sh openapi     # 构建 Open API 镜像（当前架构，本地）
+#   ./shell/build-image.sh --multi-arch # 构建多架构镜像并推送到 registry（amd64 + arm64）
+#   PROXY=true ./shell/build-image.sh --multi-arch  # 国内网络启用阿里云镜像加速
 #
 # 环境变量:
 #   DB_TYPE         数据库类型 (postgresql=PostgreSQL)，支持逗号分隔，默认: postgresql
-#   TARGET_ARCH    指定构建架构，多架构模式下可选 (amd64|arm64)，默认: amd64,arm64
+#   PROXY           设为 true 使用阿里云镜像加速（国内网络），默认: false
 #
 # 镜像标签规则:
-#   多架构构建: 使用 ${db_type}-latest 标签（如 postgresql-latest）
-#   单架构构建: 使用 ${db_type}-latest + ${db_type}-${arch}-latest 标签
-#              （如 postgresql-latest + postgresql-arm64-latest）
+#   单架构构建: ${db_type}-latest + ${db_type}-${arch}-latest（本地）
+#   多架构构建: ${db_type}-latest（推送到 registry，含 amd64 + arm64 清单）
 #
 # 示例:
-#   ./shell/build-image.sh                        # 单架构构建
-#   ./shell/build-image.sh --multi-arch           # 多架构构建（amd64 + arm64）
-#   ./shell/build-image.sh --multi-arch console  # 多架构构建 Console
+#   ./shell/build-image.sh                   # 单架构构建（当前机器）
+#   ./shell/build-image.sh --multi-arch      # 多架构推送 registry
+#   ./shell/build-image.sh --multi-arch console  # 仅 Console 多架构推送
 # =============================================================================
 
 set -e
@@ -45,13 +45,13 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # 默认配置
 DB_TYPES="${DB_TYPE:-postgresql}"
 MULTI_ARCH=false
+PROXY="${PROXY:-false}"
 COMMAND="all"
 
 # 解析参数
 for arg in "$@"; do
     case "$arg" in
         --multi-arch) MULTI_ARCH=true ;;
-        --single-arch) MULTI_ARCH=false ;;
         console|openapi|all|list|help|-h|--help) COMMAND="$arg" ;;
     esac
 done
@@ -94,12 +94,18 @@ check_buildx() {
 }
 
 ensure_buildx_builder() {
+    # 优先使用 Docker Desktop 自带的 desktop-linux（已预配 QEMU + 多平台支持）
+    if docker buildx inspect desktop-linux &> /dev/null; then
+        docker buildx use desktop-linux
+        return
+    fi
+    # 回退：创建 builder（CI 无 Docker Desktop 环境）
     docker buildx inspect contful-builder &> /dev/null || \
-        docker buildx create --name contful-builder --use &> /dev/null
+        docker buildx create --name contful-builder --driver docker-container --use &> /dev/null
     docker buildx use contful-builder
 }
 
-# 构建单架构镜像
+# 构建单架构镜像（本地 daemon）
 build_single_arch() {
     local image_name="$1"
     local db_type="$2"
@@ -119,15 +125,16 @@ build_single_arch() {
         --no-cache \
         --platform "$platform" \
         --build-arg DB_TYPE="$db_type" \
-        -t "contful/enterprise-${image_name}:${tag_arch}" \
-        -t "contful/enterprise-${image_name}:${tag_latest}" \
+        --build-arg PROXY="$PROXY" \
+        -t "contful/${image_name}:${tag_arch}" \
+        -t "contful/${image_name}:${tag_latest}" \
         -f "$dockerfile" \
         "$PROJECT_DIR"
 
     log_success "${image_name}:${tag_arch} + :${tag_latest} 构建完成"
 }
 
-# 构建多架构镜像
+# 构建多架构镜像（推送到 registry）
 build_multi_arch() {
     local image_name="$1"
     local db_type="$2"
@@ -135,9 +142,9 @@ build_multi_arch() {
 
     local tag_latest="${db_type}-latest"
 
-    log_info "构建 ${image_name} 多架构镜像..."
+    log_info "构建 ${image_name} 多架构镜像 → registry"
     log_info "  架构: amd64 + arm64"
-    log_info "  标签: ${tag_latest}"
+    log_info "  标签: contful/${image_name}:${tag_latest}"
 
     [ ! -f "$dockerfile" ] && { log_error "Dockerfile 不存在: $dockerfile"; exit 1; }
 
@@ -147,17 +154,18 @@ build_multi_arch() {
         --no-cache \
         --platform "linux/amd64,linux/arm64" \
         --build-arg DB_TYPE="$db_type" \
-        -t "contful/enterprise-${image_name}:${tag_latest}" \
+        --build-arg PROXY="$PROXY" \
+        -t "contful/${image_name}:${tag_latest}" \
         -f "$dockerfile" \
-        --load \
+        --push \
         "$PROJECT_DIR"
 
-    log_success "${image_name}:${tag_latest} (amd64 + arm64) 构建完成"
+    log_success "${image_name}:${tag_latest} (amd64 + arm64) 已推送"
 }
 
 # 构建 Console 镜像
 build_console() {
-    local console_dockerfile="$PROJECT_DIR/docker/Dockerfile.console"
+    local dockerfile="$PROJECT_DIR/docker/Dockerfile.console"
     IFS=',' read -ra DB_LIST <<< "$DB_TYPES"
 
     for db_type in "${DB_LIST[@]}"; do
@@ -165,18 +173,18 @@ build_console() {
         echo ""
 
         if [ "$MULTI_ARCH" = true ]; then
-            build_multi_arch "console" "$db_type" "$console_dockerfile"
+            build_multi_arch "console" "$db_type" "$dockerfile"
         else
             local arch=$(get_native_arch)
             [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
-            build_single_arch "console" "$db_type" "$arch" "$console_dockerfile"
+            build_single_arch "console" "$db_type" "$arch" "$dockerfile"
         fi
     done
 }
 
 # 构建 Open API 镜像
 build_openapi() {
-    local openapi_dockerfile="$PROJECT_DIR/docker/Dockerfile.openapi"
+    local dockerfile="$PROJECT_DIR/docker/Dockerfile.openapi"
     IFS=',' read -ra DB_LIST <<< "$DB_TYPES"
 
     for db_type in "${DB_LIST[@]}"; do
@@ -184,20 +192,27 @@ build_openapi() {
         echo ""
 
         if [ "$MULTI_ARCH" = true ]; then
-            build_multi_arch "openapi" "$db_type" "$openapi_dockerfile"
+            build_multi_arch "openapi" "$db_type" "$dockerfile"
         else
             local arch=$(get_native_arch)
             [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
-            build_single_arch "openapi" "$db_type" "$arch" "$openapi_dockerfile"
+            build_single_arch "openapi" "$db_type" "$arch" "$dockerfile"
         fi
     done
 }
 
 # 构建所有镜像
 build_all() {
+    local mode
+    if [ "$MULTI_ARCH" = true ]; then
+        mode="多架构推送 registry (amd64 + arm64)"
+    else
+        mode="单架构本地 $(get_native_arch)"
+    fi
+
     log_info "开始构建 Contful Docker 镜像..."
     log_info "数据库类型: $DB_TYPES"
-    log_info "构建模式: $([ "$MULTI_ARCH" = true ] && echo "多架构 (amd64 + arm64)" || echo "单架构 ($(get_native_arch))")"
+    log_info "构建模式: $mode"
     echo ""
 
     build_console
@@ -206,19 +221,22 @@ build_all() {
 
     echo ""
     log_success "所有镜像构建完成！"
-    echo ""
-    show_images
+
+    if [ "$MULTI_ARCH" != true ]; then
+        echo ""
+        show_images
+    fi
 }
 
 # 显示已构建的镜像
 show_images() {
-    log_info "当前 Contful 镜像:"
+    log_info "本地 Contful 镜像:"
     echo ""
     echo "  Console:"
-    docker images contful/enterprise-console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
+    docker images contful/console --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
     echo ""
     echo "  Open API:"
-    docker images contful/enterprise-openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
+    docker images contful/openapi --format "    {{.Repository}}:{{.Tag}} ({{.Size}}) - {{.CreatedSince}}" 2>/dev/null | grep -E "${DB_TYPES}" | head -10 || echo "    (无)"
     echo ""
 }
 
@@ -229,36 +247,34 @@ Contful Docker 镜像构建脚本
 用法: $0 [选项] [命令]
 
 选项:
-  --multi-arch   构建多架构镜像（amd64 + arm64）
-  --single-arch  构建单架构镜像（默认）
+  --multi-arch   构建多架构镜像（amd64 + arm64）并推送到 registry
 
 命令:
   console        构建 Console 镜像
   openapi        构建 Open API 镜像
   all            构建所有镜像（默认）
-  list           显示已构建的镜像
+  list           显示本地已构建的镜像
 
 环境变量:
-  DB_TYPE        数据库类型 (postgresql=PostgreSQL)
-                 支持逗号分隔多个类型，默认值: postgresql
+  DB_TYPE        数据库类型，默认: postgresql
+  PROXY          设为 true 使用阿里云镜像加速（国内网络），默认: false
 
 示例:
-  # 单架构构建（自动检测当前架构）
+  # 单架构构建（自动检测当前架构，本地 daemon）——最快
   \$ $0                        # 构建所有镜像
   \$ $0 console                # 仅构建 Console 镜像
 
-  # 多架构构建（amd64 + arm64）
-  \$ $0 --multi-arch           # 构建所有镜像
-  \$ $0 --multi-arch console   # 仅构建 Console 多架构镜像
+  # 多架构构建（amd64 + arm64）→ registry
+  \$ $0 --multi-arch           # 构建所有镜像并推送
 
-镜像标签规则:
-  多架构构建:
-    contful/enterprise-console:postgresql-latest   (amd64 + arm64)
-    contful/enterprise-openapi:postgresql-latest   (amd64 + arm64)
+  # 国内网络启用镜像加速
+  PROXY=true \$ $0             # 单架构 + 阿里云源
+  PROXY=true \$ $0 --multi-arch  # 多架构 + 阿里云源
+  \$ $0 --multi-arch console   # 仅构建 Console 多架构并推送
 
-  单架构构建:
-    contful/enterprise-console:postgresql-latest        + postgresql-arm64-latest  (arm64 机器)
-    contful/enterprise-console:postgresql-latest        + postgresql-amd64-latest  (amd64 机器)
+镜像标签:
+  单架构: contful/console:postgresql-latest + :postgresql-amd64-latest
+  多架构: contful/console:postgresql-latest（registry 上的 multi-arch 清单）
 EOF
 }
 

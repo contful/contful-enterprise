@@ -36,9 +36,12 @@ FROM golang:1.25-alpine AS go-builder
 ARG DB_TYPE=postgresql
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
+ARG PROXY=false
 
-# 使用阿里云 Alpine 镜像源加速 apk
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+# 国内用户: --build-arg PROXY=true 启用阿里云镜像加速
+RUN if [ "$PROXY" = "true" ]; then \
+        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
+    fi
 
 WORKDIR /app
 
@@ -57,13 +60,17 @@ RUN upx --best /app/admin && rm -f /usr/bin/upx
 # ---- Stage 2: 前端构建 ----
 FROM node:24-alpine AS frontend-builder
 
-# 前端使用 /admin/api/v1（nginx 反向代理，无需端口）
 ARG API_BASE_URL=/admin/api/v1
+ARG PROXY=false
 
-# 使用阿里云 npm 镜像
-RUN npm config set registry https://registry.npmmirror.com && \
-    corepack enable && \
-    yarn config set registry https://registry.npmmirror.com
+# 国内用户: --build-arg PROXY=true 启用 npmmirror 加速
+RUN if [ "$PROXY" = "true" ]; then \
+        npm config set registry https://registry.npmmirror.com && \
+        corepack enable && \
+        yarn config set registry https://registry.npmmirror.com; \
+    else \
+        corepack enable; \
+    fi
 
 WORKDIR /app
 
@@ -77,8 +84,12 @@ RUN yarn build
 # ---- Stage 3: OpenResty 运行 ----
 FROM openresty/openresty:alpine AS runner
 
-# 使用阿里云 Alpine 镜像源
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+ARG PROXY=false
+
+# 国内用户: --build-arg PROXY=true 启用阿里云镜像加速
+RUN if [ "$PROXY" = "true" ]; then \
+        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
+    fi
 
 WORKDIR /app
 
