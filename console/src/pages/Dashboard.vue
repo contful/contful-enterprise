@@ -79,8 +79,8 @@ const quickActions = computed(() => {
   return [
     { icon: 'add', label: t('dashboard.createContent'), path: '/content/entries', color: '#3b82f6' },
     { icon: 'upload', label: t('dashboard.uploadMedia'), path: '/assets', color: '#10b981' },
-    { icon: 'schema', label: t('dashboard.manageTypes'), path: '/content/schemas', color: '#8b5cf6' },
-    { icon: 'token', label: t('menu.apiTokens'), path: '/tokens', color: '#f59e0b' },
+    { icon: 'file', label: t('dashboard.manageTypes'), path: '/content/schemas', color: '#8b5cf6' },
+    { icon: 'secured', label: t('menu.apiTokens'), path: '/tokens', color: '#f59e0b' },
   ]
 })
 </script>
@@ -172,11 +172,7 @@ const quickActions = computed(() => {
           @click="router.push(action.path)"
         >
           <span class="action-icon" :style="{ background: action.color }">
-            <t-icon name="add" size="16px" style="color:white" />
-              <Icon v-else-if="action.icon === 'upload'" name="arrow-up" style="color: white" />
-              <path v-else-if="action.icon === 'schema'" d="M4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h6a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/>
-              <path v-else-if="action.icon === 'token'" d="M7 7a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zm-4 4a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2zM4 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
-            </svg>
+            <t-icon :name="action.icon" size="16px" style="color:white" />
           </span>
           <span class="action-label">{{ action.label }}</span>
         </button>
