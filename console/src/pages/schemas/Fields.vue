@@ -13,6 +13,7 @@ import {
   Form,
   FormItem,
   Input,
+  Textarea,
   Select,
   Option,
   MessagePlugin,
@@ -348,9 +349,8 @@ watch(() => route.params.id, () => {
         </FormItem>
 
         <FormItem :label="t('fields.fieldDescription')">
-          <Input
+          <Textarea
             v-model="formData.description"
-            :type="'textarea' as any"
             :placeholder="t('fields.fieldDescPlaceholder')"
             :rows="2"
           />
