@@ -41,13 +41,11 @@ const initConfig: Record<string, unknown> = {
   language: 'zh_CN',
   promotion: false,
   branding: false,
-  apiKey: 'o5lwq9uqku3wewduzmssmqkuqvfr0bfjdm6w7cxcx9j9hvrs',
 }
 </script>
 
 <template>
   <Editor
-    api-key="o5lwq9uqku3wewduzmssmqkuqvfr0bfjdm6w7cxcx9j9hvrs"
     :model-value="editorValue"
     :init="initConfig"
     @update:model-value="(val: string) => emit('update:modelValue', val)"
