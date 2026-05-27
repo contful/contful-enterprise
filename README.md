@@ -1,5 +1,12 @@
 # Contful
 
+<p align="center">
+  <a href="https://github.com/contful/contful/actions"><img src="https://img.shields.io/github/actions/workflow/status/contful/contful/backend.yml" alt="CI"></a>
+  <a href="https://github.com/contful/contful/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
+  <a href="https://github.com/contful/contful/releases"><img src="https://img.shields.io/github/v/release/contful/contful?include_prereleases" alt="Release"></a>
+  <a href="https://github.com/contful/contful"><img src="https://img.shields.io/github/stars/contful/contful?style=social" alt="Stars"></a>
+</p>
+
 > 🌍 多语言文档 / Multilingual Documentation: [简体中文](doc/README_zh-CN.md) · [繁體中文](doc/README_zh-TW.md) · [English](doc/README_en.md) · [한국어](doc/README_ko.md) · [日本語](doc/README_ja.md)
 
 开源 Headless CMS，支持多站点管理。
