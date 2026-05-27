@@ -81,6 +81,7 @@ func runServer() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
+	logger.Info().Msg("database connected")
 
 	// 注册 AuditLog 数据签名 callback
 	audit.Register(db)

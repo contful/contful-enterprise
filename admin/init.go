@@ -20,7 +20,8 @@ func autoInit(db *gorm.DB) {
 	).Scan(&count)
 
 	if count > 0 {
-		return // 已有 contful_ 表，跳过
+		zlog.Logger.Info().Int64("tables", count).Msg("数据库已初始化，跳过")
+		return
 	}
 
 	zlog.Logger.Info().Msg("检测到数据库未初始化，自动执行 init_pg.sql...")
