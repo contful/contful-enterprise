@@ -12,23 +12,8 @@
 -- 注意：此脚本为完整重建脚本（DDL + 默认数据），会删除所有已有对象，仅用于全新部署或开发环境重置。
 -- 幂等设计：DDL 使用 IF NOT EXISTS / 种子数据使用 INSERT WHERE NOT EXISTS + ON CONFLICT DO NOTHING
 -- =============================================================================
---
--- [PG-ONLY] 标记说明：以下语法为 PostgreSQL 专有，迁移到其他数据库时需替换：
---   - CREATE EXTENSION      → MySQL/达梦不需要
---   - ENUM TYPE             → MySQL: ENUM 或 VARCHAR + CHECK; 达梦: VARCHAR + CHECK
---   - gen_random_uuid()     → MySQL: UUID(); 达梦: SYS_GUID()
---   - UUID 类型             → MySQL: VARCHAR(36); 达梦: VARCHAR(36)
---   - JSONB 类型            → MySQL: JSON; 达梦: CLOB
---   - TIMESTAMPTZ           → MySQL: DATETIME; 达梦: TIMESTAMP
---   - INET 类型             → MySQL: VARCHAR(45); 达梦: VARCHAR(45)
---   - 部分索引 (WHERE)      → MySQL 不支持，需用生成的列+普通索引替代
---   - CREATE TRIGGER        → MySQL: 语法略有不同; 达梦: 类似
---   - ON CONFLICT DO NOTHING → MySQL: ON DUPLICATE KEY UPDATE; 达梦: MERGE INTO
---   - GIN 索引              → MySQL: FULLTEXT; 达梦: 不支持
---   - plpgsql 函数          → MySQL: 无存储过程替代方案
--- =============================================================================
 
--- 启用扩展 [PG-ONLY]
+-- 启用扩展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
