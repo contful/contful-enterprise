@@ -4,18 +4,24 @@
 package license
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
+	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+// RootPublicKey 根公钥（编译进二进制，永远不变）
+var RootPublicKey = []byte{
+	0xec, 0x31, 0x8b, 0x2f, 0xa4, 0x1f, 0xde, 0xa3,
+	0x87, 0x88, 0x9c, 0x9e, 0xf4, 0xeb, 0xec, 0xfb,
+	0x79, 0xbc, 0x90, 0xca, 0x8a, 0xf9, 0xa4, 0xe3,
+	0xf3, 0xf7, 0x04, 0xe7, 0x6f, 0x23, 0x4b, 0xee,
+}
 
 // Info 许可证信息结构体
 type Info struct {
@@ -41,19 +47,7 @@ func (i *Info) Status() string {
 	return "active"
 }
 
-// GetKey 获取 AES-256 密钥（32 字节）
-// 从 LICENSE_KEY 环境变量读取，去除连字符后转为字节切片
-// 开发/测试环境使用默认 UUID
-func GetKey() []byte {
-	rawKey := os.Getenv("LICENSE_KEY")
-	if rawKey == "" {
-		rawKey = "7f16aef8-4587-5b94-8bd2-fa156882da6b"
-	}
-	cleanKey := strings.ReplaceAll(rawKey, "-", "")
-	return []byte(cleanKey)
-}
-
-// Load 从 conf/license.dat 加载并解密 license
+// Load 从 conf/license.dat 加载并验证 license
 func Load() (*Info, error) {
 	searchPaths := []string{"./conf", "../conf", "."}
 	var data []byte
@@ -81,102 +75,71 @@ func Load() (*Info, error) {
 		return nil, fmt.Errorf("license.dat is empty (%s)", foundPath)
 	}
 
-	info, err := Decrypt(token, GetKey())
+	info, err := verifyLicenseFile(token)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt license (%s): %v", foundPath, err)
+		return nil, fmt.Errorf("license verification failed (%s): %v", foundPath, err)
 	}
 
 	return info, nil
 }
 
-// Decrypt AES-256-CBC 解密 license
-func Decrypt(encrypted string, key []byte) (*Info, error) {
-	block, err := aes.NewCipher(key)
+// verifyLicenseFile 客户端验证授权文件（仅依赖 RootPublicKey）
+// licenseFile: license.dat 文件内容（4 段 base64 以 . 分隔）
+// 验证通过返回 License 信息，失败返回 error
+func verifyLicenseFile(licenseFile string) (*Info, error) {
+	parts := strings.Split(licenseFile, ".")
+	if len(parts) != 4 {
+		return nil, errors.New("授权文件格式无效: 需要 4 段数据")
+	}
+
+	// 1. 解码子公钥
+	childPub, err := base64.StdEncoding.DecodeString(parts[0])
 	if err != nil {
-		return nil, fmt.Errorf("invalid key: %v", err)
+		return nil, fmt.Errorf("子公钥解码失败: %v", err)
+	}
+	if len(childPub) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("子公钥长度无效: %d", len(childPub))
 	}
 
-	blockSize := block.BlockSize()
-	data, err := base64.StdEncoding.DecodeString(encrypted)
+	// 2. 解码根签名
+	rootSig, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
-		return nil, fmt.Errorf("base64 decode error: %v", err)
+		return nil, fmt.Errorf("根签名解码失败: %v", err)
 	}
 
-	if len(data) < blockSize {
-		return nil, fmt.Errorf("ciphertext too short")
-	}
-
-	// 分离 IV 和密文
-	iv := data[:blockSize]
-	ciphertext := data[blockSize:]
-
-	mode := cipher.NewCBCDecrypter(block, iv)
-	plaintext := make([]byte, len(ciphertext))
-	mode.CryptBlocks(plaintext, ciphertext)
-
-	// 去除 PKCS7 填充
-	unpadded, err := pkcs7Unpad(plaintext, blockSize)
+	// 3. 解码 License JSON
+	licenseJSON, err := base64.StdEncoding.DecodeString(parts[2])
 	if err != nil {
-		return nil, fmt.Errorf("padding error: %v", err)
+		return nil, fmt.Errorf("授权数据解码失败: %v", err)
 	}
 
+	// 4. 解码子签名
+	childSig, err := base64.StdEncoding.DecodeString(parts[3])
+	if err != nil {
+		return nil, fmt.Errorf("授权签名解码失败: %v", err)
+	}
+
+	// ① 用根公钥验证子公钥签名
+	if !ed25519.Verify(RootPublicKey, childPub, rootSig) {
+		return nil, errors.New("授权文件已损坏: 根签名验证失败")
+	}
+
+	// ② 用子公钥验证 License 签名
+	if !ed25519.Verify(childPub, licenseJSON, childSig) {
+		return nil, errors.New("授权文件已损坏: License 签名验证失败，可能被篡改")
+	}
+
+	// ③ 解析 License
 	var info Info
-	if err := json.Unmarshal(unpadded, &info); err != nil {
-		return nil, fmt.Errorf("json unmarshal error: %v", err)
+	if err := json.Unmarshal(licenseJSON, &info); err != nil {
+		return nil, fmt.Errorf("授权数据解析失败: %v", err)
+	}
+
+	// ④ 检查是否过期
+	if !info.ExpiryDate.IsZero() && time.Now().After(info.ExpiryDate) {
+		return nil, fmt.Errorf("授权已过期: %s (过期时间: %s)",
+			info.Customer, info.ExpiryDate.Format("2006-01-02"))
 	}
 
 	return &info, nil
-}
-
-// pkcs7Unpad 去除 PKCS7 填充
-func pkcs7Unpad(data []byte, blockSize int) ([]byte, error) {
-	length := len(data)
-	if length == 0 {
-		return nil, fmt.Errorf("empty data")
-	}
-	if length%blockSize != 0 {
-		return nil, fmt.Errorf("invalid padding")
-	}
-	padding := int(data[length-1])
-	if padding > length || padding == 0 {
-		return nil, fmt.Errorf("invalid padding size")
-	}
-	return data[:length-padding], nil
-}
-
-// Encrypt AES-256-CBC 加密 license（用于测试/验证）
-func Encrypt(info Info, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", fmt.Errorf("invalid key: %v", err)
-	}
-
-	blockSize := block.BlockSize()
-	plaintext, err := json.Marshal(info)
-	if err != nil {
-		return "", fmt.Errorf("json marshal error: %v", err)
-	}
-
-	// PKCS7 填充
-	padded := pkcs7Pad(plaintext, blockSize)
-
-	// 生成随机 IV
-	iv := make([]byte, blockSize)
-	if _, err := rand.Read(iv); err != nil {
-		return "", fmt.Errorf("iv generation failed: %v", err)
-	}
-
-	mode := cipher.NewCBCEncrypter(block, iv)
-	ciphertext := make([]byte, len(padded))
-	mode.CryptBlocks(ciphertext, padded)
-
-	encrypted := append(iv, ciphertext...)
-	return base64.StdEncoding.EncodeToString(encrypted), nil
-}
-
-// pkcs7Pad PKCS7 填充
-func pkcs7Pad(data []byte, blockSize int) []byte {
-	padding := blockSize - len(data)%blockSize
-	padText := bytes.Repeat([]byte{byte(padding)}, padding)
-	return append(data, padText...)
 }

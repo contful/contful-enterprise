@@ -28,9 +28,11 @@ export const useLicenseStore = defineStore('license', () => {
     error.value = null
     try {
       const data = await getLicenseInfo()
+      console.log('[License] API response:', JSON.stringify(data))
       info.value = data
     } catch (err: unknown) {
       const e = err as { response?: { data?: { msg?: string } } }
+      console.error('[License] API error:', err)
       error.value = e.response?.data?.msg || 'Failed to load license info'
       info.value = null
     } finally {

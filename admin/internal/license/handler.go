@@ -6,6 +6,7 @@ package license
 import (
 	"net/http"
 
+	"github.com/contful/contful/admin/internal/model"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,14 +24,14 @@ func NewHandler(info *Info) *Handler {
 // GET /admin/api/v1/system/license
 func (h *Handler) GetInfo(c *gin.Context) {
 	if h.info == nil {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{
 			"status":  "unlicensed",
 			"message": "未找到有效的授权文件 (conf/license.dat)",
-		})
+		}))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{
 		"status":          h.info.Status(),
 		"customer":        h.info.Customer,
 		"product_name":    h.info.ProductName,
@@ -40,5 +41,5 @@ func (h *Handler) GetInfo(c *gin.Context) {
 		"issued_date":     h.info.IssuedDate,
 		"expiry_date":     h.info.ExpiryDate,
 		"is_expired":      h.info.IsExpired(),
-	})
+	}))
 }

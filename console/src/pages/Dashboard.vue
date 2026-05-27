@@ -11,6 +11,7 @@ import StatCard from '@/components/common/StatCard.vue'
 import { getDashboardStats } from '@/api/api'
 import { showError } from '@/utils/request'
 import PageHeader from '@/components/PageHeader.vue'
+import { useLicenseStore } from '@/stores/license'
 
 function handleError(err: unknown) {
   if (err instanceof Error) {
@@ -22,6 +23,18 @@ function handleError(err: unknown) {
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const licenseStore = useLicenseStore()
+
+function formatDate(isoStr: string | null): string {
+  if (!isoStr) return '-'
+  try {
+    const d = new Date(isoStr)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  } catch {
+    return isoStr
+  }
+}
 
 // 等待 Layout 初始化完成（确保 currentSiteId 已设置）
 const layoutInitialized = inject<Ref<boolean>>('layoutInitialized', ref(true))
@@ -65,12 +78,14 @@ async function fetchDashboardData() {
 onMounted(async () => {
   if (layoutInitialized.value) {
     await fetchDashboardData()
+    licenseStore.fetchLicense()
   }
 })
 
 watch(layoutInitialized, async (ready) => {
   if (ready && loading.value) {
     await fetchDashboardData()
+    licenseStore.fetchLicense()
   }
 })
 </script>
@@ -150,6 +165,51 @@ watch(layoutInitialized, async (ready) => {
         </template>
       </StatCard>
     </div>
+
+    <!-- 授权信息 -->
+    <t-card :bordered="true" class="license-card">
+      <template #title>
+        <div class="license-title">
+          <t-icon
+            :name="licenseStore.isExpired ? 'error-circle' : 'check-circle-filled'"
+            :style="{ color: licenseStore.isExpired ? 'var(--td-warning-color)' : 'var(--td-success-color)' }"
+            size="18px"
+          />
+          <span>{{ t('license.title') }}</span>
+        </div>
+      </template>
+
+      <t-alert v-if="licenseStore.isUnlicensed" theme="warning" :message="t('license.unlicensed')" />
+
+      <t-descriptions v-if="!licenseStore.isUnlicensed" :column="2" bordered size="small">
+        <t-descriptions-item :label="t('license.productName')">
+          {{ licenseStore.productName || '-' }}
+        </t-descriptions-item>
+        <t-descriptions-item :label="t('license.productVersion')">
+          {{ licenseStore.productVersion || '-' }}
+        </t-descriptions-item>
+        <t-descriptions-item :label="t('license.type')">
+          <t-tag :theme="licenseStore.isTrial ? 'warning' : 'success'" variant="light" size="small">
+            {{ licenseStore.isTrial ? t('license.trial') : t('license.commercial') }}
+          </t-tag>
+        </t-descriptions-item>
+        <t-descriptions-item :label="t('license.productCode')">
+          {{ licenseStore.productCode || '-' }}
+        </t-descriptions-item>
+        <t-descriptions-item :label="t('license.customer')">
+          {{ licenseStore.customer || '-' }}
+        </t-descriptions-item>
+        <t-descriptions-item :label="t('license.issuedDate')">
+          {{ formatDate(licenseStore.issuedDate) }}
+        </t-descriptions-item>
+        <t-descriptions-item :label="t('license.expiryDate')" :span="2">
+          <span :style="{ color: licenseStore.isExpired ? 'var(--td-error-color)' : undefined }">
+            {{ formatDate(licenseStore.expiryDate) }}
+          </span>
+          <t-tag v-if="licenseStore.isExpired" theme="danger" size="small" style="margin-left: 8px">{{ t('license.expired') }}</t-tag>
+        </t-descriptions-item>
+      </t-descriptions>
+    </t-card>
   </div>
 </template>
 
@@ -163,5 +223,25 @@ watch(layoutInitialized, async (ready) => {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-6);
   margin-bottom: var(--space-6);
+}
+
+.license-card {
+  margin-top: 0;
+}
+
+.license-card :deep(.t-card__header) {
+  background: var(--td-bg-color-secondarycontainer);
+  border-bottom: 1px solid var(--td-component-border);
+}
+
+.license-card :deep(.t-card__title) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.license-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

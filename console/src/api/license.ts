@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { get } from '@/utils/request'
 
 export interface LicenseInfo {
   status: string
@@ -14,6 +14,6 @@ export interface LicenseInfo {
 }
 
 export const getLicenseInfo = async (): Promise<LicenseInfo> => {
-  const res = await request.get('/system/license')
-  return res.data.data
+  const res = await get<LicenseInfo>('/system/license')
+  return res.data
 }
