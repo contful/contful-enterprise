@@ -320,7 +320,7 @@ watch(
           :title="t('cache.clearAllTitle')"
           @click="handleClearAllCache"
         >
-          <t-icon name="clear" />
+          <template #icon><t-icon name="clear" /></template>
         </t-button>
         <t-dropdown trigger="click">
           <div class="user-trigger">
