@@ -386,13 +386,9 @@ const formatFieldValue = (value: any): string => {
 
 // 格式化日期
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const d = new Date(date)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 // 分页变化
@@ -557,7 +553,7 @@ onMounted(() => {
                     />
                   </th>
                   <th>{{ t('common.id') }}</th>
-                  <th v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
+                  <th v-for="field in selectedType.fields?.slice(0, 1)" :key="field.id">
                     {{ field.label }}
                   </th>
                   <th>{{ t('common.status') }}</th>
@@ -592,8 +588,8 @@ onMounted(() => {
                       @change="toggleSelect(entry.id)"
                     />
                   </td>
-                  <td class="id-cell">{{ entry.id.slice(0, 8) }}</td>
-                  <td v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
+                  <td class="id-cell">{{ entry.id }}</td>
+                  <td v-for="field in selectedType.fields?.slice(0, 1)" :key="field.id">
                     {{ formatFieldValue(entry.values?.[field.name]) }}
                   </td>
                   <td>
