@@ -265,12 +265,13 @@ func runServer() {
 	setupHandler := handler.NewSetupHandler(setupSvc)
 
 	setup := r.Group("/admin/api/v1/setup")
-	setup.Use(middleware.SetupGuard(db))
 	{
+		// GET /status — 始终返回 JSON（无需 SetupGuard，已安装返回 setup_required:false）
 		setup.GET("/status", middleware.SetupCSRF(), setupHandler.Status)
-		setup.POST("/database", middleware.SetupCSRF(), setupHandler.TestDatabase)
-		setup.POST("/initialize", middleware.SetupCSRF(), setupHandler.Initialize)
-		setup.POST("/admin", middleware.SetupCSRF(), setupHandler.CreateAdmin)
+		// POST 操作 — 需要 SetupGuard，已安装返回 404
+		setup.POST("/database", middleware.SetupCSRF(), middleware.SetupGuard(db), setupHandler.TestDatabase)
+		setup.POST("/initialize", middleware.SetupCSRF(), middleware.SetupGuard(db), setupHandler.Initialize)
+		setup.POST("/admin", middleware.SetupCSRF(), middleware.SetupGuard(db), setupHandler.CreateAdmin)
 	}
 
 	// Health check
