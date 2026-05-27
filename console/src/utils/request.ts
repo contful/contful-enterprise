@@ -158,6 +158,11 @@ request.interceptors.request.use(
       console.log('[Interceptor] 跳过公开路径 /auth/*，不附加 Token')
       return config
     }
+    // 安装向导端点不需要认证
+    if (url.startsWith('/setup/')) {
+      console.log('[Interceptor] 跳过公开路径 /setup/*，不附加 Token')
+      return config
+    }
     // 精确匹配公开配置端点（site + public），其余 /system/config/* 需要鉴权
     if (url === '/system/config/site' || url === '/system/config/public') {
       console.log('[Interceptor] 跳过公开路径，不附加 Token')

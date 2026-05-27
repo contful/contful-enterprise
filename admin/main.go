@@ -254,6 +254,25 @@ func runServer() {
 
 	// 注：CORS 由部署环境的反向代理（nginx）处理，不需要在这里注册中间件
 
+	// ─── Setup 安装向导路由（无需 JWT 认证，独立 CSRF + SetupGuard）─────────
+	initSQLBytes, err := os.ReadFile("../db/init_pg.sql")
+	if err != nil {
+		logger.Warn().Err(err).Msg("无法读取 init_pg.sql，安装向导将不可用")
+	}
+	initSQL := string(initSQLBytes)
+
+	setupSvc := service.NewSetupService(db, initSQL, cfg.Security.CryptoMode, "./conf")
+	setupHandler := handler.NewSetupHandler(setupSvc)
+
+	setup := r.Group("/admin/api/v1/setup")
+	setup.Use(middleware.SetupGuard(db))
+	{
+		setup.GET("/status", middleware.SetupCSRF(), setupHandler.Status)
+		setup.POST("/database", middleware.SetupCSRF(), setupHandler.TestDatabase)
+		setup.POST("/initialize", middleware.SetupCSRF(), setupHandler.Initialize)
+		setup.POST("/admin", middleware.SetupCSRF(), setupHandler.CreateAdmin)
+	}
+
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{

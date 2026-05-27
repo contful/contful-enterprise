@@ -707,7 +707,9 @@
     "customConfigTag": "自訂",
     "configKeyPlaceholder": "請輸入設定鍵名，如 custom_feature_enabled",
     "configValuePlaceholder": "請輸入設定值",
-    "clearCache": "清除快取"
+    "clearCache": "清除快取",
+    "next": "下一步",
+    "prev": "上一步"
   },
   "site": {
     "selectSite": "選擇站台",
@@ -910,5 +912,44 @@
     "calendarView": "日曆",
     "setSuccess": "排程設定成功",
     "clearSuccess": "排程已清除"
+  },
+  "setup": {
+    "title": "Contful 安裝精靈",
+    "subtitle": "安裝精靈",
+    "stepDatabase": "資料庫設定",
+    "stepAdmin": "管理員建立",
+    "database": {
+      "host": "主機",
+      "port": "連接埠",
+      "user": "使用者名稱",
+      "password": "密碼",
+      "passwordPlaceholder": "資料庫密碼",
+      "dbName": "資料庫名稱",
+      "sslMode": "SSL 模式",
+      "sslDisable": "disable (不使用SSL)",
+      "sslRequire": "require (必須SSL)",
+      "sslVerifyCa": "verify-ca (驗證CA)",
+      "sslVerifyFull": "verify-full (完整驗證)",
+      "testConnection": "測試連線",
+      "connectionSuccess": "資料庫連線成功",
+      "connectionFailed": "連線失敗，請檢查設定",
+      "initFailed": "初始化失敗"
+    },
+    "admin": {
+      "email": "管理員郵箱",
+      "password": "密碼",
+      "passwordHint": "至少 8 位",
+      "passwordConfirm": "確認密碼",
+      "passwordConfirmHint": "再次輸入密碼",
+      "passwordMismatch": "兩次密碼輸入不一致",
+      "passwordMinLength": "密碼至少 8 位",
+      "siteName": "站台名稱",
+      "siteNamePlaceholder": "我的網站",
+      "siteSlug": "站台識別碼",
+      "siteSlugPlaceholder": "my-site",
+      "completeInstall": "完成安裝",
+      "installSuccess": "安裝完成！即將跳轉登入頁...",
+      "installFailed": "建立管理員失敗"
+    }
   }
 }

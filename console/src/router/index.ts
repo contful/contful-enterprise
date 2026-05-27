@@ -47,6 +47,12 @@ function getRoutePermission(path: string): string | null {
 // ─────────────────────────────────────────────────────────────
 const routes: RouteRecordRaw[] = [
   {
+    path: '/setup',
+    name: 'Setup',
+    component: () => import('@/pages/setup/Setup.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/pages/auth/Login.vue'),
@@ -163,6 +169,25 @@ const router = createRouter({
 // 路由守卫
 // ─────────────────────────────────────────────────────────────
 router.beforeEach(async (to, _from, next) => {
+  // ── Setup 安装向导检查 ──────────────────────────────────────────────
+  // 如果访问 setup 页面，直接放行
+  if (to.path === '/setup') {
+    next()
+    return
+  }
+
+  // 检查是否需要进入安装向导
+  try {
+    const res = await fetch('/admin/api/v1/setup/status')
+    const data = await res.json()
+    if (data.data?.setup_required) {
+      next('/setup')
+      return
+    }
+  } catch {
+    // API 不可达时忽略（可能是网络问题或后端未启动）
+  }
+
   const requiresAuth = to.meta.requiresAuth !== false
   let token = getAccessToken()
 

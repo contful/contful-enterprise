@@ -69,7 +69,9 @@
     "saveSuccess": "保存成功",
     "deleteSuccess": "删除成功",
     "createSuccess": "创建成功",
-    "clearCache": "清除缓存"
+    "clearCache": "清除缓存",
+    "next": "下一步",
+    "prev": "上一步"
   },
   "menu": {
     "dashboard": "仪表盘",
@@ -948,6 +950,45 @@
     "calendarView": "日历",
     "setSuccess": "排期设置成功",
     "clearSuccess": "排期已清除"
+  },
+  "setup": {
+    "title": "Contful 安装向导",
+    "subtitle": "安装向导",
+    "stepDatabase": "数据库配置",
+    "stepAdmin": "管理员创建",
+    "database": {
+      "host": "主机",
+      "port": "端口",
+      "user": "用户名",
+      "password": "密码",
+      "passwordPlaceholder": "数据库密码",
+      "dbName": "数据库名",
+      "sslMode": "SSL 模式",
+      "sslDisable": "disable (不使用SSL)",
+      "sslRequire": "require (必须SSL)",
+      "sslVerifyCa": "verify-ca (验证CA)",
+      "sslVerifyFull": "verify-full (完整验证)",
+      "testConnection": "测试连接",
+      "connectionSuccess": "数据库连接成功",
+      "connectionFailed": "连接失败，请检查配置",
+      "initFailed": "初始化失败"
+    },
+    "admin": {
+      "email": "管理员邮箱",
+      "password": "密码",
+      "passwordHint": "至少 8 位",
+      "passwordConfirm": "确认密码",
+      "passwordConfirmHint": "再次输入密码",
+      "passwordMismatch": "两次密码输入不一致",
+      "passwordMinLength": "密码至少 8 位",
+      "siteName": "站点名称",
+      "siteNamePlaceholder": "我的网站",
+      "siteSlug": "站点标识",
+      "siteSlugPlaceholder": "my-site",
+      "completeInstall": "完成安装",
+      "installSuccess": "安装完成！即将跳转登录页...",
+      "installFailed": "创建管理员失败"
+    }
   },
   "license": {
     "title": "授权信息",
