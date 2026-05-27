@@ -319,7 +319,9 @@
     "clearSiteCache": "清除本站缓存",
     "clearSiteCacheConfirmTitle": "确认清除站点缓存",
     "clearSiteCacheConfirmBody": "将清除本站点下所有内容缓存（包括所有内容模型），确认继续？",
-    "clearSiteCacheConfirm": "确认清除"
+    "clearSiteCacheConfirm": "确认清除",
+    "clearSchemaCacheTitle": "确认清除模型缓存",
+    "clearSchemaCacheBody": "将清除「{schema}」的内容缓存，确认继续？"
   },
   "media": {
     "title": "媒体库",

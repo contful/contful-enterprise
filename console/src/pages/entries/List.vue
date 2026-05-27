@@ -333,17 +333,26 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
 }
 
 // 清除当前模型缓存
-const handleClearCache = async () => {
+const handleClearCache = () => {
   if (!selectedType.value) return
-  cacheLoading.value = true
-  try {
-    const res = await invalidateSchemaCache(selectedType.value.slug)
-    showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
-  } catch (error) {
-    handleError(error)
-  } finally {
-    cacheLoading.value = false
-  }
+  const dialog = DialogPlugin.confirm({
+    header: t('content.clearSchemaCacheTitle'),
+    body: t('content.clearSchemaCacheBody', { schema: selectedType.value.name }),
+    confirmBtn: { content: t('common.confirm'), theme: 'warning' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      cacheLoading.value = true
+      try {
+        const res = await invalidateSchemaCache(selectedType.value!.slug)
+        showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
+      } catch (error) {
+        handleError(error)
+      } finally {
+        cacheLoading.value = false
+      }
+      dialog.destroy()
+    },
+  })
 }
 
 // 清除本站点所有内容缓存

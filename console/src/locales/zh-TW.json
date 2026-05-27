@@ -313,7 +313,9 @@
     "clearSiteCache": "清除本站快取",
     "clearSiteCacheConfirmTitle": "確認清除站台快取",
     "clearSiteCacheConfirmBody": "將清除本站台所有內容快取（包含所有內容模型），確認繼續？",
-    "clearSiteCacheConfirm": "確認清除"
+    "clearSiteCacheConfirm": "確認清除",
+    "clearSchemaCacheTitle": "確認清除模型快取",
+    "clearSchemaCacheBody": "將清除「{schema}」的內容快取，確認繼續？"
   },
   "media": {
     "title": "媒體庫",

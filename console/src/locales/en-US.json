@@ -318,7 +318,9 @@
     "clearSiteCache": "Clear Site Cache",
     "clearSiteCacheConfirmTitle": "Confirm site cache clear",
     "clearSiteCacheConfirmBody": "This will clear all content cache for this site (all schemas). Continue?",
-    "clearSiteCacheConfirm": "Confirm Clear"
+    "clearSiteCacheConfirm": "Confirm Clear",
+    "clearSchemaCacheTitle": "Confirm schema cache clear",
+    "clearSchemaCacheBody": "This will clear the cache for \"{schema}\". Continue?"
   },
   "media": {
     "title": "Media Library",
