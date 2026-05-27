@@ -40,7 +40,7 @@ const initConfig: Record<string, unknown> = {
   language: 'zh_CN',
   promotion: false,
   branding: false,
-  license_key: 'gpl',
+  license_key: 'o5lwq9uqku3wewduzmssmqkuqvfr0bfjdm6w7cxcx9j9hvrs',
 }
 </script>
 
