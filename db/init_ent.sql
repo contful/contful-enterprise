@@ -185,8 +185,38 @@ COMMENT ON COLUMN ent_audit_retention_policies.created_by IS '创建者用户 ID
 COMMENT ON COLUMN ent_audit_retention_policies.created_time IS '创建时间';
 COMMENT ON COLUMN ent_audit_retention_policies.updated_time IS '更新时间';
 
+-- 2.4 ent_audit_alerts — 异常行为检测告警记录
+CREATE TABLE IF NOT EXISTS ent_audit_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    rule_name VARCHAR(100) NOT NULL,
+    level audit_level NOT NULL DEFAULT 'warn',
+    message TEXT NOT NULL,
+    context JSONB NOT NULL DEFAULT '{}',
+    related_audit_log_id UUID,
+    acknowledged BOOLEAN NOT NULL DEFAULT FALSE,
+    acknowledged_by UUID,
+    acknowledged_time TIMESTAMPTZ,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ent_alerts_created ON ent_audit_alerts(created_time DESC);
+CREATE INDEX IF NOT EXISTS idx_ent_alerts_acknowledged ON ent_audit_alerts(acknowledged);
+CREATE INDEX IF NOT EXISTS idx_ent_alerts_level ON ent_audit_alerts(level);
+
+COMMENT ON TABLE ent_audit_alerts IS '[企业版] 异常行为检测规则引擎产生的告警记录';
+COMMENT ON COLUMN ent_audit_alerts.id IS '告警唯一标识符';
+COMMENT ON COLUMN ent_audit_alerts.rule_name IS '触发告警的规则名称（如 login_failure_brute_force）';
+COMMENT ON COLUMN ent_audit_alerts.level IS '告警级别，复用 audit_level ENUM（debug/info/warn/error）';
+COMMENT ON COLUMN ent_audit_alerts.message IS '告警消息文本';
+COMMENT ON COLUMN ent_audit_alerts.context IS '告警上下文 JSON（触发条件快照、相关记录数等）';
+COMMENT ON COLUMN ent_audit_alerts.related_audit_log_id IS '关联的审计日志 ID（可选）';
+COMMENT ON COLUMN ent_audit_alerts.acknowledged IS '是否已确认';
+COMMENT ON COLUMN ent_audit_alerts.acknowledged_by IS '确认人用户 ID';
+COMMENT ON COLUMN ent_audit_alerts.acknowledged_time IS '确认时间';
+COMMENT ON COLUMN ent_audit_alerts.created_time IS '告警创建时间';
+
 -- =============================================================================
--- 二、种子数据（企业版默认配置）
+-- 三、种子数据（企业版默认配置）
 -- =============================================================================
 
 -- 2.1 默认保留策略（180 天全保留）
@@ -214,6 +244,7 @@ ON CONFLICT (category, level) DO NOTHING;
 --   ent_schedule_logs          — 排期执行记录
 --   ent_audit_report_exports   — 审计报告导出记录
 --   ent_audit_retention_policies — 审计保留策略配置
+--   ent_audit_alerts           — 异常行为检测告警记录
 --
 -- 不需要改表的功能：
 --   国密全套（SM2/SM3/SM4）— 纯应用层，配置通过 system_config 管理
