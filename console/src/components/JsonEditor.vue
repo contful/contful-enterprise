@@ -13,10 +13,16 @@ const emit = defineEmits<{
 }>()
 
 const rawText = ref(props.modelValue || '')
+const editingData = ref<Record<string, unknown>>({})
 const mode = ref<'tree' | 'raw'>('tree')
 
 watch(() => props.modelValue, (val) => {
   rawText.value = val || ''
+  try {
+    editingData.value = val ? JSON.parse(val) : {}
+  } catch {
+    editingData.value = {}
+  }
 })
 
 const parsedJson = computed(() => {
@@ -28,10 +34,10 @@ const parsedJson = computed(() => {
   }
 })
 
-const handleTreeChange = (val: unknown) => {
+watch(editingData, (val) => {
   rawText.value = JSON.stringify(val, null, 2)
   emit('update:modelValue', rawText.value)
-}
+}, { deep: true })
 
 const handleRawInput = (e: Event) => {
   const target = e.target as HTMLTextAreaElement
@@ -56,13 +62,12 @@ const toggleMode = () => {
     </div>
     <VueJsonPretty
       v-if="mode === 'tree' && parsedJson"
-      :data="parsedJson"
+      v-model:data="editingData"
       :deep="3"
-      editable
-      :editable-trigger="'dblclick'"
-      :show-length="true"
+      :editable="true"
+      :editableTrigger="'dblclick'"
+      :showLength="true"
       :placeholder="placeholder || '请输入 JSON'"
-      @change="handleTreeChange"
     />
     <textarea
       v-else-if="mode === 'raw'"
