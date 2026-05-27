@@ -926,7 +926,9 @@
     "sortOrder": "Sort Order",
     "perms": "items",
     "noData": "No permissions configured",
-    "fillRequired": "Required fields must be filled"
+    "fillRequired": "Required fields must be filled",
+    "clearCacheTitle": "Confirm clear permission cache",
+    "clearCacheBody": "Permission cache is global (not site-specific). It will be reloaded on next request."
   },
   "edition": {
     "community": "Community",

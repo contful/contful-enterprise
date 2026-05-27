@@ -918,5 +918,9 @@
     "calendarView": "日曆",
     "setSuccess": "排程設定成功",
     "clearSuccess": "排程已清除"
+  },
+  "permissions": {
+    "clearCacheTitle": "確認清除權限快取",
+    "clearCacheBody": "權限快取為全域快取（不區分站台），清除後將在下次請求時重新載入。"
   }
 }

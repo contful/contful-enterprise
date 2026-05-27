@@ -930,7 +930,9 @@
     "sortOrder": "排序",
     "perms": "项",
     "noData": "暂无权限配置",
-    "fillRequired": "请填写必填项"
+    "fillRequired": "请填写必填项",
+    "clearCacheTitle": "确认清除权限缓存",
+    "clearCacheBody": "权限缓存为全局缓存（不区分站点），清除后将在下次请求时重新加载。"
   },
   "edition": {
     "community": "社区版",
