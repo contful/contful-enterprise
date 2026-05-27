@@ -346,6 +346,29 @@ const handleClearCache = async () => {
   }
 }
 
+// 清除本站点所有内容缓存
+const siteCacheLoading = ref(false)
+const handleClearSiteCache = () => {
+  const dialog = DialogPlugin.confirm({
+    header: t('content.clearSiteCacheConfirmTitle'),
+    body: t('content.clearSiteCacheConfirmBody'),
+    confirmBtn: { content: t('content.clearSiteCacheConfirm'), theme: 'danger' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      siteCacheLoading.value = true
+      try {
+        const res = await invalidateCache()
+        showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
+      } catch (error) {
+        handleError(error)
+      } finally {
+        siteCacheLoading.value = false
+      }
+      dialog.destroy()
+    },
+  })
+}
+
 // 清除搜索
 const clearSearch = () => {
   searchKeyword.value = ''
@@ -520,6 +543,15 @@ onMounted(() => {
                 @click="handleClearCache"
               >
                 {{ t('common.clearCache') }}
+              </t-button>
+              <t-button
+                theme="danger"
+                variant="outline"
+                :disabled="siteCacheLoading"
+                :loading="siteCacheLoading"
+                @click="handleClearSiteCache"
+              >
+                {{ t('content.clearSiteCache') }}
               </t-button>
               <t-button theme="primary" @click="openCreateModal">
                 <template #icon><t-icon name="add" /></template>

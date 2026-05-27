@@ -314,8 +314,12 @@
     "select": "请选择",
     "yes": "是",
     "no": "否",
-    "clearCacheHint": "清除 OpenAPI 内容缓存",
-    "cacheCleared": "已清除 {count} 条缓存记录"
+    "clearCacheHint": "清除当前模型缓存",
+    "cacheCleared": "已清除 {count} 条缓存记录",
+    "clearSiteCache": "清除本站缓存",
+    "clearSiteCacheConfirmTitle": "确认清除站点缓存",
+    "clearSiteCacheConfirmBody": "将清除本站点下所有内容缓存（包括所有内容模型），确认继续？",
+    "clearSiteCacheConfirm": "确认清除"
   },
   "media": {
     "title": "媒体库",

@@ -313,8 +313,12 @@
     "select": "Select",
     "yes": "Yes",
     "no": "No",
-    "clearCacheHint": "Clear OpenAPI content cache",
-    "cacheCleared": "Cleared {count} cache entries"
+    "clearCacheHint": "Clear current schema cache",
+    "cacheCleared": "Cleared {count} cache entries",
+    "clearSiteCache": "Clear Site Cache",
+    "clearSiteCacheConfirmTitle": "Confirm site cache clear",
+    "clearSiteCacheConfirmBody": "This will clear all content cache for this site (all schemas). Continue?",
+    "clearSiteCacheConfirm": "Confirm Clear"
   },
   "media": {
     "title": "Media Library",

@@ -308,8 +308,12 @@
     "yes": "是",
     "no": "否",
     "clearCache": "清除快取",
-    "clearCacheHint": "清除 OpenAPI 內容快取",
-    "cacheCleared": "已清除 {count} 筆快取記錄"
+    "clearCacheHint": "清除當前模型快取",
+    "cacheCleared": "已清除 {count} 筆快取記錄",
+    "clearSiteCache": "清除本站快取",
+    "clearSiteCacheConfirmTitle": "確認清除站台快取",
+    "clearSiteCacheConfirmBody": "將清除本站台所有內容快取（包含所有內容模型），確認繼續？",
+    "clearSiteCacheConfirm": "確認清除"
   },
   "media": {
     "title": "媒體庫",
