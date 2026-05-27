@@ -12,25 +12,25 @@ import (
 
 // Redis 缓存键命名规范（全局统一前缀 contful:）
 // ─────────────────────────────────────────────────────
-//   contful:content:list:{siteID}:{slug}:...     内容列表
-//   contful:content:detail:{siteID}:{slug}:{id}   内容详情
-//   contful:config:{key}                          系统配置
-//   contful:permission:meta                       权限元数据
-//   contful:session:{sid}                         用户会话
-//   contful:rate:{ip}                             速率限制
+//   contful:content:{siteID}:{slug}:{locale}:...    内容列表
+//   contful:content:{siteID}:{slug}:{entryID}       内容详情
+//   contful:config:{key}                            系统配置
+//   contful:permission:meta                         权限元数据
+//   contful:session:{sid}                           用户会话
+//   contful:rate:{ip}                               速率限制
 //
 // 清除策略:
-//   全局 → SCAN contful:*:*         → DEL（所有缓存）
-//   站点 → SCAN contful:*:{siteID}:* → DEL
-//   模型 → SCAN contful:content:*:{siteID}:{slug}:* → DEL
+//   全局 → SCAN contful:*                       → DEL（所有缓存）
+//   站点 → SCAN contful:content:{siteID}:*      → DEL（仅内容缓存）
+//   模型 → SCAN contful:content:{siteID}:{slug}:* → DEL
 
 const (
 	// KeyAllPattern   全局缓存匹配模式
-	KeyAllPattern = "contful:*:*"
-	// KeySitePattern 站点缓存匹配模式
-	KeySitePattern = "contful:*:%s:*"
-	// KeySchemaPattern 模型缓存匹配模式
-	KeySchemaPattern = "contful:content:*:%s:%s:*"
+	KeyAllPattern = "contful:*"
+	// KeySitePattern 站点内容缓存匹配模式
+	KeySitePattern = "contful:content:%s:*"
+	// KeySchemaPattern 模型内容缓存匹配模式
+	KeySchemaPattern = "contful:content:%s:%s:*"
 )
 
 // CacheService Admin 缓存服务（用于清除 OpenAPI 缓存）
