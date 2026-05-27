@@ -22,6 +22,7 @@ watch(() => props.modelValue, (val) => {
 
 const initConfig: Record<string, unknown> = {
   height: 400,
+  width: '100%',
   menubar: false,
   plugins: [
     'advlist', 'autolink', 'lists', 'link', 'image',

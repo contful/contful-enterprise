@@ -772,44 +772,48 @@ onMounted(() => {
 
       <!-- 排期设置 -->
       <t-divider>{{ t('schedule.title') }}</t-divider>
-      <t-form :data="{ scheduledPublishTime, scheduledUnpublishTime }" label-align="top">
-        <t-form-item :label="t('schedule.publishTime')">
-          <t-date-picker
-            v-model="scheduledPublishTime"
-            enable-time-picker
-            :placeholder="t('schedule.publishTime')"
-            clearable
-            style="width: 100%"
-          >
-            <template #suffixIcon>
-              <t-button
-                v-if="scheduledPublishTime"
-                variant="text"
-                size="small"
-                @click="scheduledPublishTime = ''"
-              >{{ t('schedule.clearPublish') }}</t-button>
-            </template>
-          </t-date-picker>
-        </t-form-item>
-        <t-form-item :label="t('schedule.unpublishTime')">
-          <t-date-picker
-            v-model="scheduledUnpublishTime"
-            enable-time-picker
-            :placeholder="t('schedule.unpublishTime')"
-            clearable
-            style="width: 100%"
-          >
-            <template #suffixIcon>
-              <t-button
-                v-if="scheduledUnpublishTime"
-                variant="text"
-                size="small"
-                @click="scheduledUnpublishTime = ''"
-              >{{ t('schedule.clearUnpublish') }}</t-button>
-            </template>
-          </t-date-picker>
-        </t-form-item>
-      </t-form>
+      <t-row :gutter="16">
+        <t-col :span="6">
+          <t-form-item :label="t('schedule.publishTime')">
+            <t-date-picker
+              v-model="scheduledPublishTime"
+              enable-time-picker
+              :placeholder="t('schedule.publishTime')"
+              clearable
+              style="width: 100%"
+            >
+              <template #suffixIcon>
+                <t-button
+                  v-if="scheduledPublishTime"
+                  variant="text"
+                  size="small"
+                  @click="scheduledPublishTime = ''"
+                >{{ t('schedule.clearPublish') }}</t-button>
+              </template>
+            </t-date-picker>
+          </t-form-item>
+        </t-col>
+        <t-col :span="6">
+          <t-form-item :label="t('schedule.unpublishTime')">
+            <t-date-picker
+              v-model="scheduledUnpublishTime"
+              enable-time-picker
+              :placeholder="t('schedule.unpublishTime')"
+              clearable
+              style="width: 100%"
+            >
+              <template #suffixIcon>
+                <t-button
+                  v-if="scheduledUnpublishTime"
+                  variant="text"
+                  size="small"
+                  @click="scheduledUnpublishTime = ''"
+                >{{ t('schedule.clearUnpublish') }}</t-button>
+              </template>
+            </t-date-picker>
+          </t-form-item>
+        </t-col>
+      </t-row>
     </t-dialog>
 </template>
 
