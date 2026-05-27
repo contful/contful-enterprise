@@ -6,7 +6,7 @@ import { ref, watch } from 'vue'
 import Editor from '@tinymce/tinymce-vue'
 
 const props = defineProps<{
-  modelValue: string
+  modelValue?: string
   placeholder?: string
 }>()
 
@@ -14,10 +14,10 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
-const editorValue = ref(props.modelValue)
+const editorValue = ref(props.modelValue || '')
 
 watch(() => props.modelValue, (val) => {
-  editorValue.value = val
+  editorValue.value = val || ''
 })
 
 const initConfig: Record<string, unknown> = {
@@ -38,7 +38,7 @@ const initConfig: Record<string, unknown> = {
   content_style:
     'body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px }',
   placeholder: props.placeholder,
-  language: 'zh_CN',
+  language: 'zh-CN',
   promotion: false,
   branding: false,
 }
