@@ -5,7 +5,7 @@
     <span></span>
     <t-space>
       <t-button theme="danger" variant="outline" :loading="clearingCache" @click="clearCache">
-        {{ t('common.clearCache') }}
+        <t-icon name="clear" /> {{ t('common.clearCache') }}
       </t-button>
       <t-button variant="outline" @click="loadData">
         <template #icon><t-icon name="refresh" /></template>

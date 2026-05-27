@@ -458,7 +458,7 @@ onMounted(() => {
           :loading="siteCacheLoading"
           @click="handleClearSiteCache"
         >
-          {{ t('content.clearSiteCache') }}
+          <t-icon name="clear" /> {{ t('content.clearSiteCache') }}
         </t-button>
       </template>
     </PageHeader>
@@ -563,7 +563,7 @@ onMounted(() => {
                 :loading="cacheLoading"
                 @click="handleClearCache"
               >
-                {{ t('common.clearCache') }}
+                <t-icon name="clear" /> {{ t('common.clearCache') }}
               </t-button>
               <t-button theme="primary" @click="openCreateModal">
                 <template #icon><t-icon name="add" /></template>
