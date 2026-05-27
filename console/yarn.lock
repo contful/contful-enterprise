@@ -2195,6 +2195,11 @@ vue-i18n@^9:
     "@intlify/shared" "9.14.5"
     "@vue/devtools-api" "^6.5.0"
 
+vue-json-pretty@^2.6.0:
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/vue-json-pretty/-/vue-json-pretty-2.6.0.tgz#30f865ff59a319bd88ff5ae7461682d07b0775e1"
+  integrity sha512-glz1aBVS35EO8+S9agIl3WOQaW2cJZW192UVKTuGmryx01ZvOVWc4pR3t+5UcyY4jdOfBUgVHjcpRpcnjRhCAg==
+
 vue-router@^5.0.7:
   version "5.0.7"
   resolved "https://registry.yarnpkg.com/vue-router/-/vue-router-5.0.7.tgz#1b4ce7d8816eae9b360b0094b3b2e0b432b897c0"

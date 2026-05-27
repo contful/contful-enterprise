@@ -31,6 +31,7 @@ import {
 import PageHeader from '@/components/PageHeader.vue'
 import TableToolbar from '@/components/common/TableToolbar.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import JsonEditor from '@/components/JsonEditor.vue'
 import ScheduleCalendar from './ScheduleCalendar.vue'
 
 // 类型守卫：处理 unknown 类型的 error 参数
@@ -736,12 +737,10 @@ onMounted(() => {
             v-else-if="field.field_type === 'json'"
             :label="field.label"
           >
-            <textarea
+            <JsonEditor
               v-model="formData[field.name]"
-              class="entry-textarea"
-              rows="4"
               :placeholder="t('content.enterField', { fieldName: field.label })"
-            ></textarea>
+            />
           </t-form-item>
 
           <!-- number -->
