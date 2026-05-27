@@ -4,7 +4,7 @@
   <div class="toolbar">
     <span></span>
     <t-space>
-      <t-button variant="outline" :loading="clearingCache" @click="clearCache">
+      <t-button theme="danger" variant="outline" :loading="clearingCache" @click="clearCache">
         {{ t('common.clearCache') }}
       </t-button>
       <t-button variant="outline" @click="loadData">
