@@ -233,7 +233,7 @@
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗",
     "enumOptions": "枚舉選項",
-    "enumOptionPlaceholder": "輸入選項值，Enter 添加",
+    "enumOptionPlaceholder": "輸入選項值",
     "addEnumOption": "添加",
     "dialogTitle": "新增/編輯欄位",
     "fieldName": "欄位名",

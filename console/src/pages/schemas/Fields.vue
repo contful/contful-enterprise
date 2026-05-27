@@ -382,7 +382,6 @@ watch(() => route.params.id, () => {
                   v-model="enumOptionInput"
                   :placeholder="t('fields.enumOptionPlaceholder')"
                   style="width: 200px"
-                  @keyup.enter="addEnumOption"
                 />
                 <Button size="small" @click="addEnumOption">
                   {{ t('fields.addEnumOption') }}

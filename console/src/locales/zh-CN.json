@@ -239,7 +239,7 @@
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败",
     "enumOptions": "枚举选项",
-    "enumOptionPlaceholder": "输入选项值，回车添加",
+    "enumOptionPlaceholder": "输入选项值",
     "addEnumOption": "添加",
     "dialogTitle": "添加/编辑字段",
     "fieldName": "字段名",

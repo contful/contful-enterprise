@@ -239,7 +239,7 @@
     "deleteSuccess": "Field deleted successfully",
     "deleteFailed": "Failed to delete field",
     "enumOptions": "Enum Options",
-    "enumOptionPlaceholder": "Enter option, press Enter",
+    "enumOptionPlaceholder": "Enter option",
     "addEnumOption": "Add",
     "dialogTitle": "Add/Edit Field",
     "fieldName": "Field Name",
