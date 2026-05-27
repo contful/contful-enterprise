@@ -714,6 +714,8 @@
     "configKeyPlaceholder": "請輸入設定鍵名，如 custom_feature_enabled",
     "configValuePlaceholder": "請輸入設定值",
     "clearCache": "清除快取",
+    "clearCacheTitle": "確認清除系統設定快取",
+    "clearCacheBody": "系統設定快取為全域快取（不區分站台），清除後將在下次請求時重新載入。",
     "next": "下一步",
     "prev": "上一步"
   },

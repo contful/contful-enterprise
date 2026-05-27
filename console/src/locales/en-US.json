@@ -716,7 +716,9 @@
     "configKeyPlaceholder": "Config key, e.g. custom_feature_enabled",
     "configValuePlaceholder": "Enter config value",
     "edit": "Edit",
-    "operation": "Operation"
+    "operation": "Operation",
+    "clearCacheTitle": "Confirm clear system config cache",
+    "clearCacheBody": "System config cache is global (not site-specific). It will be reloaded on next request."
   },
   "site": {
     "selectSite": "Select Site",

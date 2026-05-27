@@ -178,7 +178,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
 import PageHeader from '@/components/PageHeader.vue'
 import { getSystemConfigs, updateSystemConfig, createSystemConfig, deleteSystemConfig, clearSystemConfigCache } from '@/api/system-config'
 import type { SystemConfig } from '@/types/system/config'
@@ -330,16 +330,25 @@ const handleDelete = async () => {
   }
 }
 
-const handleClearCache = async () => {
-  clearingCache.value = true
-  try {
-    await clearSystemConfigCache()
-    MessagePlugin.success(t('common.success'))
-  } catch (error: any) {
-    MessagePlugin.error(error?.response?.data?.msg || t('common.error'))
-  } finally {
-    clearingCache.value = false
-  }
+const handleClearCache = () => {
+  const dialog = DialogPlugin.confirm({
+    header: t('settings.clearCacheTitle'),
+    body: t('settings.clearCacheBody'),
+    confirmBtn: { content: t('common.confirm'), theme: 'warning' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      clearingCache.value = true
+      try {
+        await clearSystemConfigCache()
+        MessagePlugin.success(t('common.success'))
+      } catch (error: any) {
+        MessagePlugin.error(error?.response?.data?.msg || t('common.error'))
+      } finally {
+        clearingCache.value = false
+      }
+      dialog.destroy()
+    },
+  })
 }
 
 onMounted(() => {
