@@ -25,6 +25,7 @@ import {
   batchPublishEntries,
   batchUnpublishEntries,
   invalidateCache,
+  invalidateSchemaCache,
   type Entry,
 } from '@/api/entry'
 import PageHeader from '@/components/PageHeader.vue'
@@ -331,11 +332,12 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
   })
 }
 
-// 清除缓存
+// 清除当前模型缓存
 const handleClearCache = async () => {
+  if (!selectedType.value) return
   cacheLoading.value = true
   try {
-    const res = await invalidateCache()
+    const res = await invalidateSchemaCache(selectedType.value.slug)
     showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
   } catch (error) {
     handleError(error)

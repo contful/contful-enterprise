@@ -51,7 +51,7 @@ func (h *CacheHandler) InvalidateSite(c *gin.Context) {
 }
 
 // InvalidateAll 清除所有 contful 前缀的缓存（超管权限）
-// POST /admin/api/v1/cache/invalidate-all
+// POST /admin/api/v1/cache/invalidate/all
 func (h *CacheHandler) InvalidateAll(c *gin.Context) {
 	deleted, err := h.cacheSvc.InvalidateAll(c.Request.Context())
 	if err != nil {
