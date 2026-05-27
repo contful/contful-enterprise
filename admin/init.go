@@ -11,12 +11,16 @@ import (
 )
 
 // autoInit 在服务启动时自动检测并初始化数据库。
-// 如果 contful_system_users 表不存在，自动执行 db/init_pg.sql。
-// contful_ 前缀确保不会误操作其他应用的数据库表。
+// 检查 information_schema 中是否存在 contful_ 前缀的表，
+// 不存在则自动执行 db/init_pg.sql。
 func autoInit(db *gorm.DB) {
-	hasTable := db.Migrator().HasTable("contful_system_users")
-	if hasTable {
-		return // 已初始化，跳过
+	var count int64
+	db.Raw(
+		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'contful_%'",
+	).Scan(&count)
+
+	if count > 0 {
+		return // 已有 contful_ 表，跳过
 	}
 
 	zlog.Logger.Info().Msg("检测到数据库未初始化，自动执行 init_pg.sql...")
