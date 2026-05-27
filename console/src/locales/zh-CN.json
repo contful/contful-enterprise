@@ -969,5 +969,11 @@
     "community": "Apache 2.0 社区版",
     "subscribe": "订阅企业版",
     "upgrade": "升级到企业版以获得商业授权、国密加密、审计报告等高级功能。"
+  },
+  "cache": {
+    "clearAllTitle": "清除所有缓存",
+    "clearAllBody": "将清除 Contful 全局所有缓存数据：\n• 全部站点内容缓存\n• 权限与配置缓存\n• 用户会话（所有人将被登出）\n• 速率限制计数\n\n此操作不可撤销，确认继续？",
+    "clearAllConfirm": "确认清除",
+    "clearAllSuccess": "已清除 {count} 条全局缓存"
   }
 }

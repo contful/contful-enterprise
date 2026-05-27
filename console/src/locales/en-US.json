@@ -956,5 +956,11 @@
     "calendarView": "Calendar",
     "setSuccess": "Schedule set successfully",
     "clearSuccess": "Schedule cleared"
+  },
+  "cache": {
+    "clearAllTitle": "Clear All Cache",
+    "clearAllBody": "This will clear ALL Contful cache globally:\n• All site content cache\n• Permission & config cache\n• User sessions (everyone will be logged out)\n• Rate limit counters\n\nThis action is irreversible. Continue?",
+    "clearAllConfirm": "Confirm Clear",
+    "clearAllSuccess": "Cleared {count} global cache entries"
   }
 }

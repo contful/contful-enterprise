@@ -8,7 +8,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useSiteStore } from '@/stores/site'
-import { showError, showSuccess } from '@/utils/request'
+import request, { showError, showSuccess } from '@/utils/request'
+import { DialogPlugin } from 'tdesign-vue-next'
 import LangSwitcher from './LangSwitcher.vue'
 
 const { t } = useI18n()
@@ -20,6 +21,29 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const siteStore = useSiteStore()
+
+// 全局清除所有缓存
+const clearingAllCache = ref(false)
+const handleClearAllCache = () => {
+  const dialog = DialogPlugin.confirm({
+    header: t('cache.clearAllTitle'),
+    body: t('cache.clearAllBody'),
+    confirmBtn: { content: t('cache.clearAllConfirm'), theme: 'danger' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      clearingAllCache.value = true
+      try {
+        const res = await request.post('/cache/invalidate/all')
+        showSuccess(t('cache.clearAllSuccess', { count: res.data?.deleted || 0 }))
+      } catch (error: any) {
+        showError(error)
+      } finally {
+        clearingAllCache.value = false
+      }
+      dialog.destroy()
+    },
+  })
+}
 
 const sidebarCollapsed = ref(false)
 
@@ -289,6 +313,22 @@ watch(
           {{ t('header.officialSite') }}
         </a>
         <LangSwitcher />
+        <t-button
+          variant="text"
+          shape="square"
+          :loading="clearingAllCache"
+          :title="t('cache.clearAllTitle')"
+          @click="handleClearAllCache"
+        >
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 16h5v5"/>
+            </svg>
+          </template>
+        </t-button>
         <t-dropdown trigger="click">
           <div class="user-trigger">
             <!-- 加载中：显示骨架屏 -->
