@@ -307,7 +307,7 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 站点默认配置
 
-新站点创建时会自动写入以下默认配置（存储在 `site_configs` 表）：
+新站点创建时会自动写入以下默认配置（存储在 `contful_system_config` 表）：
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
@@ -326,11 +326,10 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 文档
 
-- [快速开始](https://contful.com/docs/getting-started)
-- [部署指南](https://contful.com/docs/deployment)
-- [系统架构](https://contful.com/docs/architecture/overview)
-- [Admin API 文档](https://contful.com/docs/api/admin-api/overview)
-- [Open API 文档](https://contful.com/docs/api/open-api/overview)
-- [数据库 Schema](https://contful.com/docs/database/schema)
-- [贡献指南](https://contful.com/docs/community/contributing)
-- [更新日志](https://contful.com/guide/release)
+- [快速开始](https://contful.com/guide/quickstart)
+- [部署指南](https://contful.com/guide/deploy/)
+- [系统架构](https://contful.com/guide/architecture/overview)
+- [Admin API 文档](https://contful.com/api/admin-api/overview)
+- [Open API 文档](https://contful.com/api/open-api/overview)
+- [贡献指南](https://contful.com/about/developers)
+- [更新日志](https://contful.com/guide/changelog)
