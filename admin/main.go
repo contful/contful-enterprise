@@ -552,6 +552,12 @@ func runServer() {
 			protected.POST("/cache/invalidate",
 				middleware.RequirePermission(rbacService, "settings:write"),
 				cacheHandler.InvalidateSite)
+			protected.POST("/cache/invalidate-all",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				cacheHandler.InvalidateAll)
+			protected.POST("/cache/invalidate/:slug",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				cacheHandler.InvalidateSchema)
 
 			// 仪表盘统计（不依赖 X-Site-ID）
 			protected.GET("/dashboard/stats",

@@ -17,7 +17,8 @@ import (
 // 平衡数据新鲜度和数据库压力
 const CacheTTL = 30 * time.Minute
 
-// CacheKeyPrefix 缓存键前缀
+// CacheKeyPrefix 缓存键前缀（Admin 与 OpenAPI 共用规范）
+// 格式: contful:content:{type}:{siteID}:{slug}:...
 const CacheKeyPrefix = "contful:content:"
 
 // CacheService Redis 缓存服务
