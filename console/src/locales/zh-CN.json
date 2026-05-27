@@ -948,5 +948,14 @@
     "calendarView": "日历",
     "setSuccess": "排期设置成功",
     "clearSuccess": "排期已清除"
+  },
+  "license": {
+    "title": "授权信息",
+    "productName": "产品名称",
+    "productVersion": "产品版本",
+    "type": "许可证类型",
+    "community": "Apache 2.0 社区版",
+    "subscribe": "订阅企业版",
+    "upgrade": "升级到企业版以获得商业授权、国密加密、审计报告等高级功能。"
   }
 }

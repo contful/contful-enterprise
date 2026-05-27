@@ -11,6 +11,7 @@ import StatCard from '@/components/common/StatCard.vue'
 import { getDashboardStats } from '@/api/api'
 import { showError } from '@/utils/request'
 import PageHeader from '@/components/PageHeader.vue'
+import { version } from '../../package.json'
 
 function handleError(err: unknown) {
   if (err instanceof Error) {
@@ -150,6 +151,35 @@ watch(layoutInitialized, async (ready) => {
         </template>
       </StatCard>
     </div>
+
+    <!-- 授权信息 -->
+    <t-card :bordered="true" class="license-card">
+      <template #title>
+        <div class="license-title">
+          <t-icon name="error-circle" style="color: var(--td-warning-color)" size="18px" />
+          <span>{{ t('license.title') }}</span>
+        </div>
+      </template>
+      <t-descriptions :column="2" bordered size="small">
+        <t-descriptions-item :label="t('license.productName')">Contful</t-descriptions-item>
+        <t-descriptions-item :label="t('license.productVersion')">{{ version }}</t-descriptions-item>
+        <t-descriptions-item :label="t('license.type')">
+          <t-tag theme="success" variant="light" size="small">{{ t('license.community') }}</t-tag>
+        </t-descriptions-item>
+      </t-descriptions>
+      <div class="license-upgrade">
+        <t-alert theme="info">
+          <template #message>
+            <div class="license-upgrade-msg">
+              <span>{{ t('license.upgrade') }}</span>
+              <a href="https://contful.com" target="_blank" rel="noopener noreferrer" class="license-btn">
+                {{ t('license.subscribe') }}
+              </a>
+            </div>
+          </template>
+        </t-alert>
+      </div>
+    </t-card>
   </div>
 </template>
 
@@ -163,5 +193,55 @@ watch(layoutInitialized, async (ready) => {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-6);
   margin-bottom: var(--space-6);
+}
+
+.license-card {
+  margin-top: 0;
+}
+
+.license-card :deep(.t-card__header) {
+  background: var(--td-bg-color-secondarycontainer);
+  border-bottom: 1px solid var(--td-component-border);
+}
+
+.license-card :deep(.t-card__title) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.license-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.license-upgrade {
+  margin-top: 16px;
+}
+
+.license-upgrade-msg {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.license-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 14px;
+  border-radius: var(--td-radius-small);
+  background: var(--td-brand-color);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.license-btn:hover {
+  background: var(--td-brand-color-hover);
+  text-decoration: none;
 }
 </style>
