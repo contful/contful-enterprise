@@ -13,6 +13,7 @@ import {
   Form,
   FormItem,
   Input,
+  Textarea,
   Select,
   Option,
   MessagePlugin,
@@ -55,9 +56,27 @@ const formData = ref<FieldCreate>({
   label: '',
   description: '',
   field_type: 'text',
+  config: {},
   validation: {},
   display: {},
 })
+
+// 枚举选项输入
+const enumOptionInput = ref('')
+
+const addEnumOption = () => {
+  const val = enumOptionInput.value.trim()
+  if (val && !formData.value.config?.options?.includes(val)) {
+    if (!formData.value.config) formData.value.config = {}
+    if (!formData.value.config.options) formData.value.config.options = []
+    formData.value.config.options.push(val)
+  }
+  enumOptionInput.value = ''
+}
+
+const removeEnumOption = (idx: number) => {
+  formData.value.config?.options?.splice(idx, 1)
+}
 
 // 表单规则
 const formRules = {
@@ -126,6 +145,7 @@ const openCreateDialog = () => {
     label: '',
     description: '',
     field_type: 'text',
+    config: {},
     validation: {},
     display: {},
   }
@@ -141,6 +161,7 @@ const openEditDialog = (field: Field) => {
     label: field.label,
     description: field.description,
     field_type: field.field_type,
+    config: field.config || {},
     validation: field.validation,
     display: field.display,
   }
@@ -328,12 +349,46 @@ watch(() => route.params.id, () => {
         </FormItem>
 
         <FormItem :label="t('fields.fieldDescription')">
-          <Input
+          <Textarea
             v-model="formData.description"
-            :type="'textarea' as any"
             :placeholder="t('fields.fieldDescPlaceholder')"
             :rows="2"
           />
+        </FormItem>
+
+        <!-- 枚举选项（仅 enum 类型） -->
+        <FormItem
+          v-if="formData.field_type === 'enum'"
+          :label="t('fields.enumOptions')"
+        >
+          <div class="enum-options">
+            <Space direction="vertical" size="small" style="width: 100%">
+              <div v-if="formData.config?.options?.length" class="enum-tags">
+                <span
+                  v-for="(opt, idx) in formData.config.options"
+                  :key="idx"
+                  class="enum-tag"
+                >
+                  {{ opt }}
+                  <button
+                    type="button"
+                    class="enum-tag-remove"
+                    @click="removeEnumOption(Number(idx))"
+                  >×</button>
+                </span>
+              </div>
+              <Space>
+                <Input
+                  v-model="enumOptionInput"
+                  :placeholder="t('fields.enumOptionPlaceholder')"
+                  style="width: 200px"
+                />
+                <Button size="small" @click="addEnumOption">
+                  {{ t('fields.addEnumOption') }}
+                </Button>
+              </Space>
+            </Space>
+          </div>
         </FormItem>
       </Form>
 
@@ -483,5 +538,33 @@ watch(() => route.params.id, () => {
 .field-actions {
   display: flex;
   gap: 4px;
+}
+
+.enum-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.enum-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--td-brand-color-light);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--td-brand-color);
+}
+.enum-tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--td-brand-color);
+  padding: 0 2px;
+}
+.enum-tag-remove:hover {
+  color: var(--td-error-color);
 }
 </style>

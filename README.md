@@ -1,5 +1,12 @@
 # Contful
 
+<p align="center">
+  <a href="https://github.com/contful/contful/actions"><img src="https://img.shields.io/github/actions/workflow/status/contful/contful/backend.yml" alt="CI"></a>
+  <a href="https://github.com/contful/contful/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
+  <a href="https://github.com/contful/contful/releases"><img src="https://img.shields.io/github/v/release/contful/contful?include_prereleases" alt="Release"></a>
+  <a href="https://github.com/contful/contful"><img src="https://img.shields.io/github/stars/contful/contful?style=social" alt="Stars"></a>
+</p>
+
 > 🌍 多语言文档 / Multilingual Documentation: [简体中文](doc/README_zh-CN.md) · [繁體中文](doc/README_zh-TW.md) · [English](doc/README_en.md) · [한국어](doc/README_ko.md) · [日本語](doc/README_ja.md)
 
 开源 Headless CMS，支持多站点管理。
@@ -307,7 +314,7 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 站点默认配置
 
-新站点创建时会自动写入以下默认配置（存储在 `site_configs` 表）：
+新站点创建时会自动写入以下默认配置（存储在 `contful_system_config` 表）：
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
@@ -326,11 +333,10 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 文档
 
-- [快速开始](https://contful.com/docs/getting-started)
-- [部署指南](https://contful.com/docs/deployment)
-- [系统架构](https://contful.com/docs/architecture/overview)
-- [Admin API 文档](https://contful.com/docs/api/admin-api/overview)
-- [Open API 文档](https://contful.com/docs/api/open-api/overview)
-- [数据库 Schema](https://contful.com/docs/database/schema)
-- [贡献指南](https://contful.com/docs/community/contributing)
-- [更新日志](https://contful.com/guide/release)
+- [快速开始](https://contful.com/guide/quickstart)
+- [部署指南](https://contful.com/guide/deploy/)
+- [系统架构](https://contful.com/guide/architecture/overview)
+- [Admin API 文档](https://contful.com/api/admin-api/overview)
+- [Open API 文档](https://contful.com/api/open-api/overview)
+- [贡献指南](https://contful.com/about/developers)
+- [更新日志](https://contful.com/guide/changelog)

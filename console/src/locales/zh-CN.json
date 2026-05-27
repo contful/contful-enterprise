@@ -69,7 +69,9 @@
     "saveSuccess": "保存成功",
     "deleteSuccess": "删除成功",
     "createSuccess": "创建成功",
-    "clearCache": "清除缓存"
+    "clearCache": "清除缓存",
+    "next": "下一步",
+    "prev": "上一步"
   },
   "menu": {
     "dashboard": "仪表盘",
@@ -237,6 +239,9 @@
     "deleteConfirm": "确定删除字段吗？",
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败",
+    "enumOptions": "枚举选项",
+    "enumOptionPlaceholder": "输入选项值",
+    "addEnumOption": "添加",
     "dialogTitle": "添加/编辑字段",
     "fieldName": "字段名",
     "fieldNamePlaceholder": "例如 title",
@@ -313,8 +318,14 @@
     "select": "请选择",
     "yes": "是",
     "no": "否",
-    "clearCacheHint": "清除 OpenAPI 内容缓存",
-    "cacheCleared": "已清除 {count} 条缓存记录"
+    "clearCacheHint": "清除当前模型缓存",
+    "cacheCleared": "已清除 {count} 条缓存记录",
+    "clearSiteCache": "清除本站缓存",
+    "clearSiteCacheConfirmTitle": "确认清除站点缓存",
+    "clearSiteCacheConfirmBody": "将清除本站点下所有内容缓存（包括所有内容模型），确认继续？",
+    "clearSiteCacheConfirm": "确认清除",
+    "clearSchemaCacheTitle": "确认清除模型缓存",
+    "clearSchemaCacheBody": "将清除「{schema}」的内容缓存，确认继续？"
   },
   "media": {
     "title": "媒体库",
@@ -587,7 +598,6 @@
     "tzParis": "Europe/Paris (UTC+1)",
     "tzUTC": "UTC",
     "langKo": "한국어",
-    "langFr": "法语",
     "seoKeywordsHint": "多个关键词用逗号分隔",
     "seoDescDefault": "站点描述将显示在这里...",
     "defaultSiteName": "站点名称",
@@ -717,7 +727,10 @@
     "configKeyPlaceholder": "请输入配置键名，如 custom_feature_enabled",
     "configValuePlaceholder": "请输入配置值",
     "edit": "编辑",
-    "operation": "操作"
+    "operation": "操作",
+    "clearCacheTitle": "确认清除系统配置缓存",
+    "clearCacheBody": "系统配置缓存为全局缓存（不区分站点），清除后将在下次请求时重新加载。",
+    "langFr": "法语"
   },
   "site": {
     "selectSite": "选择站点",
@@ -925,7 +938,9 @@
     "sortOrder": "排序",
     "perms": "项",
     "noData": "暂无权限配置",
-    "fillRequired": "请填写必填项"
+    "fillRequired": "请填写必填项",
+    "clearCacheTitle": "确认清除权限缓存",
+    "clearCacheBody": "权限缓存为全局缓存（不区分站点），清除后将在下次请求时重新加载。"
   },
   "edition": {
     "community": "社区版",
@@ -936,21 +951,46 @@
     "expandSidebar": "展开侧栏",
     "skipToContent": "跳到主要内容"
   },
+  "schedule": {
+    "title": "排期设置",
+    "publishTime": "定时发布时间",
+    "unpublishTime": "定时下架时间",
+    "clearPublish": "清除发布时间",
+    "clearUnpublish": "清除下架时间",
+    "clearAll": "清除全部排期",
+    "noSchedule": "暂无排期",
+    "unpublishAfterPublish": "下架时间必须晚于发布时间",
+    "pendingPublish": "待发布",
+    "pendingUnpublish": "待下架",
+    "listView": "列表",
+    "calendarView": "日历",
+    "setSuccess": "排期设置成功",
+    "clearSuccess": "排期已清除"
+  },
   "license": {
     "title": "授权信息",
+    "productName": "产品名称",
+    "productVersion": "产品版本",
+    "type": "许可证类型",
+    "community": "Apache 2.0 社区版",
+    "subscribe": "订阅企业版",
+    "upgrade": "升级到企业版以获得商业授权、国密加密、审计报告等高级功能。",
     "subtitle": "查看企业 License 授权状态与详情",
     "active": "已授权",
     "expired": "已过期",
     "unlicensed": "未检测到有效的 License，系统将以社区版模式运行。如需商业支持，请联系 contful.com 获取授权。",
     "expiryNotice": "您的 License 已过期。系统功能不受影响，但不再享有官方维保服务。请及时续费以恢复技术支持。",
-    "productName": "产品名称",
-    "productVersion": "产品版本",
     "productCode": "产品编号",
     "customer": "授权账号",
-    "type": "许可类型",
     "trial": "试用",
     "commercial": "商业",
     "issuedDate": "签发日期",
     "expiryDate": "到期日期"
+  },
+  "cache": {
+    "clearAllTitle": "清除所有缓存",
+    "clearAllBody": "将清除 Contful 全局所有缓存数据：\n• 全部站点内容缓存\n• 权限与配置缓存\n• 用户会话（所有人将被登出）\n• 速率限制计数\n\n此操作不可撤销，确认继续？",
+    "clearAllConfirm": "确认清除",
+    "clearAllSuccess": "已清除 {count} 条全局缓存"
   }
 }

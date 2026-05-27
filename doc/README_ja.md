@@ -8,10 +8,10 @@
 
 | レイヤー | 技術 |
 |---------|------|
-| バックエンド | Go 1.22+ / Gin / GORM |
-| フロントエンド | Vue 3.4+ / TDesign |
-| データベース | PostgreSQL 16+ |
-| キャッシュ | Valkey 9+ |
+| バックエンド | Go 1.25 / Gin / GORM |
+| フロントエンド | Vue 3.5 / TDesign / Vite 8 |
+| データベース | PostgreSQL 18 |
+| キャッシュ | Valkey 9 |
 
 ## プロジェクト構造
 
@@ -20,7 +20,7 @@ contful/
 ├── admin/            # Admin API サービス（:9080）
 ├── openapi/          # Open API サービス（:8080）
 ├── console/          # Vue 3 コンソール（:3000）
-├── sql/              # データベース初期化 SQL
+├── db/               # データベース初期化スクリプト（init_pg.sql：DDL + シードデータ）
 ├── docker/           # Docker 設定（Dockerfile + docker-compose.yaml）
 ├── shell/            # ビルドスクリプト
 ├── build/            # ビルド成果物（.gitignore）
@@ -45,8 +45,8 @@ contful/
 
 - PostgreSQL 18
 - Valkey 9+
-- Go 1.22+
-- Node.js 18+
+- Go 1.25+
+- Node.js 24+
 
 ### 方法1：Docker デプロイ
 
@@ -74,14 +74,14 @@ docker-compose -f docker/docker-compose.yaml up -d
 
 ```bash
 # 1. 環境変数設定をコピー
-cp conf/.env.example .env
+cp .env.example .env
 
 # 2. データベースとキャッシュを起動（リモートまたはDockerローカルを使用）
 docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
 docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
 # 2. データベースを初期化
-psql -h <host> -U <user> -d contful -f sql/init_pg.sql
+psql -h <host> -U <user> -d contful -f db/init_pg.sql
 
 
 # 3. ビルド
@@ -141,7 +141,7 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## サイトデフォルト設定
 
-新規サイトが作成されると、以下のデフォルト設定が自動的に書き込まれます（`site_configs` テーブルに保存）：
+新規サイトが作成されると、以下のデフォルト設定が自動的に書き込まれます（`contful_system_config` テーブルに保存）：
 
 | 設定キー | デフォルト値 | 説明 |
 |---------|------------|------|
@@ -160,11 +160,10 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## ドキュメント
 
-- [クイックスタート](https://contful.com/docs/getting-started)
-- [デプロイメントガイド](https://contful.com/docs/deployment)
-- [アーキテクチャ概要](https://contful.com/docs/architecture/overview)
-- [Admin API リファレンス](https://contful.com/docs/api/admin-api/overview)
-- [Open API リファレンス](https://contful.com/docs/api/open-api/overview)
-- [データベーススキーマ](https://contful.com/docs/database/schema)
-- [コントリビューションガイド](https://contful.com/docs/community/contributing)
-- [リリースノート](https://contful.com/guide/release)
+- [クイックスタート](https://contful.com/guide/quickstart)
+- [デプロイメントガイド](https://contful.com/guide/deploy/)
+- [アーキテクチャ概要](https://contful.com/guide/architecture/overview)
+- [Admin API リファレンス](https://contful.com/api/admin-api/overview)
+- [Open API リファレンス](https://contful.com/api/open-api/overview)
+- [コントリビューションガイド](https://contful.com/about/developers)
+- [リリースノート](https://contful.com/guide/changelog)

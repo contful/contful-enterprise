@@ -162,7 +162,7 @@ const router = createRouter({
 // ─────────────────────────────────────────────────────────────
 // 路由守卫
 // ─────────────────────────────────────────────────────────────
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to, _from) => {
   const requiresAuth = to.meta.requiresAuth !== false
   let token = getAccessToken()
 
@@ -175,10 +175,10 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (requiresAuth && !token) {
-    next('/login')
+    return '/login'
   } else if (to.path === '/login' && token) {
     // 已登录用户访问登录页，跳转到首页
-    next('/')
+    return '/'
   } else if (requiresAuth && token) {
     // 权限检查
     const userStore = useUserStore()
@@ -188,8 +188,7 @@ router.beforeEach(async (to, _from, next) => {
     if (!userStore.user) {
       const ok = await userStore.fetchUser()
       if (!ok) {
-        next('/login')
-        return
+        return '/login'
       }
     }
 
@@ -203,20 +202,17 @@ router.beforeEach(async (to, _from, next) => {
 
     // 如果路由没有定义权限要求，直接放行
     if (requiredPermission === null) {
-      next()
       return
     }
 
     // 检查权限
     if (userStore.hasPermission(requiredPermission)) {
-      next()
+      return
     } else {
       // 无权访问，显示提示并跳转到首页
       MessagePlugin.warning(t('permission.denied'))
-      next('/')
+      return '/'
     }
-  } else {
-    next()
   }
 })
 

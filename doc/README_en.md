@@ -8,10 +8,10 @@ Open source Headless CMS with multi-site management support.
 
 | Layer | Technology |
 |-------|------------|
-| Backend | Go 1.22+ / Gin / GORM |
-| Frontend | Vue 3.4+ / TDesign |
-| Database | PostgreSQL 16+ |
-| Cache | Valkey 9+ |
+| Backend | Go 1.25 / Gin / GORM |
+| Frontend | Vue 3.5 / TDesign / Vite 8 |
+| Database | PostgreSQL 18 |
+| Cache | Valkey 9 |
 
 ## Project Structure
 
@@ -20,7 +20,7 @@ contful/
 ├── admin/            # Admin API service (:9080)
 ├── openapi/          # Open API service (:8080)
 ├── console/          # Vue 3 console (:3000)
-├── sql/              # Database initialization SQL
+├── db/               # Database initialization scripts (init_pg.sql: DDL + seed data)
 ├── docker/           # Docker configuration (Dockerfile + docker-compose.yaml)
 ├── shell/            # Build scripts
 ├── build/            # Build artifacts (.gitignore)
@@ -45,8 +45,8 @@ Log in to the admin dashboard with the following credentials after first deploym
 
 - PostgreSQL 18
 - Valkey 9+
-- Go 1.22+
-- Node.js 18+
+- Go 1.25+
+- Node.js 24+
 
 ### Method 1: Docker Deployment
 
@@ -74,14 +74,14 @@ docker-compose -f docker/docker-compose.yaml up -d
 
 ```bash
 # 1. Copy environment variable configuration
-cp conf/.env.example .env
+cp .env.example .env
 
 # 2. Start database and cache (use remote or Docker local)
 docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
 docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
 # 2. Initialize database
-psql -h <host> -U <user> -d contful -f sql/init_pg.sql
+psql -h <host> -U <user> -d contful -f db/init_pg.sql
 
 
 # 3. Build
@@ -141,7 +141,7 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## Site Default Configuration
 
-When a new site is created, the following default configuration is automatically written (stored in `site_configs` table):
+When a new site is created, the following default configuration is automatically written (stored in `contful_system_config` table):
 
 | Config Key | Default Value | Description |
 |------------|---------------|-------------|
@@ -160,11 +160,10 @@ When a new site is created, the following default configuration is automatically
 
 ## Documentation
 
-- [Getting Started](https://contful.com/docs/getting-started)
-- [Deployment Guide](https://contful.com/docs/deployment)
-- [Architecture Overview](https://contful.com/docs/architecture/overview)
-- [Admin API Reference](https://contful.com/docs/api/admin-api/overview)
-- [Open API Reference](https://contful.com/docs/api/open-api/overview)
-- [Database Schema](https://contful.com/docs/database/schema)
-- [Contributing Guide](https://contful.com/docs/community/contributing)
-- [Release Notes](https://contful.com/guide/release)
+- [Getting Started](https://contful.com/guide/quickstart)
+- [Deployment Guide](https://contful.com/guide/deploy/)
+- [Architecture Overview](https://contful.com/guide/architecture/overview)
+- [Admin API Reference](https://contful.com/api/admin-api/overview)
+- [Open API Reference](https://contful.com/api/open-api/overview)
+- [Contributing Guide](https://contful.com/about/developers)
+- [Release Notes](https://contful.com/guide/changelog)

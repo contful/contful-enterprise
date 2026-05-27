@@ -126,9 +126,14 @@ export interface CacheInvalidateResponse {
   deleted: number
 }
 
-// 清除内容缓存
+// 清除站点缓存
 export function invalidateCache() {
   return post<CacheInvalidateResponse>('/cache/invalidate')
+}
+
+// 清除指定内容模型的缓存
+export function invalidateSchemaCache(slug: string) {
+  return post<CacheInvalidateResponse>(`/cache/invalidate/${slug}`)
 }
 
 // 批量删除

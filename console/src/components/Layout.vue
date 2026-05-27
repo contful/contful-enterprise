@@ -8,7 +8,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useSiteStore } from '@/stores/site'
-import { showError, showSuccess } from '@/utils/request'
+import request, { showError, showSuccess } from '@/utils/request'
+import { DialogPlugin } from 'tdesign-vue-next'
 import LangSwitcher from './LangSwitcher.vue'
 
 const { t } = useI18n()
@@ -20,6 +21,29 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const siteStore = useSiteStore()
+
+// 全局清除所有缓存
+const clearingAllCache = ref(false)
+const handleClearAllCache = () => {
+  const dialog = DialogPlugin.confirm({
+    header: t('cache.clearAllTitle'),
+    body: t('cache.clearAllBody'),
+    confirmBtn: { content: t('cache.clearAllConfirm'), theme: 'danger' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      clearingAllCache.value = true
+      try {
+        const res = await request.post('/cache/invalidate/all')
+        showSuccess(t('cache.clearAllSuccess', { count: res.data?.deleted || 0 }))
+      } catch (error: any) {
+        showError(error)
+      } finally {
+        clearingAllCache.value = false
+      }
+      dialog.destroy()
+    },
+  })
+}
 
 const sidebarCollapsed = ref(false)
 
@@ -289,6 +313,15 @@ watch(
           {{ t('header.officialSite') }}
         </a>
         <LangSwitcher />
+        <t-button
+          variant="text"
+          shape="square"
+          :loading="clearingAllCache"
+          :title="t('cache.clearAllTitle')"
+          @click="handleClearAllCache"
+        >
+          <template #icon><t-icon name="clear" /></template>
+        </t-button>
         <t-dropdown trigger="click">
           <div class="user-trigger">
             <!-- 加载中：显示骨架屏 -->

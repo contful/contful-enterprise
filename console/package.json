@@ -1,6 +1,6 @@
 {
   "name": "contful-console",
-  "version": "1.3.0",
+  "version": "1.4.31",
   "type": "module",
   "license": "Apache-2.0",
   "author": "reepu.com (https://reepu.com)",
@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@pinia/colada": "^0.21.2",
+    "@tinymce/tinymce-vue": "^6.3.0",
     "@tiptap/starter-kit": "^3.23.5",
     "@tiptap/vue-3": "^3.23.5",
     "@vue/compiler-sfc": "^3.5.34",
@@ -26,8 +27,10 @@
     "pinia": "^3.0.4",
     "sm-crypto": "^0.4.0",
     "tdesign-vue-next": "^1.20.0",
+    "tinymce": "^8.5.1",
     "vue": "^3.5.34",
     "vue-i18n": "^9",
+    "vue-json-pretty": "^2.6.0",
     "vue-router": "^5.0.7"
   },
   "devDependencies": {

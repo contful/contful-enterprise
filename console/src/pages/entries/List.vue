@@ -25,10 +25,13 @@ import {
   batchPublishEntries,
   batchUnpublishEntries,
   invalidateCache,
+  invalidateSchemaCache,
   type Entry,
 } from '@/api/entry'
 import PageHeader from '@/components/PageHeader.vue'
 import TableToolbar from '@/components/common/TableToolbar.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
+import JsonEditor from '@/components/JsonEditor.vue'
 import ScheduleCalendar from './ScheduleCalendar.vue'
 
 // 类型守卫：处理 unknown 类型的 error 参数
@@ -330,17 +333,50 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
   })
 }
 
-// 清除缓存
-const handleClearCache = async () => {
-  cacheLoading.value = true
-  try {
-    const res = await invalidateCache()
-    showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
-  } catch (error) {
-    handleError(error)
-  } finally {
-    cacheLoading.value = false
-  }
+// 清除当前模型缓存
+const handleClearCache = () => {
+  if (!selectedType.value) return
+  const dialog = DialogPlugin.confirm({
+    header: t('content.clearSchemaCacheTitle'),
+    body: t('content.clearSchemaCacheBody', { schema: selectedType.value.name }),
+    confirmBtn: { content: t('common.confirm'), theme: 'warning' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      cacheLoading.value = true
+      try {
+        const res = await invalidateSchemaCache(selectedType.value!.slug)
+        showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
+      } catch (error) {
+        handleError(error)
+      } finally {
+        cacheLoading.value = false
+      }
+      dialog.destroy()
+    },
+  })
+}
+
+// 清除本站点所有内容缓存
+const siteCacheLoading = ref(false)
+const handleClearSiteCache = () => {
+  const dialog = DialogPlugin.confirm({
+    header: t('content.clearSiteCacheConfirmTitle'),
+    body: t('content.clearSiteCacheConfirmBody'),
+    confirmBtn: { content: t('content.clearSiteCacheConfirm'), theme: 'danger' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      siteCacheLoading.value = true
+      try {
+        const res = await invalidateCache()
+        showSuccess(t('content.cacheCleared', { count: res.data?.deleted || 0 }))
+      } catch (error) {
+        handleError(error)
+      } finally {
+        siteCacheLoading.value = false
+      }
+      dialog.destroy()
+    },
+  })
 }
 
 // 清除搜索
@@ -385,13 +421,9 @@ const formatFieldValue = (value: any): string => {
 
 // 格式化日期
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const d = new Date(date)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 // 分页变化
@@ -418,7 +450,19 @@ onMounted(() => {
     <PageHeader
       :title="t('content.title')"
       :subtitle="t('content.subtitle')"
-    />
+    >
+      <template #primary-action>
+        <t-button
+          theme="danger"
+          variant="outline"
+          :disabled="siteCacheLoading"
+          :loading="siteCacheLoading"
+          @click="handleClearSiteCache"
+        >
+          <template #icon><t-icon name="clear" /></template> {{ t('content.clearSiteCache') }}
+        </t-button>
+      </template>
+    </PageHeader>
 
     <div class="content-layout">
       <!-- 无站点提示 -->
@@ -520,6 +564,7 @@ onMounted(() => {
                 :loading="cacheLoading"
                 @click="handleClearCache"
               >
+                <template #icon><t-icon name="clear" /></template>
                 {{ t('common.clearCache') }}
               </t-button>
               <t-button theme="primary" @click="openCreateModal">
@@ -556,7 +601,7 @@ onMounted(() => {
                     />
                   </th>
                   <th>{{ t('common.id') }}</th>
-                  <th v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
+                  <th v-for="field in selectedType.fields?.slice(0, 1)" :key="field.id">
                     {{ field.label }}
                   </th>
                   <th>{{ t('common.status') }}</th>
@@ -591,8 +636,8 @@ onMounted(() => {
                       @change="toggleSelect(entry.id)"
                     />
                   </td>
-                  <td class="id-cell">{{ entry.id.slice(0, 8) }}</td>
-                  <td v-for="field in selectedType.fields?.slice(0, 3)" :key="field.id">
+                  <td class="id-cell">{{ entry.id }}</td>
+                  <td v-for="field in selectedType.fields?.slice(0, 1)" :key="field.id">
                     {{ formatFieldValue(entry.values?.[field.name]) }}
                   </td>
                   <td>
@@ -676,17 +721,26 @@ onMounted(() => {
             />
           </t-form-item>
 
-          <!-- rich_text / json -->
+          <!-- rich_text -->
           <t-form-item
-            v-else-if="['rich_text','json'].includes(field.field_type)"
+            v-else-if="field.field_type === 'rich_text'"
             :label="field.label"
           >
-            <textarea
+            <RichTextEditor
               v-model="formData[field.name]"
-              class="entry-textarea"
-              rows="4"
               :placeholder="t('content.enterField', { fieldName: field.label })"
-            ></textarea>
+            />
+          </t-form-item>
+
+          <!-- json -->
+          <t-form-item
+            v-else-if="field.field_type === 'json'"
+            :label="field.label"
+          >
+            <JsonEditor
+              v-model="formData[field.name]"
+              :placeholder="t('content.enterField', { fieldName: field.label })"
+            />
           </t-form-item>
 
           <!-- number -->
@@ -760,44 +814,48 @@ onMounted(() => {
 
       <!-- 排期设置 -->
       <t-divider>{{ t('schedule.title') }}</t-divider>
-      <t-form :data="{ scheduledPublishTime, scheduledUnpublishTime }" label-align="top">
-        <t-form-item :label="t('schedule.publishTime')">
-          <t-date-picker
-            v-model="scheduledPublishTime"
-            enable-time-picker
-            :placeholder="t('schedule.publishTime')"
-            clearable
-            style="width: 100%"
-          >
-            <template #suffixIcon>
-              <t-button
-                v-if="scheduledPublishTime"
-                variant="text"
-                size="small"
-                @click="scheduledPublishTime = ''"
-              >{{ t('schedule.clearPublish') }}</t-button>
-            </template>
-          </t-date-picker>
-        </t-form-item>
-        <t-form-item :label="t('schedule.unpublishTime')">
-          <t-date-picker
-            v-model="scheduledUnpublishTime"
-            enable-time-picker
-            :placeholder="t('schedule.unpublishTime')"
-            clearable
-            style="width: 100%"
-          >
-            <template #suffixIcon>
-              <t-button
-                v-if="scheduledUnpublishTime"
-                variant="text"
-                size="small"
-                @click="scheduledUnpublishTime = ''"
-              >{{ t('schedule.clearUnpublish') }}</t-button>
-            </template>
-          </t-date-picker>
-        </t-form-item>
-      </t-form>
+      <t-row :gutter="16">
+        <t-col :span="6">
+          <t-form-item :label="t('schedule.publishTime')">
+            <t-date-picker
+              v-model="scheduledPublishTime"
+              enable-time-picker
+              :placeholder="t('schedule.publishTime')"
+              clearable
+              style="width: 100%"
+            >
+              <template #suffixIcon>
+                <t-button
+                  v-if="scheduledPublishTime"
+                  variant="text"
+                  size="small"
+                  @click="scheduledPublishTime = ''"
+                >{{ t('schedule.clearPublish') }}</t-button>
+              </template>
+            </t-date-picker>
+          </t-form-item>
+        </t-col>
+        <t-col :span="6">
+          <t-form-item :label="t('schedule.unpublishTime')">
+            <t-date-picker
+              v-model="scheduledUnpublishTime"
+              enable-time-picker
+              :placeholder="t('schedule.unpublishTime')"
+              clearable
+              style="width: 100%"
+            >
+              <template #suffixIcon>
+                <t-button
+                  v-if="scheduledUnpublishTime"
+                  variant="text"
+                  size="small"
+                  @click="scheduledUnpublishTime = ''"
+                >{{ t('schedule.clearUnpublish') }}</t-button>
+              </template>
+            </t-date-picker>
+          </t-form-item>
+        </t-col>
+      </t-row>
     </t-dialog>
 </template>
 
@@ -915,6 +973,7 @@ onMounted(() => {
 .schedule-tabs :deep(.t-tabs__content) {
   flex: 1;
   overflow: auto;
+  margin: 16px;
 }
 
 .content-toolbar {

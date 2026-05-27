@@ -4,8 +4,8 @@
   <div class="toolbar">
     <span></span>
     <t-space>
-      <t-button variant="outline" :loading="clearingCache" @click="clearCache">
-        {{ t('common.clearCache') }}
+      <t-button theme="danger" variant="outline" :loading="clearingCache" @click="clearCache">
+        <template #icon><t-icon name="clear" /></template> {{ t('common.clearCache') }}
       </t-button>
       <t-button variant="outline" @click="loadData">
         <template #icon><t-icon name="refresh" /></template>
@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
 import PageHeader from '@/components/PageHeader.vue'
 import {
   listPermissions,
@@ -276,17 +276,26 @@ async function handleDeletePerm(id: string) {
   }
 }
 
-async function clearCache() {
-  clearingCache.value = true
-  try {
-    await clearPermissionCache()
-    MessagePlugin.success(t('common.success'))
-    loadData()
-  } catch (e: any) {
-    MessagePlugin.error(e?.msg || t('common.error'))
-  } finally {
-    clearingCache.value = false
-  }
+function clearCache() {
+  const dialog = DialogPlugin.confirm({
+    header: t('permissions.clearCacheTitle'),
+    body: t('permissions.clearCacheBody'),
+    confirmBtn: { content: t('common.confirm'), theme: 'warning' },
+    cancelBtn: t('common.cancel'),
+    onConfirm: async () => {
+      clearingCache.value = true
+      try {
+        await clearPermissionCache()
+        MessagePlugin.success(t('common.success'))
+        loadData()
+      } catch (e: any) {
+        MessagePlugin.error(e?.msg || t('common.error'))
+      } finally {
+        clearingCache.value = false
+      }
+      dialog.destroy()
+    },
+  })
 }
 
 onMounted(loadData)

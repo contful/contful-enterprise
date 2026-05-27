@@ -83,6 +83,7 @@ func runServer() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
+	logger.Info().Msg("database connected")
 
 	// 注册 AuditLog 数据签名 callback
 	audit.Register(db)
@@ -270,6 +271,11 @@ func runServer() {
 	}
 
 	// 注：CORS 由部署环境的反向代理（nginx）处理，不需要在这里注册中间件
+
+	// ─── 启动自动初始化 ──────────────────────────────────────────
+	// 检测 contful_system_users 表是否存在，不存在则自动执行 init_pg.sql
+	// contful_ 前缀确保不会误操作其他应用的数据表
+	autoInit(db)
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -566,6 +572,12 @@ func runServer() {
 			protected.POST("/cache/invalidate",
 				middleware.RequirePermission(rbacService, "settings:write"),
 				cacheHandler.InvalidateSite)
+			protected.POST("/cache/invalidate/all",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				cacheHandler.InvalidateAll)
+			protected.POST("/cache/invalidate/:slug",
+				middleware.RequirePermission(rbacService, "settings:write"),
+				cacheHandler.InvalidateSchema)
 
 			// 仪表盘统计（不依赖 X-Site-ID）
 			protected.GET("/dashboard/stats",

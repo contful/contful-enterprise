@@ -8,10 +8,10 @@
 
 | 層級 | 技術 |
 |------|------|
-| 後端 | Go 1.22+ / Gin / GORM |
-| 前端 | Vue 3.4+ / TDesign |
-| 資料庫 | PostgreSQL 16+ |
-| 快取 | Valkey 9+ |
+| 後端 | Go 1.25 / Gin / GORM |
+| 前端 | Vue 3.5 / TDesign / Vite 8 |
+| 資料庫 | PostgreSQL 18 |
+| 快取 | Valkey 9 |
 
 ## 專案結構
 
@@ -20,7 +20,7 @@ contful/
 ├── admin/            # Admin API 服務（:9080）
 ├── openapi/          # Open API 服務（:8080）
 ├── console/          # Vue 3 控制台（:3000）
-├── sql/              # 資料庫初始化 SQL
+├── db/               # 資料庫初始化腳本（init_pg.sql：DDL + 種子資料）
 ├── docker/           # Docker 設定（Dockerfile + docker-compose.yaml）
 ├── shell/            # 建構腳本
 ├── build/            # 編譯產物（.gitignore）
@@ -45,8 +45,8 @@ contful/
 
 - PostgreSQL 18
 - Valkey 9+
-- Go 1.22+
-- Node.js 18+
+- Go 1.25+
+- Node.js 24+
 
 ### 方式一：Docker 部署
 
@@ -74,14 +74,14 @@ docker-compose -f docker/docker-compose.yaml up -d
 
 ```bash
 # 1. 複製環境變數設定
-cp conf/.env.example .env
+cp .env.example .env
 
 # 2. 啟動資料庫和快取（使用遠端或 Docker 本地）
 docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
 docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
 # 2. 初始化資料庫
-psql -h <host> -U <user> -d contful -f sql/init_pg.sql
+psql -h <host> -U <user> -d contful -f db/init_pg.sql
 
 
 # 3. 建構
@@ -141,7 +141,7 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 站點預設設定
 
-新站點建立時會自動寫入以下預設設定（儲存在 `site_configs` 表）：
+新站點建立時會自動寫入以下預設設定（儲存在 `contful_system_config` 表）：
 
 | 設定項 | 預設值 | 說明 |
 |--------|--------|------|
@@ -160,11 +160,10 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 文件
 
-- [快速開始](https://contful.com/docs/getting-started)
-- [部署指南](https://contful.com/docs/deployment)
-- [系統架構](https://contful.com/docs/architecture/overview)
-- [Admin API 文件](https://contful.com/docs/api/admin-api/overview)
-- [Open API 文件](https://contful.com/docs/api/open-api/overview)
-- [資料庫 Schema](https://contful.com/docs/database/schema)
-- [貢獻指南](https://contful.com/docs/community/contributing)
-- [更新日誌](https://contful.com/guide/release)
+- [快速開始](https://contful.com/guide/quickstart)
+- [部署指南](https://contful.com/guide/deploy/)
+- [系統架構](https://contful.com/guide/architecture/overview)
+- [Admin API 文件](https://contful.com/api/admin-api/overview)
+- [Open API 文件](https://contful.com/api/open-api/overview)
+- [貢獻指南](https://contful.com/about/developers)
+- [更新日誌](https://contful.com/guide/changelog)

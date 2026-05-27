@@ -69,7 +69,9 @@
     "saveSuccess": "Saved successfully",
     "deleteSuccess": "Deleted successfully",
     "createSuccess": "Created successfully",
-    "clearCache": "Clear Cache"
+    "clearCache": "Clear Cache",
+    "next": "Next",
+    "prev": "Previous"
   },
   "menu": {
     "dashboard": "Dashboard",
@@ -237,6 +239,9 @@
     "deleteConfirm": "Delete this field?",
     "deleteSuccess": "Field deleted successfully",
     "deleteFailed": "Failed to delete field",
+    "enumOptions": "Enum Options",
+    "enumOptionPlaceholder": "Enter option",
+    "addEnumOption": "Add",
     "dialogTitle": "Add/Edit Field",
     "fieldName": "Field Name",
     "fieldNamePlaceholder": "e.g. title",
@@ -312,8 +317,14 @@
     "select": "Select",
     "yes": "Yes",
     "no": "No",
-    "clearCacheHint": "Clear OpenAPI content cache",
-    "cacheCleared": "Cleared {count} cache entries"
+    "clearCacheHint": "Clear current schema cache",
+    "cacheCleared": "Cleared {count} cache entries",
+    "clearSiteCache": "Clear Site Cache",
+    "clearSiteCacheConfirmTitle": "Confirm site cache clear",
+    "clearSiteCacheConfirmBody": "This will clear all content cache for this site (all schemas). Continue?",
+    "clearSiteCacheConfirm": "Confirm Clear",
+    "clearSchemaCacheTitle": "Confirm schema cache clear",
+    "clearSchemaCacheBody": "This will clear the cache for \"{schema}\". Continue?"
   },
   "media": {
     "title": "Media Library",
@@ -586,7 +597,6 @@
     "tzParis": "Europe/Paris (UTC+1)",
     "tzUTC": "UTC",
     "langKo": "Korean",
-    "langFr": "French",
     "seoKeywordsHint": "Separate multiple keywords with commas",
     "seoDescDefault": "Site description will appear here...",
     "defaultSiteName": "Site Name",
@@ -710,7 +720,10 @@
     "configKeyPlaceholder": "Config key, e.g. custom_feature_enabled",
     "configValuePlaceholder": "Enter config value",
     "edit": "Edit",
-    "operation": "Operation"
+    "operation": "Operation",
+    "clearCacheTitle": "Confirm clear system config cache",
+    "clearCacheBody": "System config cache is global (not site-specific). It will be reloaded on next request.",
+    "langFr": "French"
   },
   "site": {
     "selectSite": "Select Site",
@@ -921,7 +934,9 @@
     "sortOrder": "Sort Order",
     "perms": "items",
     "noData": "No permissions configured",
-    "fillRequired": "Required fields must be filled"
+    "fillRequired": "Required fields must be filled",
+    "clearCacheTitle": "Confirm clear permission cache",
+    "clearCacheBody": "Permission cache is global (not site-specific). It will be reloaded on next request."
   },
   "edition": {
     "community": "Community",
@@ -931,6 +946,28 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "skipToContent": "Skip to main content"
+  },
+  "schedule": {
+    "title": "Schedule",
+    "publishTime": "Scheduled Publish Time",
+    "unpublishTime": "Scheduled Unpublish Time",
+    "clearPublish": "Clear Publish Time",
+    "clearUnpublish": "Clear Unpublish Time",
+    "clearAll": "Clear All Schedule",
+    "noSchedule": "No schedule set",
+    "unpublishAfterPublish": "Unpublish time must be after publish time",
+    "pendingPublish": "Pending Publish",
+    "pendingUnpublish": "Pending Unpublish",
+    "listView": "List",
+    "calendarView": "Calendar",
+    "setSuccess": "Schedule set successfully",
+    "clearSuccess": "Schedule cleared"
+  },
+  "cache": {
+    "clearAllTitle": "Clear All Cache",
+    "clearAllBody": "This will clear ALL Contful cache globally:\n• All site content cache\n• Permission & config cache\n• User sessions (everyone will be logged out)\n• Rate limit counters\n\nThis action is irreversible. Continue?",
+    "clearAllConfirm": "Confirm Clear",
+    "clearAllSuccess": "Cleared {count} global cache entries"
   },
   "license": {
     "title": "License Info",

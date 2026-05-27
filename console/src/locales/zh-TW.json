@@ -233,6 +233,9 @@
     "deleteConfirm": "確定刪除欄位嗎？",
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗",
+    "enumOptions": "枚舉選項",
+    "enumOptionPlaceholder": "輸入選項值",
+    "addEnumOption": "添加",
     "dialogTitle": "新增/編輯欄位",
     "fieldName": "欄位名",
     "fieldNamePlaceholder": "例如 title",
@@ -309,8 +312,14 @@
     "yes": "是",
     "no": "否",
     "clearCache": "清除快取",
-    "clearCacheHint": "清除 OpenAPI 內容快取",
-    "cacheCleared": "已清除 {count} 筆快取記錄"
+    "clearCacheHint": "清除當前模型快取",
+    "cacheCleared": "已清除 {count} 筆快取記錄",
+    "clearSiteCache": "清除本站快取",
+    "clearSiteCacheConfirmTitle": "確認清除站台快取",
+    "clearSiteCacheConfirmBody": "將清除本站台所有內容快取（包含所有內容模型），確認繼續？",
+    "clearSiteCacheConfirm": "確認清除",
+    "clearSchemaCacheTitle": "確認清除模型快取",
+    "clearSchemaCacheBody": "將清除「{schema}」的內容快取，確認繼續？"
   },
   "media": {
     "title": "媒體庫",
@@ -469,10 +478,6 @@
     "revokeWarning": "撤銷後，使用此 Token 的應用將無法再訪問 API。確定要撤銷嗎？",
     "revokeSuccess": "Token 已撤銷",
     "active": "活躍",
-    "expired": "已過期",
-    "allowedIPs": "允許 IP",
-    "allowedIPsPlaceholder": "可選，留空允許所有 IP",
-    "allowedIPsHint": "僅允許指定 IP 使用此 Token，多個 IP 用逗號分隔",
     "permissions": "權限",
     "rateLimit": "速率限制",
     "rateLimitUnit": "請求/小時",
@@ -496,7 +501,6 @@
     "tableRateLimit": "限流",
     "tableStatus": "狀態",
     "updateSuccess": "Token 已更新",
-    "active": "活躍",
     "copy": "複製",
     "description": "描述",
     "descriptionPlaceholder": "描述此 Token 的用途",
@@ -577,7 +581,6 @@
     "tzParis": "Europe/Paris (UTC+1)",
     "tzUTC": "UTC",
     "langKo": "한국어",
-    "langFr": "法語",
     "seoKeywordsHint": "多個關鍵字用逗號分隔",
     "seoDescDefault": "站台描述將顯示在這裡...",
     "defaultSiteName": "站台名稱",
@@ -700,7 +703,6 @@
     "updateFailed": "更新失敗",
     "updateSuccess": "更新成功",
     "valueRequired": "值不能為空",
-    "addConfig": "新增設定",
     "createConfig": "建立設定",
     "deleteConfig": "刪除設定",
     "deleteConfigConfirm": "確定刪除設定「{key}」嗎？此操作無法復原。",
@@ -709,7 +711,12 @@
     "customConfigTag": "自訂",
     "configKeyPlaceholder": "請輸入設定鍵名，如 custom_feature_enabled",
     "configValuePlaceholder": "請輸入設定值",
-    "clearCache": "清除快取"
+    "clearCache": "清除快取",
+    "clearCacheTitle": "確認清除系統設定快取",
+    "clearCacheBody": "系統設定快取為全域快取（不區分站台），清除後將在下次請求時重新載入。",
+    "next": "下一步",
+    "prev": "上一步",
+    "langFr": "法語"
   },
   "site": {
     "selectSite": "選擇站台",
@@ -897,6 +904,32 @@
   "permission": {
     "denied": "您沒有存取此頁面的權限",
     "required": "需要權限：{permission}"
+  },
+  "schedule": {
+    "title": "排程設定",
+    "publishTime": "定時發布時間",
+    "unpublishTime": "定時下架時間",
+    "clearPublish": "清除發布時間",
+    "clearUnpublish": "清除下架時間",
+    "clearAll": "清除全部排程",
+    "noSchedule": "暫無排程",
+    "unpublishAfterPublish": "下架時間必須晚於發布時間",
+    "pendingPublish": "待發布",
+    "pendingUnpublish": "待下架",
+    "listView": "列表",
+    "calendarView": "日曆",
+    "setSuccess": "排程設定成功",
+    "clearSuccess": "排程已清除"
+  },
+  "permissions": {
+    "clearCacheTitle": "確認清除權限快取",
+    "clearCacheBody": "權限快取為全域快取（不區分站台），清除後將在下次請求時重新載入。"
+  },
+  "cache": {
+    "clearAllTitle": "清除所有快取",
+    "clearAllBody": "將清除 Contful 全域所有快取資料：\n• 全部站台內容快取\n• 權限與設定快取\n• 使用者會話（所有人將被登出）\n• 速率限制計數\n\n此操作無法復原，確認繼續？",
+    "clearAllConfirm": "確認清除",
+    "clearAllSuccess": "已清除 {count} 筆全域快取"
   },
   "license": {
     "title": "授權資訊",

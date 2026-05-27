@@ -17,7 +17,10 @@ import (
 // 平衡数据新鲜度和数据库压力
 const CacheTTL = 30 * time.Minute
 
-// CacheKeyPrefix 缓存键前缀
+// CacheKeyPrefix 缓存键前缀（Admin 与 OpenAPI 共用规范）
+// 格式: contful:content:{siteID}:{slug}:{locale}:{sort}:{order}:{page}:{size}
+//       contful:content:{siteID}:{slug}:{entryID}
+// 列表与详情通过冒号分隔的段数区分（列表 8 段 vs 详情 6 段）
 const CacheKeyPrefix = "contful:content:"
 
 // CacheService Redis 缓存服务
@@ -31,19 +34,21 @@ func NewCacheService(rdb *redis.Client) *CacheService {
 }
 
 // GetEntryListKey 生成内容列表缓存键
+// 格式: contful:content:{siteID}:{slug}:{locale}:{sort}:{order}:{page}:{size}
 func (s *CacheService) GetEntryListKey(siteID uuid.UUID, slug, locale, sortField, sortOrder string, page, pageSize int) string {
-	return fmt.Sprintf("%slist:%s:%s:%s:%s:%d:%d:%d",
+	return fmt.Sprintf("%s%s:%s:%s:%s:%s:%d:%d:%d",
 		CacheKeyPrefix, siteID.String(), slug, locale, sortField, sortOrder, page, pageSize)
 }
 
 // GetEntryDetailKey 生成内容详情缓存键
+// 格式: contful:content:{siteID}:{slug}:{entryID}
 func (s *CacheService) GetEntryDetailKey(siteID uuid.UUID, slug string, entryID uuid.UUID) string {
-	return fmt.Sprintf("%sdetail:%s:%s:%s", CacheKeyPrefix, siteID.String(), slug, entryID.String())
+	return fmt.Sprintf("%s%s:%s:%s", CacheKeyPrefix, siteID.String(), slug, entryID.String())
 }
 
-// GetSitePattern 生成站点内容缓存匹配模式（用于清除该站点的所有缓存）
+// GetSitePattern 生成站点内容缓存匹配模式（用于清除该站点所有内容缓存）
 func (s *CacheService) GetSitePattern(siteID uuid.UUID) string {
-	return fmt.Sprintf("%s*:%s:*", CacheKeyPrefix, siteID.String())
+	return fmt.Sprintf("%s%s:*", CacheKeyPrefix, siteID.String())
 }
 
 // Get 获取缓存
@@ -111,7 +116,7 @@ func (s *CacheService) InvalidateSite(ctx context.Context, siteID uuid.UUID) (in
 
 // InvalidateContentSchema 清除指定内容模型的所有缓存
 func (s *CacheService) InvalidateContentSchema(ctx context.Context, siteID uuid.UUID, slug string) (int64, error) {
-	pattern := fmt.Sprintf("%s*:%s:%s:*", CacheKeyPrefix, siteID.String(), slug)
+	pattern := fmt.Sprintf("%s%s:%s:*", CacheKeyPrefix, siteID.String(), slug)
 	
 	var cursor uint64
 	var deletedCount int64
