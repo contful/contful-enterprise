@@ -168,15 +168,15 @@ const router = createRouter({
 // ─────────────────────────────────────────────────────────────
 // 路由守卫
 // ─────────────────────────────────────────────────────────────
-let setupChecked = false
-
 router.beforeEach(async (to, _from) => {
-  // ── Setup 安装向导检查（仅首次）──────────────────────────────────────
+  // ── Setup 安装向导检查（仅未登录时）──────────────────────────────────
+  // 有 token 说明已安装且有管理员，无需再检查
   if (to.path === '/setup') {
     return
   }
 
-  if (!setupChecked) {
+  let token = getAccessToken()
+  if (!token) {
     try {
       const res = await fetch('/admin/api/v1/setup/status')
       const data = await res.json()
@@ -184,13 +184,11 @@ router.beforeEach(async (to, _from) => {
         return '/setup'
       }
     } catch {
-      // API 不可达时忽略（可能是网络问题或后端未启动）
+      // API 不可达时忽略（后端未启动或已安装）
     }
-    setupChecked = true
   }
 
   const requiresAuth = to.meta.requiresAuth !== false
-  let token = getAccessToken()
 
   // 如果没有 AccessToken，尝试从 Cookie 刷新恢复会话
   if (requiresAuth && !token) {
