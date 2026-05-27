@@ -440,7 +440,19 @@ onMounted(() => {
     <PageHeader
       :title="t('content.title')"
       :subtitle="t('content.subtitle')"
-    />
+    >
+      <template #primary-action>
+        <t-button
+          theme="danger"
+          variant="outline"
+          :disabled="siteCacheLoading"
+          :loading="siteCacheLoading"
+          @click="handleClearSiteCache"
+        >
+          {{ t('content.clearSiteCache') }}
+        </t-button>
+      </template>
+    </PageHeader>
 
     <div class="content-layout">
       <!-- 无站点提示 -->
@@ -543,15 +555,6 @@ onMounted(() => {
                 @click="handleClearCache"
               >
                 {{ t('common.clearCache') }}
-              </t-button>
-              <t-button
-                theme="danger"
-                variant="outline"
-                :disabled="siteCacheLoading"
-                :loading="siteCacheLoading"
-                @click="handleClearSiteCache"
-              >
-                {{ t('content.clearSiteCache') }}
               </t-button>
               <t-button theme="primary" @click="openCreateModal">
                 <template #icon><t-icon name="add" /></template>
