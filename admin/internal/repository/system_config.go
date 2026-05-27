@@ -33,7 +33,7 @@ func (SystemConfig) TableName() string {
 }
 
 const (
-	configCachePrefix = "system_config:"
+	configCachePrefix = "contful:config:"
 	configCacheTTL    = 5 * time.Minute
 )
 

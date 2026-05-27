@@ -10,18 +10,19 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Redis 缓存键命名规范（Admin 与 OpenAPI 共用）
+// Redis 缓存键命名规范（全局统一前缀 contful:）
 // ─────────────────────────────────────────────────────
-//
-//	contful:content:list:{siteID}:{slug}:{locale}:{sortField}:{sortOrder}:{page}:{pageSize}
-//	contful:content:detail:{siteID}:{slug}:{entryID}
-//	contful:config:{siteID}:{key}
+//   contful:content:list:{siteID}:{slug}:...     内容列表
+//   contful:content:detail:{siteID}:{slug}:{id}   内容详情
+//   contful:config:{key}                          系统配置
+//   contful:permission:meta                       权限元数据
+//   contful:session:{sid}                         用户会话
+//   contful:rate:{ip}                             速率限制
 //
 // 清除策略:
-//
-//	全局 → SCAN contful:*:*             → DEL
-//	站点 → SCAN contful:*:{siteID}:*    → DEL
-//	模型 → SCAN contful:content:*:{siteID}:{slug}:* → DEL
+//   全局 → SCAN contful:*:*         → DEL（所有缓存）
+//   站点 → SCAN contful:*:{siteID}:* → DEL
+//   模型 → SCAN contful:content:*:{siteID}:{slug}:* → DEL
 
 const (
 	// KeyAllPattern   全局缓存匹配模式

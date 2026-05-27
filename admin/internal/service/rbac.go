@@ -323,7 +323,7 @@ func (s *RBACService) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]mod
 // GetPermissionsMeta 返回权限元数据（从 DB 读取，缓存 5min）
 func (s *RBACService) GetPermissionsMeta() map[string]interface{} {
 	// Cache key
-	const cacheKey = "permission:meta"
+	const cacheKey = "contful:permission:meta"
 	const cacheTTL = 5 * time.Minute
 
 	// Try Redis cache
