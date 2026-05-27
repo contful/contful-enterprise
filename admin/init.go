@@ -3,12 +3,31 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
+
+// initSQLPaths 按优先级列出 init_pg.sql 的可能位置。
+var initSQLPaths = []string{
+	"db/init_pg.sql",        // dev.sh / Docker（工作目录 = 项目根）
+	"../db/init_pg.sql",     // 源码编译（go run，工作目录 = admin/）
+	"/app/db/init_pg.sql",   // Docker 容器内
+}
+
+// readInitSQL 按优先级尝试多个路径读取 init_pg.sql。
+func readInitSQL() ([]byte, error) {
+	for _, p := range initSQLPaths {
+		b, err := os.ReadFile(p)
+		if err == nil {
+			return b, nil
+		}
+	}
+	return nil, fmt.Errorf("在所有路径中未找到 init_pg.sql: %v", initSQLPaths)
+}
 
 // autoInit 在服务启动时自动检测并初始化数据库。
 // 检查 information_schema 中是否存在 contful_ 前缀的表，
@@ -26,7 +45,7 @@ func autoInit(db *gorm.DB) {
 
 	zlog.Logger.Info().Msg("检测到数据库未初始化，自动执行 init_pg.sql...")
 
-	sqlBytes, err := os.ReadFile("../db/init_pg.sql")
+	sqlBytes, err := readInitSQL()
 	if err != nil {
 		zlog.Logger.Error().Err(err).Msg("无法读取 init_pg.sql，自动初始化失败")
 		return
