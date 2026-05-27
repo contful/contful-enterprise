@@ -4,7 +4,7 @@ import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
 
 const props = defineProps<{
-  modelValue?: string
+  modelValue?: string | Record<string, unknown> | unknown[]
   placeholder?: string
 }>()
 
@@ -12,11 +12,22 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
-const rawText = ref(props.modelValue || '')
+/** 将任意值转为 JSON 字符串 */
+const toJsonString = (val: unknown): string => {
+  if (typeof val === 'string') return val
+  if (val === null || val === undefined) return ''
+  try {
+    return JSON.stringify(val, null, 2)
+  } catch {
+    return String(val)
+  }
+}
+
+const rawText = ref(toJsonString(props.modelValue))
 const mode = ref<'tree' | 'raw'>('tree')
 
 watch(() => props.modelValue, (val) => {
-  rawText.value = val || ''
+  rawText.value = toJsonString(val)
 })
 
 const parsedJson = computed(() => {
