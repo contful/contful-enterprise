@@ -29,6 +29,7 @@ import {
 } from '@/api/entry'
 import PageHeader from '@/components/PageHeader.vue'
 import TableToolbar from '@/components/common/TableToolbar.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 import ScheduleCalendar from './ScheduleCalendar.vue'
 
 // 类型守卫：处理 unknown 类型的 error 参数
@@ -676,9 +677,20 @@ onMounted(() => {
             />
           </t-form-item>
 
-          <!-- rich_text / json -->
+          <!-- rich_text -->
           <t-form-item
-            v-else-if="['rich_text','json'].includes(field.field_type)"
+            v-else-if="field.field_type === 'rich_text'"
+            :label="field.label"
+          >
+            <RichTextEditor
+              v-model="formData[field.name]"
+              :placeholder="t('content.enterField', { fieldName: field.label })"
+            />
+          </t-form-item>
+
+          <!-- json -->
+          <t-form-item
+            v-else-if="field.field_type === 'json'"
             :label="field.label"
           >
             <textarea
