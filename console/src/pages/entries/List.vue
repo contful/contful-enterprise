@@ -927,6 +927,7 @@ onMounted(() => {
 .schedule-tabs :deep(.t-tabs__content) {
   flex: 1;
   overflow: auto;
+  margin-top: 16px;
 }
 
 .content-toolbar {
