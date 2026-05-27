@@ -8,10 +8,10 @@
 
 | 레이어 | 기술 |
 |--------|------|
-| 백엔드 | Go 1.22+ / Gin / GORM |
-| 프론트엔드 | Vue 3.4+ / TDesign |
-| 데이터베이스 | PostgreSQL 16+ |
-| 캐시 | Valkey 9+ |
+| 백엔드 | Go 1.25 / Gin / GORM |
+| 프론트엔드 | Vue 3.5 / TDesign / Vite 8 |
+| 데이터베이스 | PostgreSQL 18 |
+| 캐시 | Valkey 9 |
 
 ## 프로젝트 구조
 
@@ -20,7 +20,7 @@ contful/
 ├── admin/            # Admin API 서비스 (:9080)
 ├── openapi/          # Open API 서비스 (:8080)
 ├── console/          # Vue 3 콘솔 (:3000)
-├── sql/              # 데이터베이스 초기화 SQL
+├── db/               # 데이터베이스 초기화 스크립트 (init_pg.sql: DDL + 시드 데이터)
 ├── docker/           # Docker 설정 (Dockerfile + docker-compose.yaml)
 ├── shell/            # 빌드 스크립트
 ├── build/            # 빌드 산출물 (.gitignore)
@@ -45,8 +45,8 @@ contful/
 
 - PostgreSQL 18
 - Valkey 9+
-- Go 1.22+
-- Node.js 18+
+- Go 1.25+
+- Node.js 24+
 
 ### 방법 1: Docker 배포
 
@@ -74,14 +74,14 @@ docker-compose -f docker/docker-compose.yaml up -d
 
 ```bash
 # 1. 환경 변수 설정 복사
-cp conf/.env.example .env
+cp .env.example .env
 
 # 2. 데이터베이스 및 캐시 시작 (원격 또는 Docker 로컬 사용)
 docker run -d --name contful-postgres -p 5432:5432 -e POSTGRES_PASSWORD=xxx postgres:18-alpine
 docker run -d --name contful-redis -p 6379:6379 redis:7-alpine
 
 # 2. 데이터베이스 초기화
-psql -h <host> -U <user> -d contful -f sql/init_pg.sql
+psql -h <host> -U <user> -d contful -f db/init_pg.sql
 
 
 # 3. 빌드
@@ -141,7 +141,7 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 사이트 기본 설정
 
-새 사이트가 생성되면 다음 기본 설정이 자동으로 기록됩니다 (`site_configs` 테이블에 저장):
+새 사이트가 생성되면 다음 기본 설정이 자동으로 기록됩니다 (`contful_system_config` 테이블에 저장):
 
 | 설정 키 | 기본값 | 설명 |
 |---------|--------|------|
@@ -160,11 +160,10 @@ docker build -f docker/Dockerfile.openapi -t contful/openapi:pg-arm64 --platform
 
 ## 문서
 
-- [시작하기](https://contful.com/docs/getting-started)
-- [배포 가이드](https://contful.com/docs/deployment)
-- [아키텍처 개요](https://contful.com/docs/architecture/overview)
-- [Admin API 레퍼런스](https://contful.com/docs/api/admin-api/overview)
-- [Open API 레퍼런스](https://contful.com/docs/api/open-api/overview)
-- [데이터베이스 스키마](https://contful.com/docs/database/schema)
-- [기여 가이드](https://contful.com/docs/community/contributing)
-- [릴리스 노트](https://contful.com/guide/release)
+- [시작하기](https://contful.com/guide/quickstart)
+- [배포 가이드](https://contful.com/guide/deploy/)
+- [아키텍처 개요](https://contful.com/guide/architecture/overview)
+- [Admin API 레퍼런스](https://contful.com/api/admin-api/overview)
+- [Open API 레퍼런스](https://contful.com/api/open-api/overview)
+- [기여 가이드](https://contful.com/about/developers)
+- [릴리스 노트](https://contful.com/guide/changelog)
