@@ -12,7 +12,7 @@ import Layout from '@/components/Layout.vue'
 const { t } = useI18n()
 const route = useRoute()
 // 不需要 Layout 的认证类页面
-const isAuthPage = computed(() => ['/login', '/mfa', '/setup'].includes(route.path))
+const isAuthPage = computed(() => ['/login', '/mfa'].includes(route.path))
 
 
 // =============================================================================

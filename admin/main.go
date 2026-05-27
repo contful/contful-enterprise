@@ -254,25 +254,10 @@ func runServer() {
 
 	// 注：CORS 由部署环境的反向代理（nginx）处理，不需要在这里注册中间件
 
-	// ─── Setup 安装向导路由（无需 JWT 认证，独立 CSRF + SetupGuard）─────────
-	initSQLBytes, err := os.ReadFile("../db/init_pg.sql")
-	if err != nil {
-		logger.Warn().Err(err).Msg("无法读取 init_pg.sql，安装向导将不可用")
-	}
-	initSQL := string(initSQLBytes)
-
-	setupSvc := service.NewSetupService(db, initSQL, cfg.Security.CryptoMode, "./conf")
-	setupHandler := handler.NewSetupHandler(setupSvc)
-
-	setup := r.Group("/admin/api/v1/setup")
-	{
-		// GET /status — 始终返回 JSON（无需 SetupGuard，已安装返回 setup_required:false）
-		setup.GET("/status", middleware.SetupCSRF(), setupHandler.Status)
-		// POST 操作 — 需要 SetupGuard，已安装返回 404
-		setup.POST("/database", middleware.SetupCSRF(), middleware.SetupGuard(db), setupHandler.TestDatabase)
-		setup.POST("/initialize", middleware.SetupCSRF(), middleware.SetupGuard(db), setupHandler.Initialize)
-		setup.POST("/admin", middleware.SetupCSRF(), middleware.SetupGuard(db), setupHandler.CreateAdmin)
-	}
+	// ─── 启动自动初始化 ──────────────────────────────────────────
+	// 检测 contful_system_users 表是否存在，不存在则自动执行 init_pg.sql
+	// contful_ 前缀确保不会误操作其他应用的数据表
+	autoInit(db)
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

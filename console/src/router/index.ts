@@ -47,12 +47,6 @@ function getRoutePermission(path: string): string | null {
 // ─────────────────────────────────────────────────────────────
 const routes: RouteRecordRaw[] = [
   {
-    path: '/setup',
-    name: 'Setup',
-    component: () => import('@/pages/setup/Setup.vue'),
-    meta: { requiresAuth: false },
-  },
-  {
     path: '/login',
     name: 'Login',
     component: () => import('@/pages/auth/Login.vue'),
@@ -169,26 +163,8 @@ const router = createRouter({
 // 路由守卫
 // ─────────────────────────────────────────────────────────────
 router.beforeEach(async (to, _from) => {
-  // ── Setup 安装向导检查（仅未登录时）──────────────────────────────────
-  // 有 token 说明已安装且有管理员，无需再检查
-  if (to.path === '/setup') {
-    return
-  }
-
-  let token = getAccessToken()
-  if (!token) {
-    try {
-      const res = await fetch('/admin/api/v1/setup/status')
-      const data = await res.json()
-      if (data.data?.setup_required) {
-        return '/setup'
-      }
-    } catch {
-      // API 不可达时忽略（后端未启动或已安装）
-    }
-  }
-
   const requiresAuth = to.meta.requiresAuth !== false
+  let token = getAccessToken()
 
   // 如果没有 AccessToken，尝试从 Cookie 刷新恢复会话
   if (requiresAuth && !token) {

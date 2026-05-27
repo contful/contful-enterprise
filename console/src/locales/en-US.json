@@ -946,44 +946,5 @@
     "calendarView": "Calendar",
     "setSuccess": "Schedule set successfully",
     "clearSuccess": "Schedule cleared"
-  },
-  "setup": {
-    "title": "Contful Setup Wizard",
-    "subtitle": "Setup Wizard",
-    "stepDatabase": "Database Configuration",
-    "stepAdmin": "Create Admin",
-    "database": {
-      "host": "Host",
-      "port": "Port",
-      "user": "Username",
-      "password": "Password",
-      "passwordPlaceholder": "Database password",
-      "dbName": "Database Name",
-      "sslMode": "SSL Mode",
-      "sslDisable": "disable (No SSL)",
-      "sslRequire": "require (SSL required)",
-      "sslVerifyCa": "verify-ca (Verify CA)",
-      "sslVerifyFull": "verify-full (Full verification)",
-      "testConnection": "Test Connection",
-      "connectionSuccess": "Database connected successfully",
-      "connectionFailed": "Connection failed, please check settings",
-      "initFailed": "Initialization failed"
-    },
-    "admin": {
-      "email": "Admin Email",
-      "password": "Password",
-      "passwordHint": "At least 8 characters",
-      "passwordConfirm": "Confirm Password",
-      "passwordConfirmHint": "Re-enter password",
-      "passwordMismatch": "Passwords do not match",
-      "passwordMinLength": "Password must be at least 8 characters",
-      "siteName": "Site Name",
-      "siteNamePlaceholder": "My Site",
-      "siteSlug": "Site Slug",
-      "siteSlugPlaceholder": "my-site",
-      "completeInstall": "Complete Setup",
-      "installSuccess": "Setup complete! Redirecting to login...",
-      "installFailed": "Failed to create admin"
-    }
   }
 }
