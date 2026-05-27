@@ -13,16 +13,10 @@ const emit = defineEmits<{
 }>()
 
 const rawText = ref(props.modelValue || '')
-const editingData = ref<Record<string, unknown>>({})
 const mode = ref<'tree' | 'raw'>('tree')
 
 watch(() => props.modelValue, (val) => {
   rawText.value = val || ''
-  try {
-    editingData.value = val ? JSON.parse(val) : {}
-  } catch {
-    editingData.value = {}
-  }
 })
 
 const parsedJson = computed(() => {
@@ -34,11 +28,6 @@ const parsedJson = computed(() => {
   }
 })
 
-watch(editingData, (val) => {
-  rawText.value = JSON.stringify(val, null, 2)
-  emit('update:modelValue', rawText.value)
-}, { deep: true })
-
 const handleRawInput = (e: Event) => {
   const target = e.target as HTMLTextAreaElement
   rawText.value = target.value
@@ -46,6 +35,13 @@ const handleRawInput = (e: Event) => {
 }
 
 const toggleMode = () => {
+  if (mode.value === 'tree') {
+    // 切换到源码前格式化
+    try {
+      const obj = JSON.parse(rawText.value || '{}')
+      rawText.value = JSON.stringify(obj, null, 2)
+    } catch { /* 保持原样 */ }
+  }
   mode.value = mode.value === 'tree' ? 'raw' : 'tree'
 }
 </script>
@@ -54,31 +50,28 @@ const toggleMode = () => {
   <div class="json-editor">
     <div class="json-editor-toolbar">
       <span class="json-editor-mode">
-        {{ mode === 'tree' ? '树形编辑' : '源码编辑' }}
+        {{ mode === 'tree' ? '树形查看' : '源码编辑' }}
       </span>
       <button type="button" class="json-editor-toggle" @click="toggleMode">
-        {{ mode === 'tree' ? '切换源码' : '切换树形' }}
+        {{ mode === 'tree' ? '编辑源码' : '查看树形' }}
       </button>
     </div>
     <VueJsonPretty
       v-if="mode === 'tree' && parsedJson"
-      v-model:data="editingData"
+      :data="parsedJson"
       :deep="3"
-      :editable="true"
-      :editableTrigger="'dblclick'"
       :showLength="true"
-      :placeholder="placeholder || '请输入 JSON'"
     />
+    <div v-else-if="mode === 'tree'" class="json-editor-empty">
+      {{ placeholder || '请输入 JSON' }}
+    </div>
     <textarea
-      v-else-if="mode === 'raw'"
+      v-else
       class="json-editor-raw"
       :value="rawText"
       :placeholder="placeholder || '请输入 JSON'"
       @input="handleRawInput"
     ></textarea>
-    <div v-else class="json-editor-empty">
-      {{ placeholder || '请输入 JSON' }}
-    </div>
   </div>
 </template>
 
@@ -126,6 +119,7 @@ const toggleMode = () => {
   line-height: 1.6;
   resize: vertical;
   outline: none;
+  box-sizing: border-box;
 }
 .json-editor-empty {
   padding: 24px;
