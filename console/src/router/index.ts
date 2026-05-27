@@ -168,22 +168,25 @@ const router = createRouter({
 // ─────────────────────────────────────────────────────────────
 // 路由守卫
 // ─────────────────────────────────────────────────────────────
+let setupChecked = false
+
 router.beforeEach(async (to, _from) => {
-  // ── Setup 安装向导检查 ──────────────────────────────────────────────
-  // 如果访问 setup 页面，直接放行
+  // ── Setup 安装向导检查（仅首次）──────────────────────────────────────
   if (to.path === '/setup') {
     return
   }
 
-  // 检查是否需要进入安装向导
-  try {
-    const res = await fetch('/admin/api/v1/setup/status')
-    const data = await res.json()
-    if (data.data?.setup_required) {
-      return '/setup'
+  if (!setupChecked) {
+    try {
+      const res = await fetch('/admin/api/v1/setup/status')
+      const data = await res.json()
+      if (data.data?.setup_required) {
+        return '/setup'
+      }
+    } catch {
+      // API 不可达时忽略（可能是网络问题或后端未启动）
     }
-  } catch {
-    // API 不可达时忽略（可能是网络问题或后端未启动）
+    setupChecked = true
   }
 
   const requiresAuth = to.meta.requiresAuth !== false
