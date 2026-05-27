@@ -79,6 +79,7 @@ const toggleMode = () => {
 
 <style scoped>
 .json-editor {
+  width: 100%;
   border: 1px solid var(--td-component-border);
   border-radius: 6px;
   overflow: hidden;
