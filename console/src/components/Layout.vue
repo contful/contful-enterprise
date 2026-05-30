@@ -14,7 +14,7 @@ import LangSwitcher from './LangSwitcher.vue'
 
 const { t } = useI18n()
 import { version } from '../../package.json'
-const edition = import.meta.env.VITE_EDITION || 'community'
+const edition = import.meta.env.VITE_EDITION || 'enterprise'
 const editionLabel = edition === 'enterprise' ? t('edition.enterprise') : t('edition.community')
 
 const router = useRouter()
