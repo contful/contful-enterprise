@@ -4,6 +4,7 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,7 @@ func NewSystemRoleHandler(rbacService *service.RBACService, auditService *servic
 func (h *SystemRoleHandler) List(c *gin.Context) {
 	roles, err := h.rbacService.ListSystemRoles(c.Request.Context())
 	if err != nil {
+		log.Printf("[SystemRole] List failed: %v", err)
 		c.JSON(http.StatusInternalServerError, model.NewErrorResponse(model.CodeInternalError, "internal error"))
 		return
 	}
