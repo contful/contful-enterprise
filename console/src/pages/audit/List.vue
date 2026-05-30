@@ -154,6 +154,7 @@ function handleError(err: unknown) {
 }
 
 const { t, locale } = useI18n()
+
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const detailVisible = ref(false)
