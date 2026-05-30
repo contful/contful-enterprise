@@ -13,6 +13,7 @@
 # =============================================================================
 
 # ---- Stage 1: Go Admin API 编译 ----
+# golang:1.25-alpine 基于 Alpine 3.23。升级 Go 版本时同步更新 golang 镜像 tag。
 FROM golang:1.25-alpine AS go-builder
 
 ARG DB_TYPE=postgresql

@@ -17,6 +17,7 @@
 # =============================================================================
 
 # ---- Stage 1: Go 编译 ----
+ARG ALPINE_VERSION=3.23
 FROM golang:1.25-alpine AS builder
 
 ARG DB_TYPE=postgresql
@@ -46,7 +47,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE
 RUN apk add --no-cache upx 2>/dev/null && upx --best /app/openapi && rm -f /usr/bin/upx || true
 
 # ---- Stage 2: 运行 ----
-FROM alpine:3.21 AS runner
+FROM alpine:${ALPINE_VERSION} AS runner
 
 ARG PROXY=false
 
