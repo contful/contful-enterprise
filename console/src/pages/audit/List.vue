@@ -33,7 +33,7 @@
             enable-time-picker
             allow-input
             clearable
-            style="width: 170px"
+            style="width: 150px"
             :placeholder="t('audit.filter.startTimePlaceholder')"
           />
         </t-form-item>
@@ -43,19 +43,17 @@
             enable-time-picker
             allow-input
             clearable
-            style="width: 170px"
+            style="width: 150px"
             :placeholder="t('audit.filter.endTimePlaceholder')"
           />
         </t-form-item>
         <t-form-item>
-          <t-space>
-            <t-button theme="primary" @click="handleSearch">
-              <template #icon><t-icon name="search" /></template>
-            </t-button>
-            <t-button theme="default" @click="handleReset">
-              {{ t('audit.filter.reset') }}
-            </t-button>
-          </t-space>
+          <t-button theme="primary" @click="handleSearch">
+            <template #icon><t-icon name="search" /></template>
+          </t-button>
+          <t-button theme="default" @click="handleReset">
+            {{ t('audit.filter.reset') }}
+          </t-button>
         </t-form-item>
       </t-form>
     </t-card>
@@ -275,6 +273,9 @@ onMounted(() => {
 .filter-form {
   flex-wrap: wrap;
   gap: 8px;
+}
+.filter-form :deep(.t-form__item) {
+  margin-bottom: 0;
 }
 .log-table {
   margin-top: 16px;
