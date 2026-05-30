@@ -102,13 +102,16 @@ func runSQLFile(db *gorm.DB, name string, reader func() ([]byte, error)) {
 func stripComments(sql string) string {
 	// 移除 /* */ 块注释
 	sql = regexp.MustCompile(`/\*[\s\S]*?\*/`).ReplaceAllString(sql, "")
-	// 移除以 -- 开头的行（注释行），保留空行占位
 	lines := strings.Split(sql, "\n")
 	var result []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || strings.HasPrefix(trimmed, "--") {
 			continue
+		}
+		// 移除行尾内联注释（如: permissions JSONB DEFAULT '[]', -- 注释含分号;）
+		if idx := strings.Index(line, " -- "); idx >= 0 {
+			line = line[:idx]
 		}
 		result = append(result, line)
 	}
@@ -120,10 +123,18 @@ func stripComments(sql string) string {
 // 不存在则自动执行 init_pg.sql + init_ent.sql。
 // 如果基础表已存在但企业版表缺失，仅执行 init_ent.sql。
 func autoInit(db *gorm.DB) {
+	if os.Getenv("CONTFUL_AUTO_INIT") != "true" {
+		zlog.Logger.Debug().Msg("CONTFUL_AUTO_INIT != true，跳过自动初始化")
+		return
+	}
+
 	var count int64
-	db.Raw(
+	if err := db.Raw(
 		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'contful_%'",
-	).Scan(&count)
+	).Scan(&count).Error; err != nil {
+		zlog.Logger.Warn().Err(err).Msg("无法查询 information_schema，跳过自动初始化（DB 可能未就绪）")
+		return
+	}
 
 	if count > 0 {
 		zlog.Logger.Info().Int64("tables", count).Msg("数据库已初始化")
