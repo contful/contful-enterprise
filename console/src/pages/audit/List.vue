@@ -9,7 +9,7 @@
     <!-- 筛选栏 -->
     <t-card class="filter-card">
       <div class="filter-bar">
-        <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable>
+        <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable style="width: 150px">
           <t-option :label="t('audit.category.auth')" value="auth" />
           <t-option :label="t('audit.category.content')" value="content" />
           <t-option :label="t('audit.category.media')" value="media" />
@@ -17,7 +17,7 @@
           <t-option :label="t('audit.category.user')" value="user" />
           <t-option :label="t('audit.category.system')" value="system" />
         </t-select>
-        <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable>
+        <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable style="width: 150px">
           <t-option :label="t('audit.level.debug')" value="debug" />
           <t-option :label="t('audit.level.info')" value="info" />
           <t-option :label="t('audit.level.warn')" value="warn" />
