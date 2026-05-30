@@ -112,6 +112,9 @@ COPY --chown=contful:contful conf/nginx.conf /usr/local/openresty/nginx/conf/ngi
 # 复制默认配置文件（Go 程序会自动用环境变量覆盖）
 COPY --chown=contful:contful conf/console.yaml /app/conf/console.yaml
 
+# 企业版 License 占位文件（部署时通过 volume 挂载真实授权文件）
+COPY --chown=contful:contful docker/license.dat /app/conf/license.dat
+
 # Copy entrypoint script
 COPY --chown=contful:contful docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
