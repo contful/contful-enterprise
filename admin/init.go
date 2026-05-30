@@ -48,13 +48,26 @@ func stripComments(sql string) string {
 }
 
 // autoInit 在服务启动时自动检测并初始化数据库。
-// 检查 information_schema 中是否存在 contful_ 前缀的表，
-// 不存在则自动执行 db/init_pg.sql。
+//
+// 触发条件（两个必须同时满足）：
+//  1. 环境变量 CONTFUL_AUTO_INIT=true
+//  2. information_schema 中不存在 contful_ 前缀的表
+//
+// CONTFUL_AUTO_INIT 默认为 false，避免每次启动都查 information_schema。
+// 首次部署时设置 CONFTUL_AUTO_INIT=true，初始化完成后可移除该变量。
 func autoInit(db *gorm.DB) {
+	if os.Getenv("CONTFUL_AUTO_INIT") != "true" {
+		zlog.Logger.Debug().Msg("CONTFUL_AUTO_INIT != true，跳过自动初始化")
+		return
+	}
+
 	var count int64
-	db.Raw(
+	if err := db.Raw(
 		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'contful_%'",
-	).Scan(&count)
+	).Scan(&count).Error; err != nil {
+		zlog.Logger.Warn().Err(err).Msg("无法查询 information_schema，跳过自动初始化（DB 可能未就绪）")
+		return
+	}
 
 	if count > 0 {
 		zlog.Logger.Info().Int64("tables", count).Msg("数据库已初始化，跳过")
