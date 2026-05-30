@@ -18,13 +18,23 @@ FROM golang:1.25-alpine AS go-builder
 ARG DB_TYPE=postgresql
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
+ARG PROXY=false
+
+# 国内用户构建时设置 --build-arg PROXY=true 启用加速
+RUN if [ "$PROXY" = "true" ]; then \
+        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
+    fi
 
 WORKDIR /app
 
 RUN apk add --no-cache upx
 
 COPY admin/go.mod admin/go.sum ./
-RUN go mod download
+RUN if [ "$PROXY" = "true" ]; then \
+        GOPROXY=https://goproxy.cn,direct go mod download; \
+    else \
+        go mod download; \
+    fi
 
 COPY admin/ .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/admin .
@@ -36,8 +46,13 @@ RUN upx --best /app/admin && rm -f /usr/bin/upx
 FROM node:24-alpine AS frontend-builder
 
 ARG API_BASE_URL=/admin/api/v1
+ARG PROXY=false
 
-RUN corepack enable
+RUN if [ "$PROXY" = "true" ]; then \
+        npm config set registry https://registry.npmmirror.com && \
+        yarn config set registry https://registry.npmmirror.com; \
+    fi && \
+    corepack enable
 
 WORKDIR /app
 
@@ -50,6 +65,12 @@ RUN yarn build
 
 # ---- Stage 3: OpenResty 运行 ----
 FROM openresty/openresty:alpine AS runner
+
+ARG PROXY=false
+
+RUN if [ "$PROXY" = "true" ]; then \
+        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
+    fi
 
 WORKDIR /app
 
