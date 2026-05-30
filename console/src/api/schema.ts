@@ -51,7 +51,6 @@ export type FieldType =
   | 'json'
   | 'relation'
   | 'enum'
-  | 'password'
 
 export const FIELD_TYPES: Record<FieldType, { labelKey: string; icon: string }> = {
   text: { labelKey: 'fieldTypes.text', icon: 'text' },
@@ -65,7 +64,6 @@ export const FIELD_TYPES: Record<FieldType, { labelKey: string; icon: string }> 
   json: { labelKey: 'fieldTypes.json', icon: 'code' },
   relation: { labelKey: 'fieldTypes.relation', icon: 'relation' },
   enum: { labelKey: 'fieldTypes.enum', icon: 'list' },
-  password: { labelKey: 'fieldTypes.password', icon: 'lock' },
 }
 
 export interface ContentSchemaCreate {

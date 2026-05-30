@@ -308,7 +308,6 @@
     "enterField": "請輸入{fieldName}",
     "enterEmail": "請輸入郵箱地址",
     "enterUrl": "請輸入網址",
-    "enterPassword": "請輸入密碼",
     "enterRelation": "請輸入關聯條目 ID",
     "enterNumber": "請輸入數字",
     "select": "請選擇",

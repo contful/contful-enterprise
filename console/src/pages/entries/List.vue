@@ -839,19 +839,6 @@ onMounted(() => {
             </t-input>
           </t-form-item>
 
-          <!-- password -->
-          <t-form-item
-            v-else-if="field.field_type === 'password'"
-            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
-          >
-            <t-input
-              v-model="formData[field.name]"
-              type="password"
-              :placeholder="t('content.enterPassword')"
-              clearable
-            />
-          </t-form-item>
-
           <!-- relation -->
           <t-form-item
             v-else-if="field.field_type === 'relation'"

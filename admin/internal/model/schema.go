@@ -81,5 +81,4 @@ var FieldTypes = []string{
 	"json",      // JSON
 	"relation",  // 关联（指向其他内容模型）
 	"enum",      // 枚举
-	"password",  // 密码
 }

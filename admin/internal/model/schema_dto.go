@@ -95,7 +95,7 @@ type FieldCreate struct {
 	Name               string   `json:"name" binding:"required,min=1,max=100"`
 	Label              string   `json:"label" binding:"required,min=1,max=200"`
 	Description        string   `json:"description"`
-	FieldType          string   `json:"field_type" binding:"required,oneof=text rich_text number boolean date datetime email url json relation enum password"`
+	FieldType          string   `json:"field_type" binding:"required,oneof=text rich_text number boolean date datetime email url json relation enum"`
 	Config             JSONB    `json:"config"`
 	Validation         JSONB    `json:"validation"`
 	Display            JSONB    `json:"display"`
@@ -109,7 +109,7 @@ type FieldUpdate struct {
 	Name               *string `json:"name" binding:"omitempty,min=1,max=100"`
 	Label              *string `json:"label" binding:"omitempty,min=1,max=200"`
 	Description        *string `json:"description"`
-	FieldType          *string `json:"field_type" binding:"omitempty,oneof=text rich_text number boolean date datetime email url json relation enum password"`
+	FieldType          *string `json:"field_type" binding:"omitempty,oneof=text rich_text number boolean date datetime email url json relation enum"`
 	Config             *JSONB  `json:"config"`
 	Validation         *JSONB  `json:"validation"`
 	Display            *JSONB  `json:"display"`

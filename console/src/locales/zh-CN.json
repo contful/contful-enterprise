@@ -315,7 +315,6 @@
     "enterField": "请输入{fieldName}",
     "enterEmail": "请输入邮箱地址",
     "enterUrl": "请输入网址",
-    "enterPassword": "请输入密码",
     "enterRelation": "请输入关联条目 ID",
     "enterNumber": "请输入数字",
     "select": "请选择",
