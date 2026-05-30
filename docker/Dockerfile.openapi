@@ -38,7 +38,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE
 RUN upx --best /app/openapi && rm -f /usr/bin/upx
 
 # ---- Stage 2: 运行 ----
-FROM alpine:latest AS runner
+FROM alpine:3.21 AS runner
 
 ARG PROXY=false
 
@@ -48,7 +48,10 @@ RUN if [ "$PROXY" = "true" ]; then \
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates tzdata gettext su-exec
+# apk 网络波动时自动重试
+RUN for i in 1 2 3; do \
+        apk add --no-cache ca-certificates tzdata gettext su-exec && break || sleep 3; \
+    done
 
 # 创建非 root 用户运行容器（安全最佳实践）
 RUN addgroup -S contful && adduser -S contful -G contful
