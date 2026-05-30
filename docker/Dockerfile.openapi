@@ -63,7 +63,7 @@ RUN apk add --no-cache ca-certificates tzdata gettext su-exec
 # 创建非 root 用户 + 目录 + 权限（合并减少 Docker 层）
 RUN addgroup -S contful \
     && adduser -S contful -G contful \
-    && mkdir -p /app/logs /app/conf /app/conf/keys /app/conf/ssl \
+    && mkdir -p /app/logs /app/conf \
     && chown -R contful:contful /app
 USER contful
 
