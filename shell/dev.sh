@@ -221,6 +221,7 @@ start_admin() {
         REDIS_PASSWORD="${REDIS_PASSWORD}" \
         SECRET="${SECRET:-}" \
         LOG_LEVEL="${LOG_LEVEL:-info}" \
+        CONTFUL_AUTO_INIT="${CONTFUL_AUTO_INIT:-false}" \
         STORAGE_UPLOAD_DIR="$UPLOAD_DIR" \
         "$BUILD_DIR/admin" > "$LOG_DIR/admin.log" 2>&1 &
     echo $! > "$LOG_DIR/admin.pid"
