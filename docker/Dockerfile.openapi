@@ -42,23 +42,21 @@ FROM alpine:3.21 AS runner
 
 ARG PROXY=false
 
+# 国内用户构建时设置 --build-arg PROXY=true 启用加速
 RUN if [ "$PROXY" = "true" ]; then \
         sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
     fi
 
 WORKDIR /app
 
-# apk 网络波动时自动重试
-RUN for i in 1 2 3; do \
-        apk add --no-cache ca-certificates tzdata gettext su-exec && break || sleep 3; \
-    done
+RUN apk add --no-cache ca-certificates tzdata gettext su-exec
 
-# 创建非 root 用户运行容器（安全最佳实践）
-RUN addgroup -S contful && adduser -S contful -G contful
-RUN mkdir -p /app/logs /app/conf
-RUN chown -R contful:contful /app
-
-WORKDIR /app
+# 创建非 root 用户 + 目录 + 权限（合并减少 Docker 层）
+RUN addgroup -S contful \
+    && adduser -S contful -G contful \
+    && mkdir -p /app/logs /app/conf \
+    && chown -R contful:contful /app
+USER contful
 
 # 复制 Go 二进制
 COPY --chown=contful:contful --from=builder /app/openapi .
