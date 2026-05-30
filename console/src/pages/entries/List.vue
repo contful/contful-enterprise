@@ -839,18 +839,6 @@ onMounted(() => {
             </t-input>
           </t-form-item>
 
-          <!-- relation -->
-          <t-form-item
-            v-else-if="field.field_type === 'relation'"
-            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
-          >
-            <t-input
-              v-model="formData[field.name]"
-              :placeholder="t('content.enterRelation')"
-              clearable
-            />
-          </t-form-item>
-
           <!-- fallback: text input -->
           <t-form-item
             v-else

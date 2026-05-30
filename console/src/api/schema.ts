@@ -49,7 +49,6 @@ export type FieldType =
   | 'email'
   | 'url'
   | 'json'
-  | 'relation'
   | 'enum'
 
 export const FIELD_TYPES: Record<FieldType, { labelKey: string; icon: string }> = {
@@ -62,7 +61,6 @@ export const FIELD_TYPES: Record<FieldType, { labelKey: string; icon: string }> 
   email: { labelKey: 'fieldTypes.email', icon: 'mail' },
   url: { labelKey: 'fieldTypes.url', icon: 'link' },
   json: { labelKey: 'fieldTypes.json', icon: 'code' },
-  relation: { labelKey: 'fieldTypes.relation', icon: 'relation' },
   enum: { labelKey: 'fieldTypes.enum', icon: 'list' },
 }
 

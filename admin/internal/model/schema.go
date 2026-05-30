@@ -79,6 +79,5 @@ var FieldTypes = []string{
 	"email",     // 邮箱
 	"url",       // URL（网页链接 / 媒体文件地址 / 图片 URL）
 	"json",      // JSON
-	"relation",  // 关联（指向其他内容模型）
 	"enum",      // 枚举
 }

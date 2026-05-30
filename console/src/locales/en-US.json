@@ -314,7 +314,6 @@
     "enterField": "Enter {fieldName}",
     "enterEmail": "Enter email address",
     "enterUrl": "Enter URL",
-    "enterRelation": "Enter related entry ID",
     "enterNumber": "Enter a number",
     "select": "Select",
     "yes": "Yes",
