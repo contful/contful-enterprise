@@ -943,6 +943,9 @@
     "mirror": "國內鏡像",
     "issues": "提交回饋",
     "issuesDesc": "Bug / 功能建議",
-    "contact": "聯絡郵箱"
+    "contact": "聯絡郵箱",
+    "links": "相關連結",
+    "thanks": "特別感謝",
+    "andMore": "等開源專案"
   }
 }

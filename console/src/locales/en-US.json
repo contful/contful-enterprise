@@ -975,6 +975,9 @@
     "mirror": "Mirror (China)",
     "issues": "Submit Feedback",
     "issuesDesc": "Bug / Feature Request",
-    "contact": "Contact"
+    "contact": "Contact",
+    "links": "Links",
+    "thanks": "With Thanks To",
+    "andMore": "and more"
   }
 }

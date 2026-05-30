@@ -988,6 +988,9 @@
     "mirror": "国内镜像",
     "issues": "提交反馈",
     "issuesDesc": "Bug / 功能建议",
-    "contact": "联系邮箱"
+    "contact": "联系邮箱",
+    "links": "相关链接",
+    "thanks": "特别感谢",
+    "andMore": "等开源项目"
   }
 }

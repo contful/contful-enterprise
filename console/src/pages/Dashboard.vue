@@ -189,32 +189,51 @@ watch(layoutInitialized, async (ready) => {
           <span>{{ t('community.title') }}</span>
         </div>
       </template>
-      <div class="community-links">
-        <a href="https://contful.com" target="_blank" rel="noopener noreferrer" class="community-link">
-          <t-icon name="internet" />
-          <span>contful.com</span>
-          <span class="community-link-desc">{{ t('community.docs') }}</span>
-        </a>
-        <a href="https://github.com/contful/contful" target="_blank" rel="noopener noreferrer" class="community-link">
-          <t-icon name="logo-github" />
-          <span>GitHub</span>
-          <span class="community-link-desc">{{ t('community.star') }}</span>
-        </a>
-        <a href="https://gitee.com/contful/contful" target="_blank" rel="noopener noreferrer" class="community-link">
-          <t-icon name="logo-git" />
-          <span>Gitee</span>
-          <span class="community-link-desc">{{ t('community.mirror') }}</span>
-        </a>
-        <a href="https://github.com/contful/contful/issues" target="_blank" rel="noopener noreferrer" class="community-link">
-          <t-icon name="bug-report" />
-          <span>{{ t('community.issues') }}</span>
-          <span class="community-link-desc">{{ t('community.issuesDesc') }}</span>
-        </a>
-        <a href="mailto:hi@reepu.com" class="community-link">
-          <t-icon name="mail" />
-          <span>hi@reepu.com</span>
-          <span class="community-link-desc">{{ t('community.contact') }}</span>
-        </a>
+      <div class="community-grid">
+        <div class="community-section">
+          <h4 class="community-section-title">{{ t('community.links') }}</h4>
+          <a href="https://contful.com" target="_blank" rel="noopener noreferrer" class="community-link">
+            <t-icon name="internet" />
+            contful.com
+            <span class="community-link-hint">{{ t('community.docs') }}</span>
+          </a>
+          <a href="https://github.com/contful/contful" target="_blank" rel="noopener noreferrer" class="community-link">
+            <t-icon name="logo-github" />
+            GitHub
+            <span class="community-link-hint">{{ t('community.star') }}</span>
+          </a>
+          <a href="https://gitee.com/contful/contful" target="_blank" rel="noopener noreferrer" class="community-link">
+            <t-icon name="logo-git" />
+            Gitee
+            <span class="community-link-hint">{{ t('community.mirror') }}</span>
+          </a>
+          <a href="https://github.com/contful/contful/issues" target="_blank" rel="noopener noreferrer" class="community-link">
+            <t-icon name="bug-report" />
+            {{ t('community.issues') }}
+            <span class="community-link-hint">{{ t('community.issuesDesc') }}</span>
+          </a>
+          <a href="mailto:hi@reepu.com" class="community-link">
+            <t-icon name="mail" />
+            hi@reepu.com
+            <span class="community-link-hint">{{ t('community.contact') }}</span>
+          </a>
+        </div>
+        <div class="community-section">
+          <h4 class="community-section-title">{{ t('community.thanks') }}</h4>
+          <div class="community-thanks">
+            <a href="https://go.dev" target="_blank" rel="noopener" class="thanks-item">Go</a>
+            <a href="https://gin-gonic.com" target="_blank" rel="noopener" class="thanks-item">Gin</a>
+            <a href="https://gorm.io" target="_blank" rel="noopener" class="thanks-item">GORM</a>
+            <a href="https://www.postgresql.org" target="_blank" rel="noopener" class="thanks-item">PostgreSQL</a>
+            <a href="https://valkey.io" target="_blank" rel="noopener" class="thanks-item">Valkey</a>
+            <a href="https://vuejs.org" target="_blank" rel="noopener" class="thanks-item">Vue 3</a>
+            <a href="https://tdesign.tencent.com" target="_blank" rel="noopener" class="thanks-item">TDesign</a>
+            <a href="https://vitejs.dev" target="_blank" rel="noopener" class="thanks-item">Vite</a>
+            <a href="https://www.tiny.cloud" target="_blank" rel="noopener" class="thanks-item">TinyMCE</a>
+            <a href="https://vitepress.dev" target="_blank" rel="noopener" class="thanks-item">VitePress</a>
+            <span class="thanks-item thanks-divider">{{ t('community.andMore') }}</span>
+          </div>
+        </div>
       </div>
     </t-card>
   </div>
@@ -297,34 +316,68 @@ watch(layoutInitialized, async (ready) => {
   gap: 8px;
 }
 
-.community-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.community-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.community-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--td-text-color-secondary);
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .community-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--td-component-border);
-  border-radius: 8px;
+  gap: 8px;
+  padding: 6px 0;
   text-decoration: none;
   color: var(--td-text-color-primary);
   font-size: 14px;
-  transition: background 0.2s, border-color 0.2s;
+  transition: color 0.15s;
 }
 
 .community-link:hover {
-  background: var(--td-bg-color-container-hover);
-  border-color: var(--td-brand-color);
-  text-decoration: none;
+  color: var(--td-brand-color);
 }
 
-.community-link-desc {
+.community-link-hint {
+  margin-left: auto;
   color: var(--td-text-color-placeholder);
   font-size: 12px;
-  margin-left: 4px;
+}
+
+.community-thanks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.thanks-item {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--td-bg-color-secondarycontainer);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--td-text-color-secondary);
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+
+.thanks-item:hover {
+  color: var(--td-brand-color);
+  background: var(--td-brand-color-light);
+}
+
+.thanks-divider {
+  background: none;
+  padding: 2px 0;
+  font-style: italic;
+  color: var(--td-text-color-disabled);
 }
 </style>
