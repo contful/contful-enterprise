@@ -8,57 +8,44 @@
 
     <!-- 筛选栏 -->
     <t-card class="filter-card">
-      <t-form :data="filterForm" layout="inline" class="filter-form">
-        <t-form-item :label="t('audit.filter.category')">
-          <t-select v-model="filterForm.category" :placeholder="selectPlaceholder" clearable style="width: 130px">
-            <t-option :label="t('audit.category.auth')" value="auth" />
-            <t-option :label="t('audit.category.content')" value="content" />
-            <t-option :label="t('audit.category.media')" value="media" />
-            <t-option :label="t('audit.category.settings')" value="settings" />
-            <t-option :label="t('audit.category.user')" value="user" />
-            <t-option :label="t('audit.category.system')" value="system" />
-          </t-select>
-        </t-form-item>
-        <t-form-item :label="t('audit.filter.level')">
-          <t-select v-model="filterForm.level" :placeholder="selectPlaceholder" clearable style="width: 120px">
-            <t-option :label="t('audit.level.debug')" value="debug" />
-            <t-option :label="t('audit.level.info')" value="info" />
-            <t-option :label="t('audit.level.warn')" value="warn" />
-            <t-option :label="t('audit.level.error')" value="error" />
-          </t-select>
-        </t-form-item>
-        <t-form-item :label="t('audit.filter.startTime')">
-          <t-date-picker
-            v-model="filterForm.startTime"
-            enable-time-picker
-            allow-input
-            clearable
-            style="width: 200px"
-            :placeholder="t('audit.filter.startTimePlaceholder')"
-          />
-        </t-form-item>
-        <t-form-item :label="t('audit.filter.endTime')">
-          <t-date-picker
-            v-model="filterForm.endTime"
-            enable-time-picker
-            allow-input
-            clearable
-            style="width: 200px"
-            :placeholder="t('audit.filter.endTimePlaceholder')"
-          />
-        </t-form-item>
-        <t-form-item>
-          <t-space>
-            <t-button theme="primary" @click="handleSearch">
-              <template #icon><t-icon name="search" /></template>
-              {{ t('audit.filter.search') }}
-            </t-button>
-            <t-button theme="default" @click="handleReset">
-              {{ t('audit.filter.reset') }}
-            </t-button>
-          </t-space>
-        </t-form-item>
-      </t-form>
+      <div class="filter-bar">
+        <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable style="width: 150px">
+          <t-option :label="t('audit.category.auth')" value="auth" />
+          <t-option :label="t('audit.category.content')" value="content" />
+          <t-option :label="t('audit.category.media')" value="media" />
+          <t-option :label="t('audit.category.settings')" value="settings" />
+          <t-option :label="t('audit.category.user')" value="user" />
+          <t-option :label="t('audit.category.system')" value="system" />
+        </t-select>
+        <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable style="width: 150px">
+          <t-option :label="t('audit.level.debug')" value="debug" />
+          <t-option :label="t('audit.level.info')" value="info" />
+          <t-option :label="t('audit.level.warn')" value="warn" />
+          <t-option :label="t('audit.level.error')" value="error" />
+        </t-select>
+        <t-date-picker
+          v-model="filterForm.startTime"
+          enable-time-picker
+          allow-input
+          clearable
+          style="width: 150px"
+          :placeholder="t('audit.filter.startTimePlaceholder')"
+        />
+        <t-date-picker
+          v-model="filterForm.endTime"
+          enable-time-picker
+          allow-input
+          clearable
+          style="width: 150px"
+          :placeholder="t('audit.filter.endTimePlaceholder')"
+        />
+        <t-button theme="primary" @click="handleSearch">
+          <template #icon><t-icon name="search" /></template>
+        </t-button>
+        <t-button theme="default" @click="handleReset">
+          {{ t('audit.filter.reset') }}
+        </t-button>
+      </div>
     </t-card>
 
     <!-- 日志表格 -->
@@ -167,8 +154,6 @@ function handleError(err: unknown) {
 }
 
 const { t, locale } = useI18n()
-
-const selectPlaceholder = computed(() => t('common.selectPlaceholder'))
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const detailVisible = ref(false)
@@ -273,9 +258,11 @@ onMounted(() => {
 .filter-card {
   margin-bottom: 16px;
 }
-.filter-form {
+.filter-bar {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 .log-table {
   margin-top: 16px;

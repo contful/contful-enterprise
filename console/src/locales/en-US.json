@@ -313,6 +313,8 @@
     "publish": "Publish",
     "unpublish": "Unpublish",
     "enterField": "Enter {fieldName}",
+    "enterEmail": "Enter email address",
+    "enterUrl": "Enter URL",
     "enterNumber": "Enter a number",
     "select": "Select",
     "yes": "Yes",

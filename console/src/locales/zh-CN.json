@@ -314,6 +314,8 @@
     "publish": "发布",
     "unpublish": "取消发布",
     "enterField": "请输入{fieldName}",
+    "enterEmail": "请输入邮箱地址",
+    "enterUrl": "请输入网址",
     "enterNumber": "请输入数字",
     "select": "请选择",
     "yes": "是",
