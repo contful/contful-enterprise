@@ -3,31 +3,13 @@
 # =============================================================================
 #
 # 构建上下文: contful/ 目录（Dockerfile 的父目录）
-# 构建命令需在 contful/ 目录执行，或使用完整路径指定构建上下文
 #
-# 镜像加速（可选）:
-#   国内用户可在 Docker Desktop 中配置 registry-mirrors:
-#   https://docker.1ms.run
-#   或设置 apk 镜像源（见各阶段 RUN 命令）
-#
-# 构建参数:
-#   --build-arg TARGETOS/TARGETARCH 覆盖
-#   自动根据构建主机平台选择 GOARCH（amd64/arm64）
-#   可通过 --build-arg TARGETOS/TARGETARCH 覆盖
-#
-# 构建示例（推荐在 contful/ 目录执行）:
+# 构建示例:
 #   docker build -f docker/Dockerfile.console -t contful/console:postgresql-latest .
-#
-# 或从父目录执行（指定构建上下文为 contful/）:
-#   docker build -f contful/docker/Dockerfile.console -t contful/console:postgresql-latest contful/
 #
 # 部署模式（通过 CONTFUL_MODE 环境变量选择）:
 #   console (默认)   - 同时运行 Console SPA (nginx :80) + Admin API (内部 :9080)
 #   api              - 仅运行 Admin API (:9080)
-#
-#   docker run -p 80:80 -p 9080:9080 contful/console              # 全功能
-#   docker run -e CONTFUL_MODE=api -p 9080:9080 contful/console   # 仅 API
-#
 # =============================================================================
 
 # ---- Stage 1: Go Admin API 编译 ----
@@ -36,41 +18,26 @@ FROM golang:1.25-alpine AS go-builder
 ARG DB_TYPE=postgresql
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
-ARG PROXY=false
-
-# 国内用户: --build-arg PROXY=true 启用阿里云镜像加速
-RUN if [ "$PROXY" = "true" ]; then \
-        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
-    fi
 
 WORKDIR /app
 
 RUN apk add --no-cache upx
 
 COPY admin/go.mod admin/go.sum ./
-ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 COPY admin/ .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/admin .
 
-# UPX 压缩（可减少 50-60% 体积）
+# UPX 压缩
 RUN upx --best /app/admin && rm -f /usr/bin/upx
 
 # ---- Stage 2: 前端构建 ----
 FROM node:24-alpine AS frontend-builder
 
 ARG API_BASE_URL=/admin/api/v1
-ARG PROXY=false
 
-# 国内用户: --build-arg PROXY=true 启用 npmmirror 加速
-RUN if [ "$PROXY" = "true" ]; then \
-        npm config set registry https://registry.npmmirror.com && \
-        corepack enable && \
-        yarn config set registry https://registry.npmmirror.com; \
-    else \
-        corepack enable; \
-    fi
+RUN corepack enable
 
 WORKDIR /app
 
@@ -84,16 +51,8 @@ RUN yarn build
 # ---- Stage 3: OpenResty 运行 ----
 FROM openresty/openresty:alpine AS runner
 
-ARG PROXY=false
-
-# 国内用户: --build-arg PROXY=true 启用阿里云镜像加速
-RUN if [ "$PROXY" = "true" ]; then \
-        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
-    fi
-
 WORKDIR /app
 
-# 只安装 su-exec（进程切换），去掉 supervisor(Python) 和 gettext（模板替换）
 RUN apk add --no-cache su-exec postgresql-client
 
 # 合并：创建用户 + 目录 + 权限（减少 Docker 层）
