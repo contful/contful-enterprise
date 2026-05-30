@@ -980,5 +980,14 @@
     "clearAllBody": "将清除 Contful 全局所有缓存数据：\n• 全部站点内容缓存\n• 权限与配置缓存\n• 用户会话（所有人将被登出）\n• 速率限制计数\n\n此操作不可撤销，确认继续？",
     "clearAllConfirm": "确认清除",
     "clearAllSuccess": "已清除 {count} 条全局缓存"
+  },
+  "community": {
+    "title": "开源社区",
+    "docs": "文档",
+    "star": "Star 收藏",
+    "mirror": "国内镜像",
+    "issues": "提交反馈",
+    "issuesDesc": "Bug / 功能建议",
+    "contact": "联系邮箱"
   }
 }

@@ -935,5 +935,14 @@
     "clearAllBody": "將清除 Contful 全域所有快取資料：\n• 全部站台內容快取\n• 權限與設定快取\n• 使用者會話（所有人將被登出）\n• 速率限制計數\n\n此操作無法復原，確認繼續？",
     "clearAllConfirm": "確認清除",
     "clearAllSuccess": "已清除 {count} 筆全域快取"
+  },
+  "community": {
+    "title": "開源社群",
+    "docs": "文件",
+    "star": "Star 收藏",
+    "mirror": "國內鏡像",
+    "issues": "提交回饋",
+    "issuesDesc": "Bug / 功能建議",
+    "contact": "聯絡郵箱"
   }
 }

@@ -967,5 +967,14 @@
     "clearAllBody": "This will clear ALL Contful cache globally:\n• All site content cache\n• Permission & config cache\n• User sessions (everyone will be logged out)\n• Rate limit counters\n\nThis action is irreversible. Continue?",
     "clearAllConfirm": "Confirm Clear",
     "clearAllSuccess": "Cleared {count} global cache entries"
+  },
+  "community": {
+    "title": "Open Source Community",
+    "docs": "Documentation",
+    "star": "Star on GitHub",
+    "mirror": "Mirror (China)",
+    "issues": "Submit Feedback",
+    "issuesDesc": "Bug / Feature Request",
+    "contact": "Contact"
   }
 }

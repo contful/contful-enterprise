@@ -180,6 +180,43 @@ watch(layoutInitialized, async (ready) => {
         </t-alert>
       </div>
     </t-card>
+
+    <!-- 开源社区 -->
+    <t-card :bordered="true" class="community-card">
+      <template #title>
+        <div class="community-title">
+          <t-icon name="logo-github" size="18px" />
+          <span>{{ t('community.title') }}</span>
+        </div>
+      </template>
+      <div class="community-links">
+        <a href="https://contful.com" target="_blank" rel="noopener noreferrer" class="community-link">
+          <t-icon name="internet" />
+          <span>contful.com</span>
+          <span class="community-link-desc">{{ t('community.docs') }}</span>
+        </a>
+        <a href="https://github.com/contful/contful" target="_blank" rel="noopener noreferrer" class="community-link">
+          <t-icon name="logo-github" />
+          <span>GitHub</span>
+          <span class="community-link-desc">{{ t('community.star') }}</span>
+        </a>
+        <a href="https://gitee.com/contful/contful" target="_blank" rel="noopener noreferrer" class="community-link">
+          <t-icon name="logo-git" />
+          <span>Gitee</span>
+          <span class="community-link-desc">{{ t('community.mirror') }}</span>
+        </a>
+        <a href="https://github.com/contful/contful/issues" target="_blank" rel="noopener noreferrer" class="community-link">
+          <t-icon name="bug-report" />
+          <span>{{ t('community.issues') }}</span>
+          <span class="community-link-desc">{{ t('community.issuesDesc') }}</span>
+        </a>
+        <a href="mailto:hi@reepu.com" class="community-link">
+          <t-icon name="mail" />
+          <span>hi@reepu.com</span>
+          <span class="community-link-desc">{{ t('community.contact') }}</span>
+        </a>
+      </div>
+    </t-card>
   </div>
 </template>
 
@@ -243,5 +280,51 @@ watch(layoutInitialized, async (ready) => {
 .license-btn:hover {
   background: var(--td-brand-color-hover);
   text-decoration: none;
+}
+
+.community-card {
+  margin-top: 16px;
+}
+
+.community-card :deep(.t-card__title) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.community-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.community-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.community-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--td-component-border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--td-text-color-primary);
+  font-size: 14px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.community-link:hover {
+  background: var(--td-bg-color-container-hover);
+  border-color: var(--td-brand-color);
+  text-decoration: none;
+}
+
+.community-link-desc {
+  color: var(--td-text-color-placeholder);
+  font-size: 12px;
+  margin-left: 4px;
 }
 </style>
