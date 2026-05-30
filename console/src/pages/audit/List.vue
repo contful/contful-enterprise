@@ -10,7 +10,7 @@
     <t-card class="filter-card">
       <t-form :data="filterForm" layout="inline" class="filter-form">
         <t-form-item>
-          <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable style="width: 100px">
+          <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable>
             <t-option :label="t('audit.category.auth')" value="auth" />
             <t-option :label="t('audit.category.content')" value="content" />
             <t-option :label="t('audit.category.media')" value="media" />
@@ -20,7 +20,7 @@
           </t-select>
         </t-form-item>
         <t-form-item>
-          <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable style="width: 90px">
+          <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable>
             <t-option :label="t('audit.level.debug')" value="debug" />
             <t-option :label="t('audit.level.info')" value="info" />
             <t-option :label="t('audit.level.warn')" value="warn" />
