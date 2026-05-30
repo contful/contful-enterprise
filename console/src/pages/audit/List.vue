@@ -9,8 +9,8 @@
     <!-- 筛选栏 -->
     <t-card class="filter-card">
       <t-form :data="filterForm" layout="inline" class="filter-form">
-        <t-form-item :label="t('audit.filter.category')">
-          <t-select v-model="filterForm.category" :placeholder="selectPlaceholder" clearable style="width: 130px">
+        <t-form-item>
+          <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable style="width: 100px">
             <t-option :label="t('audit.category.auth')" value="auth" />
             <t-option :label="t('audit.category.content')" value="content" />
             <t-option :label="t('audit.category.media')" value="media" />
@@ -19,31 +19,31 @@
             <t-option :label="t('audit.category.system')" value="system" />
           </t-select>
         </t-form-item>
-        <t-form-item :label="t('audit.filter.level')">
-          <t-select v-model="filterForm.level" :placeholder="selectPlaceholder" clearable style="width: 120px">
+        <t-form-item>
+          <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable style="width: 90px">
             <t-option :label="t('audit.level.debug')" value="debug" />
             <t-option :label="t('audit.level.info')" value="info" />
             <t-option :label="t('audit.level.warn')" value="warn" />
             <t-option :label="t('audit.level.error')" value="error" />
           </t-select>
         </t-form-item>
-        <t-form-item :label="t('audit.filter.startTime')">
+        <t-form-item>
           <t-date-picker
             v-model="filterForm.startTime"
             enable-time-picker
             allow-input
             clearable
-            style="width: 200px"
+            style="width: 170px"
             :placeholder="t('audit.filter.startTimePlaceholder')"
           />
         </t-form-item>
-        <t-form-item :label="t('audit.filter.endTime')">
+        <t-form-item>
           <t-date-picker
             v-model="filterForm.endTime"
             enable-time-picker
             allow-input
             clearable
-            style="width: 200px"
+            style="width: 170px"
             :placeholder="t('audit.filter.endTimePlaceholder')"
           />
         </t-form-item>
@@ -51,7 +51,6 @@
           <t-space>
             <t-button theme="primary" @click="handleSearch">
               <template #icon><t-icon name="search" /></template>
-              {{ t('audit.filter.search') }}
             </t-button>
             <t-button theme="default" @click="handleReset">
               {{ t('audit.filter.reset') }}
