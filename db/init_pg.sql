@@ -184,7 +184,7 @@ CREATE TABLE contful_system_roles (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     is_system BOOLEAN NOT NULL DEFAULT FALSE,
-    permissions JSONB NOT NULL DEFAULT '[]', -- [PG-ONLY: → MySQL JSON; 达梦 CLOB]
+    permissions JSONB NOT NULL DEFAULT '[]',
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_time TIMESTAMPTZ

@@ -30,17 +30,21 @@ func readInitSQL() ([]byte, error) {
 	return nil, fmt.Errorf("在所有路径中未找到 init_pg.sql: %v", initSQLPaths)
 }
 
-// stripComments 移除以 -- 开头的行注释和 /* */ 块注释。
+// stripComments 移除以 -- 开头的行注释、行尾内联注释、以及 /* */ 块注释。
 func stripComments(sql string) string {
 	// 移除 /* */ 块注释
 	sql = regexp.MustCompile(`/\*[\s\S]*?\*/`).ReplaceAllString(sql, "")
-	// 移除以 -- 开头的行（注释行），保留空行占位
 	lines := strings.Split(sql, "\n")
 	var result []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
+		// 跳过纯注释行
 		if trimmed == "" || strings.HasPrefix(trimmed, "--") {
 			continue
+		}
+		// 移除行尾内联注释（如: permissions JSONB DEFAULT '[]', -- 注释含分号;）
+		if idx := strings.Index(line, " -- "); idx >= 0 {
+			line = line[:idx]
 		}
 		result = append(result, line)
 	}
