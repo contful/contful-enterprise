@@ -333,6 +333,16 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
   })
 }
 
+// 打开媒体选择器
+const openMediaPicker = () => {
+  window.open('/media', '_blank')
+}
+
+// 在新窗口打开链接
+const openLink = (url: string) => {
+  window.open(url, '_blank')
+}
+
 // 清除当前模型缓存
 const handleClearCache = () => {
   if (!selectedType.value) return
@@ -794,6 +804,90 @@ onMounted(() => {
               v-model="formData[field.name]"
               :placeholder="t('content.select')"
               :options="((field as any).options || field.config?.options || []).map((opt: string) => ({ label: opt, value: opt })) as any"
+              clearable
+            />
+          </t-form-item>
+
+          <!-- email -->
+          <t-form-item
+            v-else-if="field.field_type === 'email'"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input
+              v-model="formData[field.name]"
+              type="email"
+              :placeholder="t('content.enterEmail')"
+              clearable
+            />
+          </t-form-item>
+
+          <!-- url -->
+          <t-form-item
+            v-else-if="field.field_type === 'url'"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input
+              v-model="formData[field.name]"
+              :placeholder="t('content.enterUrl')"
+              clearable
+            >
+              <template #suffix>
+                <t-button
+                  v-if="formData[field.name]"
+                  variant="text"
+                  size="small"
+                  @click="openLink(formData[field.name])"
+                >
+                  <t-icon name="link" />
+                </t-button>
+              </template>
+            </t-input>
+          </t-form-item>
+
+          <!-- password -->
+          <t-form-item
+            v-else-if="field.field_type === 'password'"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input
+              v-model="formData[field.name]"
+              type="password"
+              :placeholder="t('content.enterPassword')"
+              clearable
+            />
+          </t-form-item>
+
+          <!-- media -->
+          <t-form-item
+            v-else-if="field.field_type === 'media'"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input
+              v-model="formData[field.name]"
+              :placeholder="t('content.enterMedia')"
+              clearable
+            >
+              <template #suffix>
+                <t-button
+                  variant="text"
+                  size="small"
+                  :title="t('content.pickMedia')"
+                  @click="openMediaPicker"
+                >
+                  <t-icon name="folder-open" />
+                </t-button>
+              </template>
+            </t-input>
+          </t-form-item>
+
+          <!-- relation -->
+          <t-form-item
+            v-else-if="field.field_type === 'relation'"
+            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
+          >
+            <t-input
+              v-model="formData[field.name]"
+              :placeholder="t('content.enterRelation')"
               clearable
             />
           </t-form-item>
