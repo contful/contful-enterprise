@@ -155,7 +155,6 @@ function handleError(err: unknown) {
 
 const { t, locale } = useI18n()
 
-const selectPlaceholder = computed(() => t('common.selectPlaceholder'))
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const detailVisible = ref(false)
