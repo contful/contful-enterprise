@@ -8,54 +8,44 @@
 
     <!-- 筛选栏 -->
     <t-card class="filter-card">
-      <t-form :data="filterForm" layout="inline" class="filter-form">
-        <t-form-item>
-          <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable>
-            <t-option :label="t('audit.category.auth')" value="auth" />
-            <t-option :label="t('audit.category.content')" value="content" />
-            <t-option :label="t('audit.category.media')" value="media" />
-            <t-option :label="t('audit.category.settings')" value="settings" />
-            <t-option :label="t('audit.category.user')" value="user" />
-            <t-option :label="t('audit.category.system')" value="system" />
-          </t-select>
-        </t-form-item>
-        <t-form-item>
-          <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable>
-            <t-option :label="t('audit.level.debug')" value="debug" />
-            <t-option :label="t('audit.level.info')" value="info" />
-            <t-option :label="t('audit.level.warn')" value="warn" />
-            <t-option :label="t('audit.level.error')" value="error" />
-          </t-select>
-        </t-form-item>
-        <t-form-item>
-          <t-date-picker
-            v-model="filterForm.startTime"
-            enable-time-picker
-            allow-input
-            clearable
-            style="width: 150px"
-            :placeholder="t('audit.filter.startTimePlaceholder')"
-          />
-        </t-form-item>
-        <t-form-item>
-          <t-date-picker
-            v-model="filterForm.endTime"
-            enable-time-picker
-            allow-input
-            clearable
-            style="width: 150px"
-            :placeholder="t('audit.filter.endTimePlaceholder')"
-          />
-        </t-form-item>
-        <t-form-item>
-          <t-button theme="primary" @click="handleSearch">
-            <template #icon><t-icon name="search" /></template>
-          </t-button>
-          <t-button theme="default" @click="handleReset">
-            {{ t('audit.filter.reset') }}
-          </t-button>
-        </t-form-item>
-      </t-form>
+      <div class="filter-bar">
+        <t-select v-model="filterForm.category" :placeholder="t('audit.filter.category')" clearable>
+          <t-option :label="t('audit.category.auth')" value="auth" />
+          <t-option :label="t('audit.category.content')" value="content" />
+          <t-option :label="t('audit.category.media')" value="media" />
+          <t-option :label="t('audit.category.settings')" value="settings" />
+          <t-option :label="t('audit.category.user')" value="user" />
+          <t-option :label="t('audit.category.system')" value="system" />
+        </t-select>
+        <t-select v-model="filterForm.level" :placeholder="t('audit.filter.level')" clearable>
+          <t-option :label="t('audit.level.debug')" value="debug" />
+          <t-option :label="t('audit.level.info')" value="info" />
+          <t-option :label="t('audit.level.warn')" value="warn" />
+          <t-option :label="t('audit.level.error')" value="error" />
+        </t-select>
+        <t-date-picker
+          v-model="filterForm.startTime"
+          enable-time-picker
+          allow-input
+          clearable
+          style="width: 150px"
+          :placeholder="t('audit.filter.startTimePlaceholder')"
+        />
+        <t-date-picker
+          v-model="filterForm.endTime"
+          enable-time-picker
+          allow-input
+          clearable
+          style="width: 150px"
+          :placeholder="t('audit.filter.endTimePlaceholder')"
+        />
+        <t-button theme="primary" @click="handleSearch">
+          <template #icon><t-icon name="search" /></template>
+        </t-button>
+        <t-button theme="default" @click="handleReset">
+          {{ t('audit.filter.reset') }}
+        </t-button>
+      </div>
     </t-card>
 
     <!-- 日志表格 -->
@@ -270,12 +260,11 @@ onMounted(() => {
 .filter-card {
   margin-bottom: 16px;
 }
-.filter-form {
+.filter-bar {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-}
-.filter-form :deep(.t-form__item) {
-  margin-bottom: 0;
+  gap: 12px;
 }
 .log-table {
   margin-top: 16px;
