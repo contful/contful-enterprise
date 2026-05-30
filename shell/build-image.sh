@@ -24,9 +24,10 @@
 #   多架构构建: ${db_type}-latest（推送到 registry，含 amd64 + arm64 清单）
 #
 # 示例:
-#   ./shell/build-image.sh                   # 单架构构建（当前机器）
-#   ./shell/build-image.sh --multi-arch      # 多架构推送 registry
-#   ./shell/build-image.sh --multi-arch console  # 仅 Console 多架构推送
+#   PROXY=true ./shell/build-image.sh                   # 单架构构建（当前机器）
+#   PROXY=true ./shell/build-image.sh --multi-arch      # 多架构推送 registry
+#   PROXY=true ./shell/build-image.sh --multi-arch console  # 仅 Console 多架构推送
+#   PROXY=true ./shell/build-image.sh --multi-arch openapi  # 仅 openapi 多架构推送
 # =============================================================================
 
 set -e

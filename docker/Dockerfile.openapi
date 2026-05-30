@@ -31,8 +31,6 @@ RUN if [ "$PROXY" = "true" ]; then \
 
 WORKDIR /app
 
-RUN apk add --no-cache upx
-
 COPY openapi/go.mod openapi/go.sum ./
 RUN if [ "$PROXY" = "true" ]; then \
         export GOPROXY=https://goproxy.cn,direct GONOSUMDB=* GONOSUMCHECK=*; \
@@ -44,8 +42,8 @@ RUN if [ "$PROXY" = "true" ]; then \
 COPY openapi/ .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/openapi .
 
-# UPX 压缩
-RUN upx --best /app/openapi && rm -f /usr/bin/upx
+# UPX 压缩（可选，包不存在时跳过）
+RUN apk add --no-cache upx 2>/dev/null && upx --best /app/openapi && rm -f /usr/bin/upx || true
 
 # ---- Stage 2: 运行 ----
 FROM alpine:3.21 AS runner
