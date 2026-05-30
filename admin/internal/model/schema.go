@@ -77,9 +77,8 @@ var FieldTypes = []string{
 	"date",      // 日期
 	"datetime",  // 日期时间
 	"email",     // 邮箱
-	"url",       // URL
+	"url",       // URL（网页链接 / 媒体文件地址 / 图片 URL）
 	"json",      // JSON
-	"media",     // 媒体（图片/文件）
 	"relation",  // 关联（指向其他内容模型）
 	"enum",      // 枚举
 	"password",  // 密码

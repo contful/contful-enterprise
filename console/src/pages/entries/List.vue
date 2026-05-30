@@ -333,11 +333,6 @@ const confirmBatchAction = (action: 'delete' | 'publish' | 'unpublish') => {
   })
 }
 
-// 打开媒体选择器
-const openMediaPicker = () => {
-  window.open('/media', '_blank')
-}
-
 // 在新窗口打开链接
 const openLink = (url: string) => {
   window.open(url, '_blank')
@@ -855,29 +850,6 @@ onMounted(() => {
               :placeholder="t('content.enterPassword')"
               clearable
             />
-          </t-form-item>
-
-          <!-- media -->
-          <t-form-item
-            v-else-if="field.field_type === 'media'"
-            :label="`${field.label}${((field as any).required ? ' *' : '')}`"
-          >
-            <t-input
-              v-model="formData[field.name]"
-              :placeholder="t('content.enterMedia')"
-              clearable
-            >
-              <template #suffix>
-                <t-button
-                  variant="text"
-                  size="small"
-                  :title="t('content.pickMedia')"
-                  @click="openMediaPicker"
-                >
-                  <t-icon name="folder-open" />
-                </t-button>
-              </template>
-            </t-input>
           </t-form-item>
 
           <!-- relation -->
