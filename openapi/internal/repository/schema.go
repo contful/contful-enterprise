@@ -50,3 +50,17 @@ func (r *ContentSchemaRepository) FindBySlug(ctx context.Context, siteID uuid.UU
 	}
 	return &ct, nil
 }
+
+// ListBySiteID 列出站点下所有 Content Schema
+func (r *ContentSchemaRepository) ListBySiteID(ctx context.Context, siteID uuid.UUID) ([]*ContentSchema, error) {
+	var schemas []*ContentSchema
+	err := r.db.WithContext(ctx).
+		Where("site_id = ?", siteID).
+		Where("deleted_time IS NULL").
+		Order("created_time ASC").
+		Find(&schemas).Error
+	if err != nil {
+		return nil, err
+	}
+	return schemas, nil
+}

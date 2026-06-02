@@ -173,3 +173,97 @@ func (r *EntryRepository) GetPublishedByID(ctx context.Context, siteID uuid.UUID
 	}
 	return &entry, nil
 }
+
+// List 通用条目列表（GraphQL 用，支持 cursor 分页 + 状态过滤）
+func (r *EntryRepository) List(ctx context.Context, siteID, contentTypeID uuid.UUID, filter *GraphQLFilter) ([]Entry, error) {
+	var entries []Entry
+
+	query := r.db.WithContext(ctx).Model(&Entry{}).
+		Where("site_id = ?", siteID).
+		Where("schema_id = ?", contentTypeID).
+		Where("deleted_time IS NULL")
+
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+
+	// cursor 分页（after 是 entry ID）
+	if filter.After != "" {
+		if afterID, err := uuid.Parse(filter.After); err == nil {
+			query = query.Where("id > ?", afterID)
+		}
+	}
+
+	// 默认按创建时间倒序
+	if filter.Order == "" {
+		filter.Order = "created_time DESC"
+	}
+
+	query = query.Order(filter.Order).
+		Preload("Values", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Field")
+		}).
+		Limit(filter.Limit + 1) // +1 判断是否有下一页
+
+	err := query.Find(&entries).Error
+	if err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+// FindBySlug 按 slug 值查找条目（从 Values 中读取 slug 字段）
+func (r *EntryRepository) FindBySlug(ctx context.Context, siteID, contentTypeID uuid.UUID, slug string) (*Entry, error) {
+	// 通过 entry_values 表联查，找到 slug 字段值为 slug 的 entry
+	var entryID uuid.UUID
+	err := r.db.WithContext(ctx).
+		Table("entry_values ev").
+		Select("ev.entry_id").
+		Joins("JOIN fields f ON f.id = ev.field_id").
+		Joins("JOIN entries e ON e.id = ev.entry_id").
+		Where("e.site_id = ?", siteID).
+		Where("e.schema_id = ?", contentTypeID).
+		Where("e.deleted_time IS NULL").
+		Where("f.name = ?", "slug").
+		Where("ev.value->>'text' = ?", slug).
+		First(&entryID).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var entry Entry
+	err = r.db.WithContext(ctx).
+		Where("id = ?", entryID).
+		Preload("Values", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Field")
+		}).
+		First(&entry).Error
+	if err != nil {
+		return nil, err
+	}
+	return &entry, nil
+}
+
+// FindByID 按 ID 查找条目（不限状态）
+func (r *EntryRepository) FindByID(ctx context.Context, entryID uuid.UUID) (*Entry, error) {
+	var entry Entry
+	err := r.db.WithContext(ctx).
+		Where("id = ?", entryID).
+		Where("deleted_time IS NULL").
+		Preload("Values", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Field")
+		}).
+		First(&entry).Error
+	if err != nil {
+		return nil, err
+	}
+	return &entry, nil
+}
+
+// GraphQLFilter GraphQL 查询过滤条件
+type GraphQLFilter struct {
+	Status string // published/draft/""
+	Order  string // 排序子句
+	After  string // cursor
+	Limit  int    // 每页数量
+}
