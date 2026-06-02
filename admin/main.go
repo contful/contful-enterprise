@@ -595,18 +595,13 @@ func runServer() {
 				auditHandler.List)
 			protected.GET("/audit/logs/:id",
 				middleware.RequirePermission(rbacService, "audit:read"),
-<<<<<<< HEAD
-				auditHandler.Get)
-			protected.GET("/audit/logs/export/csv",
-				middleware.RequirePermission(rbacService, "audit:export"),
-				auditHandler.ExportCSV)
-			protected.GET("/audit/logs/export/xlsx",
-				middleware.RequirePermission(rbacService, "audit:export"),
-				auditHandler.ExportXLSX)
-
-		// ─── 审计导出任务管理 ─────────────────────────
-=======
 			auditHandler.Get)
+		protected.GET("/audit/logs/export/csv",
+			middleware.RequirePermission(rbacService, "audit:export"),
+			auditHandler.ExportCSV)
+		protected.GET("/audit/logs/export/xlsx",
+			middleware.RequirePermission(rbacService, "audit:export"),
+			auditHandler.ExportXLSX)
 
 		// ─── Webhook 管理 ─────────────────────────
 		protected.GET("/webhooks",
@@ -630,7 +625,6 @@ func runServer() {
 		protected.POST("/webhooks/:id/test",
 			middleware.RequirePermission(rbacService, "webhook:write"),
 			webhookHandler.Test)
->>>>>>> upstream
 
 		// ─── RBAC 系统角色管理 ──────────────────────
 			// 注：permissions 静态路由必须在 :id 之前注册

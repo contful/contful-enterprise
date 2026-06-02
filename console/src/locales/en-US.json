@@ -987,8 +987,7 @@
     "commercial": "Commercial",
     "issuedDate": "Issued Date",
     "expiryDate": "Expiry Date"
-<<<<<<< HEAD
-=======
+    "expiryDate": "Expiry Date"
   },
   "community": {
     "title": "Open Source Community",
@@ -1001,6 +1000,6 @@
     "contact": "Contact Us",
     "thanks": "Special Thanks",
     "andMore": "and more open source tech..."
->>>>>>> upstream
+  }
   }
 }

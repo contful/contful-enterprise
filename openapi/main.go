@@ -19,11 +19,8 @@ import (
 
 	"github.com/contful/contful/openapi/internal/config"
 	"github.com/contful/contful/openapi/internal/database"
-<<<<<<< HEAD
-	"github.com/contful/contful/openapi/internal/metrics"
-=======
 	"github.com/contful/contful/openapi/internal/graphql"
->>>>>>> upstream
+	"github.com/contful/contful/openapi/internal/metrics"
 	"github.com/contful/contful/openapi/internal/middleware"
 	"github.com/contful/contful/openapi/internal/model"
 	"github.com/contful/contful/openapi/internal/repository"

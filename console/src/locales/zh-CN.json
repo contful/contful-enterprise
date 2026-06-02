@@ -90,12 +90,8 @@
     "contentSchemas": "内容模型",
     "auditLogs": "审计日志",
     "systemConfig": "系统设置",
-<<<<<<< HEAD
-    "license": "授权信息"
-=======
     "license": "授权信息",
     "webhooks": "Webhook"
->>>>>>> upstream
   },
   "auth": {
     "login": "登录",
@@ -993,8 +989,7 @@
     "commercial": "商业",
     "issuedDate": "签发日期",
     "expiryDate": "到期日期"
-<<<<<<< HEAD
-=======
+    "expiryDate": "到期日期"
   },
   "webhook": {
     "title": "Webhook 管理",
@@ -1027,7 +1022,6 @@
     "contact": "联系我们",
     "thanks": "特别鸣谢",
     "andMore": "以及更多开源技术..."
->>>>>>> upstream
   },
   "cache": {
     "clearAllTitle": "清除所有缓存",
