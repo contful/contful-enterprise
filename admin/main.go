@@ -232,6 +232,11 @@ func runServer() {
 	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
 	auditHandler := handler.NewAuditHandler(auditService)
 
+	// 初始化 Webhook
+	webhookRepo := repository.NewWebhookRepository(db)
+	webhookHandler := handler.NewWebhookHandler(webhookRepo)
+	handler.SetWebhookDispatcher(webhookHandler.GetDispatcher())
+
 	// 启动排期调度器（后台 goroutine）
 	ctxCron, cancelCron := context.WithCancel(context.Background())
 	defer cancelCron()
@@ -570,9 +575,32 @@ func runServer() {
 				auditHandler.List)
 			protected.GET("/audit/logs/:id",
 				middleware.RequirePermission(rbacService, "audit:read"),
-				auditHandler.Get)
+			auditHandler.Get)
 
-			// ─── RBAC 系统角色管理 ──────────────────────
+		// ─── Webhook 管理 ─────────────────────────
+		protected.GET("/webhooks",
+			middleware.RequirePermission(rbacService, "webhook:read"),
+			webhookHandler.List)
+		protected.POST("/webhooks",
+			middleware.RequirePermission(rbacService, "webhook:write"),
+			webhookHandler.Create)
+		protected.GET("/webhooks/:id",
+			middleware.RequirePermission(rbacService, "webhook:read"),
+			webhookHandler.Get)
+		protected.PUT("/webhooks/:id",
+			middleware.RequirePermission(rbacService, "webhook:write"),
+			webhookHandler.Update)
+		protected.DELETE("/webhooks/:id",
+			middleware.RequirePermission(rbacService, "webhook:write"),
+			webhookHandler.Delete)
+		protected.GET("/webhooks/:id/deliveries",
+			middleware.RequirePermission(rbacService, "webhook:read"),
+			webhookHandler.ListDeliveries)
+		protected.POST("/webhooks/:id/test",
+			middleware.RequirePermission(rbacService, "webhook:write"),
+			webhookHandler.Test)
+
+		// ─── RBAC 系统角色管理 ──────────────────────
 			// 注：permissions 静态路由必须在 :id 之前注册
 			protected.GET("/system/roles/permissions",
 				middleware.RequirePermission(rbacService, "roles:read"),

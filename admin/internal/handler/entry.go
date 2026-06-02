@@ -78,6 +78,7 @@ func (h *EntryHandler) Create(c *gin.Context) {
 	}
 
 	middleware.Created(c, entry.ToResponse())
+	EmitWebhookEvent(siteID, "content.created", entry.ToResponse(), nil)
 }
 
 // Get 获取条目
@@ -172,6 +173,7 @@ func (h *EntryHandler) Update(c *gin.Context) {
 	}
 
 	middleware.OK(c, entry.ToResponse())
+	EmitWebhookEvent(siteID, "content.updated", entry.ToResponse(), nil)
 }
 
 // Delete 删除条目
@@ -190,6 +192,7 @@ func (h *EntryHandler) Delete(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+	EmitWebhookEvent(siteID, "content.deleted", gin.H{"id": id.String()}, nil)
 }
 
 // Publish 发布条目
@@ -216,6 +219,7 @@ func (h *EntryHandler) Publish(c *gin.Context) {
 	}
 
 	middleware.OK(c, entry.ToResponse())
+	EmitWebhookEvent(siteID, "content.published", entry.ToResponse(), nil)
 }
 
 // Unpublish 取消发布
@@ -235,6 +239,7 @@ func (h *EntryHandler) Unpublish(c *gin.Context) {
 	}
 
 	middleware.OK(c, entry.ToResponse())
+	EmitWebhookEvent(siteID, "content.unpublished", entry.ToResponse(), nil)
 }
 
 // GetVersions 获取版本历史
