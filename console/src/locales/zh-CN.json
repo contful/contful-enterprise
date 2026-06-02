@@ -89,7 +89,8 @@
     "configs": "配置",
     "contentSchemas": "内容模型",
     "auditLogs": "审计日志",
-    "systemConfig": "系统设置"
+    "systemConfig": "系统设置",
+    "license": "授权信息"
   },
   "auth": {
     "login": "登录",
@@ -730,7 +731,8 @@
     "edit": "编辑",
     "operation": "操作",
     "clearCacheTitle": "确认清除系统配置缓存",
-    "clearCacheBody": "系统配置缓存为全局缓存（不区分站点），清除后将在下次请求时重新加载。"
+    "clearCacheBody": "系统配置缓存为全局缓存（不区分站点），清除后将在下次请求时重新加载。",
+    "langFr": "法语"
   },
   "site": {
     "selectSite": "选择站点",
@@ -908,7 +910,8 @@
       "dashboard": "仪表盘",
       "contentSchema": "内容模型",
       "entry": "内容条目",
-      "asset": "媒体文件"
+      "asset": "媒体文件",
+      "license": "授权信息"
     }
   },
   "permission": {
@@ -973,24 +976,23 @@
     "type": "许可证类型",
     "community": "Apache 2.0 社区版",
     "subscribe": "订阅企业版",
-    "upgrade": "升级到企业版以获得商业授权、国密加密、审计报告等高级功能。"
+    "upgrade": "升级到企业版以获得商业授权、国密加密、审计报告等高级功能。",
+    "subtitle": "查看企业 License 授权状态与详情",
+    "active": "已授权",
+    "expired": "已过期",
+    "unlicensed": "未检测到有效的 License，系统将以社区版模式运行。如需商业支持，请联系 contful.com 获取授权。",
+    "expiryNotice": "您的 License 已过期。系统功能不受影响，但不再享有官方维保服务。请及时续费以恢复技术支持。",
+    "productCode": "产品编号",
+    "customer": "授权账号",
+    "trial": "试用",
+    "commercial": "商业",
+    "issuedDate": "签发日期",
+    "expiryDate": "到期日期"
   },
   "cache": {
     "clearAllTitle": "清除所有缓存",
     "clearAllBody": "将清除 Contful 全局所有缓存数据：\n• 全部站点内容缓存\n• 权限与配置缓存\n• 用户会话（所有人将被登出）\n• 速率限制计数\n\n此操作不可撤销，确认继续？",
     "clearAllConfirm": "确认清除",
     "clearAllSuccess": "已清除 {count} 条全局缓存"
-  },
-  "community": {
-    "title": "开源社区",
-    "docs": "官网",
-    "star": "Star 收藏",
-    "mirror": "国内镜像",
-    "issues": "提交反馈",
-    "issuesDesc": "Bug / 功能建议",
-    "contact": "联系邮箱",
-    "links": "相关链接",
-    "thanks": "特别感谢",
-    "andMore": "等开源项目"
   }
 }
