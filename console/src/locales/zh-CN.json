@@ -90,7 +90,8 @@
     "contentSchemas": "内容模型",
     "auditLogs": "审计日志",
     "systemConfig": "系统设置",
-    "license": "授权信息"
+    "license": "授权信息",
+    "webhooks": "Webhook"
   },
   "auth": {
     "login": "登录",
@@ -988,6 +989,38 @@
     "commercial": "商业",
     "issuedDate": "签发日期",
     "expiryDate": "到期日期"
+  },
+  "webhook": {
+    "title": "Webhook 管理",
+    "subtitle": "配置事件通知的目标 URL，当内容发生变更时自动发送 HTTP 请求",
+    "create": "新建 Webhook",
+    "name": "名称",
+    "events": "事件",
+    "status": "状态",
+    "actions": "操作",
+    "active": "启用",
+    "inactive": "停用",
+    "test": "测试",
+    "deliveries": "投递记录",
+    "event": "事件类型",
+    "attempt": "尝试",
+    "error": "错误信息",
+    "time": "时间",
+    "createTitle": "新建 Webhook",
+    "editTitle": "编辑 Webhook",
+    "secret": "签名密钥"
+  },
+  "community": {
+    "title": "开源社区",
+    "links": "社区链接",
+    "docs": "官方文档",
+    "star": "Star 支持",
+    "mirror": "国内镜像",
+    "issues": "问题反馈",
+    "issuesDesc": "报告 Bug",
+    "contact": "联系我们",
+    "thanks": "特别鸣谢",
+    "andMore": "以及更多开源技术..."
   },
   "cache": {
     "clearAllTitle": "清除所有缓存",

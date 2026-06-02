@@ -4,12 +4,11 @@
 /**
  * Contful Console — i18n 配置
  * 技术栈: vue-i18n v9 (Composition API 模式)
- * 支持 10 种语言
+ * 支持 9 种语言
  */
 
 import { createI18n } from 'vue-i18n'
 import zhCN from './zh-CN.json'
-import zhTW from './zh-TW.json'
 import enUS from './en-US.json'
 import koKR from './ko-KR.json'
 import jaJP from './ja-JP.json'
@@ -19,11 +18,11 @@ import ruRU from './ru-RU.json'
 import esES from './es-ES.json'
 import faIR from './fa-IR.json'
 
-export type Locale = 'zh-CN' | 'zh-TW' | 'en-US' | 'ko-KR' | 'ja-JP' | 'fr-FR' | 'pt-BR' | 'ru-RU' | 'es-ES' | 'fa-IR'
+export type Locale = 'zh-CN' | 'en-US' | 'ko-KR' | 'ja-JP' | 'fr-FR' | 'pt-BR' | 'ru-RU' | 'es-ES' | 'fa-IR'
 
 const LOCALE_KEY = 'ct_console_locale'
 
-const VALID_LOCALES: string[] = ['zh-CN', 'zh-TW', 'en-US', 'ko-KR', 'ja-JP', 'fr-FR', 'pt-BR', 'ru-RU', 'es-ES', 'fa-IR']
+const VALID_LOCALES: string[] = ['zh-CN', 'en-US', 'ko-KR', 'ja-JP', 'fr-FR', 'pt-BR', 'ru-RU', 'es-ES', 'fa-IR']
 
 /**
  * 从浏览器语言推导 Locale
@@ -40,8 +39,6 @@ function detectLocale(): Locale {
   const navLang = navigator.language || 'zh-CN'
 
   if (navLang.startsWith('zh')) {
-    const region = navLang.split('-')[1]?.toUpperCase()
-    if (region && ['TW', 'HK', 'MO'].includes(region)) return 'zh-TW'
     return 'zh-CN'
   }
   if (navLang.startsWith('en')) return 'en-US'
@@ -63,7 +60,6 @@ export const i18n = createI18n({
   fallbackLocale: 'zh-CN',
   messages: {
     'zh-CN': zhCN, 'zh': zhCN,
-    'zh-TW': zhTW,
     'en-US': enUS,
     'ko-KR': koKR,
     'ja-JP': jaJP,
@@ -88,7 +84,6 @@ export function getLocale(): Locale {
 
 export const localeOptions = [
   { value: 'zh-CN' as Locale, label: '🇨🇳 简体中文' },
-  { value: 'zh-TW' as Locale, label: '🇹🇼 繁體中文' },
   { value: 'en-US' as Locale, label: '🇺🇸 English' },
   { value: 'ja-JP' as Locale, label: '🇯🇵 日本語' },
   { value: 'ko-KR' as Locale, label: '🇰🇷 한국어' },

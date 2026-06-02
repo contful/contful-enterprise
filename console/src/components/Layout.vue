@@ -113,6 +113,7 @@ const filteredMenuItems = computed(() => {
         { path: '/users', icon: 'people', label: t('menu.users'), name: 'Users', tIcon: 'user' },
         { path: '/system/roles', icon: 'shield', label: t('roles.title'), name: 'SystemRoles', tIcon: 'lock-on' },
         { path: '/system/permissions', icon: 'secured', label: t('permissions.title'), name: 'SystemPermissions', tIcon: 'secured' },
+        { path: '/system/webhooks', icon: 'notification', label: t('menu.webhooks'), name: 'SystemWebhooks', tIcon: 'notification' },
       ],
     },
     {
