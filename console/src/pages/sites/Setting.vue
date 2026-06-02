@@ -90,7 +90,6 @@ const timezoneOptions = computed(() => [
 // 语言选项
 const localeOptions = computed(() => [
   { value: 'zh-CN', label: t('settings.langZhCN') },
-  { value: 'zh-TW', label: t('settings.langZhTW') },
   { value: 'en-US', label: t('settings.langEn') },
   { value: 'ja-JP', label: t('settings.langJa') },
   { value: 'ko-KR', label: t('settings.langKo') },
