@@ -828,6 +828,71 @@ COMMENT ON COLUMN contful_tokens.updated_time IS '更新时间';
 COMMENT ON COLUMN contful_tokens.deleted_time IS '软删除时间';
 
 -- =============================================================================
+-- Webhook 配置表
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS contful_webhooks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    site_id UUID NOT NULL REFERENCES contful_sites(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    url VARCHAR(2000) NOT NULL,
+    events TEXT[] NOT NULL DEFAULT '{}',
+    secret VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhooks_site ON contful_webhooks(site_id);
+CREATE INDEX IF NOT EXISTS idx_webhooks_active ON contful_webhooks(is_active);
+
+CREATE TRIGGER update_contful_webhooks_updated_time
+    BEFORE UPDATE ON contful_webhooks
+    FOR EACH ROW EXECUTE FUNCTION update_updated_time_column();
+
+COMMENT ON TABLE contful_webhooks IS 'Webhook 配置表：内容事件通知的目标 URL 配置';
+COMMENT ON COLUMN contful_webhooks.id IS 'Webhook 唯一标识符';
+COMMENT ON COLUMN contful_webhooks.site_id IS '所属站点';
+COMMENT ON COLUMN contful_webhooks.name IS 'Webhook 名称';
+COMMENT ON COLUMN contful_webhooks.url IS '目标 URL';
+COMMENT ON COLUMN contful_webhooks.events IS '订阅的事件类型列表';
+COMMENT ON COLUMN contful_webhooks.secret IS 'HMAC-SHA256 签名密钥（可选）';
+COMMENT ON COLUMN contful_webhooks.is_active IS '是否启用';
+COMMENT ON COLUMN contful_webhooks.created_time IS '创建时间';
+COMMENT ON COLUMN contful_webhooks.updated_time IS '更新时间';
+
+-- =============================================================================
+-- Webhook 投递记录表
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS contful_webhook_deliveries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    webhook_id UUID NOT NULL REFERENCES contful_webhooks(id) ON DELETE CASCADE,
+    event VARCHAR(50) NOT NULL,
+    payload JSONB NOT NULL,
+    response_status INT,
+    response_body TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    attempt INT NOT NULL DEFAULT 1,
+    error_message TEXT,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook ON contful_webhook_deliveries(webhook_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON contful_webhook_deliveries(status);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_created ON contful_webhook_deliveries(created_time DESC);
+
+COMMENT ON TABLE contful_webhook_deliveries IS 'Webhook 投递记录表：每次事件通知的发送记录和结果';
+COMMENT ON COLUMN contful_webhook_deliveries.id IS '投递记录唯一标识符';
+COMMENT ON COLUMN contful_webhook_deliveries.webhook_id IS '关联的 Webhook 配置';
+COMMENT ON COLUMN contful_webhook_deliveries.event IS '事件类型';
+COMMENT ON COLUMN contful_webhook_deliveries.payload IS '发送的 JSON 请求体快照';
+COMMENT ON COLUMN contful_webhook_deliveries.response_status IS '目标服务器响应状态码';
+COMMENT ON COLUMN contful_webhook_deliveries.response_body IS '响应内容（最多 1KB）';
+COMMENT ON COLUMN contful_webhook_deliveries.status IS '投递状态：pending/success/failed';
+COMMENT ON COLUMN contful_webhook_deliveries.attempt IS '第几次尝试';
+COMMENT ON COLUMN contful_webhook_deliveries.error_message IS '失败原因';
+COMMENT ON COLUMN contful_webhook_deliveries.created_time IS '创建时间';
+
+-- =============================================================================
 -- 生产环境迁移脚本 (v1.3.0 - 排期功能)
 -- 用于已有数据库的增量迁移，每个语句都是幂等的（IF NOT EXISTS / IF EXISTS）
 -- =============================================================================

@@ -152,6 +152,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/audit/List.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/system/webhooks',
+    name: 'SystemWebhooks',
+    component: () => import('@/pages/system/Webhooks.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({

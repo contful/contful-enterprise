@@ -19,7 +19,11 @@ import (
 
 	"github.com/contful/contful/openapi/internal/config"
 	"github.com/contful/contful/openapi/internal/database"
+<<<<<<< HEAD
 	"github.com/contful/contful/openapi/internal/metrics"
+=======
+	"github.com/contful/contful/openapi/internal/graphql"
+>>>>>>> upstream
 	"github.com/contful/contful/openapi/internal/middleware"
 	"github.com/contful/contful/openapi/internal/model"
 	"github.com/contful/contful/openapi/internal/repository"
@@ -78,6 +82,7 @@ func main() {
 
 	entryRepo := repository.NewEntryRepository(db)
 	csRepo := repository.NewContentSchemaRepository(db)
+	fieldRepo := repository.NewFieldRepository(db)
 	entrySvc := service.NewEntryService(entryRepo, csRepo, cacheSvc)
 
 	// 站点配置服务（从 sites.settings JSONB 读取）
@@ -234,6 +239,12 @@ func main() {
 		}
 		c.JSON(http.StatusOK, model.NewSuccessResponse(gin.H{"key": key, "value": configValue}))
 	})
+
+	// GraphQL API（需 Token 认证）
+	gqlResolver := graphql.NewResolver(entryRepo, csRepo, fieldRepo)
+	gqlBuilder := graphql.NewSchemaBuilder(csRepo, fieldRepo, gqlResolver)
+	api.POST("/graphql", graphql.GraphQLHandler(gqlBuilder))
+	api.GET("/graphql", graphql.GraphQLHandler(gqlBuilder))
 
 	// 启动服务
 	srv := &http.Server{

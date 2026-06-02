@@ -987,5 +987,20 @@
     "commercial": "Commercial",
     "issuedDate": "Issued Date",
     "expiryDate": "Expiry Date"
+<<<<<<< HEAD
+=======
+  },
+  "community": {
+    "title": "Open Source Community",
+    "links": "Community Links",
+    "docs": "Documentation",
+    "star": "Star on GitHub",
+    "mirror": "Mirror Site",
+    "issues": "Report Issues",
+    "issuesDesc": "Bug Report",
+    "contact": "Contact Us",
+    "thanks": "Special Thanks",
+    "andMore": "and more open source tech..."
+>>>>>>> upstream
   }
 }
