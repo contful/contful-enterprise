@@ -580,7 +580,7 @@ const handleVerify = async (user: User) => {
     const result = res.data
     DialogPlugin.alert({
       header: t('users.verifyResult'),
-      body: h('div', { style: 'line-height:2' }, [
+      body: () => h('div', { style: 'line-height:2' }, [
         h('p', [
           h('strong', t('users.verifyStatus') + '：'),
           h('span', { style: `color:${result.valid ? 'var(--td-success-color)' : 'var(--td-error-color)'};font-weight:bold` },

@@ -6,7 +6,6 @@
 import { ref, onMounted, inject, type Ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Icon from '@/components/Icon.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import { getDashboardStats } from '@/api/api'
 import { showError } from '@/utils/request'
@@ -21,7 +20,7 @@ function handleError(err: unknown) {
   }
 }
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
 
 // 等待 Layout 初始化完成（确保 currentSiteId 已设置）
