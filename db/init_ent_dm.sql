@@ -33,7 +33,7 @@ END;
 -- 1. 系统用户表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.system_users (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     email VARCHAR2(255) NOT NULL,
     password_hash VARCHAR2(255) NOT NULL,
     nickname VARCHAR2(100),
@@ -65,7 +65,7 @@ BEGIN :NEW.updated_time := SYSTIMESTAMP; END;
 -- 2. 站点表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.sites (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     name VARCHAR2(255) NOT NULL,
     slug VARCHAR2(255) NOT NULL,
     description CLOB,
@@ -85,7 +85,7 @@ CREATE INDEX idx_sites_active ON CONTFUL_ENT.sites(is_active);
 -- 3. 内容模型表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.schemas (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     slug VARCHAR2(255) NOT NULL,
@@ -107,7 +107,7 @@ CREATE INDEX idx_schemas_site ON CONTFUL_ENT.schemas(site_id);
 -- 4. 字段定义表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.fields (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     schema_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     label VARCHAR2(255),
@@ -128,7 +128,7 @@ CREATE INDEX idx_fields_schema ON CONTFUL_ENT.fields(schema_id);
 -- 5. 内容条目表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.entries (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     schema_id VARCHAR2(36) NOT NULL,
     slug VARCHAR2(500),
@@ -164,7 +164,7 @@ CREATE INDEX idx_entries_scheduled_unpublish ON CONTFUL_ENT.entries(scheduled_un
 -- 6. 条目值表（EAV 模式）
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_entry_values (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     entry_id VARCHAR2(36) NOT NULL,
     field_id VARCHAR2(36) NOT NULL,
     field_name VARCHAR2(255),
@@ -184,7 +184,7 @@ CREATE INDEX idx_entry_values_field ON CONTFUL_ENT.t_entry_values(entry_id, fiel
 -- 7. 资产文件夹
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_asset_folders (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     parent_id VARCHAR2(36),
@@ -200,7 +200,7 @@ CREATE INDEX idx_asset_folders_site ON CONTFUL_ENT.t_asset_folders(site_id);
 -- 8. 资产表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_assets (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     folder_id VARCHAR2(36),
     filename VARCHAR2(500) NOT NULL,
@@ -229,7 +229,7 @@ CREATE INDEX idx_assets_folder ON CONTFUL_ENT.t_assets(folder_id);
 -- 9. API Token 表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_tokens (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     description CLOB,
@@ -253,7 +253,7 @@ CREATE INDEX idx_tokens_site ON CONTFUL_ENT.t_tokens(site_id);
 -- 10. 审计日志表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_audit_logs (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     site_id VARCHAR2(36),
     user_id VARCHAR2(36),
     action VARCHAR2(100) NOT NULL,
@@ -276,7 +276,7 @@ CREATE INDEX idx_audit_logs_user ON CONTFUL_ENT.t_audit_logs(user_id);
 -- 11. 系统角色
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_system_roles (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     name VARCHAR2(255) NOT NULL,
     description CLOB,
     is_system CHAR(1) DEFAULT '0',
@@ -317,7 +317,7 @@ CREATE TABLE CONTFUL_ENT.t_system_config (
 -- 14. 权限分组
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_system_permission_groups (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     group_key VARCHAR2(100) NOT NULL,
     label VARCHAR2(255),
     label_en VARCHAR2(255),
@@ -343,7 +343,7 @@ CREATE TABLE CONTFUL_ENT.t_system_permissions (
 -- 16. Webhook 配置表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_webhooks (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     url VARCHAR2(2000) NOT NULL,
@@ -362,7 +362,7 @@ CREATE INDEX idx_webhooks_active ON CONTFUL_ENT.t_webhooks(is_active);
 -- 17. Webhook 投递记录
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_webhook_deliveries (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     webhook_id VARCHAR2(36) NOT NULL,
     event VARCHAR2(50),
     payload CLOB,
@@ -383,7 +383,7 @@ CREATE INDEX idx_wd_created ON CONTFUL_ENT.t_webhook_deliveries(created_time);
 -- 18. 审计导出任务（企业版）
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_audit_report_exports (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     user_id VARCHAR2(36),
     status VARCHAR2(20) DEFAULT 'pending',
     formats CLOB DEFAULT '[]',
@@ -400,7 +400,7 @@ CREATE TABLE CONTFUL_ENT.t_audit_report_exports (
 -- 19. 审计保留策略（企业版）
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.t_audit_retention_policies (
-    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
+    id VARCHAR2(36) ,
     category VARCHAR2(50),
     level VARCHAR2(20),
     retention_days NUMBER NOT NULL DEFAULT 180,
@@ -412,6 +412,75 @@ CREATE TABLE CONTFUL_ENT.t_audit_retention_policies (
     CONSTRAINT pk_retention_policies PRIMARY KEY (id),
     CONSTRAINT uq_retention_clevel UNIQUE (category, level)
 );
+
+-- =============================================================================
+-- UUID 主键 BEFORE INSERT 触发器
+-- DM8 DEFAULT 不支持函数调用，改用触发器
+-- =============================================================================
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_system_users_bi
+BEFORE INSERT ON CONTFUL_ENT.system_users FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_sites_bi
+BEFORE INSERT ON CONTFUL_ENT.sites FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_schemas_bi
+BEFORE INSERT ON CONTFUL_ENT.schemas FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_fields_bi
+BEFORE INSERT ON CONTFUL_ENT.fields FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_entries_bi
+BEFORE INSERT ON CONTFUL_ENT.entries FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_entry_values_bi
+BEFORE INSERT ON CONTFUL_ENT.t_entry_values FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_asset_folders_bi
+BEFORE INSERT ON CONTFUL_ENT.t_asset_folders FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_assets_bi
+BEFORE INSERT ON CONTFUL_ENT.t_assets FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_tokens_bi
+BEFORE INSERT ON CONTFUL_ENT.t_tokens FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_audit_logs_bi
+BEFORE INSERT ON CONTFUL_ENT.t_audit_logs FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_system_roles_bi
+BEFORE INSERT ON CONTFUL_ENT.t_system_roles FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_perm_groups_bi
+BEFORE INSERT ON CONTFUL_ENT.t_system_permission_groups FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_webhooks_bi
+BEFORE INSERT ON CONTFUL_ENT.t_webhooks FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_wd_bi
+BEFORE INSERT ON CONTFUL_ENT.t_webhook_deliveries FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_audit_exports_bi
+BEFORE INSERT ON CONTFUL_ENT.t_audit_report_exports FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_retention_bi
+BEFORE INSERT ON CONTFUL_ENT.t_audit_retention_policies FOR EACH ROW
+BEGIN IF :NEW.id IS NULL THEN :NEW.id := CONTFUL_ENT.GEN_UUID(); END IF; END;
+/
 
 -- =============================================================================
 -- 初始化完成
