@@ -155,10 +155,8 @@ CREATE INDEX idx_entries_site ON CONTFUL_ENT.entries(site_id);
 CREATE INDEX idx_entries_schema ON CONTFUL_ENT.entries(schema_id);
 CREATE INDEX idx_entries_status ON CONTFUL_ENT.entries(status);
 CREATE INDEX idx_entries_slug ON CONTFUL_ENT.entries(site_id, schema_id, slug);
-CREATE INDEX idx_entries_scheduled_publish ON CONTFUL_ENT.entries(scheduled_publish_time)
-    WHERE scheduled_publish_time IS NOT NULL AND status = 'draft' AND deleted_time IS NULL;
-CREATE INDEX idx_entries_scheduled_unpublish ON CONTFUL_ENT.entries(scheduled_unpublish_time)
-    WHERE scheduled_unpublish_time IS NOT NULL AND status = 'published' AND deleted_time IS NULL;
+CREATE INDEX idx_entries_scheduled_publish ON CONTFUL_ENT.entries(scheduled_publish_time);
+CREATE INDEX idx_entries_scheduled_unpublish ON CONTFUL_ENT.entries(scheduled_unpublish_time);
 
 -- =============================================================================
 -- 6. 条目值表（EAV 模式）
