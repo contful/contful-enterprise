@@ -1,15 +1,11 @@
 -- =============================================================================
 -- Contful Enterprise DM8 数据库初始化脚本
 -- 达梦数据库 (Oracle 兼容模式) — UTF-8, 不区分大小写
+-- 用法: 以 SYSDBA 身份在 DM 管理工具中执行
 -- =============================================================================
 
--- 创建表空间（达梦需要独立表空间）
-CREATE TABLESPACE CONTFUL_TS DATAFILE 'CONTFUL_TS.DBF' SIZE 256M AUTOEXTEND ON NEXT 64M MAXSIZE 4G;
-
--- 创建用户（schema）
-CREATE USER CONTFUL IDENTIFIED BY "Contful@2024"
-  DEFAULT TABLESPACE CONTFUL_TS
-  DEFAULT INDEX TABLESPACE CONTFUL_TS;
+-- 创建用户（schema）— 使用默认表空间
+CREATE USER CONTFUL IDENTIFIED BY "Contful@2024";
 
 GRANT DBA TO CONTFUL;
 GRANT CREATE TABLE TO CONTFUL;
