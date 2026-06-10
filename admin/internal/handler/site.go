@@ -12,7 +12,7 @@ import (
 	"github.com/contful/contful/admin/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // SiteHandler 站点处理器
@@ -56,7 +56,7 @@ func (h *SiteHandler) Create(c *gin.Context) {
 
 // Get 获取站点
 func (h *SiteHandler) Get(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return
@@ -123,7 +123,7 @@ func (h *SiteHandler) MySites(c *gin.Context) {
 
 // Update 更新站点
 func (h *SiteHandler) Update(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return
@@ -151,7 +151,7 @@ func (h *SiteHandler) Update(c *gin.Context) {
 
 // Delete 删除站点
 func (h *SiteHandler) Delete(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return

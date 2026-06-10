@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +33,7 @@ func NewDashboardService(db *gorm.DB) *DashboardService {
 
 // GetStats 获取仪表盘统计
 // siteID 可为 nil（首次进入未创建站点时）
-func (s *DashboardService) GetStats(ctx context.Context, siteID *uuid.UUID) *DashboardStats {
+func (s *DashboardService) GetStats(ctx context.Context, siteID *uid.UID) *DashboardStats {
 	stats := &DashboardStats{}
 
 	// 全局统计（不依赖 X-Site-ID）

@@ -5,7 +5,7 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // ============ API Token DTO ============
@@ -27,8 +27,8 @@ type APITokenUpdate struct {
 
 // APITokenResponse API Token 响应
 type APITokenResponse struct {
-	ID           uuid.UUID   `json:"id"`
-	SiteID       uuid.UUID   `json:"site_id"`
+	ID           uid.UID   `json:"id"`
+	SiteID       uid.UID   `json:"site_id"`
 	Name         string      `json:"name"`
 	Description  string      `json:"description,omitempty"`
 	TokenPrefix  string      `json:"token_prefix"`
@@ -36,7 +36,7 @@ type APITokenResponse struct {
 	Status       TokenStatus `json:"status"`
 	LastUsedTime *time.Time  `json:"last_used_time,omitempty"`
 	LastUsedIP   *string     `json:"last_used_ip,omitempty"`
-	CreatedBy    *uuid.UUID  `json:"created_by,omitempty"`
+	CreatedBy    *uid.UID  `json:"created_by,omitempty"`
 	CreatedTime  time.Time   `json:"created_time"`
 	UpdatedTime  time.Time   `json:"updated_time"`
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // CacheHandler 缓存管理
@@ -33,7 +33,7 @@ type CacheResponse struct {
 // POST /admin/api/v1/cache/invalidate
 func (h *CacheHandler) InvalidateSite(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
+	if siteID == uid.Nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "site id is required"})
 		return
 	}
@@ -69,7 +69,7 @@ func (h *CacheHandler) InvalidateAll(c *gin.Context) {
 // POST /admin/api/v1/cache/invalidate/:slug
 func (h *CacheHandler) InvalidateSchema(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
+	if siteID == uid.Nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "site id is required"})
 		return
 	}

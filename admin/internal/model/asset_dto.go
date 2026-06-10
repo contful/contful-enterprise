@@ -5,14 +5,14 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // ============ Asset DTO ============
 
 // AssetCreate 创建资源请求
 type AssetCreate struct {
-	FolderID   *uuid.UUID      `json:"folder_id"`
+	FolderID   *uid.UID      `json:"folder_id"`
 	Name       string          `json:"name" binding:"required"`
 	Alt        string          `json:"alt"`
 	Title      string          `json:"title"`
@@ -25,7 +25,7 @@ type AssetCreate struct {
 
 // AssetUpdate 更新资源请求
 type AssetUpdate struct {
-	FolderID    *uuid.UUID      `json:"folder_id"`
+	FolderID    *uid.UID      `json:"folder_id"`
 	Name        *string         `json:"name"`
 	Alt         *string         `json:"alt"`
 	Title       *string         `json:"title"`
@@ -38,7 +38,7 @@ type AssetUpdate struct {
 
 // AssetUpload 上传响应
 type AssetUpload struct {
-	ID           uuid.UUID `json:"id"`
+	ID           uid.UID `json:"id"`
 	UUID         string    `json:"uuid"`
 	Name         string    `json:"name"`
 	OriginalName string    `json:"original_name"`
@@ -58,9 +58,9 @@ type AssetUpload struct {
 
 // AssetResponse 资源响应
 type AssetResponse struct {
-	ID           uuid.UUID       `json:"id"`
-	SiteID       uuid.UUID       `json:"site_id"`
-	FolderID     *uuid.UUID      `json:"folder_id,omitempty"`
+	ID           uid.UID       `json:"id"`
+	SiteID       uid.UID       `json:"site_id"`
+	FolderID     *uid.UID      `json:"folder_id,omitempty"`
 	UUID         string          `json:"uuid"`
 	Name         string          `json:"name"`
 	OriginalName string          `json:"original_name"`
@@ -87,7 +87,7 @@ type AssetResponse struct {
 	Disk         string          `json:"disk"`
 	DownloadCount int            `json:"download_count"`
 	UsedCount    int             `json:"used_count"`
-	CreatedBy    *uuid.UUID      `json:"created_by,omitempty"`
+	CreatedBy    *uid.UID      `json:"created_by,omitempty"`
 	CreatedTime    time.Time       `json:"created_time"`
 	UpdatedTime    time.Time       `json:"updated_time"`
 }
@@ -102,7 +102,7 @@ type AssetListResponse struct {
 
 // AssetListFilter 资源列表过滤条件
 type AssetListFilter struct {
-	FolderID  *uuid.UUID      `json:"folder_id"`
+	FolderID  *uid.UID      `json:"folder_id"`
 	Type      *AssetType      `json:"type"`
 	Extension *string         `json:"extension"`
 	Tag       *string         `json:"tag"`
@@ -111,7 +111,7 @@ type AssetListFilter struct {
 
 // AssetUploadRequest 上传请求
 type AssetUploadRequest struct {
-	FolderID *uuid.UUID `form:"folder_id"`
+	FolderID *uid.UID `form:"folder_id"`
 	Alt      string     `form:"alt"`
 	Title    string     `form:"title"`
 }
@@ -120,30 +120,30 @@ type AssetUploadRequest struct {
 
 // FolderCreate 创建文件夹请求
 type FolderCreate struct {
-	ParentID  *uuid.UUID `json:"parent_id"`
+	ParentID  *uid.UID `json:"parent_id"`
 	Name      string     `json:"name" binding:"required"`
 	SortOrder int        `json:"sort_order"`
 }
 
 // FolderUpdate 更新文件夹请求
 type FolderUpdate struct {
-	ParentID  *uuid.UUID `json:"parent_id"`
+	ParentID  *uid.UID `json:"parent_id"`
 	Name      *string    `json:"name"`
 	SortOrder *int       `json:"sort_order"`
 }
 
 // FolderResponse 文件夹响应
 type FolderResponse struct {
-	ID        uuid.UUID       `json:"id"`
-	SiteID    uuid.UUID       `json:"site_id"`
-	ParentID  *uuid.UUID      `json:"parent_id,omitempty"`
+	ID        uid.UID       `json:"id"`
+	SiteID    uid.UID       `json:"site_id"`
+	ParentID  *uid.UID      `json:"parent_id,omitempty"`
 	Name      string          `json:"name"`
 	Slug      string          `json:"slug"`
 	Path      string          `json:"path"`
 	SortOrder int             `json:"sort_order"`
 	Children  []FolderResponse `json:"children,omitempty"`
 	Assets    []AssetResponse  `json:"assets,omitempty"`
-	CreatedBy *uuid.UUID      `json:"created_by,omitempty"`
+	CreatedBy *uid.UID      `json:"created_by,omitempty"`
 	CreatedTime time.Time       `json:"created_time"`
 	UpdatedTime time.Time       `json:"updated_time"`
 }

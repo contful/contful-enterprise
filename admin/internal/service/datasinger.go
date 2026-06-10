@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 
 	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/crypto"
@@ -60,7 +60,7 @@ func (s *DefaultSigner) Algorithm() string {
 }
 
 // Sign 实现 audit.DataSigner
-func (s *DefaultSigner) Sign(entityType string, entityID uuid.UUID, payload string) (string, error) {
+func (s *DefaultSigner) Sign(entityType string, entityID uid.UID, payload string) (string, error) {
 	if !s.IsEnabled() {
 		return "", nil
 	}
@@ -75,7 +75,7 @@ func (s *DefaultSigner) Sign(entityType string, entityID uuid.UUID, payload stri
 }
 
 // Verify 实现 audit.DataSigner
-func (s *DefaultSigner) Verify(entityType string, entityID uuid.UUID, payload string, signature string) (bool, error) {
+func (s *DefaultSigner) Verify(entityType string, entityID uid.UID, payload string, signature string) (bool, error) {
 	if !s.IsEnabled() {
 		return true, nil
 	}

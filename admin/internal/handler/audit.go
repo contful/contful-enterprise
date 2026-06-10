@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 )
@@ -117,12 +117,12 @@ func parseAuditFilter(c *gin.Context) *model.AuditLogFilter {
 	filter := &model.AuditLogFilter{}
 
 	if siteIDStr := c.Query("site_id"); siteIDStr != "" {
-		if siteID, err := uuid.Parse(siteIDStr); err == nil {
+		if siteID, err := uid.Parse(siteIDStr); err == nil {
 			filter.SiteID = &siteID
 		}
 	}
 	if userIDStr := c.Query("user_id"); userIDStr != "" {
-		if userID, err := uuid.Parse(userIDStr); err == nil {
+		if userID, err := uid.Parse(userIDStr); err == nil {
 			filter.UserID = &userID
 		}
 	}
@@ -153,7 +153,7 @@ func parseAuditFilter(c *gin.Context) *model.AuditLogFilter {
 }
 func (h *AuditHandler) Get(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := uid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return

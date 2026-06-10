@@ -5,7 +5,7 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -19,8 +19,8 @@ const (
 
 // ContentSchema 内容模型
 type ContentSchema struct {
-	ID                   uuid.UUID        `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID               uuid.UUID        `json:"site_id" gorm:"type:uuid;not null;index"`
+	ID                   uid.UID        `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	SiteID               uid.UID        `json:"site_id" gorm:"not null;index"`
 	Name                 string           `json:"name" gorm:"size:200;not null"`
 	Slug                 string           `json:"slug" gorm:"size:100;not null;index"`
 	Description          string           `json:"description" gorm:"type:text"`
@@ -30,7 +30,7 @@ type ContentSchema struct {
 	IsActive             bool             `json:"is_active" gorm:"default:true"`
 	SortOrder            int              `json:"sort_order" gorm:"default:0"`
 	DataSignature       string           `json:"-" gorm:"type:varchar(256);not null;default:''"` // 防篡改签名（HMAC-SHA256 hex）
-	CreatedBy            *uuid.UUID       `json:"created_by" gorm:"type:uuid"`
+	CreatedBy            *uid.UID       `json:"created_by" gorm:"type:uuid"`
 	CreatedTime            time.Time        `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime            time.Time        `json:"updated_time" gorm:"autoUpdateTime"`
 	DeletedAt              gorm.DeletedAt    `json:"deleted_time" gorm:"column:deleted_time;index"`
@@ -46,8 +46,8 @@ func (ContentSchema) TableName() string {
 
 // Field 字段定义
 type Field struct {
-	ID                  uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	ContentSchemaID       uuid.UUID  `json:"schema_id" gorm:"column:schema_id;type:uuid;not null;index"`
+	ID                  uid.UID  `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	ContentSchemaID       uid.UID  `json:"schema_id" gorm:"column:schema_id;not null;index"`
 	Name                string     `json:"name" gorm:"size:100;not null"`
 	Label               string     `json:"label" gorm:"size:200;not null"`
 	Description         string     `json:"description" gorm:"type:text"`

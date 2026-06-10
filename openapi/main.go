@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/contful/contful/openapi/internal/model"
 	"github.com/contful/contful/openapi/internal/repository"
 	"github.com/contful/contful/openapi/internal/service"
+	"github.com/contful/contful/openapi/pkg/uid"
 )
 
 func main() {
@@ -276,6 +276,6 @@ func main() {
 }
 
 // parseUUID 解析 UUID 字符串，失败返回 error
-func parseUUID(s string) (uuid.UUID, error) {
-	return uuid.Parse(s)
+func parseUUID(s string) (uid.UID, error) {
+	return uid.Parse(s)
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // WebhookHandler Webhook 管理接口
@@ -63,7 +63,7 @@ func (h *WebhookHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(400, err.Error()))
 		return
 	}
-	w.ID = uuid.New()
+	w.ID = uid.New()
 	siteID, _ := getSiteID(c)
 	w.SiteID = siteID
 	w.IsActive = true
@@ -157,7 +157,7 @@ func NewWebhookDispatcher(repo *repository.WebhookRepository) *WebhookDispatcher
 	}
 }
 
-func (d *WebhookDispatcher) Emit(siteID uuid.UUID, event string, payloadJSON string) {
+func (d *WebhookDispatcher) Emit(siteID uid.UID, event string, payloadJSON string) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -181,7 +181,7 @@ func (d *WebhookDispatcher) Deliver(ctx context.Context, w *model.Webhook, event
 	}
 
 	delivery := &model.WebhookDelivery{
-		ID:          uuid.New(),
+		ID:          uid.New(),
 		WebhookID:   w.ID,
 		Event:       event,
 		Payload:     payloadJSON,
@@ -231,7 +231,7 @@ func (d *WebhookDispatcher) retry(ctx context.Context, w *model.Webhook, event, 
 	d.Deliver(ctx, w, event, payload, attempt+1)
 }
 
-func parseUUID(s string) uuid.UUID {
-	id, _ := uuid.Parse(s)
+func parseUUID(s string) uid.UID {
+	id, _ := uid.Parse(s)
 	return id
 }

@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -32,7 +32,7 @@ func (r *APITokenRepository) FindByHash(ctx context.Context, tokenHash string) (
 	return &token, nil
 }
 
-func (r *APITokenRepository) UpdateLastUsedTime(ctx context.Context, tokenID uuid.UUID) error {
+func (r *APITokenRepository) UpdateLastUsedTime(ctx context.Context, tokenID uid.UID) error {
 	now := time.Now()
 	return r.db.WithContext(ctx).
 		Model(&APIToken{}).
@@ -44,8 +44,8 @@ const TokenStatusActive = "active"
 
 // APIToken 对应 DB tokens 表
 type APIToken struct {
-	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID       uuid.UUID  `gorm:"type:uuid;not null;index"`
+	ID           uid.UID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	SiteID       uid.UID  `gorm:"type:uuid;not null;index"`
 	Name         string     `gorm:"size:200;not null"`
 	Description  string     `gorm:"type:text"`
 	TokenPrefix  string     `gorm:"size:20;not null;index"`

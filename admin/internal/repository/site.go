@@ -8,7 +8,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -28,7 +28,7 @@ func (r *SiteRepository) Create(ctx context.Context, site *model.Site) error {
 }
 
 // GetByID 根据 ID 获取
-func (r *SiteRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Site, error) {
+func (r *SiteRepository) GetByID(ctx context.Context, id uid.UID) (*model.Site, error) {
 	var site model.Site
 	err := r.db.WithContext(ctx).Where("id = ? AND deleted_time IS NULL", id).First(&site).Error
 	if err != nil {
@@ -81,12 +81,12 @@ func (r *SiteRepository) Update(ctx context.Context, site *model.Site) error {
 }
 
 // Delete 软删除站点
-func (r *SiteRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *SiteRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&model.Site{}).Error
 }
 
 // SlugExists 检查 slug 是否已存在
-func (r *SiteRepository) SlugExists(ctx context.Context, slug string, excludeID *uuid.UUID) (bool, error) {
+func (r *SiteRepository) SlugExists(ctx context.Context, slug string, excludeID *uid.UID) (bool, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(&model.Site{}).Where("slug = ? AND deleted_time IS NULL", slug)
 	if excludeID != nil {

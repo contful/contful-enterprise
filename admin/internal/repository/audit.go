@@ -5,7 +5,7 @@ package repository
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/model"
 	"gorm.io/gorm"
@@ -31,7 +31,7 @@ func (r *AuditRepository) CreateWithSigningKey(ctx context.Context, log *model.A
 }
 
 // ListByUser 查询用户的审计日志
-func (r *AuditRepository) ListByUser(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]model.AuditLog, int64, error) {
+func (r *AuditRepository) ListByUser(ctx context.Context, userID uid.UID, page, pageSize int) ([]model.AuditLog, int64, error) {
 	var logs []model.AuditLog
 	var total int64
 
@@ -50,7 +50,7 @@ func (r *AuditRepository) ListByUser(ctx context.Context, userID uuid.UUID, page
 }
 
 // GetByID 根据 ID 获取审计日志
-func (r *AuditRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.AuditLog, error) {
+func (r *AuditRepository) GetByID(ctx context.Context, id uid.UID) (*model.AuditLog, error) {
 	var log model.AuditLog
 	if err := r.db.WithContext(ctx).First(&log, "id = ?", id).Error; err != nil {
 		return nil, err

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/crypto"
@@ -121,7 +121,7 @@ func signBusiness(scope *gorm.DB) {
 	}
 
 	var entityType string
-	var id uuid.UUID
+	var id uid.UID
 	var payload string
 
 	switch table {

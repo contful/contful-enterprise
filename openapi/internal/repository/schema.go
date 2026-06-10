@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -22,8 +22,8 @@ func NewContentSchemaRepository(db *gorm.DB) *ContentSchemaRepository {
 
 // ContentSchema 内容模型（与 Admin API 共享同一 DB）
 type ContentSchema struct {
-	ID          uuid.UUID   `gorm:"type:uuid;primaryKey"`
-	SiteID      uuid.UUID   `gorm:"type:uuid;not null;index"`
+	ID          uid.UID   `gorm:"type:uuid;primaryKey"`
+	SiteID      uid.UID   `gorm:"type:uuid;not null;index"`
 	Name        string      `gorm:"size:200;not null"`
 	Slug        string      `gorm:"size:200;not null;index"`
 	Description string      `gorm:"type:text"`
@@ -38,7 +38,7 @@ func (ContentSchema) TableName() string {
 }
 
 // FindBySlug 通过站点 ID 和 slug 查找内容模型
-func (r *ContentSchemaRepository) FindBySlug(ctx context.Context, siteID uuid.UUID, slug string) (*ContentSchema, error) {
+func (r *ContentSchemaRepository) FindBySlug(ctx context.Context, siteID uid.UID, slug string) (*ContentSchema, error) {
 	var ct ContentSchema
 	err := r.db.WithContext(ctx).
 		Where("site_id = ?", siteID).
@@ -52,7 +52,7 @@ func (r *ContentSchemaRepository) FindBySlug(ctx context.Context, siteID uuid.UU
 }
 
 // ListBySiteID 列出站点下所有 Content Schema
-func (r *ContentSchemaRepository) ListBySiteID(ctx context.Context, siteID uuid.UUID) ([]*ContentSchema, error) {
+func (r *ContentSchemaRepository) ListBySiteID(ctx context.Context, siteID uid.UID) ([]*ContentSchema, error) {
 	var schemas []*ContentSchema
 	err := r.db.WithContext(ctx).
 		Where("site_id = ?", siteID).

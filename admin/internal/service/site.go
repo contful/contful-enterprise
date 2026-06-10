@@ -13,7 +13,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -39,7 +39,7 @@ func NewSiteService(db *gorm.DB, siteRepo *repository.SiteRepository) *SiteServi
 }
 
 // Create 创建站点（不再创建站点级配置，由前端通过 settings JSONB 管理）
-func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.SiteCreate) (*model.Site, error) {
+func (s *SiteService) Create(ctx context.Context, userID uid.UID, req *model.SiteCreate) (*model.Site, error) {
 	// 验证 slug
 	if !siteSlugRegex.MatchString(req.Slug) {
 		return nil, ErrSiteInvalidSlug
@@ -55,7 +55,7 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 	}
 
 	site := &model.Site{
-		ID:        uuid.New(),
+		ID:        uid.New(),
 		Name:      req.Name,
 		Slug:      req.Slug,
 		SiteURL:   req.SiteURL,
@@ -101,7 +101,7 @@ func (s *SiteService) Create(ctx context.Context, userID uuid.UUID, req *model.S
 }
 
 // Get 获取站点
-func (s *SiteService) Get(ctx context.Context, id uuid.UUID) (*model.Site, error) {
+func (s *SiteService) Get(ctx context.Context, id uid.UID) (*model.Site, error) {
 	site, err := s.siteRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, ErrSiteNotFound
@@ -138,7 +138,7 @@ func (s *SiteService) List(ctx context.Context, page, pageSize int) ([]model.Sit
 }
 
 // Update 更新站点
-func (s *SiteService) Update(ctx context.Context, id uuid.UUID, req *model.SiteUpdate) (*model.Site, error) {
+func (s *SiteService) Update(ctx context.Context, id uid.UID, req *model.SiteUpdate) (*model.Site, error) {
 	site, err := s.siteRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, ErrSiteNotFound
@@ -199,7 +199,7 @@ func (s *SiteService) Update(ctx context.Context, id uuid.UUID, req *model.SiteU
 }
 
 // Delete 删除站点（软删除）
-func (s *SiteService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *SiteService) Delete(ctx context.Context, id uid.UID) error {
 	now := time.Now()
 	result := s.db.WithContext(ctx).
 		Model(&model.Site{}).

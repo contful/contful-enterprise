@@ -7,7 +7,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -32,7 +32,7 @@ func (r *FieldRepository) CreateBatch(ctx context.Context, fields []*model.Field
 }
 
 // GetByID 根据 ID 获取
-func (r *FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Field, error) {
+func (r *FieldRepository) GetByID(ctx context.Context, id uid.UID) (*model.Field, error) {
 	var field model.Field
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
@@ -44,7 +44,7 @@ func (r *FieldRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Fie
 }
 
 // ListByContentSchema 列出内容模型的字段
-func (r *FieldRepository) ListByContentSchema(ctx context.Context, contentSchemaID uuid.UUID) ([]model.Field, error) {
+func (r *FieldRepository) ListByContentSchema(ctx context.Context, contentSchemaID uid.UID) ([]model.Field, error) {
 	var fields []model.Field
 	err := r.db.WithContext(ctx).
 		Where("schema_id = ?", contentSchemaID).
@@ -62,17 +62,17 @@ func (r *FieldRepository) Update(ctx context.Context, field *model.Field) error 
 }
 
 // Delete 删除字段（软删除）
-func (r *FieldRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *FieldRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.Field{}, "id = ?", id).Error
 }
 
 // DeleteByContentSchema 删除内容模型的所有字段
-func (r *FieldRepository) DeleteByContentSchema(ctx context.Context, contentSchemaID uuid.UUID) error {
+func (r *FieldRepository) DeleteByContentSchema(ctx context.Context, contentSchemaID uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.Field{}, "schema_id = ?", contentSchemaID).Error
 }
 
 // ExistsName 检查字段名是否已存在
-func (r *FieldRepository) ExistsName(ctx context.Context, contentSchemaID uuid.UUID, name string, excludeID *uuid.UUID) (bool, error) {
+func (r *FieldRepository) ExistsName(ctx context.Context, contentSchemaID uid.UID, name string, excludeID *uid.UID) (bool, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(&model.Field{}).
 		Where("schema_id = ? AND name = ?", contentSchemaID, name)
@@ -88,7 +88,7 @@ func (r *FieldRepository) ExistsName(ctx context.Context, contentSchemaID uuid.U
 }
 
 // GetMaxSortOrder 获取最大排序号
-func (r *FieldRepository) GetMaxSortOrder(ctx context.Context, contentSchemaID uuid.UUID) (int, error) {
+func (r *FieldRepository) GetMaxSortOrder(ctx context.Context, contentSchemaID uid.UID) (int, error) {
 	var maxOrder int
 	err := r.db.WithContext(ctx).
 		Model(&model.Field{}).
@@ -102,7 +102,7 @@ func (r *FieldRepository) GetMaxSortOrder(ctx context.Context, contentSchemaID u
 }
 
 // ReorderFields 重新排序字段
-func (r *FieldRepository) ReorderFields(ctx context.Context, fieldOrders map[uuid.UUID]int) error {
+func (r *FieldRepository) ReorderFields(ctx context.Context, fieldOrders map[uid.UID]int) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for id, order := range fieldOrders {
 			if err := tx.Model(&model.Field{}).Where("id = ?", id).Update("sort_order", order).Error; err != nil {

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/contful/contful/openapi/internal/repository"
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 )
 
 // Resolver GraphQL 查询解析器
@@ -34,14 +34,14 @@ func NewResolver(
 }
 
 // contentSchemasResolver 列出所有可用 Content Schema
-func (r *Resolver) contentSchemasResolver(ctx context.Context, siteID uuid.UUID) ([]*repository.ContentSchema, error) {
+func (r *Resolver) contentSchemasResolver(ctx context.Context, siteID uid.UID) ([]*repository.ContentSchema, error) {
 	return r.schemaRepo.ListBySiteID(ctx, siteID)
 }
 
 // entryListResolver 分页查询条目列表
 func (r *Resolver) entryListResolver(
 	c context.Context,
-	siteID uuid.UUID,
+	siteID uid.UID,
 	schemaSlug string,
 	first int,
 	after string,
@@ -95,7 +95,7 @@ func (r *Resolver) entryListResolver(
 }
 
 // singleEntryResolver 按 slug 查询单条
-func (r *Resolver) singleEntryResolver(c context.Context, siteID uuid.UUID, schemaSlug string, slug string) (map[string]interface{}, error) {
+func (r *Resolver) singleEntryResolver(c context.Context, siteID uid.UID, schemaSlug string, slug string) (map[string]interface{}, error) {
 	cs, err := r.schemaRepo.FindBySlug(c, siteID, schemaSlug)
 	if err != nil {
 		return nil, fmt.Errorf("content schema '%s' not found", schemaSlug)
@@ -115,7 +115,7 @@ func (r *Resolver) singleEntryResolver(c context.Context, siteID uuid.UUID, sche
 }
 
 // singleEntryByIDResolver 按 ID 查询单条
-func (r *Resolver) singleEntryByIDResolver(c context.Context, siteID uuid.UUID, schemaSlug string, id string) (map[string]interface{}, error) {
+func (r *Resolver) singleEntryByIDResolver(c context.Context, siteID uid.UID, schemaSlug string, id string) (map[string]interface{}, error) {
 	cs, err := r.schemaRepo.FindBySlug(c, siteID, schemaSlug)
 	if err != nil {
 		return nil, fmt.Errorf("content schema '%s' not found", schemaSlug)
@@ -126,7 +126,7 @@ func (r *Resolver) singleEntryByIDResolver(c context.Context, siteID uuid.UUID, 
 		return nil, fmt.Errorf("failed to load fields: %w", err)
 	}
 
-	entryID, err := uuid.Parse(id)
+	entryID, err := uid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid entry id")
 	}
@@ -249,17 +249,17 @@ func extractFieldValue(v *repository.EntryValue, fieldType string) interface{} {
 }
 
 // encodeCursor 创建分页 cursor（base64 编码 entry ID）
-func encodeCursor(entryID uuid.UUID) string {
+func encodeCursor(entryID uid.UID) string {
 	return base64.StdEncoding.EncodeToString([]byte(entryID.String()))
 }
 
 // decodeCursor 解码分页 cursor
-func decodeCursor(cursor string) (uuid.UUID, error) {
+func decodeCursor(cursor string) (uid.UID, error) {
 	data, err := base64.StdEncoding.DecodeString(cursor)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid cursor")
+		return uid.Nil, fmt.Errorf("invalid cursor")
 	}
-	return uuid.Parse(string(data))
+	return uid.Parse(string(data))
 }
 
 // jsonMarshal helper

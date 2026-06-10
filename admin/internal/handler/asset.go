@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"
@@ -48,27 +48,27 @@ func (h *AssetHandler) RegisterRoutes(rg *gin.RouterGroup) {
 }
 
 // getUserID 从上下文获取用户 ID
-func getUserID(c *gin.Context) (uuid.UUID, error) {
+func getUserID(c *gin.Context) (uid.UID, error) {
 	userIDVal, exists := c.Get("user")
 	if !exists {
-		return uuid.Nil, errors.New("user not found")
+		return uid.Nil, errors.New("user not found")
 	}
 
 	switch v := userIDVal.(type) {
 	case string:
-		return uuid.Parse(v)
-	case uuid.UUID:
+		return uid.Parse(v)
+	case uid.UID:
 		return v, nil
 	default:
-		return uuid.Nil, errors.New("invalid user id type")
+		return uid.Nil, errors.New("invalid user id type")
 	}
 }
 
 // getSiteID 从上下文获取站点 ID（通过 middleware.GetSiteID）
-func getSiteID(c *gin.Context) (uuid.UUID, error) {
+func getSiteID(c *gin.Context) (uid.UID, error) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
-		return uuid.Nil, errors.New("site_id not found in context, X-Site-ID header required")
+	if siteID == uid.Nil {
+		return uid.Nil, errors.New("site_id not found in context, X-Site-ID header required")
 	}
 	return siteID, nil
 }
@@ -96,9 +96,9 @@ func (h *AssetHandler) Upload(c *gin.Context) {
 
 	// 获取其他参数
 	folderIDStr := c.PostForm("folder_id")
-	var folderID *uuid.UUID
+	var folderID *uid.UID
 	if folderIDStr != "" {
-		id, err := uuid.Parse(folderIDStr)
+		id, err := uid.Parse(folderIDStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 folder_id"))
 			return
@@ -141,7 +141,7 @@ func (h *AssetHandler) List(c *gin.Context) {
 	filter := &model.AssetListFilter{}
 
 	if folderIDStr := c.Query("folder_id"); folderIDStr != "" {
-		id, err := uuid.Parse(folderIDStr)
+		id, err := uid.Parse(folderIDStr)
 		if err == nil {
 			filter.FolderID = &id
 		}
@@ -175,7 +175,7 @@ func (h *AssetHandler) List(c *gin.Context) {
 
 // Get 获取资源
 func (h *AssetHandler) Get(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的资源 ID"))
 		return
@@ -192,7 +192,7 @@ func (h *AssetHandler) Get(c *gin.Context) {
 
 // Update 更新资源
 func (h *AssetHandler) Update(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的资源 ID"))
 		return
@@ -215,7 +215,7 @@ func (h *AssetHandler) Update(c *gin.Context) {
 
 // Delete 删除资源
 func (h *AssetHandler) Delete(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的资源 ID"))
 		return
@@ -279,7 +279,7 @@ func sanitizeFilePath(path string) string {
 // BatchDelete 批量删除
 func (h *AssetHandler) BatchDelete(c *gin.Context) {
 	var req struct {
-		IDs []uuid.UUID `json:"ids" binding:"required,min=1"`
+		IDs []uid.UID `json:"ids" binding:"required,min=1"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "请提供要删除的资源 ID 列表"))
@@ -350,9 +350,9 @@ func (h *AssetHandler) ListFolders(c *gin.Context) {
 		return
 	}
 
-	var parentID *uuid.UUID
+	var parentID *uid.UID
 	if parentIDStr := c.Query("parent_id"); parentIDStr != "" {
-		id, err := uuid.Parse(parentIDStr)
+		id, err := uid.Parse(parentIDStr)
 		if err == nil {
 			parentID = &id
 		}
@@ -369,7 +369,7 @@ func (h *AssetHandler) ListFolders(c *gin.Context) {
 
 // GetFolder 获取文件夹
 func (h *AssetHandler) GetFolder(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的文件夹 ID"))
 		return
@@ -386,7 +386,7 @@ func (h *AssetHandler) GetFolder(c *gin.Context) {
 
 // UpdateFolder 更新文件夹
 func (h *AssetHandler) UpdateFolder(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的文件夹 ID"))
 		return
@@ -409,7 +409,7 @@ func (h *AssetHandler) UpdateFolder(c *gin.Context) {
 
 // DeleteFolder 删除文件夹
 func (h *AssetHandler) DeleteFolder(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的文件夹 ID"))
 		return

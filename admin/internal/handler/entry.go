@@ -12,7 +12,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // EntryHandler 条目处理器
@@ -27,7 +27,7 @@ func NewEntryHandler(entryService *service.EntryService, configService *service.
 }
 
 // getIntegrityService 获取站点的签名服务
-func (h *EntryHandler) getIntegrityService(ctx context.Context, siteID uuid.UUID) *service.IntegrityService {
+func (h *EntryHandler) getIntegrityService(ctx context.Context, siteID uid.UID) *service.IntegrityService {
 	if h.configService == nil {
 		return nil
 	}
@@ -59,7 +59,7 @@ func (h *EntryHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // Create 创建条目
 func (h *EntryHandler) Create(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
+	if siteID == uid.Nil {
 		middleware.BadRequest(c, "X-Site-ID header is required")
 		return
 	}
@@ -85,7 +85,7 @@ func (h *EntryHandler) Create(c *gin.Context) {
 func (h *EntryHandler) Get(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return
@@ -111,7 +111,7 @@ func (h *EntryHandler) List(c *gin.Context) {
 	// 解析过滤参数
 	filter := &model.EntryListFilter{}
 	if ctID := c.Query("schema_id"); ctID != "" {
-		if id, err := uuid.Parse(ctID); err == nil {
+		if id, err := uid.Parse(ctID); err == nil {
 			filter.ContentSchemaID = &id
 		}
 	}
@@ -154,7 +154,7 @@ func (h *EntryHandler) Update(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 	userID, _ := middleware.GetUserID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return
@@ -180,7 +180,7 @@ func (h *EntryHandler) Update(c *gin.Context) {
 func (h *EntryHandler) Delete(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return
@@ -200,7 +200,7 @@ func (h *EntryHandler) Publish(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 	userID, _ := middleware.GetUserID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return
@@ -226,7 +226,7 @@ func (h *EntryHandler) Publish(c *gin.Context) {
 func (h *EntryHandler) Unpublish(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return
@@ -246,7 +246,7 @@ func (h *EntryHandler) Unpublish(c *gin.Context) {
 func (h *EntryHandler) GetVersions(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return
@@ -336,7 +336,7 @@ func (h *EntryHandler) handleError(c *gin.Context, err error) {
 func (h *EntryHandler) SetSchedule(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return
@@ -361,7 +361,7 @@ func (h *EntryHandler) SetSchedule(c *gin.Context) {
 func (h *EntryHandler) ClearSchedule(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
 
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid entry id")
 		return

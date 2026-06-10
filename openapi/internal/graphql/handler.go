@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/contful/contful/openapi/internal/middleware"
+	"github.com/contful/contful/openapi/pkg/uid"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	gqlHandler "github.com/graphql-go/handler"
 )
@@ -93,8 +93,8 @@ type contextKey string
 const ctxKeySiteID contextKey = "siteID"
 
 // GetSiteIDFromContext 从 context 取 siteID
-func GetSiteIDFromContext(ctx context.Context) (uuid.UUID, bool) {
-	id, ok := ctx.Value(ctxKeySiteID).(uuid.UUID)
+func GetSiteIDFromContext(ctx context.Context) (uid.UID, bool) {
+	id, ok := ctx.Value(ctxKeySiteID).(uid.UID)
 	return id, ok
 }
 

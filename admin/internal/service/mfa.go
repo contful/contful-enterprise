@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"github.com/redis/go-redis/v9"
@@ -66,7 +66,7 @@ func NewMFAService(userRepo *repository.UserRepository, redisClient *redis.Clien
 
 // Setup 生成 TOTP Secret，临时存储，返回 otpauth URI 和 QR Code URL
 // 调用此接口后 mfa_enabled 仍为 false，需调用 Enable 完成激活
-func (s *MFAService) Setup(ctx context.Context, userID uuid.UUID) (*model.MFASetupResponse, error) {
+func (s *MFAService) Setup(ctx context.Context, userID uid.UID) (*model.MFASetupResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (s *MFAService) Setup(ctx context.Context, userID uuid.UUID) (*model.MFASet
 }
 
 // Enable 验证 TOTP 码，启用 MFA，返回明文 Recovery Code（仅此次）
-func (s *MFAService) Enable(ctx context.Context, userID uuid.UUID, totpCode string) (*model.MFAEnableResponse, error) {
+func (s *MFAService) Enable(ctx context.Context, userID uid.UID, totpCode string) (*model.MFAEnableResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func (s *MFAService) Enable(ctx context.Context, userID uuid.UUID, totpCode stri
 }
 
 // Disable 验证 TOTP 码，关闭 MFA
-func (s *MFAService) Disable(ctx context.Context, userID uuid.UUID, totpCode string) error {
+func (s *MFAService) Disable(ctx context.Context, userID uid.UID, totpCode string) error {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return err
@@ -222,7 +222,7 @@ func (s *MFAService) VerifyMFALogin(ctx context.Context, mfaToken, totpCode stri
 		return nil, ErrMFAPendingTokenInvalid
 	}
 
-	userID, err := uuid.Parse(pending.UserID)
+	userID, err := uid.Parse(pending.UserID)
 	if err != nil {
 		return nil, ErrMFAPendingTokenInvalid
 	}
@@ -317,7 +317,7 @@ func (s *MFAService) Recover(ctx context.Context, email, recoveryCode string) (*
 }
 
 // GetMFAStatus 获取用户 MFA 状态（剩余恢复码数量）
-func (s *MFAService) GetMFAStatus(ctx context.Context, userID uuid.UUID) (bool, int, error) {
+func (s *MFAService) GetMFAStatus(ctx context.Context, userID uid.UID) (bool, int, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return false, 0, err

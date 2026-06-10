@@ -5,7 +5,7 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +20,7 @@ const (
 
 // SystemUser 系统用户
 type SystemUser struct {
-	ID            uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	ID            uid.UID   `json:"id" gorm:"primary_key;default:gen_random_uuid()"`
 	Email         string      `json:"email" gorm:"type:varchar(255);unique_index;not null"`
 	PasswordHash  string      `json:"-" gorm:"type:varchar(255);not null"`
 	Nickname      string      `json:"nickname" gorm:"type:varchar(100)"`
@@ -45,7 +45,7 @@ func (SystemUser) TableName() string {
 
 // SystemRole 系统角色
 type SystemRole struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	ID          uid.UID `json:"id" gorm:"primary_key;default:gen_random_uuid()"`
 	Name        string    `json:"name" gorm:"type:varchar(100);unique_index;not null"`
 	Description string    `json:"description" gorm:"type:text"`
 	IsSystem    bool      `json:"is_system" gorm:"not null;default:false"`
@@ -61,9 +61,9 @@ func (SystemRole) TableName() string {
 
 // SystemUserRole 系统用户-角色关联（多对多）
 type SystemUserRole struct {
-	ID        uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	UserID    uuid.UUID `json:"user_id" gorm:"type:uuid;not null;uniqueIndex:idx_user_role"`
-	RoleID    uuid.UUID `json:"role_id" gorm:"type:uuid;not null;uniqueIndex:idx_user_role"`
+	ID        uid.UID `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	UserID    uid.UID `json:"user_id" gorm:"not null;uniqueIndex:idx_user_role"`
+	RoleID    uid.UID `json:"role_id" gorm:"not null;uniqueIndex:idx_user_role"`
 	CreatedTime time.Time `json:"created_time" gorm:"type:timestamptz;not null;default:now()"`
 }
 
@@ -115,7 +115,7 @@ type RefreshResponse struct {
 
 // UserResponse 用户响应（脱敏）
 type UserResponse struct {
-	ID                uuid.UUID  `json:"id"`
+	ID                uid.UID  `json:"id"`
 	Email             string     `json:"email"`
 	Nickname          string     `json:"nickname"`
 	AvatarURL         string     `json:"avatar_url,omitempty"`
@@ -188,7 +188,7 @@ type UserWithSites struct {
 
 // SiteBasic 站点基本信息
 type SiteBasic struct {
-	ID   uuid.UUID `json:"id"`
+	ID   uid.UID `json:"id"`
 	Name string    `json:"name"`
 	Slug string    `json:"slug"`
 }

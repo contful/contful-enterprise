@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
+
 	"github.com/redis/go-redis/v9"
 )
 
@@ -35,19 +36,19 @@ func NewCacheService(rdb *redis.Client) *CacheService {
 
 // GetEntryListKey 生成内容列表缓存键
 // 格式: contful:content:{siteID}:{slug}:{locale}:{sort}:{order}:{page}:{size}
-func (s *CacheService) GetEntryListKey(siteID uuid.UUID, slug, locale, sortField, sortOrder string, page, pageSize int) string {
+func (s *CacheService) GetEntryListKey(siteID uid.UID, slug, locale, sortField, sortOrder string, page, pageSize int) string {
 	return fmt.Sprintf("%s%s:%s:%s:%s:%s:%d:%d:%d",
 		CacheKeyPrefix, siteID.String(), slug, locale, sortField, sortOrder, page, pageSize)
 }
 
 // GetEntryDetailKey 生成内容详情缓存键
 // 格式: contful:content:{siteID}:{slug}:{entryID}
-func (s *CacheService) GetEntryDetailKey(siteID uuid.UUID, slug string, entryID uuid.UUID) string {
+func (s *CacheService) GetEntryDetailKey(siteID uid.UID, slug string, entryID uid.UID) string {
 	return fmt.Sprintf("%s%s:%s:%s", CacheKeyPrefix, siteID.String(), slug, entryID.String())
 }
 
 // GetSitePattern 生成站点内容缓存匹配模式（用于清除该站点所有内容缓存）
-func (s *CacheService) GetSitePattern(siteID uuid.UUID) string {
+func (s *CacheService) GetSitePattern(siteID uid.UID) string {
 	return fmt.Sprintf("%s%s:*", CacheKeyPrefix, siteID.String())
 }
 
@@ -85,7 +86,7 @@ func (s *CacheService) Delete(ctx context.Context, key string) error {
 
 // InvalidateSite 清除指定站点的所有内容缓存
 // 当内容发布/取消发布时调用
-func (s *CacheService) InvalidateSite(ctx context.Context, siteID uuid.UUID) (int64, error) {
+func (s *CacheService) InvalidateSite(ctx context.Context, siteID uid.UID) (int64, error) {
 	pattern := s.GetSitePattern(siteID)
 	
 	var cursor uint64
@@ -115,7 +116,7 @@ func (s *CacheService) InvalidateSite(ctx context.Context, siteID uuid.UUID) (in
 }
 
 // InvalidateContentSchema 清除指定内容模型的所有缓存
-func (s *CacheService) InvalidateContentSchema(ctx context.Context, siteID uuid.UUID, slug string) (int64, error) {
+func (s *CacheService) InvalidateContentSchema(ctx context.Context, siteID uid.UID, slug string) (int64, error) {
 	pattern := fmt.Sprintf("%s%s:%s:*", CacheKeyPrefix, siteID.String(), slug)
 	
 	var cursor uint64

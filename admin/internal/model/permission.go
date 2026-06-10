@@ -5,12 +5,12 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // PermissionGroup 权限分组
 type PermissionGroup struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ID          uid.UID `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
 	GroupKey    string    `json:"group_key" gorm:"type:varchar(50);unique;not null"`
 	Label       string    `json:"label" gorm:"type:varchar(100);not null"`
 	LabelEn     string    `json:"label_en" gorm:"type:varchar(100)"`
@@ -24,8 +24,8 @@ func (PermissionGroup) TableName() string {
 
 // Permission 权限项
 type Permission struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	GroupID     uuid.UUID `json:"group_id" gorm:"type:uuid;not null;index"`
+	ID          uid.UID `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	GroupID     uid.UID `json:"group_id" gorm:"not null;index"`
 	Action      string    `json:"action" gorm:"type:varchar(50);not null"`
 	Label       string    `json:"label" gorm:"type:varchar(100);not null"`
 	LabelEn     string    `json:"label_en" gorm:"type:varchar(100)"`

@@ -5,7 +5,7 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -20,15 +20,15 @@ const (
 
 // Entry 内容条目
 type Entry struct {
-	ID             uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	ContentSchemaID  uuid.UUID  `json:"schema_id" gorm:"column:schema_id;type:uuid;not null;index"`
-	SiteID         uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
+	ID             uid.UID  `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	ContentSchemaID  uid.UID  `json:"schema_id" gorm:"column:schema_id;not null;index"`
+	SiteID         uid.UID  `json:"site_id" gorm:"not null;index"`
 	Locale         string     `json:"locale" gorm:"size:20;not null;default:'zh-CN'"`
 	Status         EntryStatus `json:"status" gorm:"type:entry_status;not null;default:'draft'"`
 	Version        int        `json:"version" gorm:"not null;default:1"`
 	VersionHistory JSONArray  `json:"version_history" gorm:"type:jsonb"`
 	PublishedTime  *time.Time `json:"published_time" gorm:"column:published_time;type:timestamptz"`
-	PublishedBy    *uuid.UUID `json:"published_by" gorm:"type:uuid"`
+	PublishedBy    *uid.UID `json:"published_by" gorm:"type:uuid"`
 	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time" gorm:"column:scheduled_publish_time;type:timestamptz"`
 	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time" gorm:"column:scheduled_unpublish_time;type:timestamptz"`
 	Relations      JSONBSlice `json:"relations" gorm:"type:jsonb;default:'[]'"`
@@ -36,7 +36,7 @@ type Entry struct {
 	SEODescription string     `json:"seo_description" gorm:"type:text"`
 	SEOKeywords    []string   `json:"seo_keywords" gorm:"type:text[]"`
 	SortWeight     int        `json:"sort_weight" gorm:"not null;default:0"`
-	CreatedBy      *uuid.UUID `json:"created_by" gorm:"type:uuid"`
+	CreatedBy      *uid.UID `json:"created_by" gorm:"type:uuid"`
 	CreatedTime      time.Time  `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime      time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
 	DeletedAt        gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
@@ -54,9 +54,9 @@ func (Entry) TableName() string {
 
 // EntryValue 内容字段值
 type EntryValue struct {
-	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	EntryID     uuid.UUID  `json:"entry_id" gorm:"type:uuid;not null;index"`
-	FieldID     uuid.UUID  `json:"field_id" gorm:"type:uuid;not null;index"`
+	ID          uid.UID  `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	EntryID     uid.UID  `json:"entry_id" gorm:"not null;index"`
+	FieldID     uid.UID  `json:"field_id" gorm:"not null;index"`
 	Value       JSONB      `json:"value" gorm:"type:jsonb;not null"`
 	TextValue   *string    `json:"text_value,omitempty" gorm:"type:text"`
 	NumberValue *float64   `json:"number_value,omitempty" gorm:"type:numeric"`
@@ -78,11 +78,11 @@ func (EntryValue) TableName() string {
 
 // EntryVersion 内容版本历史
 type EntryVersion struct {
-	ID            uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	EntryID       uuid.UUID `json:"entry_id" gorm:"type:uuid;not null;index"`
+	ID            uid.UID `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	EntryID       uid.UID `json:"entry_id" gorm:"not null;index"`
 	Version       int       `json:"version" gorm:"not null"`
 	ValuesSnapshot JSONB    `json:"values_snapshot" gorm:"type:jsonb;not null"`
-	CreatedBy     *uuid.UUID `json:"created_by" gorm:"type:uuid"`
+	CreatedBy     *uid.UID `json:"created_by" gorm:"type:uuid"`
 	CreatedTime     time.Time `json:"created_time" gorm:"autoCreateTime"`
 	ChangeSummary string    `json:"change_summary" gorm:"type:text"`
 }

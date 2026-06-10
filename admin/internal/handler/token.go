@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"
@@ -42,27 +42,27 @@ func (h *APITokenHandler) RegisterRoutes(rg *gin.RouterGroup) {
 }
 
 // getTokenUserID 从上下文获取用户 ID
-func getTokenUserID(c *gin.Context) (uuid.UUID, error) {
+func getTokenUserID(c *gin.Context) (uid.UID, error) {
 	userIDVal, exists := c.Get("user")
 	if !exists {
-		return uuid.Nil, errors.New("user not found")
+		return uid.Nil, errors.New("user not found")
 	}
 
 	switch v := userIDVal.(type) {
 	case string:
-		return uuid.Parse(v)
-	case uuid.UUID:
+		return uid.Parse(v)
+	case uid.UID:
 		return v, nil
 	default:
-		return uuid.Nil, errors.New("invalid user id type")
+		return uid.Nil, errors.New("invalid user id type")
 	}
 }
 
 // getTokenSiteID 从上下文获取站点 ID（通过 middleware.GetSiteID）
-func getTokenSiteID(c *gin.Context) (uuid.UUID, error) {
+func getTokenSiteID(c *gin.Context) (uid.UID, error) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
-		return uuid.Nil, errors.New("site_id not found in context, X-Site-ID header required")
+	if siteID == uid.Nil {
+		return uid.Nil, errors.New("site_id not found in context, X-Site-ID header required")
 	}
 	return siteID, nil
 }
@@ -145,7 +145,7 @@ func (h *APITokenHandler) List(c *gin.Context) {
 
 // Get 获取 Token
 func (h *APITokenHandler) Get(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 Token ID"))
 		return
@@ -162,7 +162,7 @@ func (h *APITokenHandler) Get(c *gin.Context) {
 
 // Update 更新 Token
 func (h *APITokenHandler) Update(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 Token ID"))
 		return
@@ -185,7 +185,7 @@ func (h *APITokenHandler) Update(c *gin.Context) {
 
 // Delete 删除 Token
 func (h *APITokenHandler) Delete(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 Token ID"))
 		return
@@ -201,7 +201,7 @@ func (h *APITokenHandler) Delete(c *gin.Context) {
 
 // Regenerate 重新生成 Token
 func (h *APITokenHandler) Regenerate(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 Token ID"))
 		return
@@ -224,7 +224,7 @@ func (h *APITokenHandler) Regenerate(c *gin.Context) {
 
 // Revoke 撤销 Token
 func (h *APITokenHandler) Revoke(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 Token ID"))
 		return
@@ -245,7 +245,7 @@ func (h *APITokenHandler) Revoke(c *gin.Context) {
 
 // Export 导出 Token（解密并返回完整 Token）
 func (h *APITokenHandler) Export(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "无效的 Token ID"))
 		return

@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
@@ -38,7 +38,7 @@ func (h *SystemRoleHandler) List(c *gin.Context) {
 
 // Get GET /admin/api/v1/system/roles/:id
 func (h *SystemRoleHandler) Get(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid role id"))
 		return
@@ -85,7 +85,7 @@ func (h *SystemRoleHandler) Create(c *gin.Context) {
 
 // Update PUT /admin/api/v1/system/roles/:id
 func (h *SystemRoleHandler) Update(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid role id"))
 		return
@@ -118,7 +118,7 @@ func (h *SystemRoleHandler) Update(c *gin.Context) {
 
 // Delete DELETE /admin/api/v1/system/roles/:id
 func (h *SystemRoleHandler) Delete(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid role id"))
 		return
@@ -156,7 +156,7 @@ func (h *SystemRoleHandler) Permissions(c *gin.Context) {
 
 // GetUserRoles GET /admin/api/v1/users/:id/roles — 查询用户的系统角色列表
 func (h *SystemRoleHandler) GetUserRoles(c *gin.Context) {
-	userID, err := uuid.Parse(c.Param("id"))
+	userID, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
@@ -172,12 +172,12 @@ func (h *SystemRoleHandler) GetUserRoles(c *gin.Context) {
 
 // AssignUserRole PUT /admin/api/v1/users/:id/roles/:roleId — 为用户分配角色
 func (h *SystemRoleHandler) AssignUserRole(c *gin.Context) {
-	userID, err := uuid.Parse(c.Param("id"))
+	userID, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
 	}
-	roleID, err := uuid.Parse(c.Param("roleId"))
+	roleID, err := uid.Parse(c.Param("roleId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid role id"))
 		return
@@ -203,12 +203,12 @@ func (h *SystemRoleHandler) AssignUserRole(c *gin.Context) {
 
 // RemoveUserRole DELETE /admin/api/v1/users/:id/roles/:roleId — 移除用户的角色
 func (h *SystemRoleHandler) RemoveUserRole(c *gin.Context) {
-	userID, err := uuid.Parse(c.Param("id"))
+	userID, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
 	}
-	roleID, err := uuid.Parse(c.Param("roleId"))
+	roleID, err := uid.Parse(c.Param("roleId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid role id"))
 		return
@@ -232,14 +232,14 @@ func (h *SystemRoleHandler) RemoveUserRole(c *gin.Context) {
 // ─────────────────────────────────────────────────────────────
 
 // getCurrentUserID 从 JWT Claims 获取当前用户 ID
-func getCurrentUserID(c *gin.Context) (uuid.UUID, bool) {
+func getCurrentUserID(c *gin.Context) (uid.UID, bool) {
 	claimsVal, exists := c.Get(middleware.ClaimsContextKey)
 	if !exists {
-		return uuid.Nil, false
+		return uid.Nil, false
 	}
 	claims, ok := claimsVal.(*middleware.Claims)
 	if !ok {
-		return uuid.Nil, false
+		return uid.Nil, false
 	}
 	return claims.UserID, true
 }

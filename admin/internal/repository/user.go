@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/contful/contful/admin/internal/model"
@@ -44,7 +44,7 @@ func (r *UserRepository) Create(ctx context.Context, user *model.SystemUser) err
 }
 
 // FindByID 根据 ID 查找用户
-func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
+func (r *UserRepository) FindByID(ctx context.Context, id uid.UID) (*model.SystemUser, error) {
 	var user model.SystemUser
 	result := r.db.WithContext(ctx).Where("id = ? AND deleted_time IS NULL", id).First(&user)
 	if result.Error != nil {
@@ -77,14 +77,14 @@ func (r *UserRepository) Update(ctx context.Context, user *model.SystemUser) err
 }
 
 // Delete 软删除用户
-func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *UserRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).
 		Where("id = ?", id).
 		Delete(&model.SystemUser{}).Error
 }
 
 // PermanentDelete 永久删除用户（绕过软删除）
-func (r *UserRepository) PermanentDelete(ctx context.Context, id uuid.UUID) error {
+func (r *UserRepository) PermanentDelete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).
 		Unscoped().
 		Where("id = ?", id).
@@ -92,7 +92,7 @@ func (r *UserRepository) PermanentDelete(ctx context.Context, id uuid.UUID) erro
 }
 
 // Restore 恢复软删除的用户
-func (r *UserRepository) Restore(ctx context.Context, id uuid.UUID) error {
+func (r *UserRepository) Restore(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).
 		Unscoped().
 		Model(&model.SystemUser{}).
@@ -101,7 +101,7 @@ func (r *UserRepository) Restore(ctx context.Context, id uuid.UUID) error {
 }
 
 // FindByIDWithDeleted 根据 ID 查找用户（包含已删除的）
-func (r *UserRepository) FindByIDWithDeleted(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
+func (r *UserRepository) FindByIDWithDeleted(ctx context.Context, id uid.UID) (*model.SystemUser, error) {
 	var user model.SystemUser
 	result := r.db.WithContext(ctx).Unscoped().Where("id = ?", id).First(&user)
 	if result.Error != nil {
@@ -127,7 +127,7 @@ func (r *UserRepository) FindByEmailWithDeleted(ctx context.Context, email strin
 }
 
 // UpdateLastLogin 更新最后登录信息
-func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uuid.UUID, ip string) error {
+func (r *UserRepository) UpdateLastLogin(ctx context.Context, id uid.UID, ip string) error {
 	now := time.Now()
 	updates := map[string]interface{}{
 		"last_login_time": now,
@@ -169,22 +169,22 @@ const refreshTokenPrefix = "refresh_token:"
 const refreshTokenTTL = 7 * 24 * time.Hour // 7 days
 
 // StoreRefreshToken 存储 Refresh Token 到 Redis
-func (r *UserRepository) StoreRefreshToken(ctx context.Context, userID uuid.UUID, token string) error {
+func (r *UserRepository) StoreRefreshToken(ctx context.Context, userID uid.UID, token string) error {
 	key := refreshTokenPrefix + token
 	return r.redis.Set(ctx, key, userID.String(), refreshTokenTTL).Err()
 }
 
 // ValidateRefreshToken 验证 Refresh Token
-func (r *UserRepository) ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error) {
+func (r *UserRepository) ValidateRefreshToken(ctx context.Context, token string) (uid.UID, error) {
 	key := refreshTokenPrefix + token
 	userIDStr, err := r.redis.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return uuid.Nil, errors.New("invalid refresh token")
+			return uid.Nil, errors.New("invalid refresh token")
 		}
-		return uuid.Nil, err
+		return uid.Nil, err
 	}
-	return uuid.Parse(userIDStr)
+	return uid.Parse(userIDStr)
 }
 
 // DeleteRefreshToken 删除 Refresh Token
@@ -195,7 +195,7 @@ func (r *UserRepository) DeleteRefreshToken(ctx context.Context, token string) e
 
 // DeleteAllUserRefreshTokens 删除用户所有 Refresh Token（登出所有设备）
 // P2-003 修复：使用 SCAN + COUNT 分段处理，避免阻塞 Redis
-func (r *UserRepository) DeleteAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
+func (r *UserRepository) DeleteAllUserRefreshTokens(ctx context.Context, userID uid.UID) error {
 	pattern := refreshTokenPrefix + "*"
 	var cursor uint64
 	const batchSize = 100 // 每次 SCAN 最多返回 100 个 key
@@ -233,7 +233,7 @@ func (r *UserRepository) DeleteAllUserRefreshTokens(ctx context.Context, userID 
 // ============================================
 
 // UpdateMFASecret 写入 TOTP Secret 和 Recovery Code（Setup 阶段，mfa_enabled 保持不变）
-func (r *UserRepository) UpdateMFASecret(ctx context.Context, userID uuid.UUID, encryptedSecret, encryptedCodes string) error {
+func (r *UserRepository) UpdateMFASecret(ctx context.Context, userID uid.UID, encryptedSecret, encryptedCodes string) error {
 	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
 		Where("id = ?", userID).
 		Updates(map[string]interface{}{
@@ -244,7 +244,7 @@ func (r *UserRepository) UpdateMFASecret(ctx context.Context, userID uuid.UUID, 
 }
 
 // UpdateMFAEnabled 设置 mfa_enabled 字段
-func (r *UserRepository) UpdateMFAEnabled(ctx context.Context, userID uuid.UUID, enabled bool) error {
+func (r *UserRepository) UpdateMFAEnabled(ctx context.Context, userID uid.UID, enabled bool) error {
 	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
 		Where("id = ?", userID).
 		Updates(map[string]interface{}{
@@ -254,7 +254,7 @@ func (r *UserRepository) UpdateMFAEnabled(ctx context.Context, userID uuid.UUID,
 }
 
 // ClearMFA 清除 MFA 相关字段（禁用 MFA）
-func (r *UserRepository) ClearMFA(ctx context.Context, userID uuid.UUID) error {
+func (r *UserRepository) ClearMFA(ctx context.Context, userID uid.UID) error {
 	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
 		Where("id = ?", userID).
 		Updates(map[string]interface{}{
@@ -266,7 +266,7 @@ func (r *UserRepository) ClearMFA(ctx context.Context, userID uuid.UUID) error {
 }
 
 // UpdateRecoveryCodes 更新 Recovery Code（使用后标记）
-func (r *UserRepository) UpdateRecoveryCodes(ctx context.Context, userID uuid.UUID, encryptedCodes string) error {
+func (r *UserRepository) UpdateRecoveryCodes(ctx context.Context, userID uid.UID, encryptedCodes string) error {
 	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
 		Where("id = ?", userID).
 		Updates(map[string]interface{}{
@@ -276,7 +276,7 @@ func (r *UserRepository) UpdateRecoveryCodes(ctx context.Context, userID uuid.UU
 }
 
 // UpdateAvatarURL 更新用户头像地址
-func (r *UserRepository) UpdateAvatarURL(ctx context.Context, userID uuid.UUID, avatarURL string) error {
+func (r *UserRepository) UpdateAvatarURL(ctx context.Context, userID uid.UID, avatarURL string) error {
 	return r.db.WithContext(ctx).Model(&model.SystemUser{}).
 		Where("id = ?", userID).
 		Updates(map[string]interface{}{

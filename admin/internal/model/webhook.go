@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
 // Webhook Webhook 配置
 type Webhook struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID      uuid.UUID `json:"site_id" gorm:"type:uuid;not null;index"`
+	ID          uid.UID `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	SiteID      uid.UID `json:"site_id" gorm:"not null;index"`
 	Name        string    `json:"name" gorm:"size:255;not null"`
 	URL         string    `json:"url" gorm:"size:2000;not null"`
 	EventsJSON  string    `json:"-" gorm:"column:events;type:text[];default:'{}'"`
@@ -46,8 +46,8 @@ func (w *Webhook) BeforeSave(tx *gorm.DB) error {
 
 // WebhookDelivery 投递记录
 type WebhookDelivery struct {
-	ID             uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	WebhookID      uuid.UUID `json:"webhook_id" gorm:"type:uuid;not null;index"`
+	ID             uid.UID `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	WebhookID      uid.UID `json:"webhook_id" gorm:"not null;index"`
 	Event          string    `json:"event" gorm:"size:50;not null"`
 	Payload        string    `json:"payload" gorm:"type:jsonb;not null"`
 	ResponseStatus int       `json:"response_status"`

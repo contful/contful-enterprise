@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -41,7 +41,7 @@ func (r *SystemRoleRepository) Create(ctx context.Context, role *model.SystemRol
 }
 
 // GetByID 根据 ID 获取系统角色
-func (r *SystemRoleRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemRole, error) {
+func (r *SystemRoleRepository) GetByID(ctx context.Context, id uid.UID) (*model.SystemRole, error) {
 	var role model.SystemRole
 	err := r.db.WithContext(ctx).
 		Where("id = ? AND deleted_time IS NULL", id).
@@ -94,7 +94,7 @@ func (r *SystemRoleRepository) Update(ctx context.Context, role *model.SystemRol
 }
 
 // Delete 软删除系统角色（系统内置角色不可删除）
-func (r *SystemRoleRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *SystemRoleRepository) Delete(ctx context.Context, id uid.UID) error {
 	// 先检查是否为系统内置角色
 	var role model.SystemRole
 	if err := r.db.WithContext(ctx).

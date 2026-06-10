@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
 // Site 站点（混合模式：固定列 + JSONB 动态配置）
 type Site struct {
-	ID        uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ID        uid.UID      `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
 	Name      string           `json:"name" gorm:"size:200;not null"`
 	Slug      string           `json:"slug" gorm:"size:100;not null;uniqueIndex"`
 	Description string         `json:"description" gorm:"type:text"`
@@ -30,7 +30,7 @@ type Site struct {
 	Settings   JSONB          `json:"settings" gorm:"column:settings;type:jsonb;default:'{}'"`
 
 	IsActive  bool            `json:"is_active" gorm:"default:true"`
-	CreatedBy *uuid.UUID      `json:"created_by,omitempty" gorm:"type:uuid"`
+	CreatedBy *uid.UID      `json:"created_by,omitempty" gorm:"type:uuid"`
 	CreatedTime time.Time      `json:"created_time" gorm:"type:timestamptz;autoCreateTime"`
 	UpdatedTime time.Time      `json:"updated_time" gorm:"type:timestamptz;autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
@@ -75,7 +75,7 @@ type SiteUpdate struct {
 
 // SiteResponse 站点响应
 type SiteResponse struct {
-	ID            uuid.UUID      `json:"id"`
+	ID            uid.UID      `json:"id"`
 	Name          string         `json:"name"`
 	Slug          string         `json:"slug"`
 	Description   string         `json:"description,omitempty"`
@@ -87,7 +87,7 @@ type SiteResponse struct {
 	SeoKeywords   []string       `json:"seo_keywords"`
 	Settings      JSONB          `json:"settings"`
 	IsActive      bool           `json:"is_active"`
-	CreatedBy     *uuid.UUID     `json:"created_by,omitempty"`
+	CreatedBy     *uid.UID     `json:"created_by,omitempty"`
 	CreatedTime   time.Time      `json:"created_time"`
 	UpdatedTime   time.Time      `json:"updated_time"`
 }

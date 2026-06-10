@@ -12,7 +12,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -65,13 +65,13 @@ const (
 	rbacCacheTTL    = 15 * time.Minute
 )
 
-func rbacCacheKey(userID uuid.UUID) string {
+func rbacCacheKey(userID uid.UID) string {
 	return rbacCachePrefix + userID.String() + rbacCacheSuffix
 }
 
 // HasPermission 检查用户是否拥有指定权限
 // 超级管理员直接放行，否则从缓存或数据库加载权限列表
-func (s *RBACService) HasPermission(ctx context.Context, userID uuid.UUID, isSuperAdmin bool, permission string) (bool, error) {
+func (s *RBACService) HasPermission(ctx context.Context, userID uid.UID, isSuperAdmin bool, permission string) (bool, error) {
 	// 超级管理员直接放行
 	if isSuperAdmin {
 		return true, nil
@@ -92,12 +92,12 @@ func (s *RBACService) HasPermission(ctx context.Context, userID uuid.UUID, isSup
 }
 
 // InvalidateUserCache 清除用户权限缓存（角色变更时调用）
-func (s *RBACService) InvalidateUserCache(ctx context.Context, userID uuid.UUID) {
+func (s *RBACService) InvalidateUserCache(ctx context.Context, userID uid.UID) {
 	s.redis.Del(ctx, rbacCacheKey(userID))
 }
 
 // getOrLoadPerms 从 Redis 缓存获取权限，不存在则从数据库加载
-func (s *RBACService) getOrLoadPerms(ctx context.Context, userID uuid.UUID) (*permCacheEntry, error) {
+func (s *RBACService) getOrLoadPerms(ctx context.Context, userID uid.UID) (*permCacheEntry, error) {
 	key := rbacCacheKey(userID)
 
 	// 尝试从缓存读取
@@ -124,7 +124,7 @@ func (s *RBACService) getOrLoadPerms(ctx context.Context, userID uuid.UUID) (*pe
 }
 
 // loadPermsFromDB 从数据库加载用户系统级权限（通过 system_user_roles 关联表）
-func (s *RBACService) loadPermsFromDB(ctx context.Context, userID uuid.UUID) (*permCacheEntry, error) {
+func (s *RBACService) loadPermsFromDB(ctx context.Context, userID uid.UID) (*permCacheEntry, error) {
 	entry := &permCacheEntry{
 		SystemPerms: []string{},
 	}
@@ -192,14 +192,14 @@ func (s *RBACService) ListSystemRoles(ctx context.Context) ([]model.SystemRole, 
 }
 
 // GetSystemRole 获取系统角色详情
-func (s *RBACService) GetSystemRole(ctx context.Context, id uuid.UUID) (*model.SystemRole, error) {
+func (s *RBACService) GetSystemRole(ctx context.Context, id uid.UID) (*model.SystemRole, error) {
 	return s.systemRoleRepo.GetByID(ctx, id)
 }
 
 // CreateSystemRole 创建系统角色
 func (s *RBACService) CreateSystemRole(ctx context.Context, req *model.SystemRoleCreateRequest) (*model.SystemRole, error) {
 	role := &model.SystemRole{
-		ID:          uuid.New(),
+		ID:          uid.New(),
 		Name:        req.Name,
 		Description: req.Description,
 		IsSystem:    false,
@@ -215,7 +215,7 @@ func (s *RBACService) CreateSystemRole(ctx context.Context, req *model.SystemRol
 }
 
 // UpdateSystemRole 更新系统角色
-func (s *RBACService) UpdateSystemRole(ctx context.Context, id uuid.UUID, req *model.SystemRoleUpdateRequest) (*model.SystemRole, error) {
+func (s *RBACService) UpdateSystemRole(ctx context.Context, id uid.UID, req *model.SystemRoleUpdateRequest) (*model.SystemRole, error) {
 	role, err := s.systemRoleRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, ErrRoleNotFound
@@ -241,7 +241,7 @@ func (s *RBACService) UpdateSystemRole(ctx context.Context, id uuid.UUID, req *m
 }
 
 // DeleteSystemRole 删除系统角色（系统内置角色不可删除）
-func (s *RBACService) DeleteSystemRole(ctx context.Context, id uuid.UUID) error {
+func (s *RBACService) DeleteSystemRole(ctx context.Context, id uid.UID) error {
 	err := s.systemRoleRepo.Delete(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrSystemRoleNotFound) {
@@ -259,7 +259,7 @@ func (s *RBACService) DeleteSystemRole(ctx context.Context, id uuid.UUID) error 
 // ────────────────────────────────────────────────────────────
 
 // AssignUserRole 为用户分配系统角色
-func (s *RBACService) AssignUserRole(ctx context.Context, userID, roleID uuid.UUID) error {
+func (s *RBACService) AssignUserRole(ctx context.Context, userID, roleID uid.UID) error {
 	// 验证角色存在
 	_, err := s.systemRoleRepo.GetByID(ctx, roleID)
 	if err != nil {
@@ -278,7 +278,7 @@ func (s *RBACService) AssignUserRole(ctx context.Context, userID, roleID uuid.UU
 
 	// 创建关联
 	sur := &model.SystemUserRole{
-		ID:     uuid.New(),
+		ID:     uid.New(),
 		UserID: userID,
 		RoleID: roleID,
 	}
@@ -292,7 +292,7 @@ func (s *RBACService) AssignUserRole(ctx context.Context, userID, roleID uuid.UU
 }
 
 // RemoveUserRole 移除用户的系统角色
-func (s *RBACService) RemoveUserRole(ctx context.Context, userID, roleID uuid.UUID) error {
+func (s *RBACService) RemoveUserRole(ctx context.Context, userID, roleID uid.UID) error {
 	result := s.db.WithContext(ctx).
 		Where("user_id = ? AND role_id = ?", userID, roleID).
 		Delete(&model.SystemUserRole{})
@@ -306,7 +306,7 @@ func (s *RBACService) RemoveUserRole(ctx context.Context, userID, roleID uuid.UU
 }
 
 // GetUserRoles 获取用户的所有系统角色
-func (s *RBACService) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]model.SystemRole, error) {
+func (s *RBACService) GetUserRoles(ctx context.Context, userID uid.UID) ([]model.SystemRole, error) {
 	var roles []model.SystemRole
 	err := s.db.WithContext(ctx).
 		Table("system_user_roles sur").
@@ -345,7 +345,7 @@ func (s *RBACService) GetPermissionsMeta() map[string]interface{} {
 
 	// Build: { group_key: { action: label, ... }, ... }
 	meta := make(map[string]interface{})
-	permByGroup := make(map[uuid.UUID][]model.Permission)
+	permByGroup := make(map[uid.UID][]model.Permission)
 	for _, p := range perms {
 		permByGroup[p.GroupID] = append(permByGroup[p.GroupID], p)
 	}

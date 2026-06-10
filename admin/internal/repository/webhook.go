@@ -6,7 +6,7 @@ import (
 	"context"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -14,13 +14,13 @@ type WebhookRepository struct{ db *gorm.DB }
 
 func NewWebhookRepository(db *gorm.DB) *WebhookRepository { return &WebhookRepository{db: db} }
 
-func (r *WebhookRepository) ListBySite(ctx context.Context, siteID uuid.UUID) ([]model.Webhook, error) {
+func (r *WebhookRepository) ListBySite(ctx context.Context, siteID uid.UID) ([]model.Webhook, error) {
 	var ws []model.Webhook
 	err := r.db.WithContext(ctx).Where("site_id = ?", siteID).Order("created_time DESC").Find(&ws).Error
 	return ws, err
 }
 
-func (r *WebhookRepository) ListActive(ctx context.Context, siteID uuid.UUID, event string) ([]model.Webhook, error) {
+func (r *WebhookRepository) ListActive(ctx context.Context, siteID uid.UID, event string) ([]model.Webhook, error) {
 	var ws []model.Webhook
 	err := r.db.WithContext(ctx).
 		Where("site_id = ? AND is_active = true", siteID).
@@ -40,7 +40,7 @@ func (r *WebhookRepository) ListActive(ctx context.Context, siteID uuid.UUID, ev
 	return matched, nil
 }
 
-func (r *WebhookRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Webhook, error) {
+func (r *WebhookRepository) GetByID(ctx context.Context, id uid.UID) (*model.Webhook, error) {
 	var w model.Webhook
 	err := r.db.WithContext(ctx).First(&w, "id = ?", id).Error
 	return &w, err
@@ -54,7 +54,7 @@ func (r *WebhookRepository) Update(ctx context.Context, w *model.Webhook) error 
 	return r.db.WithContext(ctx).Save(w).Error
 }
 
-func (r *WebhookRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *WebhookRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.Webhook{}, "id = ?", id).Error
 }
 
@@ -66,7 +66,7 @@ func (r *WebhookRepository) UpdateDelivery(ctx context.Context, d *model.Webhook
 	return r.db.WithContext(ctx).Save(d).Error
 }
 
-func (r *WebhookRepository) ListDeliveries(ctx context.Context, webhookID uuid.UUID, limit int) ([]model.WebhookDelivery, error) {
+func (r *WebhookRepository) ListDeliveries(ctx context.Context, webhookID uid.UID, limit int) ([]model.WebhookDelivery, error) {
 	var ds []model.WebhookDelivery
 	q := r.db.WithContext(ctx).Where("webhook_id = ?", webhookID).Order("created_time DESC")
 	if limit > 0 {

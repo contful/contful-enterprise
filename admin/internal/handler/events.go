@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // EventBus 全局事件总线（Webhook 事件触发器）
@@ -18,7 +18,7 @@ type eventBus struct {
 
 type WebhookEvent struct {
 	Event       string      `json:"event"`
-	SiteID      uuid.UUID   `json:"site_id"`
+	SiteID      uid.UID   `json:"site_id"`
 	CreatedTime time.Time   `json:"created_time"`
 	Data        interface{} `json:"data"`
 	Previous    interface{} `json:"previous,omitempty"`
@@ -28,7 +28,7 @@ func SetWebhookDispatcher(d *WebhookDispatcher) {
 	EventBus.dispatcher = d
 }
 
-func EmitWebhookEvent(siteID uuid.UUID, event string, data interface{}, previous interface{}) {
+func EmitWebhookEvent(siteID uid.UID, event string, data interface{}, previous interface{}) {
 	if EventBus.dispatcher == nil {
 		return
 	}

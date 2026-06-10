@@ -10,7 +10,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // ScheduleHandler 排期处理器
@@ -35,7 +35,7 @@ func (h *ScheduleHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // ListScheduled 查询排期条目列表
 func (h *ScheduleHandler) ListScheduled(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
+	if siteID == uid.Nil {
 		middleware.BadRequest(c, "X-Site-ID header is required")
 		return
 	}

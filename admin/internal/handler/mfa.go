@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
@@ -27,22 +27,22 @@ func NewMFAHandler(mfaService *service.MFAService, authService *service.AuthServ
 }
 
 // getUserIDFromContext 从 JWT 中间件注入的 context 获取当前用户 ID
-func getUserIDFromContext(c *gin.Context) (uuid.UUID, bool) {
+func getUserIDFromContext(c *gin.Context) (uid.UID, bool) {
 	val, exists := c.Get("user")
 	if !exists {
-		return uuid.Nil, false
+		return uid.Nil, false
 	}
 	switch v := val.(type) {
 	case string:
-		id, err := uuid.Parse(v)
+		id, err := uid.Parse(v)
 		if err != nil {
-			return uuid.Nil, false
+			return uid.Nil, false
 		}
 		return id, true
-	case uuid.UUID:
+	case uid.UID:
 		return v, true
 	}
-	return uuid.Nil, false
+	return uid.Nil, false
 }
 
 // Setup 生成 TOTP Secret + QR Code

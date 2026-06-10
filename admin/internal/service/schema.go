@@ -13,7 +13,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 )
@@ -50,7 +50,7 @@ var (
 var slugRegex = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
 // Create 创建内容模型
-func (s *SchemaService) Create(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, req *model.ContentSchemaCreate) (*model.ContentSchemaResponse, error) {
+func (s *SchemaService) Create(ctx context.Context, siteID uid.UID, userID *uid.UID, req *model.ContentSchemaCreate) (*model.ContentSchemaResponse, error) {
 	// 验证 slug 格式
 	slug := strings.ToLower(strings.TrimSpace(req.Slug))
 	if !slugRegex.MatchString(slug) {
@@ -69,7 +69,7 @@ func (s *SchemaService) Create(ctx context.Context, siteID uuid.UUID, userID *uu
 
 	// 创建内容模型
 	ct := &model.ContentSchema{
-		ID:                   uuid.New(),
+		ID:                   uid.New(),
 		SiteID:               siteID,
 		Name:                 strings.TrimSpace(req.Name),
 		Slug:                 slug,
@@ -102,7 +102,7 @@ func (s *SchemaService) Create(ctx context.Context, siteID uuid.UUID, userID *uu
 }
 
 // Get 获取内容模型
-func (s *SchemaService) Get(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.ContentSchemaResponse, error) {
+func (s *SchemaService) Get(ctx context.Context, siteID uid.UID, id uid.UID) (*model.ContentSchemaResponse, error) {
 	ct, err := s.csRepo.GetByIDWithFields(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -121,7 +121,7 @@ func (s *SchemaService) Get(ctx context.Context, siteID uuid.UUID, id uuid.UUID)
 }
 
 // List 列出内容模型
-func (s *SchemaService) List(ctx context.Context, siteID uuid.UUID, page, pageSize int) (*model.ContentSchemaListResponse, error) {
+func (s *SchemaService) List(ctx context.Context, siteID uid.UID, page, pageSize int) (*model.ContentSchemaListResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -148,7 +148,7 @@ func (s *SchemaService) List(ctx context.Context, siteID uuid.UUID, page, pageSi
 }
 
 // Update 更新内容模型
-func (s *SchemaService) Update(ctx context.Context, siteID uuid.UUID, id uuid.UUID, req *model.ContentSchemaUpdate) (*model.ContentSchemaResponse, error) {
+func (s *SchemaService) Update(ctx context.Context, siteID uid.UID, id uid.UID, req *model.ContentSchemaUpdate) (*model.ContentSchemaResponse, error) {
 	ct, err := s.csRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -219,7 +219,7 @@ func (s *SchemaService) Update(ctx context.Context, siteID uuid.UUID, id uuid.UU
 }
 
 // Delete 删除内容模型
-func (s *SchemaService) Delete(ctx context.Context, siteID uuid.UUID, id uuid.UUID) error {
+func (s *SchemaService) Delete(ctx context.Context, siteID uid.UID, id uid.UID) error {
 	ct, err := s.csRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -249,7 +249,7 @@ func (s *SchemaService) Delete(ctx context.Context, siteID uuid.UUID, id uuid.UU
 // ============ Field 操作 ============
 
 // CreateField 创建字段
-func (s *SchemaService) CreateField(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, req *model.FieldCreate) (*model.FieldResponse, error) {
+func (s *SchemaService) CreateField(ctx context.Context, siteID uid.UID, contentTypeID uid.UID, req *model.FieldCreate) (*model.FieldResponse, error) {
 	// 验证内容模型存在且属于该站点
 	ct, err := s.csRepo.GetByID(ctx, contentTypeID)
 	if err != nil {
@@ -285,7 +285,7 @@ func (s *SchemaService) CreateField(ctx context.Context, siteID uuid.UUID, conte
 	}
 
 	field := &model.Field{
-		ID:            uuid.New(),
+		ID:            uid.New(),
 		ContentSchemaID: contentTypeID,
 		Name:          name,
 		Label:         strings.TrimSpace(req.Label),
@@ -313,7 +313,7 @@ func (s *SchemaService) CreateField(ctx context.Context, siteID uuid.UUID, conte
 }
 
 // ListFields 列出字段
-func (s *SchemaService) ListFields(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID) ([]model.FieldResponse, error) {
+func (s *SchemaService) ListFields(ctx context.Context, siteID uid.UID, contentTypeID uid.UID) ([]model.FieldResponse, error) {
 	// 验证内容模型
 	ct, err := s.csRepo.GetByID(ctx, contentTypeID)
 	if err != nil {
@@ -339,7 +339,7 @@ func (s *SchemaService) ListFields(ctx context.Context, siteID uuid.UUID, conten
 }
 
 // UpdateField 更新字段
-func (s *SchemaService) UpdateField(ctx context.Context, siteID uuid.UUID, fieldID uuid.UUID, req *model.FieldUpdate) (*model.FieldResponse, error) {
+func (s *SchemaService) UpdateField(ctx context.Context, siteID uid.UID, fieldID uid.UID, req *model.FieldUpdate) (*model.FieldResponse, error) {
 	field, err := s.fieldRepo.GetByID(ctx, fieldID)
 	if err != nil {
 		return nil, err
@@ -405,7 +405,7 @@ func (s *SchemaService) UpdateField(ctx context.Context, siteID uuid.UUID, field
 }
 
 // DeleteField 删除字段
-func (s *SchemaService) DeleteField(ctx context.Context, siteID uuid.UUID, fieldID uuid.UUID) error {
+func (s *SchemaService) DeleteField(ctx context.Context, siteID uid.UID, fieldID uid.UID) error {
 	field, err := s.fieldRepo.GetByID(ctx, fieldID)
 	if err != nil {
 		return err
@@ -424,7 +424,7 @@ func (s *SchemaService) DeleteField(ctx context.Context, siteID uuid.UUID, field
 }
 
 // ReorderFields 重新排序字段
-func (s *SchemaService) ReorderFields(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, orders map[uuid.UUID]int) error {
+func (s *SchemaService) ReorderFields(ctx context.Context, siteID uid.UID, contentTypeID uid.UID, orders map[uid.UID]int) error {
 	// 验证内容模型
 	ct, err := s.csRepo.GetByID(ctx, contentTypeID)
 	if err != nil {
@@ -457,7 +457,7 @@ type VerifySchemaResult struct {
 }
 
 // SignSchema 对内容模型数据重新签名
-func (s *SchemaService) SignSchema(ctx context.Context, id uuid.UUID) error {
+func (s *SchemaService) SignSchema(ctx context.Context, id uid.UID) error {
 	ct, err := s.csRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -479,7 +479,7 @@ func (s *SchemaService) SignSchema(ctx context.Context, id uuid.UUID) error {
 }
 
 // VerifySchema 验签内容模型数据
-func (s *SchemaService) VerifySchema(ctx context.Context, id uuid.UUID) (*VerifySchemaResult, error) {
+func (s *SchemaService) VerifySchema(ctx context.Context, id uid.UID) (*VerifySchemaResult, error) {
 	ct, err := s.csRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err

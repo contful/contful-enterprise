@@ -5,7 +5,7 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -30,9 +30,9 @@ const (
 
 // Asset 媒体资源
 type Asset struct {
-	ID            uuid.UUID       `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID        uuid.UUID       `json:"site_id" gorm:"type:uuid;not null;index"`
-	FolderID      *uuid.UUID      `json:"folder_id" gorm:"type:uuid;index"`
+	ID            uid.UID       `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	SiteID        uid.UID       `json:"site_id" gorm:"not null;index"`
+	FolderID      *uid.UID      `json:"folder_id" gorm:"index"`
 	UUID          string          `json:"uuid" gorm:"size:36;uniqueIndex"` // 业务 UUID
 	Name          string          `json:"name" gorm:"size:255;not null"`
 	OriginalName  string          `json:"original_name" gorm:"size:255;not null"`
@@ -59,7 +59,7 @@ type Asset struct {
 	Disk          string          `json:"disk" gorm:"size:50;not null;default:'local'"`
 	DownloadCount int             `json:"download_count" gorm:"not null;default:0"`
 	UsedCount     int             `json:"used_count" gorm:"not null;default:0"` // 被引用次数
-	CreatedBy     *uuid.UUID      `json:"created_by" gorm:"type:uuid"`
+	CreatedBy     *uid.UID      `json:"created_by" gorm:"type:uuid"`
 	CreatedTime     time.Time       `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime     time.Time       `json:"updated_time" gorm:"autoUpdateTime"`
 	DeletedAt       gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
@@ -76,14 +76,14 @@ func (Asset) TableName() string {
 
 // AssetFolder 资源文件夹
 type AssetFolder struct {
-	ID        uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID    uuid.UUID  `json:"site_id" gorm:"type:uuid;not null;index"`
-	ParentID  *uuid.UUID `json:"parent_id" gorm:"type:uuid;index"`
+	ID        uid.UID  `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	SiteID    uid.UID  `json:"site_id" gorm:"not null;index"`
+	ParentID  *uid.UID `json:"parent_id" gorm:"index"`
 	Name      string     `json:"name" gorm:"size:255;not null"`
 	Slug      string     `json:"slug" gorm:"size:255;not null"`
 	Path      string     `json:"path" gorm:"size:500;not null"` // 完整路径
 	SortOrder int        `json:"sort_order" gorm:"not null;default:0"`
-	CreatedBy *uuid.UUID `json:"created_by" gorm:"type:uuid"`
+	CreatedBy *uid.UID `json:"created_by" gorm:"type:uuid"`
 	CreatedTime time.Time  `json:"created_time" gorm:"autoCreateTime"`
 	UpdatedTime time.Time  `json:"updated_time" gorm:"autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`

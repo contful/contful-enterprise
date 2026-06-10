@@ -16,7 +16,7 @@ import (
 	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/repository"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 const (
@@ -52,7 +52,7 @@ func (s *APITokenService) GenerateToken() (fullToken string, tokenHash string, p
 }
 
 // Create 创建 API Token
-func (s *APITokenService) Create(ctx context.Context, siteID, userID uuid.UUID, req *model.APITokenCreate) (*model.APIToken, string, error) {
+func (s *APITokenService) Create(ctx context.Context, siteID, userID uid.UID, req *model.APITokenCreate) (*model.APIToken, string, error) {
 	fullToken, tokenHash, prefix, err := s.GenerateToken()
 	if err != nil {
 		return nil, "", err
@@ -65,7 +65,7 @@ func (s *APITokenService) Create(ctx context.Context, siteID, userID uuid.UUID, 
 	}
 
 	token := &model.APIToken{
-		ID:             uuid.New(),
+		ID:             uid.New(),
 		SiteID:         siteID,
 		Name:           req.Name,
 		Description:    req.Description,
@@ -89,12 +89,12 @@ func (s *APITokenService) Create(ctx context.Context, siteID, userID uuid.UUID, 
 }
 
 // Get 获取 Token
-func (s *APITokenService) Get(ctx context.Context, id uuid.UUID) (*model.APIToken, error) {
+func (s *APITokenService) Get(ctx context.Context, id uid.UID) (*model.APIToken, error) {
 	return s.tokenRepo.GetByID(ctx, id)
 }
 
 // List 列出 Token
-func (s *APITokenService) List(ctx context.Context, siteID uuid.UUID, filter *model.APITokenListFilter, page, pageSize int) (*model.APITokenListResponse, error) {
+func (s *APITokenService) List(ctx context.Context, siteID uid.UID, filter *model.APITokenListFilter, page, pageSize int) (*model.APITokenListResponse, error) {
 	tokens, total, err := s.tokenRepo.List(ctx, siteID, filter, page, pageSize)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (s *APITokenService) List(ctx context.Context, siteID uuid.UUID, filter *mo
 }
 
 // Update 更新 Token
-func (s *APITokenService) Update(ctx context.Context, id uuid.UUID, req *model.APITokenUpdate) (*model.APIToken, error) {
+func (s *APITokenService) Update(ctx context.Context, id uid.UID, req *model.APITokenUpdate) (*model.APIToken, error) {
 	token, err := s.tokenRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -141,12 +141,12 @@ func (s *APITokenService) Update(ctx context.Context, id uuid.UUID, req *model.A
 }
 
 // Delete 删除 Token
-func (s *APITokenService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *APITokenService) Delete(ctx context.Context, id uid.UID) error {
 	return s.tokenRepo.Delete(ctx, id)
 }
 
 // Revoke 撤销 Token
-func (s *APITokenService) Revoke(ctx context.Context, id uuid.UUID) error {
+func (s *APITokenService) Revoke(ctx context.Context, id uid.UID) error {
 	return s.tokenRepo.Revoke(ctx, id)
 }
 
@@ -177,7 +177,7 @@ func (s *APITokenService) Validate(ctx context.Context, tokenStr string) (*model
 }
 
 // Regenerate 重新生成 Token（保留原 Token 的 ID 和权限）
-func (s *APITokenService) Regenerate(ctx context.Context, id uuid.UUID) (*model.APIToken, string, error) {
+func (s *APITokenService) Regenerate(ctx context.Context, id uid.UID) (*model.APIToken, string, error) {
 	token, err := s.tokenRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, "", err
@@ -203,7 +203,7 @@ func (s *APITokenService) Regenerate(ctx context.Context, id uuid.UUID) (*model.
 }
 
 // Export 导出 Token（解密并返回完整 Token）
-func (s *APITokenService) Export(ctx context.Context, id uuid.UUID) (*model.APIToken, string, error) {
+func (s *APITokenService) Export(ctx context.Context, id uid.UID) (*model.APIToken, string, error) {
 	token, err := s.tokenRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, "", err

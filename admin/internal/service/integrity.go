@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/contful/contful/admin/internal/model"
 )
 
@@ -43,13 +43,13 @@ type VerifyResult struct {
 
 // IntegrityService 数据完整性签名服务（站点级别）
 type IntegrityService struct {
-	siteID     uuid.UUID
+	siteID     uid.UID
 	signingKey []byte // 解密后的 HMAC 密钥
 	alg        string // "HMAC-SHA256" 或 "SM3withSM2"
 }
 
 // NewIntegrityService 创建 IntegrityService（从配置中心读取签名密钥）
-func NewIntegrityService(siteID uuid.UUID, signingKeyHex string, alg string) (*IntegrityService, error) {
+func NewIntegrityService(siteID uid.UID, signingKeyHex string, alg string) (*IntegrityService, error) {
 	if signingKeyHex == "" {
 		// 密钥不存在，签名功能关闭
 		return &IntegrityService{
@@ -83,18 +83,18 @@ func (s *IntegrityService) IsEnabled() bool {
 type siteIDKey struct{}
 
 // WithSiteID 将 siteID 存入 context（供 AuditLog callback 使用）
-func WithSiteID(ctx context.Context, siteID uuid.UUID) context.Context {
+func WithSiteID(ctx context.Context, siteID uid.UID) context.Context {
 	return context.WithValue(ctx, siteIDKey{}, siteID)
 }
 
 // GetSiteID 从 context 取出 siteID
-func GetSiteID(ctx context.Context) (uuid.UUID, bool) {
+func GetSiteID(ctx context.Context) (uid.UID, bool) {
 	if v := ctx.Value(siteIDKey{}); v != nil {
-		if id, ok := v.(uuid.UUID); ok {
+		if id, ok := v.(uid.UID); ok {
 			return id, true
 		}
 	}
-	return uuid.UUID{}, false
+	return uid.UID{}, false
 }
 
 // WithIntegrityService 将 IntegrityService 存入 context
@@ -451,7 +451,7 @@ func (s *IntegrityService) isZero(v any) bool {
 		return x == nil
 	case *float64:
 		return x == nil
-	case *uuid.UUID:
+	case *uid.UID:
 		return x == nil
 	case *time.Time:
 		return x == nil

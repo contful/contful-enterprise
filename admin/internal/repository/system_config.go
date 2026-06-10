@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -17,7 +17,7 @@ import (
 
 // SystemConfig 系统配置表模型
 type SystemConfig struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ID          uid.UID `gorm:"primaryKey;default:gen_random_uuid()" json:"id"`
 	ConfigKey   string    `gorm:"type:varchar(100);unique;not null" json:"config_key"`
 	ConfigValue string    `gorm:"type:text" json:"config_value"`
 	ValueType   string    `gorm:"type:varchar(20);not null;default:'string'" json:"value_type"`

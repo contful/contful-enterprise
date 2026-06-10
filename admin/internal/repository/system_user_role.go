@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +31,7 @@ func (r *SystemUserRoleRepository) Create(ctx context.Context, sur *model.System
 }
 
 // Delete 删除用户-角色关联
-func (r *SystemUserRoleRepository) Delete(ctx context.Context, userID, roleID uuid.UUID) error {
+func (r *SystemUserRoleRepository) Delete(ctx context.Context, userID, roleID uid.UID) error {
 	result := r.db.WithContext(ctx).
 		Where("user_id = ? AND role_id = ?", userID, roleID).
 		Delete(&model.SystemUserRole{})
@@ -42,7 +42,7 @@ func (r *SystemUserRoleRepository) Delete(ctx context.Context, userID, roleID uu
 }
 
 // ListByUser 获取用户的所有角色关联
-func (r *SystemUserRoleRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]model.SystemUserRole, error) {
+func (r *SystemUserRoleRepository) ListByUser(ctx context.Context, userID uid.UID) ([]model.SystemUserRole, error) {
 	var items []model.SystemUserRole
 	err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
@@ -51,7 +51,7 @@ func (r *SystemUserRoleRepository) ListByUser(ctx context.Context, userID uuid.U
 }
 
 // ListByRole 获取角色的所有用户关联
-func (r *SystemUserRoleRepository) ListByRole(ctx context.Context, roleID uuid.UUID) ([]model.SystemUserRole, error) {
+func (r *SystemUserRoleRepository) ListByRole(ctx context.Context, roleID uid.UID) ([]model.SystemUserRole, error) {
 	var items []model.SystemUserRole
 	err := r.db.WithContext(ctx).
 		Where("role_id = ?", roleID).
@@ -60,7 +60,7 @@ func (r *SystemUserRoleRepository) ListByRole(ctx context.Context, roleID uuid.U
 }
 
 // Exists 检查用户-角色关联是否存在
-func (r *SystemUserRoleRepository) Exists(ctx context.Context, userID, roleID uuid.UUID) (bool, error) {
+func (r *SystemUserRoleRepository) Exists(ctx context.Context, userID, roleID uid.UID) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&model.SystemUserRole{}).

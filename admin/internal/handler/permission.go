@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
@@ -47,7 +47,7 @@ func (h *PermissionHandler) List(c *gin.Context) {
 		Permissions []PermItem  `json:"permissions"`
 	}
 
-	permMap := make(map[uuid.UUID][]model.Permission)
+	permMap := make(map[uid.UID][]model.Permission)
 	for _, p := range perms {
 		permMap[p.GroupID] = append(permMap[p.GroupID], p)
 	}
@@ -93,7 +93,7 @@ func (h *PermissionHandler) CreateGroup(c *gin.Context) {
 	}
 
 	g := &model.PermissionGroup{
-		ID:        uuid.New(),
+		ID:        uid.New(),
 		GroupKey:  req.GroupKey,
 		Label:     req.Label,
 		LabelEn:   req.LabelEn,
@@ -120,7 +120,7 @@ func (h *PermissionHandler) UpdateGroup(c *gin.Context) {
 	}
 
 	g := &model.PermissionGroup{}
-	gid, err := uuid.Parse(id)
+	gid, err := uid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid id"))
 		return
@@ -169,14 +169,14 @@ func (h *PermissionHandler) CreatePermission(c *gin.Context) {
 		return
 	}
 
-	groupID, err := uuid.Parse(req.GroupID)
+	groupID, err := uid.Parse(req.GroupID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid group_id"))
 		return
 	}
 
 	p := &model.Permission{
-		ID:        uuid.New(),
+		ID:        uid.New(),
 		GroupID:   groupID,
 		Action:    req.Action,
 		Label:     req.Label,
@@ -204,7 +204,7 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 	}
 
 	p := &model.Permission{}
-	pid, err := uuid.Parse(id)
+	pid, err := uid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid id"))
 		return

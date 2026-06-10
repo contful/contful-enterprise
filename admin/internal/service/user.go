@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/contful/contful/admin/internal/audit"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
@@ -81,7 +81,7 @@ func (s *UserService) Create(ctx context.Context, req *model.CreateUserRequest) 
 
 	now := time.Now()
 	user := &model.SystemUser{
-		ID:                uuid.New(),
+		ID:                uid.New(),
 		Email:             req.Email,
 		PasswordHash:      string(hashed),
 		Nickname:          req.Nickname,
@@ -100,7 +100,7 @@ func (s *UserService) Create(ctx context.Context, req *model.CreateUserRequest) 
 }
 
 // Get 获取单个用户
-func (s *UserService) Get(ctx context.Context, id uuid.UUID) (*model.UserResponse, error) {
+func (s *UserService) Get(ctx context.Context, id uid.UID) (*model.UserResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (s *UserService) Get(ctx context.Context, id uuid.UUID) (*model.UserRespons
 }
 
 // Update 更新用户
-func (s *UserService) Update(ctx context.Context, id uuid.UUID, req *model.UpdateUserRequest) (*model.UserResponse, error) {
+func (s *UserService) Update(ctx context.Context, id uid.UID, req *model.UpdateUserRequest) (*model.UserResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (s *UserService) Update(ctx context.Context, id uuid.UUID, req *model.Updat
 }
 
 // Delete 删除用户（支持软删除和永久删除）
-func (s *UserService) Delete(ctx context.Context, id uuid.UUID, permanent bool) error {
+func (s *UserService) Delete(ctx context.Context, id uid.UID, permanent bool) error {
 	if permanent {
 		return s.userRepo.PermanentDelete(ctx, id)
 	}
@@ -142,7 +142,7 @@ func (s *UserService) Delete(ctx context.Context, id uuid.UUID, permanent bool) 
 }
 
 // Restore 恢复软删除的用户
-func (s *UserService) Restore(ctx context.Context, id uuid.UUID) error {
+func (s *UserService) Restore(ctx context.Context, id uid.UID) error {
 	return s.userRepo.Restore(ctx, id)
 }
 
@@ -174,7 +174,7 @@ func (s *UserService) List(ctx context.Context, page, pageSize int, includeDelet
 }
 
 // UpdateMe 用户更新自己的资料
-func (s *UserService) UpdateMe(ctx context.Context, userID uuid.UUID, req *model.UpdateMeRequest) (*model.UserResponse, error) {
+func (s *UserService) UpdateMe(ctx context.Context, userID uid.UID, req *model.UpdateMeRequest) (*model.UserResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (s *UserService) UpdateMe(ctx context.Context, userID uuid.UUID, req *model
 }
 
 // UpdatePassword 用户修改密码
-func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+func (s *UserService) UpdatePassword(ctx context.Context, userID uid.UID, oldPassword, newPassword string) error {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return err
@@ -226,7 +226,7 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, oldP
 }
 
 // ResetPassword 管理员重置用户密码（不需要旧密码）
-func (s *UserService) ResetPassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+func (s *UserService) ResetPassword(ctx context.Context, id uid.UID, newPassword string) error {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -278,7 +278,7 @@ type VerifyUserResult struct {
 }
 
 // SignUser 对用户数据重新签名
-func (s *UserService) SignUser(ctx context.Context, id uuid.UUID) error {
+func (s *UserService) SignUser(ctx context.Context, id uid.UID) error {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -300,7 +300,7 @@ func (s *UserService) SignUser(ctx context.Context, id uuid.UUID) error {
 }
 
 // VerifyUser 验签用户数据
-func (s *UserService) VerifyUser(ctx context.Context, id uuid.UUID) (*VerifyUserResult, error) {
+func (s *UserService) VerifyUser(ctx context.Context, id uid.UID) (*VerifyUserResult, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -331,7 +331,7 @@ func (s *UserService) VerifyUser(ctx context.Context, id uuid.UUID) (*VerifyUser
 }
 
 // UploadAvatar 上传用户头像（通过 StorageProvider，支持本地/对象存储）
-func (s *UserService) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Reader, header *multipart.FileHeader) (string, error) {
+func (s *UserService) UploadAvatar(ctx context.Context, userID uid.UID, file io.Reader, header *multipart.FileHeader) (string, error) {
 	// 读取文件内容
 	data, err := io.ReadAll(file)
 	if err != nil {

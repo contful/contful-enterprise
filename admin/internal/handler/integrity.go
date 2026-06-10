@@ -9,7 +9,7 @@ import (
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // IntegrityHandler 验签处理器
@@ -53,7 +53,7 @@ type VerifyRequest struct {
 // Verify 单条验签
 func (h *IntegrityHandler) Verify(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
+	if siteID == uid.Nil {
 		middleware.BadRequest(c, "X-Site-ID header is required")
 		return
 	}
@@ -72,7 +72,7 @@ func (h *IntegrityHandler) Verify(c *gin.Context) {
 		return
 	}
 
-	id, err := uuid.Parse(idStr)
+	id, err := uid.Parse(idStr)
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return
@@ -99,7 +99,7 @@ func (h *IntegrityHandler) Verify(c *gin.Context) {
 }
 
 // verifyEntity 验签实体
-func (h *IntegrityHandler) verifyEntity(ctx context.Context, entity string, id, siteID uuid.UUID, intSvc *service.IntegrityService) (gin.H, error) {
+func (h *IntegrityHandler) verifyEntity(ctx context.Context, entity string, id, siteID uid.UID, intSvc *service.IntegrityService) (gin.H, error) {
 	switch entity {
 	case "entry":
 		entry, err := h.entryRepo.GetByID(ctx, id)
@@ -176,7 +176,7 @@ type BatchVerifyRequest struct {
 // BatchVerify 批量验签
 func (h *IntegrityHandler) BatchVerify(c *gin.Context) {
 	siteID := middleware.GetSiteID(c)
-	if siteID == uuid.Nil {
+	if siteID == uid.Nil {
 		middleware.BadRequest(c, "X-Site-ID header is required")
 		return
 	}
@@ -209,7 +209,7 @@ func (h *IntegrityHandler) BatchVerify(c *gin.Context) {
 	results := make([]gin.H, 0, len(req.Items))
 
 	for _, item := range req.Items {
-		id, err := uuid.Parse(item.ID)
+		id, err := uid.Parse(item.ID)
 		if err != nil {
 			results = append(results, gin.H{"entity": item.Entity, "id": item.ID, "valid": nil, "reason": "invalid_id"})
 			continue

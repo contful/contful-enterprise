@@ -7,7 +7,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +27,7 @@ func (r *AssetRepository) Create(ctx context.Context, asset *model.Asset) error 
 }
 
 // GetByID 根据 ID 获取
-func (r *AssetRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Asset, error) {
+func (r *AssetRepository) GetByID(ctx context.Context, id uid.UID) (*model.Asset, error) {
 	var asset model.Asset
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
@@ -51,7 +51,7 @@ func (r *AssetRepository) GetByUUID(ctx context.Context, uuid string) (*model.As
 }
 
 // GetByFileHash 根据文件哈希获取
-func (r *AssetRepository) GetByFileHash(ctx context.Context, siteID uuid.UUID, hash string) (*model.Asset, error) {
+func (r *AssetRepository) GetByFileHash(ctx context.Context, siteID uid.UID, hash string) (*model.Asset, error) {
 	var asset model.Asset
 	err := r.db.WithContext(ctx).
 		Where("site_id = ? AND file_hash = ?", siteID, hash).
@@ -63,7 +63,7 @@ func (r *AssetRepository) GetByFileHash(ctx context.Context, siteID uuid.UUID, h
 }
 
 // List 列出资源
-func (r *AssetRepository) List(ctx context.Context, siteID uuid.UUID, filter *model.AssetListFilter, page, pageSize int) ([]model.Asset, int64, error) {
+func (r *AssetRepository) List(ctx context.Context, siteID uid.UID, filter *model.AssetListFilter, page, pageSize int) ([]model.Asset, int64, error) {
 	var assets []model.Asset
 	var total int64
 
@@ -106,7 +106,7 @@ func (r *AssetRepository) List(ctx context.Context, siteID uuid.UUID, filter *mo
 }
 
 // ListByFolder 列出文件夹中的资源
-func (r *AssetRepository) ListByFolder(ctx context.Context, siteID uuid.UUID, folderID *uuid.UUID, page, pageSize int) ([]model.Asset, int64, error) {
+func (r *AssetRepository) ListByFolder(ctx context.Context, siteID uid.UID, folderID *uid.UID, page, pageSize int) ([]model.Asset, int64, error) {
 	var assets []model.Asset
 	var total int64
 
@@ -141,17 +141,17 @@ func (r *AssetRepository) Update(ctx context.Context, asset *model.Asset) error 
 }
 
 // Delete 删除资源（软删除）
-func (r *AssetRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *AssetRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.Asset{}, "id = ?", id).Error
 }
 
 // BatchDelete 批量删除
-func (r *AssetRepository) BatchDelete(ctx context.Context, ids []uuid.UUID) error {
+func (r *AssetRepository) BatchDelete(ctx context.Context, ids []uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.Asset{}, "id IN ?", ids).Error
 }
 
 // IncrementUsedCount 增加引用计数
-func (r *AssetRepository) IncrementUsedCount(ctx context.Context, id uuid.UUID) error {
+func (r *AssetRepository) IncrementUsedCount(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).
 		Model(&model.Asset{}).
 		Where("id = ?", id).
@@ -159,7 +159,7 @@ func (r *AssetRepository) IncrementUsedCount(ctx context.Context, id uuid.UUID) 
 }
 
 // DecrementUsedCount 减少引用计数
-func (r *AssetRepository) DecrementUsedCount(ctx context.Context, id uuid.UUID) error {
+func (r *AssetRepository) DecrementUsedCount(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).
 		Model(&model.Asset{}).
 		Where("id = ?", id).
@@ -167,7 +167,7 @@ func (r *AssetRepository) DecrementUsedCount(ctx context.Context, id uuid.UUID) 
 }
 
 // GetByIDs 根据 ID 列表获取
-func (r *AssetRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]model.Asset, error) {
+func (r *AssetRepository) GetByIDs(ctx context.Context, ids []uid.UID) ([]model.Asset, error) {
 	var assets []model.Asset
 	err := r.db.WithContext(ctx).
 		Where("id IN ?", ids).
@@ -183,7 +183,7 @@ func (r *AssetRepository) CreateFolder(ctx context.Context, folder *model.AssetF
 }
 
 // GetFolderByID 获取文件夹
-func (r *AssetRepository) GetFolderByID(ctx context.Context, id uuid.UUID) (*model.AssetFolder, error) {
+func (r *AssetRepository) GetFolderByID(ctx context.Context, id uid.UID) (*model.AssetFolder, error) {
 	var folder model.AssetFolder
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
@@ -195,7 +195,7 @@ func (r *AssetRepository) GetFolderByID(ctx context.Context, id uuid.UUID) (*mod
 }
 
 // ListFolders 列出文件夹
-func (r *AssetRepository) ListFolders(ctx context.Context, siteID uuid.UUID, parentID *uuid.UUID) ([]model.AssetFolder, error) {
+func (r *AssetRepository) ListFolders(ctx context.Context, siteID uid.UID, parentID *uid.UID) ([]model.AssetFolder, error) {
 	var folders []model.AssetFolder
 	query := r.db.WithContext(ctx).Model(&model.AssetFolder{}).Where("site_id = ?", siteID)
 
@@ -210,7 +210,7 @@ func (r *AssetRepository) ListFolders(ctx context.Context, siteID uuid.UUID, par
 }
 
 // GetFolderTree 获取完整文件夹树
-func (r *AssetRepository) GetFolderTree(ctx context.Context, siteID uuid.UUID) ([]model.AssetFolder, error) {
+func (r *AssetRepository) GetFolderTree(ctx context.Context, siteID uid.UID) ([]model.AssetFolder, error) {
 	var folders []model.AssetFolder
 	err := r.db.WithContext(ctx).
 		Preload("Children").
@@ -227,10 +227,10 @@ func (r *AssetRepository) UpdateFolder(ctx context.Context, folder *model.AssetF
 }
 
 // DeleteFolder 删除文件夹（递归删除子文件夹和资源）
-func (r *AssetRepository) DeleteFolder(ctx context.Context, id uuid.UUID) error {
+func (r *AssetRepository) DeleteFolder(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1. 获取所有子文件夹 ID
-		var childIDs []uuid.UUID
+		var childIDs []uid.UID
 		if err := tx.Model(&model.AssetFolder{}).Where("parent_id = ?", id).Pluck("id", &childIDs).Error; err != nil {
 			return err
 		}

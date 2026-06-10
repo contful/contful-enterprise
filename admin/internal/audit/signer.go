@@ -5,14 +5,14 @@ package audit
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // DataSigner 数据签名接口。
 // 项目默认使用 HMAC-SHA256，用户可实现此接口替换为自有签名方法。
 type DataSigner interface {
-	Sign(entityType string, entityID uuid.UUID, payload string) (string, error)
-	Verify(entityType string, entityID uuid.UUID, payload string, signature string) (bool, error)
+	Sign(entityType string, entityID uid.UID, payload string) (string, error)
+	Verify(entityType string, entityID uid.UID, payload string, signature string) (bool, error)
 	Algorithm() string
 }
 

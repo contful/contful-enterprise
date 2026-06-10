@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -24,7 +24,7 @@ const (
 
 // Claims JWT Claims（不含 site_id，由前端通过请求头传递）
 type Claims struct {
-	UserID           uuid.UUID
+	UserID           uid.UID
 	Email            string
 	IsSuperAdmin     bool
 	MFASetupRequired bool
@@ -37,7 +37,7 @@ type claimsGetter interface {
 
 // permissionChecker 接口：允许 middleware 层调用权限检查，避免循环依赖
 type permissionChecker interface {
-	HasPermission(ctx context.Context, userID uuid.UUID, isSuperAdmin bool, permission string) (bool, error)
+	HasPermission(ctx context.Context, userID uid.UID, isSuperAdmin bool, permission string) (bool, error)
 }
 
 // JWTAuth JWT 认证中间件
@@ -85,7 +85,7 @@ func JWTAuth(getter claimsGetter) gin.HandlerFunc {
 		// 从请求头获取 site_id（前端必须传递）
 		siteIDStr := c.GetHeader(SiteIDHeader)
 		if siteIDStr != "" {
-			if siteID, err := uuid.Parse(siteIDStr); err == nil {
+			if siteID, err := uid.Parse(siteIDStr); err == nil {
 				c.Set(SiteContextKey, siteID)
 			}
 		}
@@ -170,20 +170,20 @@ func RequirePermission(checker permissionChecker, permission string) gin.Handler
 }
 
 // GetSiteID 从上下文获取当前站点 ID（需要前端通过 X-Site-ID 头传递）
-func GetSiteID(c *gin.Context) uuid.UUID {
+func GetSiteID(c *gin.Context) uid.UID {
 	if siteID, exists := c.Get(SiteContextKey); exists {
-		if id, ok := siteID.(uuid.UUID); ok {
+		if id, ok := siteID.(uid.UID); ok {
 			return id
 		}
 	}
-	return uuid.Nil
+	return uid.Nil
 }
 
 // MustSiteID 获取站点 ID，如果不存在则返回错误
-func MustSiteID(c *gin.Context) (uuid.UUID, error) {
+func MustSiteID(c *gin.Context) (uid.UID, error) {
 	siteID := GetSiteID(c)
-	if siteID == uuid.Nil {
-		return uuid.Nil, ErrSiteIDRequired
+	if siteID == uid.Nil {
+		return uid.Nil, ErrSiteIDRequired
 	}
 	return siteID, nil
 }

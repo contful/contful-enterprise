@@ -5,7 +5,7 @@ package repository
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +20,7 @@ func NewFieldRepository(db *gorm.DB) *FieldRepository {
 }
 
 // ListByContentSchemaID 列出某个 Content Schema 的所有 Fields
-func (r *FieldRepository) ListByContentSchemaID(ctx context.Context, schemaID uuid.UUID) ([]Field, error) {
+func (r *FieldRepository) ListByContentSchemaID(ctx context.Context, schemaID uid.UID) ([]Field, error) {
 	var fields []Field
 	err := r.db.WithContext(ctx).
 		Where("schema_id = ?", schemaID).

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
@@ -74,7 +74,7 @@ func (s *AuthService) SetMFAService(mfaSvc *MFAService) {
 
 // JWT Claims
 type JWTClaims struct {
-	UserID            uuid.UUID `json:"user_id"`
+	UserID            uid.UID `json:"user_id"`
 	Email             string    `json:"email"`
 	IsSuperAdmin      bool      `json:"is_super_admin"`
 	MFASetupRequired  bool      `json:"mfa_setup_required,omitempty"`
@@ -169,7 +169,7 @@ func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest, 
 	}
 
 	user := &model.SystemUser{
-		ID:           uuid.New(),
+		ID:           uid.New(),
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 		Nickname:     req.Nickname,
@@ -312,7 +312,7 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string, ip string
 }
 
 // GetUser 获取当前用户（含可访问站点列表）
-func (s *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*model.UserWithSites, error) {
+func (s *AuthService) GetUser(ctx context.Context, userID uid.UID) (*model.UserWithSites, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -416,7 +416,7 @@ func (s *AuthService) ParseAccessTokenInternal(tokenString string) (*JWTClaims, 
 	return s.parseAccessToken(tokenString)
 }
 
-func (s *AuthService) generateRefreshToken(ctx context.Context, userID uuid.UUID) (string, error) {
+func (s *AuthService) generateRefreshToken(ctx context.Context, userID uid.UID) (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
@@ -525,12 +525,12 @@ func MFAPendingDataFromUser(user *model.SystemUser) MFAPendingData {
 	}
 }
 
-func (s *AuthService) createAuditLog(ctx context.Context, userID uuid.UUID, siteID *uuid.UUID, action, resourceType string, resourceID uuid.UUID, level model.AuditLevel, category model.AuditType, ip string) {
+func (s *AuthService) createAuditLog(ctx context.Context, userID uid.UID, siteID *uid.UID, action, resourceType string, resourceID uid.UID, level model.AuditLevel, category model.AuditType, ip string) {
 	go func() {
 		// 使用 background context 避免 request context 被取消导致写入失败
 		bgCtx := context.Background()
 		auditLog := &model.AuditLog{
-			ID:           uuid.New(),
+			ID:           uid.New(),
 			UserID:       &userID,
 			SiteID:       siteID,
 			Action:       action,
@@ -562,7 +562,7 @@ func (s *AuthService) createAuditLogLoginFail(ctx context.Context, email string,
 		bgCtx := context.Background()
 		maskedEmail := maskEmail(email)
 		auditLog := &model.AuditLog{
-			ID:           uuid.New(),
+			ID:           uid.New(),
 			UserID:       nil,
 			Action:       "login_failed:" + reason, // login_failed:invalid_password
 			ResourceType: "user",
@@ -612,8 +612,8 @@ func (s *AuthService) ValidateAccessToken(tokenString string) (*JWTClaims, error
 
 // GenerateRSAToken 生成一次性 Anti-Replay Token（存储 Redis，5 分钟过期）
 func (s *AuthService) GenerateRSAToken(ctx context.Context) (token, tokenID string, err error) {
-	tokenID = uuid.New().String()
-	token = uuid.New().String()
+	tokenID = uid.New().String()
+	token = uid.New().String()
 	key := "rsa_token:" + tokenID
 	err = s.redis.Set(ctx, key, token, 5*time.Minute).Err()
 	if err != nil {

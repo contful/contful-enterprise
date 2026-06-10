@@ -20,7 +20,7 @@ import (
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/storage"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // 常见 MIME 类型
@@ -91,7 +91,7 @@ func (s *AssetService) SetConfigService(cs *ConfigService) {
 }
 
 // ServeFile 提供静态文件服务
-func (s *AssetService) ServeFile(ctx context.Context, siteID uuid.UUID, key string) (io.ReadCloser, string, error) {
+func (s *AssetService) ServeFile(ctx context.Context, siteID uid.UID, key string) (io.ReadCloser, string, error) {
 	// 调用存储驱动的 ServeFile 方法
 	if localProvider, ok := s.storageProvider.(*storage.LocalProvider); ok {
 		return localProvider.ServeFile(ctx, key)
@@ -133,7 +133,7 @@ func (s *AssetService) ServeFile(ctx context.Context, siteID uuid.UUID, key stri
 
 
 // Upload 上传资源
-func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, file *multipart.FileHeader, folderID *uuid.UUID, alt, title string) (*model.Asset, error) {
+func (s *AssetService) Upload(ctx context.Context, siteID, userID uid.UID, file *multipart.FileHeader, folderID *uid.UID, alt, title string) (*model.Asset, error) {
 	// 打开文件
 	src, err := file.Open()
 	if err != nil {
@@ -171,7 +171,7 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 	}
 
 	// 生成唯一文件名
-	filename := fmt.Sprintf("%s_%d%s", uuid.New().String()[:8], time.Now().Unix(), ext)
+	filename := fmt.Sprintf("%s_%d%s", uid.New().String()[:8], time.Now().Unix(), ext)
 
 	// 生成存储 key: {site_id}/{year}/{month}/{day}/{filename}
 	now := time.Now()
@@ -193,10 +193,10 @@ func (s *AssetService) Upload(ctx context.Context, siteID, userID uuid.UUID, fil
 
 	// 创建资源记录
 	asset := &model.Asset{
-		ID:            uuid.New(),
+		ID:            uid.New(),
 		SiteID:        siteID,
 		FolderID:      folderID,
-		UUID:          uuid.New().String(),
+		UUID:          uid.New().String(),
 		Name:          s.generateSlug(filepath.Base(file.Filename), ext),
 		OriginalName:  file.Filename,
 		Slug:          s.generateSlug(filepath.Base(file.Filename), ext),
@@ -291,7 +291,7 @@ func (s *AssetService) generateSlug(name, ext string) string {
 
 	// 如果为空，生成随机名称
 	if name == "" {
-		name = fmt.Sprintf("file-%s", uuid.New().String()[:8])
+		name = fmt.Sprintf("file-%s", uid.New().String()[:8])
 	}
 
 	return name
@@ -326,12 +326,12 @@ func (s *AssetService) getImageDimensions(data []byte, ext string) (width, heigh
 }
 
 // Get 获取资源
-func (s *AssetService) Get(ctx context.Context, id uuid.UUID) (*model.Asset, error) {
+func (s *AssetService) Get(ctx context.Context, id uid.UID) (*model.Asset, error) {
 	return s.assetRepo.GetByID(ctx, id)
 }
 
 // List 列出资源
-func (s *AssetService) List(ctx context.Context, siteID uuid.UUID, filter *model.AssetListFilter, page, pageSize int) (*model.AssetListResponse, error) {
+func (s *AssetService) List(ctx context.Context, siteID uid.UID, filter *model.AssetListFilter, page, pageSize int) (*model.AssetListResponse, error) {
 	assets, total, err := s.assetRepo.List(ctx, siteID, filter, page, pageSize)
 	if err != nil {
 		return nil, err
@@ -351,7 +351,7 @@ func (s *AssetService) List(ctx context.Context, siteID uuid.UUID, filter *model
 }
 
 // Update 更新资源
-func (s *AssetService) Update(ctx context.Context, id uuid.UUID, req *model.AssetUpdate) (*model.Asset, error) {
+func (s *AssetService) Update(ctx context.Context, id uid.UID, req *model.AssetUpdate) (*model.Asset, error) {
 	asset, err := s.assetRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -393,7 +393,7 @@ func (s *AssetService) Update(ctx context.Context, id uuid.UUID, req *model.Asse
 }
 
 // Delete 删除资源
-func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *AssetService) Delete(ctx context.Context, id uid.UID) error {
 	asset, err := s.assetRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -407,7 +407,7 @@ func (s *AssetService) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // BatchDelete 批量删除
-func (s *AssetService) BatchDelete(ctx context.Context, ids []uuid.UUID) error {
+func (s *AssetService) BatchDelete(ctx context.Context, ids []uid.UID) error {
 	// 先查所有资产获取路径
 	assets, _ := s.assetRepo.GetByIDs(ctx, ids)
 	var allPaths []string
@@ -424,7 +424,7 @@ func (s *AssetService) BatchDelete(ctx context.Context, ids []uuid.UUID) error {
 // ============ Folder 操作 ============
 
 // CreateFolder 创建文件夹
-func (s *AssetService) CreateFolder(ctx context.Context, siteID, userID uuid.UUID, req *model.FolderCreate) (*model.AssetFolder, error) {
+func (s *AssetService) CreateFolder(ctx context.Context, siteID, userID uid.UID, req *model.FolderCreate) (*model.AssetFolder, error) {
 	slug := s.generateSlug(req.Name, "")
 
 	// 构建路径
@@ -440,7 +440,7 @@ func (s *AssetService) CreateFolder(ctx context.Context, siteID, userID uuid.UUI
 	}
 
 	folder := &model.AssetFolder{
-		ID:        uuid.New(),
+		ID:        uid.New(),
 		SiteID:    siteID,
 		ParentID:  req.ParentID,
 		Name:      req.Name,
@@ -458,12 +458,12 @@ func (s *AssetService) CreateFolder(ctx context.Context, siteID, userID uuid.UUI
 }
 
 // GetFolder 获取文件夹
-func (s *AssetService) GetFolder(ctx context.Context, id uuid.UUID) (*model.AssetFolder, error) {
+func (s *AssetService) GetFolder(ctx context.Context, id uid.UID) (*model.AssetFolder, error) {
 	return s.assetRepo.GetFolderByID(ctx, id)
 }
 
 // ListFolders 列出文件夹
-func (s *AssetService) ListFolders(ctx context.Context, siteID uuid.UUID, parentID *uuid.UUID) ([]model.FolderResponse, error) {
+func (s *AssetService) ListFolders(ctx context.Context, siteID uid.UID, parentID *uid.UID) ([]model.FolderResponse, error) {
 	folders, err := s.assetRepo.ListFolders(ctx, siteID, parentID)
 	if err != nil {
 		return nil, err
@@ -478,7 +478,7 @@ func (s *AssetService) ListFolders(ctx context.Context, siteID uuid.UUID, parent
 }
 
 // GetFolderTree 获取文件夹树
-func (s *AssetService) GetFolderTree(ctx context.Context, siteID uuid.UUID) ([]model.FolderResponse, error) {
+func (s *AssetService) GetFolderTree(ctx context.Context, siteID uid.UID) ([]model.FolderResponse, error) {
 	folders, err := s.assetRepo.GetFolderTree(ctx, siteID)
 	if err != nil {
 		return nil, err
@@ -493,7 +493,7 @@ func (s *AssetService) GetFolderTree(ctx context.Context, siteID uuid.UUID) ([]m
 }
 
 // UpdateFolder 更新文件夹
-func (s *AssetService) UpdateFolder(ctx context.Context, id uuid.UUID, req *model.FolderUpdate) (*model.AssetFolder, error) {
+func (s *AssetService) UpdateFolder(ctx context.Context, id uid.UID, req *model.FolderUpdate) (*model.AssetFolder, error) {
 	folder, err := s.assetRepo.GetFolderByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -522,6 +522,6 @@ func (s *AssetService) UpdateFolder(ctx context.Context, id uuid.UUID, req *mode
 }
 
 // DeleteFolder 删除文件夹
-func (s *AssetService) DeleteFolder(ctx context.Context, id uuid.UUID) error {
+func (s *AssetService) DeleteFolder(ctx context.Context, id uid.UID) error {
 	return s.assetRepo.DeleteFolder(ctx, id)
 }

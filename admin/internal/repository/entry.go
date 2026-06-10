@@ -7,7 +7,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +27,7 @@ func (r *EntryRepository) Create(ctx context.Context, entry *model.Entry) error 
 }
 
 // GetByID 根据 ID 获取
-func (r *EntryRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Entry, error) {
+func (r *EntryRepository) GetByID(ctx context.Context, id uid.UID) (*model.Entry, error) {
 	var entry model.Entry
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
@@ -39,7 +39,7 @@ func (r *EntryRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Ent
 }
 
 // GetByIDWithValues 根据 ID 获取条目及其字段值
-func (r *EntryRepository) GetByIDWithValues(ctx context.Context, id uuid.UUID) (*model.Entry, error) {
+func (r *EntryRepository) GetByIDWithValues(ctx context.Context, id uid.UID) (*model.Entry, error) {
 	var entry model.Entry
 	err := r.db.WithContext(ctx).
 		Preload("Values", func(db *gorm.DB) *gorm.DB {
@@ -54,7 +54,7 @@ func (r *EntryRepository) GetByIDWithValues(ctx context.Context, id uuid.UUID) (
 }
 
 // GetByIDWithType 根据 ID 获取条目及其内容类型
-func (r *EntryRepository) GetByIDWithType(ctx context.Context, id uuid.UUID) (*model.Entry, error) {
+func (r *EntryRepository) GetByIDWithType(ctx context.Context, id uid.UID) (*model.Entry, error) {
 	var entry model.Entry
 	err := r.db.WithContext(ctx).
 		Preload("ContentSchema", func(db *gorm.DB) *gorm.DB {
@@ -74,7 +74,7 @@ func (r *EntryRepository) GetByIDWithType(ctx context.Context, id uuid.UUID) (*m
 }
 
 // ListBySite 列出站点的条目
-func (r *EntryRepository) ListBySite(ctx context.Context, siteID uuid.UUID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
+func (r *EntryRepository) ListBySite(ctx context.Context, siteID uid.UID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
 	var entries []model.Entry
 	var total int64
 
@@ -112,7 +112,7 @@ func (r *EntryRepository) ListBySite(ctx context.Context, siteID uuid.UUID, filt
 }
 
 // ListByContentSchema 列出内容类型的条目
-func (r *EntryRepository) ListByContentSchema(ctx context.Context, siteID uuid.UUID, contentTypeID uuid.UUID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
+func (r *EntryRepository) ListByContentSchema(ctx context.Context, siteID uid.UID, contentTypeID uid.UID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
 	var entries []model.Entry
 	var total int64
 
@@ -182,12 +182,12 @@ func (r *EntryRepository) Update(ctx context.Context, entry *model.Entry) error 
 }
 
 // Delete 删除条目（软删除）
-func (r *EntryRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *EntryRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.Entry{}, "id = ?", id).Error
 }
 
 // CountByContentSchema 统计内容类型的条目数量
-func (r *EntryRepository) CountByContentSchema(ctx context.Context, contentTypeID uuid.UUID) (int64, error) {
+func (r *EntryRepository) CountByContentSchema(ctx context.Context, contentTypeID uid.UID) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&model.Entry{}).
 		Where("schema_id = ?", contentTypeID).
@@ -198,13 +198,13 @@ func (r *EntryRepository) CountByContentSchema(ctx context.Context, contentTypeI
 // ============ 批量操作 ============
 
 // BatchDelete 批量删除
-func (r *EntryRepository) BatchDelete(ctx context.Context, ids []uuid.UUID) (int64, error) {
+func (r *EntryRepository) BatchDelete(ctx context.Context, ids []uid.UID) (int64, error) {
 	result := r.db.WithContext(ctx).Delete(&model.Entry{}, "id IN ?", ids)
 	return result.RowsAffected, result.Error
 }
 
 // BatchUpdateStatus 批量更新状态
-func (r *EntryRepository) BatchUpdateStatus(ctx context.Context, ids []uuid.UUID, status model.EntryStatus) (int64, error) {
+func (r *EntryRepository) BatchUpdateStatus(ctx context.Context, ids []uid.UID, status model.EntryStatus) (int64, error) {
 	result := r.db.WithContext(ctx).Model(&model.Entry{}).
 		Where("id IN ?", ids).
 		Update("status", status)
@@ -212,7 +212,7 @@ func (r *EntryRepository) BatchUpdateStatus(ctx context.Context, ids []uuid.UUID
 }
 
 // BatchPublish 批量发布
-func (r *EntryRepository) BatchPublish(ctx context.Context, ids []uuid.UUID) (int64, error) {
+func (r *EntryRepository) BatchPublish(ctx context.Context, ids []uid.UID) (int64, error) {
 	result := r.db.WithContext(ctx).Model(&model.Entry{}).
 		Where("id IN ?", ids).
 		Updates(map[string]interface{}{
@@ -223,7 +223,7 @@ func (r *EntryRepository) BatchPublish(ctx context.Context, ids []uuid.UUID) (in
 }
 
 // BatchUnpublish 批量取消发布
-func (r *EntryRepository) BatchUnpublish(ctx context.Context, ids []uuid.UUID) (int64, error) {
+func (r *EntryRepository) BatchUnpublish(ctx context.Context, ids []uid.UID) (int64, error) {
 	result := r.db.WithContext(ctx).Model(&model.Entry{}).
 		Where("id IN ?", ids).
 		Update("status", model.EntryStatusDraft)
@@ -241,7 +241,7 @@ func (r *EntryRepository) CreateValues(ctx context.Context, values []model.Entry
 }
 
 // GetValuesByEntry 获取条目的所有字段值
-func (r *EntryRepository) GetValuesByEntry(ctx context.Context, entryID uuid.UUID) ([]model.EntryValue, error) {
+func (r *EntryRepository) GetValuesByEntry(ctx context.Context, entryID uid.UID) ([]model.EntryValue, error) {
 	var values []model.EntryValue
 	err := r.db.WithContext(ctx).
 		Preload("Field").
@@ -256,7 +256,7 @@ func (r *EntryRepository) UpdateValue(ctx context.Context, value *model.EntryVal
 }
 
 // DeleteValues 删除条目的所有字段值
-func (r *EntryRepository) DeleteValues(ctx context.Context, entryID uuid.UUID) error {
+func (r *EntryRepository) DeleteValues(ctx context.Context, entryID uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.EntryValue{}, "entry_id = ?", entryID).Error
 }
 
@@ -278,7 +278,7 @@ func (r *EntryRepository) CreateVersion(ctx context.Context, version *model.Entr
 }
 
 // GetVersions 获取条目的版本历史
-func (r *EntryRepository) GetVersions(ctx context.Context, entryID uuid.UUID) ([]model.EntryVersion, error) {
+func (r *EntryRepository) GetVersions(ctx context.Context, entryID uid.UID) ([]model.EntryVersion, error) {
 	var versions []model.EntryVersion
 	err := r.db.WithContext(ctx).
 		Where("entry_id = ?", entryID).
@@ -288,7 +288,7 @@ func (r *EntryRepository) GetVersions(ctx context.Context, entryID uuid.UUID) ([
 }
 
 // GetVersion 获取指定版本
-func (r *EntryRepository) GetVersion(ctx context.Context, entryID uuid.UUID, version int) (*model.EntryVersion, error) {
+func (r *EntryRepository) GetVersion(ctx context.Context, entryID uid.UID, version int) (*model.EntryVersion, error) {
 	var v model.EntryVersion
 	err := r.db.WithContext(ctx).
 		Where("entry_id = ? AND version = ?", entryID, version).
@@ -332,7 +332,7 @@ func (r *EntryRepository) FindDueUnpublish(ctx context.Context) ([]model.Entry, 
 }
 
 // ListScheduled 查询排期条目列表
-func (r *EntryRepository) ListScheduled(ctx context.Context, siteID uuid.UUID, filter *model.ScheduledEntryFilter) ([]model.Entry, int64, error) {
+func (r *EntryRepository) ListScheduled(ctx context.Context, siteID uid.UID, filter *model.ScheduledEntryFilter) ([]model.Entry, int64, error) {
 	var entries []model.Entry
 	var total int64
 

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +23,7 @@ func NewEntryRepository(db *gorm.DB) *EntryRepository {
 
 // Field 字段定义（最小化，供 EntryValue Preload 用）
 type Field struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ID        uid.UID `gorm:"type:uuid;primaryKey"`
 	Name      string    `gorm:"size:200;not null"`  // 字段标识名（即 slug）
 	Label     string    `gorm:"size:200;not null"`  // 显示名称
 	FieldType string    `gorm:"column:field_type;size:50;not null"`
@@ -63,9 +63,9 @@ func (j JSONBValue) Value() (interface{}, error) {
 
 // EntryValue 字段值
 type EntryValue struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey"`
-	EntryID   uuid.UUID  `gorm:"type:uuid;not null;index"`
-	FieldID   uuid.UUID  `gorm:"type:uuid;not null;index"`
+	ID        uid.UID  `gorm:"type:uuid;primaryKey"`
+	EntryID   uid.UID  `gorm:"type:uuid;not null;index"`
+	FieldID   uid.UID  `gorm:"type:uuid;not null;index"`
 	Value     JSONBValue `gorm:"type:jsonb;not null"`
 	Field     Field      `gorm:"foreignKey:FieldID"`
 }
@@ -76,9 +76,9 @@ func (EntryValue) TableName() string {
 
 // Entry 内容条目
 type Entry struct {
-	ID            uuid.UUID    `gorm:"type:uuid;primaryKey"`
-	ContentSchemaID uuid.UUID `gorm:"column:schema_id;type:uuid;not null;index"`
-	SiteID        uuid.UUID    `gorm:"type:uuid;not null;index"`
+	ID            uid.UID    `gorm:"type:uuid;primaryKey"`
+	ContentSchemaID uid.UID `gorm:"column:schema_id;type:uuid;not null;index"`
+	SiteID        uid.UID    `gorm:"type:uuid;not null;index"`
 	Locale        string       `gorm:"size:20;not null;default:'zh-CN'"`
 	Status        string       `gorm:"type:entry_status;not null;default:'draft'"`
 	Version       int          `gorm:"not null;default:1"`
@@ -104,7 +104,7 @@ type EntryListFilter struct {
 }
 
 // ListPublished 查询指定内容类型的已发布条目（携带字段值）
-func (r *EntryRepository) ListPublished(ctx context.Context, siteID, contentTypeID uuid.UUID, filter EntryListFilter, page, pageSize int) ([]Entry, int64, error) {
+func (r *EntryRepository) ListPublished(ctx context.Context, siteID, contentTypeID uid.UID, filter EntryListFilter, page, pageSize int) ([]Entry, int64, error) {
 	var entries []Entry
 	var total int64
 
@@ -157,7 +157,7 @@ func (r *EntryRepository) ListPublished(ctx context.Context, siteID, contentType
 }
 
 // GetPublishedByID 获取单个已发布条目（携带字段值）
-func (r *EntryRepository) GetPublishedByID(ctx context.Context, siteID uuid.UUID, entryID uuid.UUID) (*Entry, error) {
+func (r *EntryRepository) GetPublishedByID(ctx context.Context, siteID uid.UID, entryID uid.UID) (*Entry, error) {
 	var entry Entry
 	err := r.db.WithContext(ctx).
 		Where("id = ?", entryID).
@@ -175,7 +175,7 @@ func (r *EntryRepository) GetPublishedByID(ctx context.Context, siteID uuid.UUID
 }
 
 // List 通用条目列表（GraphQL 用，支持 cursor 分页 + 状态过滤）
-func (r *EntryRepository) List(ctx context.Context, siteID, contentTypeID uuid.UUID, filter *GraphQLFilter) ([]Entry, error) {
+func (r *EntryRepository) List(ctx context.Context, siteID, contentTypeID uid.UID, filter *GraphQLFilter) ([]Entry, error) {
 	var entries []Entry
 
 	query := r.db.WithContext(ctx).Model(&Entry{}).
@@ -189,7 +189,7 @@ func (r *EntryRepository) List(ctx context.Context, siteID, contentTypeID uuid.U
 
 	// cursor 分页（after 是 entry ID）
 	if filter.After != "" {
-		if afterID, err := uuid.Parse(filter.After); err == nil {
+		if afterID, err := uid.Parse(filter.After); err == nil {
 			query = query.Where("id > ?", afterID)
 		}
 	}
@@ -213,9 +213,9 @@ func (r *EntryRepository) List(ctx context.Context, siteID, contentTypeID uuid.U
 }
 
 // FindBySlug 按 slug 值查找条目（从 Values 中读取 slug 字段）
-func (r *EntryRepository) FindBySlug(ctx context.Context, siteID, contentTypeID uuid.UUID, slug string) (*Entry, error) {
+func (r *EntryRepository) FindBySlug(ctx context.Context, siteID, contentTypeID uid.UID, slug string) (*Entry, error) {
 	// 通过 entry_values 表联查，找到 slug 字段值为 slug 的 entry
-	var entryID uuid.UUID
+	var entryID uid.UID
 	err := r.db.WithContext(ctx).
 		Table("entry_values ev").
 		Select("ev.entry_id").
@@ -245,7 +245,7 @@ func (r *EntryRepository) FindBySlug(ctx context.Context, siteID, contentTypeID 
 }
 
 // FindByID 按 ID 查找条目（不限状态）
-func (r *EntryRepository) FindByID(ctx context.Context, entryID uuid.UUID) (*Entry, error) {
+func (r *EntryRepository) FindByID(ctx context.Context, entryID uid.UID) (*Entry, error) {
 	var entry Entry
 	err := r.db.WithContext(ctx).
 		Where("id = ?", entryID).

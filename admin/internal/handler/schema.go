@@ -12,7 +12,7 @@ import (
 	"github.com/contful/contful/admin/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // SchemaHandler 内容模型处理器
@@ -73,7 +73,7 @@ func (h *SchemaHandler) Create(c *gin.Context) {
 
 // Get 获取内容模型
 func (h *SchemaHandler) Get(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return
@@ -106,7 +106,7 @@ func (h *SchemaHandler) List(c *gin.Context) {
 
 // Update 更新内容模型
 func (h *SchemaHandler) Update(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return
@@ -130,7 +130,7 @@ func (h *SchemaHandler) Update(c *gin.Context) {
 
 // Delete 删除内容模型
 func (h *SchemaHandler) Delete(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id format")
 		return
@@ -149,7 +149,7 @@ func (h *SchemaHandler) Delete(c *gin.Context) {
 
 // CreateField 创建字段
 func (h *SchemaHandler) CreateField(c *gin.Context) {
-	contentTypeID, err := uuid.Parse(c.Param("id"))
+	contentTypeID, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid content type id format")
 		return
@@ -173,7 +173,7 @@ func (h *SchemaHandler) CreateField(c *gin.Context) {
 
 // ListFields 列出字段
 func (h *SchemaHandler) ListFields(c *gin.Context) {
-	contentTypeID, err := uuid.Parse(c.Param("id"))
+	contentTypeID, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid content type id format")
 		return
@@ -191,7 +191,7 @@ func (h *SchemaHandler) ListFields(c *gin.Context) {
 
 // UpdateField 更新字段
 func (h *SchemaHandler) UpdateField(c *gin.Context) {
-	fieldID, err := uuid.Parse(c.Param("fieldId"))
+	fieldID, err := uid.Parse(c.Param("fieldId"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid field id format")
 		return
@@ -215,7 +215,7 @@ func (h *SchemaHandler) UpdateField(c *gin.Context) {
 
 // DeleteField 删除字段
 func (h *SchemaHandler) DeleteField(c *gin.Context) {
-	fieldID, err := uuid.Parse(c.Param("fieldId"))
+	fieldID, err := uid.Parse(c.Param("fieldId"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid field id format")
 		return
@@ -232,14 +232,14 @@ func (h *SchemaHandler) DeleteField(c *gin.Context) {
 
 // ReorderFields 重新排序字段
 func (h *SchemaHandler) ReorderFields(c *gin.Context) {
-	contentTypeID, err := uuid.Parse(c.Param("id"))
+	contentTypeID, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid content type id format")
 		return
 	}
 
 	var req struct {
-		Orders map[uuid.UUID]int `json:"orders" binding:"required"`
+		Orders map[uid.UID]int `json:"orders" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		middleware.BadRequest(c, err.Error())
@@ -257,7 +257,7 @@ func (h *SchemaHandler) ReorderFields(c *gin.Context) {
 
 // Sign 对内容模型数据重新签名
 func (h *SchemaHandler) Sign(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id")
 		return
@@ -273,7 +273,7 @@ func (h *SchemaHandler) Sign(c *gin.Context) {
 
 // Verify 验签内容模型数据
 func (h *SchemaHandler) Verify(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		middleware.BadRequest(c, "invalid id")
 		return

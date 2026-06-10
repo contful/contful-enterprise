@@ -5,14 +5,14 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // ============ Entry DTO ============
 
 // EntryCreate 创建条目请求
 type EntryCreate struct {
-	ContentSchemaID  uuid.UUID              `json:"schema_id" binding:"required"`
+	ContentSchemaID  uid.UID              `json:"schema_id" binding:"required"`
 	Locale         string                 `json:"locale" binding:"omitempty,max=20"`
 	Values         map[string]interface{} `json:"values"`
 	SEOTitle       string                 `json:"seo_title" binding:"omitempty,max=255"`
@@ -44,15 +44,15 @@ type EntryPublish struct {
 
 // EntryResponse 条目响应
 type EntryResponse struct {
-	ID             uuid.UUID                `json:"id"`
-	ContentSchemaID  uuid.UUID                `json:"schema_id"`
-	SiteID         uuid.UUID                `json:"site_id"`
+	ID             uid.UID                `json:"id"`
+	ContentSchemaID  uid.UID                `json:"schema_id"`
+	SiteID         uid.UID                `json:"site_id"`
 	Locale         string                   `json:"locale"`
 	Status         EntryStatus              `json:"status"`
 	Version        int                      `json:"version"`
 	VersionHistory []EntryVersionInfo       `json:"version_history,omitempty"`
 	PublishedTime  *time.Time               `json:"published_time,omitempty"`
-	PublishedBy    *uuid.UUID               `json:"published_by,omitempty"`
+	PublishedBy    *uid.UID               `json:"published_by,omitempty"`
 	ScheduledPublishTime   *time.Time `json:"scheduled_publish_time,omitempty"`
 	ScheduledUnpublishTime *time.Time `json:"scheduled_unpublish_time,omitempty"`
 	Relations      []map[string]interface{} `json:"relations,omitempty"`
@@ -60,7 +60,7 @@ type EntryResponse struct {
 	SEODescription string                   `json:"seo_description,omitempty"`
 	SEOKeywords   []string                 `json:"seo_keywords,omitempty"`
 	SortWeight     int                      `json:"sort_weight"`
-	CreatedBy      *uuid.UUID               `json:"created_by,omitempty"`
+	CreatedBy      *uid.UID               `json:"created_by,omitempty"`
 	CreatedTime    time.Time                `json:"created_time"`
 	UpdatedTime    time.Time                `json:"updated_time"`
 	Values         map[string]interface{}   `json:"values,omitempty"`
@@ -70,7 +70,7 @@ type EntryResponse struct {
 // EntryVersionInfo 版本信息
 type EntryVersionInfo struct {
 	Version       int       `json:"version"`
-	CreatedBy     *uuid.UUID `json:"created_by,omitempty"`
+	CreatedBy     *uid.UID `json:"created_by,omitempty"`
 	CreatedTime     time.Time `json:"created_time"`
 	ChangeSummary string    `json:"change_summary,omitempty"`
 }
@@ -85,7 +85,7 @@ type EntryListResponse struct {
 
 // EntryListFilter 条目列表过滤条件
 type EntryListFilter struct {
-	ContentSchemaID *uuid.UUID   `json:"schema_id"`
+	ContentSchemaID *uid.UID   `json:"schema_id"`
 	Status        *EntryStatus `json:"status"`
 	Locale        *string      `json:"locale"`
 	Keyword       *string      `json:"keyword"`         // 搜索标题或内容
@@ -187,19 +187,19 @@ func (e *Entry) ToResponseWithTypeWithContentSchema(ct *ContentSchema) EntryResp
 
 // BatchDeleteRequest 批量删除请求
 type BatchDeleteRequest struct {
-	IDs []uuid.UUID `json:"ids" binding:"required,min=1"`
+	IDs []uid.UID `json:"ids" binding:"required,min=1"`
 }
 
 // BatchPublishRequest 批量发布请求
 type BatchPublishRequest struct {
-	IDs []uuid.UUID `json:"ids" binding:"required,min=1"`
+	IDs []uid.UID `json:"ids" binding:"required,min=1"`
 }
 
 // BatchResponse 批量操作响应
 type BatchResponse struct {
 	SuccessCount int `json:"success_count"`
 	FailedCount  int `json:"failed_count"`
-	FailedIDs    []uuid.UUID `json:"failed_ids,omitempty"`
+	FailedIDs    []uid.UID `json:"failed_ids,omitempty"`
 }
 
 // unwrapEntryValue 从 JSONB {"value": X} 包装中提取原始值

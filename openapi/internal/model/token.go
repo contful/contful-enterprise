@@ -3,13 +3,13 @@
 package model
 
 import (
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 )
 
 // TokenContext Token 验证通过后存入 Context 的信息
 type TokenContext struct {
-	TokenID   uuid.UUID `json:"token_id"`
-	SiteID    uuid.UUID `json:"site_id"`
+	TokenID   uid.UID `json:"token_id"`
+	SiteID    uid.UID `json:"site_id"`
 	Name      string    `json:"name"`
 	ExpiresAt *int64    `json:"expires_at,omitempty"`
 }

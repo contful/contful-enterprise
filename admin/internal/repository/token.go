@@ -9,7 +9,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -37,7 +37,7 @@ func (r *APITokenRepository) Create(ctx context.Context, token *model.APIToken) 
 }
 
 // GetByID 根据 ID 获取
-func (r *APITokenRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.APIToken, error) {
+func (r *APITokenRepository) GetByID(ctx context.Context, id uid.UID) (*model.APIToken, error) {
 	var token model.APIToken
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
@@ -75,7 +75,7 @@ func (r *APITokenRepository) GetByPrefix(ctx context.Context, prefix string) (*m
 }
 
 // List 列出站点的 Token
-func (r *APITokenRepository) List(ctx context.Context, siteID uuid.UUID, filter *model.APITokenListFilter, page, pageSize int) ([]model.APIToken, int64, error) {
+func (r *APITokenRepository) List(ctx context.Context, siteID uid.UID, filter *model.APITokenListFilter, page, pageSize int) ([]model.APIToken, int64, error) {
 	var tokens []model.APIToken
 	var total int64
 
@@ -115,12 +115,12 @@ func (r *APITokenRepository) Update(ctx context.Context, token *model.APIToken) 
 }
 
 // Delete 删除 Token（软删除）
-func (r *APITokenRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *APITokenRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.APIToken{}, "id = ?", id).Error
 }
 
 // Revoke 撤销 Token
-func (r *APITokenRepository) Revoke(ctx context.Context, id uuid.UUID) error {
+func (r *APITokenRepository) Revoke(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).
 		Model(&model.APIToken{}).
 		Where("id = ?", id).
@@ -128,7 +128,7 @@ func (r *APITokenRepository) Revoke(ctx context.Context, id uuid.UUID) error {
 }
 
 // UpdateUsage 更新使用统计（自增 request_count）
-func (r *APITokenRepository) UpdateUsage(ctx context.Context, id uuid.UUID) error {
+func (r *APITokenRepository) UpdateUsage(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).
 		Model(&model.APIToken{}).
 		Where("id = ?", id).
@@ -136,7 +136,7 @@ func (r *APITokenRepository) UpdateUsage(ctx context.Context, id uuid.UUID) erro
 }
 
 // UpdateLastUsed 更新最后使用时间
-func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) error {
+func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uid.UID) error {
 	now := time.Now()
 	return r.db.WithContext(ctx).
 		Model(&model.APIToken{}).
@@ -145,7 +145,7 @@ func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) e
 }
 
 // CountBySite 统计站点的 Token 数量
-func (r *APITokenRepository) CountBySite(ctx context.Context, siteID uuid.UUID) (int64, error) {
+func (r *APITokenRepository) CountBySite(ctx context.Context, siteID uid.UID) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&model.APIToken{}).
 		Where("site_id = ?", siteID).

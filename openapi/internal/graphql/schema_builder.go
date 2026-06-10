@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/contful/contful/openapi/internal/repository"
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 	"github.com/graphql-go/graphql"
 )
 
@@ -18,7 +18,7 @@ type SchemaBuilder struct {
 	resolver   *Resolver
 
 	mu    sync.RWMutex
-	cache map[uuid.UUID]graphql.Schema // siteID → Schema 缓存
+	cache map[uid.UID]graphql.Schema // siteID → Schema 缓存
 }
 
 // NewSchemaBuilder 创建 SchemaBuilder
@@ -31,12 +31,12 @@ func NewSchemaBuilder(
 		schemaRepo: schemaRepo,
 		fieldRepo:  fieldRepo,
 		resolver:   resolver,
-		cache:      make(map[uuid.UUID]graphql.Schema),
+		cache:      make(map[uid.UID]graphql.Schema),
 	}
 }
 
 // BuildQuery 构建 Query 类型
-func (b *SchemaBuilder) BuildQuery(siteID uuid.UUID) (*graphql.Object, error) {
+func (b *SchemaBuilder) BuildQuery(siteID uid.UID) (*graphql.Object, error) {
 	// 读取站点下所有 Content Schema
 	schemas, err := b.schemaRepo.ListBySiteID(nil, siteID)
 	if err != nil {
@@ -78,7 +78,7 @@ func (b *SchemaBuilder) BuildQuery(siteID uuid.UUID) (*graphql.Object, error) {
 // addContentSchemaQuery 为单个 Content Schema 添加查询字段
 func (b *SchemaBuilder) addContentSchemaQuery(
 	queryFields graphql.Fields,
-	siteID uuid.UUID,
+	siteID uid.UID,
 	cs *repository.ContentSchema,
 ) error {
 	// 读取 Fields
@@ -128,7 +128,7 @@ func (b *SchemaBuilder) addContentSchemaQuery(
 			var endCursor string
 			if len(entries) > 0 {
 				if idStr, ok := entries[len(entries)-1]["_id"].(string); ok {
-					if id, parseErr := uuid.Parse(idStr); parseErr == nil {
+					if id, parseErr := uid.Parse(idStr); parseErr == nil {
 						endCursor = encodeCursor(id)
 					}
 				}
@@ -245,7 +245,7 @@ func mapFieldType(fieldType string) graphql.Output {
 }
 
 // Build 构建完整 Schema
-func (b *SchemaBuilder) Build(siteID uuid.UUID) (*graphql.Schema, error) {
+func (b *SchemaBuilder) Build(siteID uid.UID) (*graphql.Schema, error) {
 	// 检查缓存
 	b.mu.RLock()
 	cached, ok := b.cache[siteID]
@@ -275,7 +275,7 @@ func (b *SchemaBuilder) Build(siteID uuid.UUID) (*graphql.Schema, error) {
 }
 
 // InvalidateCache 清除指定站点缓存（Content Schema 变更后调用）
-func (b *SchemaBuilder) InvalidateCache(siteID uuid.UUID) {
+func (b *SchemaBuilder) InvalidateCache(siteID uid.UID) {
 	b.mu.Lock()
 	delete(b.cache, siteID)
 	b.mu.Unlock()

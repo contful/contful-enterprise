@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -24,7 +24,7 @@ func NewConfigService(db *gorm.DB) *ConfigService {
 var ErrConfigNotFound = errors.New("config not found")
 
 // GetValue 从 sites.settings JSONB 中获取指定 key 的值
-func (s *ConfigService) GetValue(ctx context.Context, siteID uuid.UUID, key string) (string, error) {
+func (s *ConfigService) GetValue(ctx context.Context, siteID uid.UID, key string) (string, error) {
 	var value string
 	// PostgreSQL: 从 JSONB 列中提取 key 的值
 	err := s.db.WithContext(ctx).

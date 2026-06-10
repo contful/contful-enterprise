@@ -10,7 +10,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -35,7 +35,7 @@ func NewEntryService(
 }
 
 // Create 创建条目
-func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, req *model.EntryCreate, integritySvc *IntegrityService) (*model.Entry, error) {
+func (s *EntryService) Create(ctx context.Context, siteID uid.UID, userID *uid.UID, req *model.EntryCreate, integritySvc *IntegrityService) (*model.Entry, error) {
 	// 验证内容模型存在
 	contentSchema, err := s.contentSchemaRepo.GetByIDWithFields(ctx, req.ContentSchemaID)
 	if err != nil {
@@ -53,7 +53,7 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 
 	// 创建条目
 	entry := &model.Entry{
-		ID:             uuid.New(),
+		ID:             uid.New(),
 		ContentSchemaID:  req.ContentSchemaID,
 		SiteID:         siteID,
 		Locale:         locale,
@@ -118,7 +118,7 @@ func (s *EntryService) Create(ctx context.Context, siteID uuid.UUID, userID *uui
 }
 
 // GetByID 获取条目
-func (s *EntryService) GetByID(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.Entry, error) {
+func (s *EntryService) GetByID(ctx context.Context, siteID uid.UID, id uid.UID) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByIDWithType(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -136,7 +136,7 @@ func (s *EntryService) GetByID(ctx context.Context, siteID uuid.UUID, id uuid.UU
 }
 
 // List 列出条目
-func (s *EntryService) List(ctx context.Context, siteID uuid.UUID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
+func (s *EntryService) List(ctx context.Context, siteID uid.UID, filter *model.EntryListFilter, page, pageSize int) ([]model.Entry, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -158,7 +158,7 @@ func (s *EntryService) List(ctx context.Context, siteID uuid.UUID, filter *model
 }
 
 // Update 更新条目
-func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, id uuid.UUID, req *model.EntryUpdate, integritySvc *IntegrityService) (*model.Entry, error) {
+func (s *EntryService) Update(ctx context.Context, siteID uid.UID, userID *uid.UID, id uid.UID, req *model.EntryUpdate, integritySvc *IntegrityService) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByIDWithValues(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -250,7 +250,7 @@ func (s *EntryService) Update(ctx context.Context, siteID uuid.UUID, userID *uui
 }
 
 // Delete 删除条目
-func (s *EntryService) Delete(ctx context.Context, siteID uuid.UUID, id uuid.UUID) error {
+func (s *EntryService) Delete(ctx context.Context, siteID uid.UID, id uid.UID) error {
 	entry, err := s.entryRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -268,7 +268,7 @@ func (s *EntryService) Delete(ctx context.Context, siteID uuid.UUID, id uuid.UUI
 }
 
 // Publish 发布条目
-func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uuid.UUID, id uuid.UUID, req *model.EntryPublish, integritySvc *IntegrityService) (*model.Entry, error) {
+func (s *EntryService) Publish(ctx context.Context, siteID uid.UID, userID *uid.UID, id uid.UID, req *model.EntryPublish, integritySvc *IntegrityService) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByIDWithValues(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -318,7 +318,7 @@ func (s *EntryService) Publish(ctx context.Context, siteID uuid.UUID, userID *uu
 }
 
 // Unpublish 取消发布
-func (s *EntryService) Unpublish(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.Entry, error) {
+func (s *EntryService) Unpublish(ctx context.Context, siteID uid.UID, id uid.UID) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -344,7 +344,7 @@ func (s *EntryService) Unpublish(ctx context.Context, siteID uuid.UUID, id uuid.
 }
 
 // GetVersions 获取版本历史
-func (s *EntryService) GetVersions(ctx context.Context, siteID uuid.UUID, id uuid.UUID) ([]model.EntryVersion, error) {
+func (s *EntryService) GetVersions(ctx context.Context, siteID uid.UID, id uid.UID) ([]model.EntryVersion, error) {
 	entry, err := s.entryRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -362,7 +362,7 @@ func (s *EntryService) GetVersions(ctx context.Context, siteID uuid.UUID, id uui
 }
 
 // SetSchedule 设置排期时间
-func (s *EntryService) SetSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID, req *model.ScheduleRequest) (*model.Entry, error) {
+func (s *EntryService) SetSchedule(ctx context.Context, siteID uid.UID, id uid.UID, req *model.ScheduleRequest) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -385,7 +385,7 @@ func (s *EntryService) SetSchedule(ctx context.Context, siteID uuid.UUID, id uui
 }
 
 // ClearSchedule 清除排期时间
-func (s *EntryService) ClearSchedule(ctx context.Context, siteID uuid.UUID, id uuid.UUID) (*model.Entry, error) {
+func (s *EntryService) ClearSchedule(ctx context.Context, siteID uid.UID, id uid.UID) (*model.Entry, error) {
 	entry, err := s.entryRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -410,9 +410,9 @@ func (s *EntryService) ClearSchedule(ctx context.Context, siteID uuid.UUID, id u
 // ============ 批量操作 ============
 
 // BatchDelete 批量删除
-func (s *EntryService) BatchDelete(ctx context.Context, siteID uuid.UUID, ids []uuid.UUID) (*model.BatchResponse, error) {
+func (s *EntryService) BatchDelete(ctx context.Context, siteID uid.UID, ids []uid.UID) (*model.BatchResponse, error) {
 	// 验证站点权限
-	var validIDs []uuid.UUID
+	var validIDs []uid.UID
 	for _, id := range ids {
 		entry, err := s.entryRepo.GetByID(ctx, id)
 		if err != nil {
@@ -439,9 +439,9 @@ func (s *EntryService) BatchDelete(ctx context.Context, siteID uuid.UUID, ids []
 }
 
 // BatchPublish 批量发布
-func (s *EntryService) BatchPublish(ctx context.Context, siteID uuid.UUID, ids []uuid.UUID) (*model.BatchResponse, error) {
+func (s *EntryService) BatchPublish(ctx context.Context, siteID uid.UID, ids []uid.UID) (*model.BatchResponse, error) {
 	// 验证站点权限
-	var validIDs []uuid.UUID
+	var validIDs []uid.UID
 	for _, id := range ids {
 		entry, err := s.entryRepo.GetByID(ctx, id)
 		if err != nil {
@@ -468,9 +468,9 @@ func (s *EntryService) BatchPublish(ctx context.Context, siteID uuid.UUID, ids [
 }
 
 // BatchUnpublish 批量取消发布
-func (s *EntryService) BatchUnpublish(ctx context.Context, siteID uuid.UUID, ids []uuid.UUID) (*model.BatchResponse, error) {
+func (s *EntryService) BatchUnpublish(ctx context.Context, siteID uid.UID, ids []uid.UID) (*model.BatchResponse, error) {
 	// 验证站点权限
-	var validIDs []uuid.UUID
+	var validIDs []uid.UID
 	for _, id := range ids {
 		entry, err := s.entryRepo.GetByID(ctx, id)
 		if err != nil {
@@ -499,7 +499,7 @@ func (s *EntryService) BatchUnpublish(ctx context.Context, siteID uuid.UUID, ids
 // ============ 辅助方法 ============
 
 // parseAndValidateValues 解析并验证字段值
-func (s *EntryService) parseAndValidateValues(ctx context.Context, fields []model.Field, entryID uuid.UUID, values map[string]interface{}) ([]model.EntryValue, error) {
+func (s *EntryService) parseAndValidateValues(ctx context.Context, fields []model.Field, entryID uid.UID, values map[string]interface{}) ([]model.EntryValue, error) {
 	result := make([]model.EntryValue, 0, len(values))
 
 	// 构建字段映射
@@ -515,7 +515,7 @@ func (s *EntryService) parseAndValidateValues(ctx context.Context, fields []mode
 		}
 
 		entryValue := model.EntryValue{
-			ID:      uuid.New(),
+			ID:      uid.New(),
 			EntryID: entryID,
 			FieldID: field.ID,
 		}

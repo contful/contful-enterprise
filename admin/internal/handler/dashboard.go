@@ -10,7 +10,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // DashboardHandler 仪表盘处理器
@@ -26,9 +26,9 @@ func NewDashboardHandler(dashboardSvc *service.DashboardService) *DashboardHandl
 // Stats 获取仪表盘统计（不依赖 X-Site-ID，如已选站点则附带站点相关统计）
 func (h *DashboardHandler) Stats(c *gin.Context) {
 	// 尝试从 header 读取可选 siteID
-	var siteID *uuid.UUID
+	var siteID *uid.UID
 	if siteIDStr := c.GetHeader(middleware.SiteIDHeader); siteIDStr != "" {
-		if id, err := uuid.Parse(siteIDStr); err == nil {
+		if id, err := uid.Parse(siteIDStr); err == nil {
 			siteID = &id
 		}
 	}

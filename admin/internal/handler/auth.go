@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 
 	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/middleware"
@@ -247,8 +247,8 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	userIDStr, ok := userIDVal.(string)
 	if !ok {
-		// 尝试从 uuid.UUID 获取
-		if uid, ok := userIDVal.(uuid.UUID); ok {
+		// 尝试从 uid.UID 获取
+		if uid, ok := userIDVal.(uid.UID); ok {
 			userIDStr = uid.String()
 		} else {
 			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
@@ -256,7 +256,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		}
 	}
 
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := uid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
 		return

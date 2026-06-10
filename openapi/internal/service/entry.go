@@ -12,7 +12,7 @@ import (
 	"strconv"
 
 	"github.com/contful/contful/openapi/internal/repository"
-	"github.com/google/uuid"
+	"github.com/contful/contful/openapi/pkg/uid"
 )
 
 // ErrContentSchemaNotFound 内容模型不存在
@@ -39,7 +39,7 @@ func NewEntryService(entryRepo *repository.EntryRepository, csRepo *repository.C
 
 // EntryItem 对外输出的条目结构（扁平化字段值）
 type EntryItem struct {
-	ID             uuid.UUID              `json:"id"`
+	ID             uid.UID              `json:"id"`
 	Locale         string                 `json:"locale"`
 	Version        int                    `json:"version"`
 	PublishedTime  interface{}            `json:"published_time"`
@@ -56,7 +56,7 @@ type EntryListResponse struct {
 }
 
 // ListBySlug 通过内容类型 slug 列出已发布条目
-func (s *EntryService) ListBySlug(ctx context.Context, siteID uuid.UUID, slug string, locale string, sortField, sortOrder string, page, pageSize int) (*EntryListResponse, error) {
+func (s *EntryService) ListBySlug(ctx context.Context, siteID uid.UID, slug string, locale string, sortField, sortOrder string, page, pageSize int) (*EntryListResponse, error) {
 	// 1. 尝试从缓存获取
 	cacheKey := s.cacheSvc.GetEntryListKey(siteID, slug, locale, sortField, sortOrder, page, pageSize)
 	if cachedData, err := s.cacheSvc.Get(ctx, cacheKey); err == nil && cachedData != nil {
@@ -108,7 +108,7 @@ func (s *EntryService) ListBySlug(ctx context.Context, siteID uuid.UUID, slug st
 }
 
 // GetByID 获取单个已发布条目
-func (s *EntryService) GetByID(ctx context.Context, siteID uuid.UUID, slug string, entryID uuid.UUID) (*EntryItem, error) {
+func (s *EntryService) GetByID(ctx context.Context, siteID uid.UID, slug string, entryID uid.UID) (*EntryItem, error) {
 	// 1. 尝试从缓存获取
 	cacheKey := s.cacheSvc.GetEntryDetailKey(siteID, slug, entryID)
 	if cachedData, err := s.cacheSvc.Get(ctx, cacheKey); err == nil && cachedData != nil {

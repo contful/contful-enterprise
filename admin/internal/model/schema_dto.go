@@ -5,7 +5,7 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // ============ ContentSchema DTO ============
@@ -35,8 +35,8 @@ type ContentSchemaUpdate struct {
 
 // ContentSchemaResponse 内容模型响应
 type ContentSchemaResponse struct {
-	ID                   uuid.UUID             `json:"id"`
-	SiteID               uuid.UUID             `json:"site_id"`
+	ID                   uid.UID             `json:"id"`
+	SiteID               uid.UID             `json:"site_id"`
 	Name                 string                `json:"name"`
 	Slug                 string                `json:"slug"`
 	Description          string                `json:"description"`
@@ -45,7 +45,7 @@ type ContentSchemaResponse struct {
 	DraftAutosaveInterval *int                 `json:"draft_autosave_interval"`
 	IsActive             bool                  `json:"is_active"`
 	SortOrder            int                   `json:"sort_order"`
-	CreatedBy            *uuid.UUID            `json:"created_by"`
+	CreatedBy            *uid.UID            `json:"created_by"`
 	CreatedTime            time.Time             `json:"created_time"`
 	UpdatedTime            time.Time             `json:"updated_time"`
 	Fields               []FieldResponse       `json:"fields,omitempty"`
@@ -120,8 +120,8 @@ type FieldUpdate struct {
 
 // FieldResponse 字段响应
 type FieldResponse struct {
-	ID                 uuid.UUID              `json:"id"`
-	ContentSchemaID      uuid.UUID              `json:"schema_id"`
+	ID                 uid.UID              `json:"id"`
+	ContentSchemaID      uid.UID              `json:"schema_id"`
 	Name               string                 `json:"name"`
 	Label              string                 `json:"label"`
 	Description        string                 `json:"description"`

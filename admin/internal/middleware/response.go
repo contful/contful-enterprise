@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 
 	"github.com/contful/contful/admin/internal/model"
 )
@@ -52,12 +52,12 @@ func InternalError(c *gin.Context, msg string) {
 }
 
 // GetUserID 获取用户 ID
-func GetUserID(c *gin.Context) (*uuid.UUID, bool) {
+func GetUserID(c *gin.Context) (*uid.UID, bool) {
 	userID, exists := c.Get(UserContextKey)
 	if !exists {
 		return nil, false
 	}
-	uid, ok := userID.(uuid.UUID)
+	uid, ok := userID.(uid.UID)
 	if !ok {
 		return nil, false
 	}

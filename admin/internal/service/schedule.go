@@ -9,7 +9,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/metrics"
 	"github.com/contful/contful/admin/internal/repository"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 )
@@ -157,6 +157,6 @@ func (s *ScheduleService) unpublishEntries(ctx context.Context) (unpublished, sk
 }
 
 // ListScheduled 查询排期条目列表
-func (s *ScheduleService) ListScheduled(ctx context.Context, siteID uuid.UUID, filter *model.ScheduledEntryFilter) ([]model.Entry, int64, error) {
+func (s *ScheduleService) ListScheduled(ctx context.Context, siteID uid.UID, filter *model.ScheduledEntryFilter) ([]model.Entry, int64, error) {
 	return s.entryRepo.ListScheduled(ctx, siteID, filter)
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +27,7 @@ func (r *SchemaRepository) Create(ctx context.Context, ct *model.ContentSchema) 
 }
 
 // GetByID 根据 ID 获取
-func (r *SchemaRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.ContentSchema, error) {
+func (r *SchemaRepository) GetByID(ctx context.Context, id uid.UID) (*model.ContentSchema, error) {
 	var ct model.ContentSchema
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
@@ -39,7 +39,7 @@ func (r *SchemaRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Co
 }
 
 // GetByIDWithFields 获取内容模型及其字段
-func (r *SchemaRepository) GetByIDWithFields(ctx context.Context, id uuid.UUID) (*model.ContentSchema, error) {
+func (r *SchemaRepository) GetByIDWithFields(ctx context.Context, id uid.UID) (*model.ContentSchema, error) {
 	var ct model.ContentSchema
 	err := r.db.WithContext(ctx).
 		Preload("Fields", func(db *gorm.DB) *gorm.DB {
@@ -54,7 +54,7 @@ func (r *SchemaRepository) GetByIDWithFields(ctx context.Context, id uuid.UUID) 
 }
 
 // GetBySlug 根据 slug 获取
-func (r *SchemaRepository) GetBySlug(ctx context.Context, siteID uuid.UUID, slug string) (*model.ContentSchema, error) {
+func (r *SchemaRepository) GetBySlug(ctx context.Context, siteID uid.UID, slug string) (*model.ContentSchema, error) {
 	var ct model.ContentSchema
 	err := r.db.WithContext(ctx).
 		Where("site_id = ? AND slug = ?", siteID, slug).
@@ -66,7 +66,7 @@ func (r *SchemaRepository) GetBySlug(ctx context.Context, siteID uuid.UUID, slug
 }
 
 // ListBySite 列出站点的内容模型
-func (r *SchemaRepository) ListBySite(ctx context.Context, siteID uuid.UUID, page, pageSize int) ([]model.ContentSchema, int64, error) {
+func (r *SchemaRepository) ListBySite(ctx context.Context, siteID uid.UID, page, pageSize int) ([]model.ContentSchema, int64, error) {
 	var cts []model.ContentSchema
 	var total int64
 
@@ -98,12 +98,12 @@ func (r *SchemaRepository) Update(ctx context.Context, ct *model.ContentSchema) 
 }
 
 // Delete 删除内容模型（软删除）
-func (r *SchemaRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *SchemaRepository) Delete(ctx context.Context, id uid.UID) error {
 	return r.db.WithContext(ctx).Delete(&model.ContentSchema{}, "id = ?", id).Error
 }
 
 // ExistsSlug 检查 slug 是否存在
-func (r *SchemaRepository) ExistsSlug(ctx context.Context, siteID uuid.UUID, slug string, excludeID *uuid.UUID) (bool, error) {
+func (r *SchemaRepository) ExistsSlug(ctx context.Context, siteID uid.UID, slug string, excludeID *uid.UID) (bool, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(&model.ContentSchema{}).
 		Where("site_id = ? AND slug = ?", siteID, slug)

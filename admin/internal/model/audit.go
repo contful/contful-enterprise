@@ -5,7 +5,7 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 )
 
 // AuditLevel 审计日志级别
@@ -32,12 +32,12 @@ const (
 
 // AuditLog 审计日志
 type AuditLog struct {
-	ID            uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	SiteID        *uuid.UUID `json:"site_id" gorm:"type:uuid;index"`
-	UserID        *uuid.UUID `json:"user_id" gorm:"type:uuid;index"`
+	ID            uid.UID  `json:"id" gorm:"primary_key;default:gen_random_uuid()"`
+	SiteID        *uid.UID `json:"site_id" gorm:"index"`
+	UserID        *uid.UID `json:"user_id" gorm:"index"`
 	Action        string     `json:"action" gorm:"type:varchar(100);not null"`
 	ResourceType  string     `json:"resource_type" gorm:"type:varchar(100)"`
-	ResourceID    *uuid.UUID `json:"resource_id" gorm:"type:uuid"`
+	ResourceID    *uid.UID `json:"resource_id" gorm:"type:uuid"`
 	Level         AuditLevel `json:"level" gorm:"type:audit_level;not null;default:'info'"`
 	Category      AuditType  `json:"category" gorm:"type:audit_type;not null;index"`
 	Details       string     `json:"details" gorm:"type:text"`
@@ -53,8 +53,8 @@ func (AuditLog) TableName() string {
 
 // AuditLogFilter 审计日志筛选条件
 type AuditLogFilter struct {
-	SiteID       *uuid.UUID
-	UserID       *uuid.UUID
+	SiteID       *uid.UID
+	UserID       *uid.UID
 	Action       string
 	ResourceType string
 	Category     AuditType

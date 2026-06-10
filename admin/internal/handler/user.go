@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 )
@@ -53,7 +53,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 // Get 获取单个用户
 func (h *UserHandler) Get(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := uid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
@@ -95,7 +95,7 @@ func (h *UserHandler) List(c *gin.Context) {
 // Update 更新用户
 func (h *UserHandler) Update(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := uid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
@@ -129,7 +129,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 // Delete 删除用户（支持软删除和永久删除）
 func (h *UserHandler) Delete(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := uid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
@@ -159,7 +159,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 // Restore 恢复软删除的用户
 func (h *UserHandler) Restore(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := uid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
@@ -192,16 +192,16 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		return
 	}
 
-	var userID uuid.UUID
+	var userID uid.UID
 	switch v := userIDStr.(type) {
 	case string:
-		uid, err := uuid.Parse(v)
+		uid, err := uid.Parse(v)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
 			return
 		}
 		userID = uid
-	case uuid.UUID:
+	case uid.UID:
 		userID = v
 	default:
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
@@ -232,16 +232,16 @@ func (h *UserHandler) UpdatePassword(c *gin.Context) {
 		return
 	}
 
-	var userID uuid.UUID
+	var userID uid.UID
 	switch v := userIDStr.(type) {
 	case string:
-		uid, err := uuid.Parse(v)
+		uid, err := uid.Parse(v)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
 			return
 		}
 		userID = uid
-	case uuid.UUID:
+	case uid.UID:
 		userID = v
 	default:
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
@@ -278,16 +278,16 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	var adminID uuid.UUID
+	var adminID uid.UID
 	switch v := userIDStr.(type) {
 	case string:
-		uid, err := uuid.Parse(v)
+		uid, err := uid.Parse(v)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
 			return
 		}
 		adminID = uid
-	case uuid.UUID:
+	case uid.UID:
 		adminID = v
 	default:
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
@@ -296,7 +296,7 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 
 	// 获取目标用户 ID
 	targetIDStr := c.Param("id")
-	targetID, err := uuid.Parse(targetIDStr)
+	targetID, err := uid.Parse(targetIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid target user id"))
 		return
@@ -345,7 +345,7 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 // Sign 对用户数据重新签名
 // POST /users/:id/sign
 func (h *UserHandler) Sign(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
@@ -367,7 +367,7 @@ func (h *UserHandler) Sign(c *gin.Context) {
 // Verify 验签用户数据
 // POST /users/:id/verify
 func (h *UserHandler) Verify(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.NewErrorResponse(model.CodeBadRequest, "invalid user id"))
 		return
@@ -391,16 +391,16 @@ func (h *UserHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	var userID uuid.UUID
+	var userID uid.UID
 	switch v := userIDStr.(type) {
 	case string:
-		uid, err := uuid.Parse(v)
+		uid, err := uid.Parse(v)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))
 			return
 		}
 		userID = uid
-	case uuid.UUID:
+	case uid.UID:
 		userID = v
 	default:
 		c.JSON(http.StatusUnauthorized, model.NewErrorResponse(model.CodeUnauthorized, "invalid user id"))

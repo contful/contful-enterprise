@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/gorm"
 )
 
@@ -62,8 +62,8 @@ type APIUsage struct {
 
 // APIToken API Token
 type APIToken struct {
-	ID            uuid.UUID    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SiteID        uuid.UUID    `json:"site_id" gorm:"type:uuid;not null;index"`
+	ID            uid.UID    `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	SiteID        uid.UID    `json:"site_id" gorm:"not null;index"`
 	Name          string       `json:"name" gorm:"size:200;not null"`
 	Description   string       `json:"description" gorm:"type:text"`
 	TokenPrefix   string       `json:"token_prefix" gorm:"size:20;not null;index"` // ctg_ 前缀
@@ -73,7 +73,7 @@ type APIToken struct {
 	Status          TokenStatus  `json:"status" gorm:"type:token_status;not null;default:'active'"`
 	LastUsedTime    *time.Time   `json:"last_used_time,omitempty" gorm:"column:last_used_time"`
 	LastUsedIP      *string      `json:"last_used_ip,omitempty" gorm:"type:inet"`
-	CreatedBy       *uuid.UUID   `json:"created_by" gorm:"type:uuid"`
+	CreatedBy       *uid.UID   `json:"created_by" gorm:"type:uuid"`
 	CreatedTime     time.Time    `json:"created_time" gorm:"column:created_time;autoCreateTime"`
 	UpdatedTime     time.Time    `json:"updated_time" gorm:"column:updated_time;autoUpdateTime"`
 	DeletedAt       gorm.DeletedAt `json:"deleted_time" gorm:"column:deleted_time;index"`
