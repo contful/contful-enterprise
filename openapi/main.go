@@ -39,13 +39,14 @@ func main() {
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: log.Writer()}).With().Timestamp().Logger()
 	logger.Info().Str("service", "open").Str("port", cfg.Server.Port).Msg("starting")
 
-	// 初始化数据库（PostgreSQL）
+	// 初始化数据库
 	dsnCfg := &database.DSNConfig{
 		Host:     cfg.Database.Host,
 		Port:     cfg.Database.Port,
 		User:     cfg.Database.User,
 		Password: cfg.Database.Password,
 		Name:     cfg.Database.Name,
+		Schema:   cfg.Database.Schema,
 		SSLMode:  cfg.Database.SSLMode,
 	}
 	db, err := database.Open(dsnCfg, cfg.Database.MaxOpenConns, cfg.Database.MaxIdleConns, cfg.Database.ConnMaxLifetime)

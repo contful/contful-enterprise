@@ -68,14 +68,15 @@ type ServerConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	// Type 数据库类型（postgres）
+	// Type 数据库类型（postgres / dm）
 	Type            string `mapstructure:"type"`
 	Host            string `mapstructure:"host"`
 	Port            int    `mapstructure:"port"`
 	User            string `mapstructure:"user"`
 	Password        string `mapstructure:"password"`
 	Name            string `mapstructure:"name"`
-	SSLMode         string `mapstructure:"ssl_mode"`
+	Schema          string `mapstructure:"schema"`   // 达梦模式名（PostgreSQL 忽略）
+	SSLMode         string `mapstructure:"ssl_mode"` // PostgreSQL 专用
 	MaxOpenConns    int    `mapstructure:"max_open_conns"`
 	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
 	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"`

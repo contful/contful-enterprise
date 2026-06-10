@@ -764,6 +764,7 @@ func initDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 		User:     cfg.User,
 		Password: cfg.Password,
 		Name:     cfg.Name,
+		Schema:   cfg.Schema,
 		SSLMode:  cfg.SSLMode,
 	}
 	return database.Open(dsnCfg, cfg.MaxOpenConns, cfg.MaxIdleConns, cfg.ConnMaxLifetime)

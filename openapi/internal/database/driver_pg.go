@@ -23,6 +23,7 @@ type DSNConfig struct {
 	User     string
 	Password string
 	Name     string
+	Schema   string // 达梦兼容，PostgreSQL 忽略
 	SSLMode  string
 }
 
