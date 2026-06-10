@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
 import PageHeader from '@/components/PageHeader.vue'
@@ -124,11 +124,6 @@ function deliveryStatusTag(status: string) {
 }
 
 function formatTime(t: string) { return t?.replace('T', ' ').replace('Z', '') || '-' }
-
-function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text)
-  MessagePlugin.success('已复制')
-}
 
 function handleError(e: unknown) {
   showError(String((e as any)?.response?.data?.msg || (e as any)?.message || e))

@@ -191,7 +191,7 @@ const handleVerify = async (row: ContentSchema) => {
     const result = res.data
     DialogPlugin.alert({
       header: t('contentSchemas.verifyResult'),
-      body: h('div', { style: 'line-height:2' }, [
+      body: () => h('div', { style: 'line-height:2' }, [
         h('p', [
           h('strong', t('contentSchemas.verifyStatus') + '：'),
           h('span', { style: `color:${result.valid ? 'var(--td-success-color)' : 'var(--td-error-color)'};font-weight:bold` },
