@@ -6,6 +6,7 @@ module github.com/contful/contful/admin
 go 1.25.0
 
 require (
+	gitee.com/chunanyong/dm v1.8.23
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.5.1
 	github.com/aws/aws-sdk-go-v2 v1.41.9
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
@@ -62,6 +63,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
