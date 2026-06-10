@@ -5,19 +5,19 @@
 -- =============================================================================
 
 -- 创建用户（schema）— 使用默认表空间
-CREATE USER CONTFUL IDENTIFIED BY "Contful@2024";
+CREATE USER CONTFUL_ENT IDENTIFIED BY "Contful@2024";
 
-GRANT DBA TO CONTFUL;
-GRANT CREATE TABLE TO CONTFUL;
-GRANT CREATE VIEW TO CONTFUL;
-GRANT CREATE PROCEDURE TO CONTFUL;
-GRANT CREATE SEQUENCE TO CONTFUL;
-GRANT CREATE TRIGGER TO CONTFUL;
+GRANT DBA TO CONTFUL_ENT;
+GRANT CREATE TABLE TO CONTFUL_ENT;
+GRANT CREATE VIEW TO CONTFUL_ENT;
+GRANT CREATE PROCEDURE TO CONTFUL_ENT;
+GRANT CREATE SEQUENCE TO CONTFUL_ENT;
+GRANT CREATE TRIGGER TO CONTFUL_ENT;
 
 -- =============================================================================
 -- UUID 辅助函数：SYS_GUID() → 标准 UUID 格式 (8-4-4-4-12)
 -- =============================================================================
-CREATE OR REPLACE FUNCTION CONTFUL.GEN_UUID RETURN VARCHAR2 IS
+CREATE OR REPLACE FUNCTION CONTFUL_ENT.GEN_UUID RETURN VARCHAR2 IS
   v_raw VARCHAR2(32);
   v_hex VARCHAR2(36);
 BEGIN
@@ -32,8 +32,8 @@ END;
 -- =============================================================================
 -- 1. 系统用户表
 -- =============================================================================
-CREATE TABLE CONTFUL.system_users (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.system_users (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     email VARCHAR2(255) NOT NULL,
     password_hash VARCHAR2(255) NOT NULL,
     nickname VARCHAR2(100),
@@ -52,20 +52,20 @@ CREATE TABLE CONTFUL.system_users (
     CONSTRAINT pk_system_users PRIMARY KEY (id),
     CONSTRAINT uq_system_users_email UNIQUE (email)
 );
-CREATE INDEX idx_system_users_status ON CONTFUL.system_users(status);
-CREATE INDEX idx_system_users_deleted ON CONTFUL.system_users(deleted_time);
+CREATE INDEX idx_system_users_status ON CONTFUL_ENT.system_users(status);
+CREATE INDEX idx_system_users_deleted ON CONTFUL_ENT.system_users(deleted_time);
 
 -- 触发器：自动更新 updated_time
-CREATE OR REPLACE TRIGGER CONTFUL.trg_system_users_ut
-BEFORE UPDATE ON CONTFUL.system_users FOR EACH ROW
+CREATE OR REPLACE TRIGGER CONTFUL_ENT.trg_system_users_ut
+BEFORE UPDATE ON CONTFUL_ENT.system_users FOR EACH ROW
 BEGIN :NEW.updated_time := SYSTIMESTAMP; END;
 /
 
 -- =============================================================================
 -- 2. 站点表
 -- =============================================================================
-CREATE TABLE CONTFUL.sites (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.sites (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     name VARCHAR2(255) NOT NULL,
     slug VARCHAR2(255) NOT NULL,
     description CLOB,
@@ -79,13 +79,13 @@ CREATE TABLE CONTFUL.sites (
     CONSTRAINT pk_sites PRIMARY KEY (id),
     CONSTRAINT uq_sites_slug UNIQUE (slug)
 );
-CREATE INDEX idx_sites_active ON CONTFUL.sites(is_active);
+CREATE INDEX idx_sites_active ON CONTFUL_ENT.sites(is_active);
 
 -- =============================================================================
 -- 3. 内容模型表
 -- =============================================================================
-CREATE TABLE CONTFUL.schemas (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.schemas (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     slug VARCHAR2(255) NOT NULL,
@@ -98,16 +98,16 @@ CREATE TABLE CONTFUL.schemas (
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     deleted_time TIMESTAMP,
     CONSTRAINT pk_schemas PRIMARY KEY (id),
-    CONSTRAINT fk_schemas_site FOREIGN KEY (site_id) REFERENCES CONTFUL.sites(id),
+    CONSTRAINT fk_schemas_site FOREIGN KEY (site_id) REFERENCES CONTFUL_ENT.sites(id),
     CONSTRAINT uq_schemas_slug UNIQUE (site_id, slug)
 );
-CREATE INDEX idx_schemas_site ON CONTFUL.schemas(site_id);
+CREATE INDEX idx_schemas_site ON CONTFUL_ENT.schemas(site_id);
 
 -- =============================================================================
 -- 4. 字段定义表
 -- =============================================================================
-CREATE TABLE CONTFUL.fields (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.fields (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     schema_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     label VARCHAR2(255),
@@ -120,15 +120,15 @@ CREATE TABLE CONTFUL.fields (
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_fields PRIMARY KEY (id),
-    CONSTRAINT fk_fields_schema FOREIGN KEY (schema_id) REFERENCES CONTFUL.schemas(id)
+    CONSTRAINT fk_fields_schema FOREIGN KEY (schema_id) REFERENCES CONTFUL_ENT.schemas(id)
 );
-CREATE INDEX idx_fields_schema ON CONTFUL.fields(schema_id);
+CREATE INDEX idx_fields_schema ON CONTFUL_ENT.fields(schema_id);
 
 -- =============================================================================
 -- 5. 内容条目表
 -- =============================================================================
-CREATE TABLE CONTFUL.entries (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.entries (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     site_id VARCHAR2(36) NOT NULL,
     schema_id VARCHAR2(36) NOT NULL,
     slug VARCHAR2(500),
@@ -148,23 +148,23 @@ CREATE TABLE CONTFUL.entries (
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     deleted_time TIMESTAMP,
     CONSTRAINT pk_entries PRIMARY KEY (id),
-    CONSTRAINT fk_entries_site FOREIGN KEY (site_id) REFERENCES CONTFUL.sites(id),
-    CONSTRAINT fk_entries_schema FOREIGN KEY (schema_id) REFERENCES CONTFUL.schemas(id)
+    CONSTRAINT fk_entries_site FOREIGN KEY (site_id) REFERENCES CONTFUL_ENT.sites(id),
+    CONSTRAINT fk_entries_schema FOREIGN KEY (schema_id) REFERENCES CONTFUL_ENT.schemas(id)
 );
-CREATE INDEX idx_entries_site ON CONTFUL.entries(site_id);
-CREATE INDEX idx_entries_schema ON CONTFUL.entries(schema_id);
-CREATE INDEX idx_entries_status ON CONTFUL.entries(status);
-CREATE INDEX idx_entries_slug ON CONTFUL.entries(site_id, schema_id, slug);
-CREATE INDEX idx_entries_scheduled_publish ON CONTFUL.entries(scheduled_publish_time)
+CREATE INDEX idx_entries_site ON CONTFUL_ENT.entries(site_id);
+CREATE INDEX idx_entries_schema ON CONTFUL_ENT.entries(schema_id);
+CREATE INDEX idx_entries_status ON CONTFUL_ENT.entries(status);
+CREATE INDEX idx_entries_slug ON CONTFUL_ENT.entries(site_id, schema_id, slug);
+CREATE INDEX idx_entries_scheduled_publish ON CONTFUL_ENT.entries(scheduled_publish_time)
     WHERE scheduled_publish_time IS NOT NULL AND status = 'draft' AND deleted_time IS NULL;
-CREATE INDEX idx_entries_scheduled_unpublish ON CONTFUL.entries(scheduled_unpublish_time)
+CREATE INDEX idx_entries_scheduled_unpublish ON CONTFUL_ENT.entries(scheduled_unpublish_time)
     WHERE scheduled_unpublish_time IS NOT NULL AND status = 'published' AND deleted_time IS NULL;
 
 -- =============================================================================
 -- 6. 条目值表（EAV 模式）
 -- =============================================================================
-CREATE TABLE CONTFUL.t_entry_values (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_entry_values (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     entry_id VARCHAR2(36) NOT NULL,
     field_id VARCHAR2(36) NOT NULL,
     field_name VARCHAR2(255),
@@ -175,16 +175,16 @@ CREATE TABLE CONTFUL.t_entry_values (
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_entry_values PRIMARY KEY (id),
-    CONSTRAINT fk_entry_values_entry FOREIGN KEY (entry_id) REFERENCES CONTFUL.entries(id)
+    CONSTRAINT fk_entry_values_entry FOREIGN KEY (entry_id) REFERENCES CONTFUL_ENT.entries(id)
 );
-CREATE INDEX idx_entry_values_entry ON CONTFUL.t_entry_values(entry_id);
-CREATE INDEX idx_entry_values_field ON CONTFUL.t_entry_values(entry_id, field_id);
+CREATE INDEX idx_entry_values_entry ON CONTFUL_ENT.t_entry_values(entry_id);
+CREATE INDEX idx_entry_values_field ON CONTFUL_ENT.t_entry_values(entry_id, field_id);
 
 -- =============================================================================
 -- 7. 资产文件夹
 -- =============================================================================
-CREATE TABLE CONTFUL.t_asset_folders (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_asset_folders (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     parent_id VARCHAR2(36),
@@ -192,15 +192,15 @@ CREATE TABLE CONTFUL.t_asset_folders (
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     deleted_time TIMESTAMP,
     CONSTRAINT pk_asset_folders PRIMARY KEY (id),
-    CONSTRAINT fk_asset_folders_site FOREIGN KEY (site_id) REFERENCES CONTFUL.sites(id)
+    CONSTRAINT fk_asset_folders_site FOREIGN KEY (site_id) REFERENCES CONTFUL_ENT.sites(id)
 );
-CREATE INDEX idx_asset_folders_site ON CONTFUL.t_asset_folders(site_id);
+CREATE INDEX idx_asset_folders_site ON CONTFUL_ENT.t_asset_folders(site_id);
 
 -- =============================================================================
 -- 8. 资产表
 -- =============================================================================
-CREATE TABLE CONTFUL.t_assets (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_assets (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     site_id VARCHAR2(36) NOT NULL,
     folder_id VARCHAR2(36),
     filename VARCHAR2(500) NOT NULL,
@@ -219,17 +219,17 @@ CREATE TABLE CONTFUL.t_assets (
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     deleted_time TIMESTAMP,
     CONSTRAINT pk_assets PRIMARY KEY (id),
-    CONSTRAINT fk_assets_site FOREIGN KEY (site_id) REFERENCES CONTFUL.sites(id),
-    CONSTRAINT fk_assets_folder FOREIGN KEY (folder_id) REFERENCES CONTFUL.t_asset_folders(id)
+    CONSTRAINT fk_assets_site FOREIGN KEY (site_id) REFERENCES CONTFUL_ENT.sites(id),
+    CONSTRAINT fk_assets_folder FOREIGN KEY (folder_id) REFERENCES CONTFUL_ENT.t_asset_folders(id)
 );
-CREATE INDEX idx_assets_site ON CONTFUL.t_assets(site_id);
-CREATE INDEX idx_assets_folder ON CONTFUL.t_assets(folder_id);
+CREATE INDEX idx_assets_site ON CONTFUL_ENT.t_assets(site_id);
+CREATE INDEX idx_assets_folder ON CONTFUL_ENT.t_assets(folder_id);
 
 -- =============================================================================
 -- 9. API Token 表
 -- =============================================================================
-CREATE TABLE CONTFUL.t_tokens (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_tokens (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     description CLOB,
@@ -245,15 +245,15 @@ CREATE TABLE CONTFUL.t_tokens (
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     deleted_time TIMESTAMP,
     CONSTRAINT pk_tokens PRIMARY KEY (id),
-    CONSTRAINT fk_tokens_site FOREIGN KEY (site_id) REFERENCES CONTFUL.sites(id)
+    CONSTRAINT fk_tokens_site FOREIGN KEY (site_id) REFERENCES CONTFUL_ENT.sites(id)
 );
-CREATE INDEX idx_tokens_site ON CONTFUL.t_tokens(site_id);
+CREATE INDEX idx_tokens_site ON CONTFUL_ENT.t_tokens(site_id);
 
 -- =============================================================================
 -- 10. 审计日志表
 -- =============================================================================
-CREATE TABLE CONTFUL.t_audit_logs (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_audit_logs (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     site_id VARCHAR2(36),
     user_id VARCHAR2(36),
     action VARCHAR2(100) NOT NULL,
@@ -268,15 +268,15 @@ CREATE TABLE CONTFUL.t_audit_logs (
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_audit_logs PRIMARY KEY (id)
 );
-CREATE INDEX idx_audit_logs_category ON CONTFUL.t_audit_logs(category, created_time);
-CREATE INDEX idx_audit_logs_level ON CONTFUL.t_audit_logs(level, created_time);
-CREATE INDEX idx_audit_logs_user ON CONTFUL.t_audit_logs(user_id);
+CREATE INDEX idx_audit_logs_category ON CONTFUL_ENT.t_audit_logs(category, created_time);
+CREATE INDEX idx_audit_logs_level ON CONTFUL_ENT.t_audit_logs(level, created_time);
+CREATE INDEX idx_audit_logs_user ON CONTFUL_ENT.t_audit_logs(user_id);
 
 -- =============================================================================
 -- 11. 系统角色
 -- =============================================================================
-CREATE TABLE CONTFUL.t_system_roles (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_system_roles (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     name VARCHAR2(255) NOT NULL,
     description CLOB,
     is_system CHAR(1) DEFAULT '0',
@@ -289,19 +289,19 @@ CREATE TABLE CONTFUL.t_system_roles (
 -- =============================================================================
 -- 12. 用户-角色关联
 -- =============================================================================
-CREATE TABLE CONTFUL.t_system_user_roles (
+CREATE TABLE CONTFUL_ENT.t_system_user_roles (
     user_id VARCHAR2(36) NOT NULL,
     role_id VARCHAR2(36) NOT NULL,
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_system_user_roles PRIMARY KEY (user_id, role_id),
-    CONSTRAINT fk_sur_user FOREIGN KEY (user_id) REFERENCES CONTFUL.system_users(id),
-    CONSTRAINT fk_sur_role FOREIGN KEY (role_id) REFERENCES CONTFUL.t_system_roles(id)
+    CONSTRAINT fk_sur_user FOREIGN KEY (user_id) REFERENCES CONTFUL_ENT.system_users(id),
+    CONSTRAINT fk_sur_role FOREIGN KEY (role_id) REFERENCES CONTFUL_ENT.t_system_roles(id)
 );
 
 -- =============================================================================
 -- 13. 系统配置
 -- =============================================================================
-CREATE TABLE CONTFUL.t_system_config (
+CREATE TABLE CONTFUL_ENT.t_system_config (
     config_key VARCHAR2(100) NOT NULL,
     config_value CLOB,
     value_type VARCHAR2(20) DEFAULT 'string',
@@ -316,8 +316,8 @@ CREATE TABLE CONTFUL.t_system_config (
 -- =============================================================================
 -- 14. 权限分组
 -- =============================================================================
-CREATE TABLE CONTFUL.t_system_permission_groups (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_system_permission_groups (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     group_key VARCHAR2(100) NOT NULL,
     label VARCHAR2(255),
     label_en VARCHAR2(255),
@@ -329,21 +329,21 @@ CREATE TABLE CONTFUL.t_system_permission_groups (
 -- =============================================================================
 -- 15. 权限项
 -- =============================================================================
-CREATE TABLE CONTFUL.t_system_permissions (
+CREATE TABLE CONTFUL_ENT.t_system_permissions (
     group_id VARCHAR2(36) NOT NULL,
     action VARCHAR2(100) NOT NULL,
     label VARCHAR2(255),
     label_en VARCHAR2(255),
     sort_order NUMBER DEFAULT 0,
     CONSTRAINT pk_permissions PRIMARY KEY (group_id, action),
-    CONSTRAINT fk_perms_group FOREIGN KEY (group_id) REFERENCES CONTFUL.t_system_permission_groups(id)
+    CONSTRAINT fk_perms_group FOREIGN KEY (group_id) REFERENCES CONTFUL_ENT.t_system_permission_groups(id)
 );
 
 -- =============================================================================
 -- 16. Webhook 配置表
 -- =============================================================================
-CREATE TABLE CONTFUL.t_webhooks (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_webhooks (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     url VARCHAR2(2000) NOT NULL,
@@ -353,16 +353,16 @@ CREATE TABLE CONTFUL.t_webhooks (
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_webhooks PRIMARY KEY (id),
-    CONSTRAINT fk_webhooks_site FOREIGN KEY (site_id) REFERENCES CONTFUL.sites(id)
+    CONSTRAINT fk_webhooks_site FOREIGN KEY (site_id) REFERENCES CONTFUL_ENT.sites(id)
 );
-CREATE INDEX idx_webhooks_site ON CONTFUL.t_webhooks(site_id);
-CREATE INDEX idx_webhooks_active ON CONTFUL.t_webhooks(is_active);
+CREATE INDEX idx_webhooks_site ON CONTFUL_ENT.t_webhooks(site_id);
+CREATE INDEX idx_webhooks_active ON CONTFUL_ENT.t_webhooks(is_active);
 
 -- =============================================================================
 -- 17. Webhook 投递记录
 -- =============================================================================
-CREATE TABLE CONTFUL.t_webhook_deliveries (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_webhook_deliveries (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     webhook_id VARCHAR2(36) NOT NULL,
     event VARCHAR2(50),
     payload CLOB,
@@ -373,17 +373,17 @@ CREATE TABLE CONTFUL.t_webhook_deliveries (
     error_message CLOB,
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_webhook_deliveries PRIMARY KEY (id),
-    CONSTRAINT fk_wd_webhook FOREIGN KEY (webhook_id) REFERENCES CONTFUL.t_webhooks(id)
+    CONSTRAINT fk_wd_webhook FOREIGN KEY (webhook_id) REFERENCES CONTFUL_ENT.t_webhooks(id)
 );
-CREATE INDEX idx_wd_webhook ON CONTFUL.t_webhook_deliveries(webhook_id);
-CREATE INDEX idx_wd_status ON CONTFUL.t_webhook_deliveries(status);
-CREATE INDEX idx_wd_created ON CONTFUL.t_webhook_deliveries(created_time);
+CREATE INDEX idx_wd_webhook ON CONTFUL_ENT.t_webhook_deliveries(webhook_id);
+CREATE INDEX idx_wd_status ON CONTFUL_ENT.t_webhook_deliveries(status);
+CREATE INDEX idx_wd_created ON CONTFUL_ENT.t_webhook_deliveries(created_time);
 
 -- =============================================================================
 -- 18. 审计导出任务（企业版）
 -- =============================================================================
-CREATE TABLE CONTFUL.t_audit_report_exports (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_audit_report_exports (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     user_id VARCHAR2(36),
     status VARCHAR2(20) DEFAULT 'pending',
     formats CLOB DEFAULT '[]',
@@ -399,8 +399,8 @@ CREATE TABLE CONTFUL.t_audit_report_exports (
 -- =============================================================================
 -- 19. 审计保留策略（企业版）
 -- =============================================================================
-CREATE TABLE CONTFUL.t_audit_retention_policies (
-    id VARCHAR2(36) DEFAULT CONTFUL.GEN_UUID,
+CREATE TABLE CONTFUL_ENT.t_audit_retention_policies (
+    id VARCHAR2(36) DEFAULT CONTFUL_ENT.GEN_UUID,
     category VARCHAR2(50),
     level VARCHAR2(20),
     retention_days NUMBER NOT NULL DEFAULT 180,
