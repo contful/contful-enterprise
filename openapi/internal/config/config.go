@@ -308,9 +308,11 @@ func readEnvOverrides(v *viper.Viper) {
 	envMappings := map[string]string{
 		"DB_HOST":               "database.host",
 		"DB_PORT":               "database.port",
+		"DB_TYPE":               "database.type",
 		"DB_USER":               "database.user",
 		"DB_PASSWORD":           "database.password",
 		"DB_NAME":               "database.name",
+		"DB_SCHEMA":             "database.schema",
 		"DB_SSL_MODE":           "database.ssl_mode",
 		"REDIS_HOST":            "redis.host",
 		"REDIS_PORT":            "redis.port",

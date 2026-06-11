@@ -211,11 +211,14 @@ start_admin() {
     # 后台运行（使用 env 内联传递，与 openapi 保持一致，避免 export 在 nohup 子进程中的问题）
     nohup env \
         SERVER_PORT="$ADMIN_PORT" \
+        DB_TYPE="${DB_TYPE:-postgres}" \
         DB_HOST="${DB_HOST:-localhost}" \
         DB_PORT="${DB_PORT:-5432}" \
         DB_USER="${DB_USER:-postgres}" \
         DB_PASSWORD="${DB_PASSWORD}" \
         DB_NAME="${DB_NAME:-contful}" \
+        DB_SCHEMA="${DB_SCHEMA:-}" \
+        DB_SSL_MODE="${DB_SSL_MODE:-disable}" \
         REDIS_HOST="${REDIS_HOST:-localhost}" \
         REDIS_PORT="${REDIS_PORT:-6379}" \
         REDIS_PASSWORD="${REDIS_PASSWORD}" \
@@ -271,11 +274,14 @@ start_openapi() {
     # 后台运行（直接传入环境变量，避免被 .env 的 SERVER_PORT 污染）
     nohup env \
         SERVER_PORT="$OPENAPI_PORT" \
+        DB_TYPE="${DB_TYPE:-postgres}" \
         DB_HOST="${DB_HOST:-localhost}" \
         DB_PORT="${DB_PORT:-5432}" \
         DB_USER="${DB_USER:-postgres}" \
         DB_PASSWORD="${DB_PASSWORD}" \
         DB_NAME="${DB_NAME:-contful}" \
+        DB_SCHEMA="${DB_SCHEMA:-}" \
+        DB_SSL_MODE="${DB_SSL_MODE:-disable}" \
         REDIS_HOST="${REDIS_HOST:-localhost}" \
         REDIS_PORT="${REDIS_PORT:-6379}" \
         REDIS_PASSWORD="${REDIS_PASSWORD}" \

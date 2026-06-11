@@ -23,12 +23,13 @@ server:
 
 # 数据库配置
 database:
-  type: postgres
+  type: postgres          # postgres / dm（达梦企业版）
   host: postgres
   port: 5432
   user: postgres
   password: CHANGE_ME
   name: contful_ent
+  # schema: CONTFUL_ENT      # 达梦模式名（PostgreSQL 忽略）
   ssl_mode: disable
   max_open_conns: 100
   max_idle_conns: 10
