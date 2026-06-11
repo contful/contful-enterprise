@@ -5,7 +5,6 @@
 # 构建上下文: contful/ 目录（Dockerfile 的父目录）
 #
 # 构建参数:
-#   --build-arg DB_TYPE=postgresql 覆盖
 #   --build-arg TARGETOS/TARGETARCH 覆盖
 #   自动根据构建主机平台选择 GOARCH（amd64/arm64）
 #   国内用户: --build-arg PROXY=true 启用镜像加速
@@ -20,7 +19,6 @@
 ARG ALPINE_VERSION=3.23
 FROM golang:1.25-alpine AS builder
 
-ARG DB_TYPE=postgresql
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 ARG PROXY=false
@@ -41,7 +39,7 @@ RUN if [ "$PROXY" = "true" ]; then \
     fi
 
 COPY openapi/ .
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/openapi .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /app/openapi .
 
 # UPX 压缩（可选，包不存在时跳过）
 RUN apk add --no-cache upx 2>/dev/null && upx --best /app/openapi && rm -f /usr/bin/upx || true

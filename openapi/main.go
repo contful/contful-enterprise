@@ -41,6 +41,7 @@ func main() {
 
 	// 初始化数据库
 	dsnCfg := &database.DSNConfig{
+		DBType:   cfg.Database.Type,
 		Host:     cfg.Database.Host,
 		Port:     cfg.Database.Port,
 		User:     cfg.Database.User,
@@ -53,7 +54,7 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect database")
 	}
-	logger.Info().Str("db_type", database.DBType).Msg("database connected")
+	logger.Info().Str("db_type", database.CurrentDBType()).Msg("database connected")
 
 	// 初始化 Metrics（企业版）
 	metricsHandler := metrics.NewHandler(db)

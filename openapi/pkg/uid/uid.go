@@ -6,15 +6,37 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 )
 
 // UID 统一 UUID 类型，兼容 PostgreSQL（native UUID）和达梦（VARCHAR(36)）
-// 两种模式通过 build tag 选择 GormDataType() 返回值：
-//   - 默认（!dm）: 返回 "uuid"
-//   - 加 -tags dm: 返回 "char(36)"  + Default 为 GenUUID()
+// 运行时根据 database.SetDBType() 切换 GormDataType 行为
 type UID uuid.UUID
+
+// curDBType 运行时的数据库类型
+var curDBType atomic.Value
+
+// SetDBType 设置当前数据库类型（由 database.Open 调用）
+func SetDBType(t string) { curDBType.Store(t) }
+
+func dbType() string {
+	if v := curDBType.Load(); v != nil { return v.(string) }
+	return "postgres"
+}
+
+// GormDataType 返回 GORM 列类型
+func (UID) GormDataType() string {
+	if dbType() == "dm" { return "char(36)" }
+	return "uuid"
+}
+
+// GenUUID GORM default 值
+func GenUUID() string {
+	if dbType() == "dm" { return "CONTFUL_ENT.GEN_UUID()" }
+	return "gen_random_uuid()"
+}
 
 // New 生成新 UID
 func New() UID { return UID(uuid.New()) }
@@ -25,40 +47,18 @@ func Parse(s string) (UID, error) {
 	return UID(u), err
 }
 
-// Nil 返回空 UID（用于判断）
 var Nil = UID(uuid.Nil)
 
-// String 实现 fmt.Stringer
-func (u UID) String() string { return uuid.UUID(u).String() }
-
-// IsNil 判断是否为空
-func (u UID) IsNil() bool { return u == Nil }
-
-// Scan 实现 sql.Scanner（从 DB 读到 Go）
-func (u *UID) Scan(src interface{}) error {
-	return (*uuid.UUID)(u).Scan(src)
-}
-
-// Value 实现 driver.Valuer（从 Go 写到 DB）
-func (u UID) Value() (driver.Value, error) {
-	return uuid.UUID(u).Value()
-}
-
-// MarshalJSON 实现 JSON 序列化
-func (u UID) MarshalJSON() ([]byte, error) {
-	return json.Marshal(uuid.UUID(u).String())
-}
-
-// UnmarshalJSON 实现 JSON 反序列化
+func (u UID) String() string   { return uuid.UUID(u).String() }
+func (u UID) IsNil() bool       { return u == Nil }
+func (u *UID) Scan(src interface{}) error { return (*uuid.UUID)(u).Scan(src) }
+func (u UID) Value() (driver.Value, error) { return uuid.UUID(u).Value() }
+func (u UID) MarshalJSON() ([]byte, error) { return json.Marshal(uuid.UUID(u).String()) }
 func (u *UID) UnmarshalJSON(data []byte) error {
 	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
+	if err := json.Unmarshal(data, &s); err != nil { return err }
 	parsed, err := uuid.Parse(s)
-	if err != nil {
-		return fmt.Errorf("uid: invalid UUID: %s", s)
-	}
+	if err != nil { return fmt.Errorf("uid: invalid UUID: %s", s) }
 	*u = UID(parsed)
 	return nil
 }

@@ -16,12 +16,11 @@
 #   PROXY=true ./shell/build-image.sh --multi-arch  # 国内网络启用阿里云镜像加速
 #
 # 环境变量:
-#   DB_TYPE         数据库类型 (postgresql=PostgreSQL)，支持逗号分隔，默认: postgresql
 #   PROXY           设为 true 使用阿里云镜像加速（国内网络），默认: false
 #
 # 镜像标签规则:
-#   单架构构建: ${db_type}-latest + ${db_type}-${arch}-latest（本地）
-#   多架构构建: ${db_type}-latest（推送到 registry，含 amd64 + arm64 清单）
+#   单架构构建: latest + ${arch}-latest（本地）
+#   多架构构建: latest（推送到 registry，含 amd64 + arm64 清单）
 #
 # 示例:
 #   PROXY=true ./shell/build-image.sh                   # 单架构构建（当前机器）
@@ -44,7 +43,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # 默认配置
-DB_TYPES="${DB_TYPE:-postgresql}"
 MULTI_ARCH=false
 PROXY="${PROXY:-false}"
 COMMAND="all"
@@ -109,13 +107,12 @@ ensure_buildx_builder() {
 # 构建单架构镜像（本地 daemon）
 build_single_arch() {
     local image_name="$1"
-    local db_type="$2"
-    local arch="$3"
+    local arch="$2"
     local platform=$(get_platform "$arch")
-    local dockerfile="$4"
+    local dockerfile="$3"
 
-    local tag_arch="${db_type}-${arch}-latest"
-    local tag_latest="${db_type}-latest"
+    local tag_arch="${arch}-latest"
+    local tag_latest="latest"
 
     log_info "构建 ${image_name} 镜像 (${arch})..."
     log_info "  标签: ${tag_arch} + ${tag_latest}"
@@ -125,7 +122,6 @@ build_single_arch() {
     docker build \
         --no-cache \
         --platform "$platform" \
-        --build-arg DB_TYPE="$db_type" \
         --build-arg PROXY="$PROXY" \
         -t "contful/enterprise-${image_name}:${tag_arch}" \
         -t "contful/enterprise-${image_name}:${tag_latest}" \
@@ -138,10 +134,9 @@ build_single_arch() {
 # 构建多架构镜像（推送到 registry）
 build_multi_arch() {
     local image_name="$1"
-    local db_type="$2"
-    local dockerfile="$3"
+    local dockerfile="$2"
 
-    local tag_latest="${db_type}-latest"
+    local tag_latest="latest"
 
     log_info "构建 ${image_name} 多架构镜像 → registry"
     log_info "  架构: amd64 + arm64"
@@ -154,7 +149,6 @@ build_multi_arch() {
     docker buildx build \
         --no-cache \
         --platform "linux/amd64,linux/arm64" \
-        --build-arg DB_TYPE="$db_type" \
         --build-arg PROXY="$PROXY" \
         -t "contful/enterprise-${image_name}:${tag_latest}" \
         -f "$dockerfile" \
@@ -167,39 +161,27 @@ build_multi_arch() {
 # 构建 Console 镜像
 build_console() {
     local dockerfile="$PROJECT_DIR/docker/Dockerfile.console"
-    IFS=',' read -ra DB_LIST <<< "$DB_TYPES"
 
-    for db_type in "${DB_LIST[@]}"; do
-        db_type=$(echo "$db_type" | tr -d '[:space:]')
-        echo ""
-
-        if [ "$MULTI_ARCH" = true ]; then
-            build_multi_arch "console" "$db_type" "$dockerfile"
-        else
-            local arch=$(get_native_arch)
-            [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
-            build_single_arch "console" "$db_type" "$arch" "$dockerfile"
-        fi
-    done
+    if [ "$MULTI_ARCH" = true ]; then
+        build_multi_arch "console" "$dockerfile"
+    else
+        local arch=$(get_native_arch)
+        [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
+        build_single_arch "console" "$arch" "$dockerfile"
+    fi
 }
 
 # 构建 Open API 镜像
 build_openapi() {
     local dockerfile="$PROJECT_DIR/docker/Dockerfile.openapi"
-    IFS=',' read -ra DB_LIST <<< "$DB_TYPES"
 
-    for db_type in "${DB_LIST[@]}"; do
-        db_type=$(echo "$db_type" | tr -d '[:space:]')
-        echo ""
-
-        if [ "$MULTI_ARCH" = true ]; then
-            build_multi_arch "openapi" "$db_type" "$dockerfile"
-        else
-            local arch=$(get_native_arch)
-            [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
-            build_single_arch "openapi" "$db_type" "$arch" "$dockerfile"
-        fi
-    done
+    if [ "$MULTI_ARCH" = true ]; then
+        build_multi_arch "openapi" "$dockerfile"
+    else
+        local arch=$(get_native_arch)
+        [ -z "$arch" ] && { log_error "不支持的架构: $(uname -m)"; exit 1; }
+        build_single_arch "openapi" "$arch" "$dockerfile"
+    fi
 }
 
 # 构建所有镜像

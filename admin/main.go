@@ -759,6 +759,7 @@ func resolveConfigPath(path string) string {
 
 func initDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	dsnCfg := &database.DSNConfig{
+		DBType:   cfg.Type,
 		Host:     cfg.Host,
 		Port:     cfg.Port,
 		User:     cfg.User,
