@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/contful/contful/admin/internal/database"
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/metrics"
 	"github.com/contful/contful/admin/internal/repository"
@@ -53,22 +54,22 @@ func (s *ScheduleService) StartCron(ctx context.Context) {
 
 // scan 执行一次完整的排期扫描
 func (s *ScheduleService) scan(ctx context.Context) {
-	// 获取 advisory lock（多副本互斥）
-	const lockKey = 1735202518135900000
-	var ok bool
-	if err := s.db.WithContext(ctx).Raw("SELECT pg_try_advisory_lock(?)", lockKey).Scan(&ok).Error; err != nil {
-		s.logger.Error().Err(err).Msg("advisory lock 查询失败")
-		return
-	}
-	if !ok {
-		s.logger.Debug().Msg("advisory lock 未获取，其他副本正在执行")
-		return
-	}
-	defer func() {
-		if err := s.db.Exec("SELECT pg_advisory_unlock(?)", lockKey).Error; err != nil {
-			s.logger.Error().Err(err).Msg("advisory lock 释放失败")
+	// advisory lock 仅 PostgreSQL 支持，达梦跳过
+	if database.CurrentDBType() == "postgres" {
+		const lockKey = 1735202518135900000
+		var ok bool
+		if err := s.db.WithContext(ctx).Raw("SELECT pg_try_advisory_lock(?)", lockKey).Scan(&ok).Error; err != nil {
+			s.logger.Error().Err(err).Msg("advisory lock 查询失败")
+			return
 		}
-	}()
+		if !ok {
+			s.logger.Debug().Msg("advisory lock 未获取，其他副本正在执行")
+			return
+		}
+		defer func() {
+			_ = s.db.Exec("SELECT pg_advisory_unlock(?)", lockKey)
+		}()
+	}
 
 	pub, pubSkip, pubErr := s.publishEntries(ctx)
 	unpub, unpubSkip, unpubErr := s.unpublishEntries(ctx)
