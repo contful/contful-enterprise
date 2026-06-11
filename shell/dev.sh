@@ -65,6 +65,15 @@ BUILD_DIR="$PROJECT_DIR/build"
 LOG_DIR="$PROJECT_DIR/logs"
 UPLOAD_DIR="$PROJECT_DIR/uploads"
 
+# =============================================================================
+# 加载 .env 文件
+# =============================================================================
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    . "$PROJECT_DIR/.env"
+    set +a
+fi
+
 # 默认配置
 MODE="${MODE:-remote}"  # remote 或 local
 ADMIN_PORT="${ADMIN_PORT:-9080}"
