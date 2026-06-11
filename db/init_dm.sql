@@ -465,7 +465,7 @@ WHEN NOT MATCHED THEN INSERT (id, group_key, label, label_en, sort_order) VALUES
 
 -- 3. 管理员用户（密码：contful@com）
 INSERT INTO CONTFUL_ENT.contful_system_users (id, email, password_hash, nickname, status, is_super_admin, created_time, updated_time)
-SELECT '00000000-0000-0000-0000-000000000001', 'admin@contful.com', '$2a$10$65v1ImEvTC/GCPqBctpsiuAy/J04X1BHX7AKBufYsSV7kvuNSfJMu', 'Administrator', 'active', '1', SYSTIMESTAMP, SYSTIMESTAMP
+SELECT '00000000-0000-0000-0000-000000000001', 'admin@contful.com', q'[$2a$10$65v1ImEvTC/GCPqBctpsiuAy/J04X1BHX7AKBufYsSV7kvuNSfJMu]', 'Administrator', 'active', '1', SYSTIMESTAMP, SYSTIMESTAMP
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM CONTFUL_ENT.contful_system_users WHERE id = '00000000-0000-0000-0000-000000000001');
 
 -- 4. 用户-角色关联
