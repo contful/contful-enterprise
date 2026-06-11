@@ -46,6 +46,13 @@ export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
 export GOPROXY=https://goproxy.cn,direct
 export GOSUMDB=off
 
+# 构建标签（根据 DB_TYPE 选择数据库驱动）
+if [ "${DB_TYPE:-postgres}" = "dm" ]; then
+    BUILD_TAGS="-tags dm"
+else
+    BUILD_TAGS="-tags pg"
+fi
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -206,7 +213,7 @@ start_admin() {
     # 编译到 build 目录
     log_info "编译 Admin API..."
     cd "$ADMIN_DIR"
-    go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/admin" .
+    go build $BUILD_TAGS -ldflags="-s -w" -o "$BUILD_DIR/admin" .
 
     # 后台运行（使用 env 内联传递，与 openapi 保持一致，避免 export 在 nohup 子进程中的问题）
     nohup env \
@@ -269,7 +276,7 @@ start_openapi() {
     # 编译到 build 目录
     log_info "编译 Open API..."
     cd "$OPENAPI_DIR"
-    go build -tags=pg -ldflags="-s -w" -o "$BUILD_DIR/openapi" .
+    go build $BUILD_TAGS -ldflags="-s -w" -o "$BUILD_DIR/openapi" .
 
     # 后台运行（直接传入环境变量，避免被 .env 的 SERVER_PORT 污染）
     nohup env \
