@@ -1,18 +1,8 @@
 -- =============================================================================
 -- Contful Enterprise DM8 数据库初始化脚本
 -- 达梦数据库 (Oracle 兼容模式) — UTF-8, 不区分大小写
--- 用法: 以 SYSDBA 身份在 DM 管理工具中执行
+-- 用法: 以 SYSDBA 身份执行，需先手动创建 CONTFUL_ENT 用户并授权 DBA
 -- =============================================================================
-
--- 创建用户（schema）— 使用默认表空间
-CREATE USER CONTFUL_ENT IDENTIFIED BY "Contful@2024";
-
-GRANT DBA TO CONTFUL_ENT;
-GRANT CREATE TABLE TO CONTFUL_ENT;
-GRANT CREATE VIEW TO CONTFUL_ENT;
-GRANT CREATE PROCEDURE TO CONTFUL_ENT;
-GRANT CREATE SEQUENCE TO CONTFUL_ENT;
-GRANT CREATE TRIGGER TO CONTFUL_ENT;
 
 -- =============================================================================
 -- UUID 辅助函数：SYS_GUID() → 标准 UUID 格式 (8-4-4-4-12)
