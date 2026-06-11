@@ -130,9 +130,9 @@ func (d dmDialector) BindVarTo(writer clause.Writer, _ *gorm.Statement, _ interf
 }
 
 func (d dmDialector) QuoteTo(writer clause.Writer, s string) {
-	writer.WriteByte('"')
+	// DM8 默认大小写不敏感，双引号反而强制区分大小写
+	// GORM 生成小写表名 → 不加引号让 DM8 自动匹配大写表名
 	writer.WriteString(s)
-	writer.WriteByte('"')
 }
 
 func (d dmDialector) DataTypeOf(field *schema.Field) string {
