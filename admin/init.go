@@ -40,6 +40,13 @@ var dmSQLPaths = []string{
 	"/app/db/init_dm.sql",
 }
 
+// dmSeedPaths 按优先级列出 seed_ent_dm.sql 的可能位置。
+var dmSeedPaths = []string{
+	"db/seed_ent_dm.sql",
+	"../db/seed_ent_dm.sql",
+	"/app/db/seed_ent_dm.sql",
+}
+
 // isDM 判断当前是否为达梦数据库
 func isDM() bool { return os.Getenv("DB_TYPE") == "dm" }
 
@@ -54,6 +61,9 @@ func readDMEntSQL() ([]byte, error) { return readFirst(dmEntSQLPaths, "init_ent_
 
 // readDMSQL 读取 init_dm.sql。
 func readDMSQL() ([]byte, error) { return readFirst(dmSQLPaths, "init_dm.sql") }
+
+// readDMSeed 读取 seed_ent_dm.sql。
+func readDMSeed() ([]byte, error) { return readFirst(dmSeedPaths, "seed_ent_dm.sql") }
 
 func readFirst(paths []string, name string) ([]byte, error) {
 	for _, p := range paths {
@@ -200,9 +210,10 @@ func autoInitDM(db *gorm.DB) {
 		zlog.Logger.Info().Int64("tables", count).Msg("达梦数据库已初始化")
 		return
 	}
-	// 先社区版基础表，再企业版增量
+	// 先社区版基础表，再企业版增量，最后种子数据
 	runSQLFile(db, "init_dm.sql", readDMSQL)
 	runSQLFile(db, "init_ent_dm.sql", readDMEntSQL)
+	runSQLFile(db, "seed_ent_dm.sql", readDMSeed)
 }
 
 // splitSQL 将 SQL 文本按语句分割（支持字符串和 dollar-quote）。
