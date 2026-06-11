@@ -89,9 +89,10 @@ func initEnterprisePG(db *gorm.DB) {
 
 func initEnterpriseDM(db *gorm.DB) {
 	var entCount int64
-	db.Raw(
-		"SELECT COUNT(*) FROM ALL_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_AUDIT_%'",
-	).Scan(&entCount)
+	err := db.Raw("SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_AUDIT_%'").Scan(&entCount).Error
+	if err != nil {
+		_ = db.Raw("SELECT COUNT(*) FROM ALL_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_AUDIT_%'").Scan(&entCount).Error
+	}
 
 	if entCount > 0 {
 		zlog.Logger.Info().Int64("tables", entCount).Msg("企业版表已存在，跳过")
@@ -189,11 +190,15 @@ func autoInitPG(db *gorm.DB) {
 }
 
 func autoInitDM(db *gorm.DB) {
+	// 优先用 DBA_TABLES（SYSDBA 权限），其次 ALL_TABLES
 	var count int64
-	if err := db.Raw(
-		"SELECT COUNT(*) FROM ALL_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_%'",
-	).Scan(&count).Error; err != nil {
-		zlog.Logger.Warn().Err(err).Msg("无法查询 ALL_TABLES，跳过自动初始化")
+	err := db.Raw("SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_%'").Scan(&count).Error
+	if err != nil {
+		// fallback
+		err = db.Raw("SELECT COUNT(*) FROM ALL_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_%'").Scan(&count).Error
+	}
+	if err != nil {
+		zlog.Logger.Warn().Err(err).Msg("无法查询 DM 元数据，跳过自动初始化")
 		return
 	}
 	if count > 0 {
