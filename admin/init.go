@@ -284,7 +284,28 @@ func splitSQLPG(sql string) []string {
 	return statements
 }
 
-// splitSQLOracle 按 / 分隔 Oracle/DM PL/SQL 块
+// splitSQLOracle 按 / 分隔 Oracle/DM PL/SQL 块（仅 / 独占一行时作为分隔符）
 func splitSQLOracle(sql string) []string {
-	return strings.FieldsFunc(sql, func(r rune) bool { return r == '/' })
+	// 先用正则匹配 /\s*(\n|$) 作为分隔符
+	lines := strings.Split(sql, "\n")
+	var statements []string
+	var buf strings.Builder
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "/" || trimmed == "/;" {
+			// / 独占一行 = PL/SQL 块结束，flush
+			if s := strings.TrimSpace(buf.String()); s != "" {
+				statements = append(statements, s)
+				buf.Reset()
+			}
+			continue
+		}
+		buf.WriteString(line)
+		buf.WriteByte('\n')
+	}
+	if s := strings.TrimSpace(buf.String()); s != "" {
+		statements = append(statements, s)
+	}
+	return statements
 }
