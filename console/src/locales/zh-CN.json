@@ -989,7 +989,6 @@
     "commercial": "商业",
     "issuedDate": "签发日期",
     "expiryDate": "到期日期"
-    "expiryDate": "到期日期"
   },
   "webhook": {
     "title": "Webhook 管理",
