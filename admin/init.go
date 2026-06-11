@@ -26,11 +26,18 @@ var entSQLPaths = []string{
 	"/app/db/init_ent_pg.sql",
 }
 
-// dmEntSQLPaths 按优先级列出 init_ent_dm.sql 的可能位置（企业版达梦）。
+// dmEntSQLPaths 按优先级列出 init_ent_dm.sql 的可能位置（企业版达梦增量）。
 var dmEntSQLPaths = []string{
 	"db/init_ent_dm.sql",
 	"../db/init_ent_dm.sql",
 	"/app/db/init_ent_dm.sql",
+}
+
+// dmSQLPaths 按优先级列出 init_dm.sql 的可能位置（达梦社区版基础）。
+var dmSQLPaths = []string{
+	"db/init_dm.sql",
+	"../db/init_dm.sql",
+	"/app/db/init_dm.sql",
 }
 
 // isDM 判断当前是否为达梦数据库
@@ -44,6 +51,9 @@ func readEntSQL() ([]byte, error) { return readFirst(entSQLPaths, "init_ent_pg.s
 
 // readDMEntSQL 读取 init_ent_dm.sql。
 func readDMEntSQL() ([]byte, error) { return readFirst(dmEntSQLPaths, "init_ent_dm.sql") }
+
+// readDMSQL 读取 init_dm.sql。
+func readDMSQL() ([]byte, error) { return readFirst(dmSQLPaths, "init_dm.sql") }
 
 func readFirst(paths []string, name string) ([]byte, error) {
 	for _, p := range paths {
@@ -190,6 +200,8 @@ func autoInitDM(db *gorm.DB) {
 		zlog.Logger.Info().Int64("tables", count).Msg("达梦数据库已初始化")
 		return
 	}
+	// 先社区版基础表，再企业版增量
+	runSQLFile(db, "init_dm.sql", readDMSQL)
 	runSQLFile(db, "init_ent_dm.sql", readDMEntSQL)
 }
 
