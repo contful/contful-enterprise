@@ -12,44 +12,59 @@ import (
 	"gorm.io/gorm"
 )
 
-// initSQLPaths 按优先级列出 init_pg.sql 的可能位置。
+// initSQLPaths 按优先级列出 init_pg.sql 的可能位置（仅 PostgreSQL）。
 var initSQLPaths = []string{
-	"db/init_pg.sql",        // dev.sh / Docker（工作目录 = 项目根）
-	"../db/init_pg.sql",     // 源码编译（go run，工作目录 = admin/）
-	"/app/db/init_pg.sql",   // Docker 容器内
+	"db/init_pg.sql",
+	"../db/init_pg.sql",
+	"/app/db/init_pg.sql",
 }
 
-// entSQLPaths 按优先级列出 init_ent.sql（企业版增量）的可能位置。
+// entSQLPaths 按优先级列出 init_ent_pg.sql 的可能位置（企业版 PostgreSQL 增量）。
 var entSQLPaths = []string{
-	"db/init_ent.sql",
-	"../db/init_ent.sql",
-	"/app/db/init_ent.sql",
+	"db/init_ent_pg.sql",
+	"../db/init_ent_pg.sql",
+	"/app/db/init_ent_pg.sql",
 }
+
+// dmEntSQLPaths 按优先级列出 init_ent_dm.sql 的可能位置（企业版达梦）。
+var dmEntSQLPaths = []string{
+	"db/init_ent_dm.sql",
+	"../db/init_ent_dm.sql",
+	"/app/db/init_ent_dm.sql",
+}
+
+// isDM 判断当前是否为达梦数据库
+func isDM() bool { return os.Getenv("DB_TYPE") == "dm" }
 
 // readInitSQL 按优先级尝试多个路径读取 init_pg.sql。
-func readInitSQL() ([]byte, error) {
-	for _, p := range initSQLPaths {
-		b, err := os.ReadFile(p)
-		if err == nil {
-			return b, nil
-		}
-	}
-	return nil, fmt.Errorf("在所有路径中未找到 init_pg.sql: %v", initSQLPaths)
-}
+func readInitSQL() ([]byte, error) { return readFirst(initSQLPaths, "init_pg.sql") }
 
-// readEntSQL 按优先级尝试多个路径读取 init_ent.sql。
-func readEntSQL() ([]byte, error) {
-	for _, p := range entSQLPaths {
+// readEntSQL 读取 init_ent_pg.sql。
+func readEntSQL() ([]byte, error) { return readFirst(entSQLPaths, "init_ent_pg.sql") }
+
+// readDMEntSQL 读取 init_ent_dm.sql。
+func readDMEntSQL() ([]byte, error) { return readFirst(dmEntSQLPaths, "init_ent_dm.sql") }
+
+func readFirst(paths []string, name string) ([]byte, error) {
+	for _, p := range paths {
 		b, err := os.ReadFile(p)
 		if err == nil {
 			return b, nil
 		}
 	}
-	return nil, fmt.Errorf("在所有路径中未找到 init_ent.sql: %v", entSQLPaths)
+	return nil, fmt.Errorf("未找到 %s: %v", name, paths)
 }
 
 // initEnterprise 检测并执行企业版增量初始化。
 func initEnterprise(db *gorm.DB) {
+	if isDM() {
+		initEnterpriseDM(db)
+		return
+	}
+	initEnterprisePG(db)
+}
+
+func initEnterprisePG(db *gorm.DB) {
 	var entCount int64
 	db.Raw(
 		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'contful_ent_%'",
@@ -59,11 +74,23 @@ func initEnterprise(db *gorm.DB) {
 		zlog.Logger.Info().Int64("tables", entCount).Msg("企业版表已存在，跳过")
 		return
 	}
-
-	runSQLFile(db, "init_ent.sql", readEntSQL)
+	runSQLFile(db, "init_ent_pg.sql", readEntSQL)
 }
 
-// runSQLFile 读取并执行 SQL 文件（带 advisory lock 和注释剥离）。
+func initEnterpriseDM(db *gorm.DB) {
+	var entCount int64
+	db.Raw(
+		"SELECT COUNT(*) FROM ALL_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_AUDIT_%'",
+	).Scan(&entCount)
+
+	if entCount > 0 {
+		zlog.Logger.Info().Int64("tables", entCount).Msg("企业版表已存在，跳过")
+		return
+	}
+	runSQLFile(db, "init_ent_dm.sql", readDMEntSQL)
+}
+
+// runSQLFile 读取并执行 SQL 文件。
 func runSQLFile(db *gorm.DB, name string, reader func() ([]byte, error)) {
 	sqlBytes, err := reader()
 	if err != nil {
@@ -71,11 +98,14 @@ func runSQLFile(db *gorm.DB, name string, reader func() ([]byte, error)) {
 		return
 	}
 
-	if err := db.Exec("SELECT pg_try_advisory_lock(12345)").Error; err != nil {
-		zlog.Logger.Error().Err(err).Msg("获取初始化锁失败")
-		return
+	// pg_try_advisory_lock 仅 PostgreSQL，达梦跳过
+	if !isDM() {
+		if err := db.Exec("SELECT pg_try_advisory_lock(12345)").Error; err != nil {
+			zlog.Logger.Error().Err(err).Msg("获取初始化锁失败")
+			return
+		}
+		defer db.Exec("SELECT pg_advisory_unlock(12345)")
 	}
-	defer db.Exec("SELECT pg_advisory_unlock(12345)")
 
 	zlog.Logger.Info().Str("file", name).Msg("开始执行 SQL 脚本...")
 	sql := stripComments(string(sqlBytes))
@@ -99,8 +129,8 @@ func runSQLFile(db *gorm.DB, name string, reader func() ([]byte, error)) {
 		zlog.Logger.Info().Str("file", name).Msg("执行完成")
 	}
 }
+
 func stripComments(sql string) string {
-	// 移除 /* */ 块注释
 	sql = regexp.MustCompile(`/\*[\s\S]*?\*/`).ReplaceAllString(sql, "")
 	lines := strings.Split(sql, "\n")
 	var result []string
@@ -109,7 +139,6 @@ func stripComments(sql string) string {
 		if trimmed == "" || strings.HasPrefix(trimmed, "--") {
 			continue
 		}
-		// 移除行尾内联注释（如: permissions JSONB DEFAULT '[]', -- 注释含分号;）
 		if idx := strings.Index(line, " -- "); idx >= 0 {
 			line = line[:idx]
 		}
@@ -119,37 +148,61 @@ func stripComments(sql string) string {
 }
 
 // autoInit 在服务启动时自动检测并初始化数据库。
-// 检查 information_schema 中是否存在 contful_ 前缀的表，
-// 不存在则自动执行 init_pg.sql + init_ent.sql。
-// 如果基础表已存在但企业版表缺失，仅执行 init_ent.sql。
 func autoInit(db *gorm.DB) {
 	if os.Getenv("CONTFUL_AUTO_INIT") != "true" {
 		zlog.Logger.Debug().Msg("CONTFUL_AUTO_INIT != true，跳过自动初始化")
 		return
 	}
 
+	if isDM() {
+		autoInitDM(db)
+		return
+	}
+	autoInitPG(db)
+}
+
+func autoInitPG(db *gorm.DB) {
 	var count int64
 	if err := db.Raw(
 		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'contful_%'",
 	).Scan(&count).Error; err != nil {
-		zlog.Logger.Warn().Err(err).Msg("无法查询 information_schema，跳过自动初始化（DB 可能未就绪）")
+		zlog.Logger.Warn().Err(err).Msg("无法查询 information_schema，跳过自动初始化")
 		return
 	}
-
 	if count > 0 {
 		zlog.Logger.Info().Int64("tables", count).Msg("数据库已初始化")
-		// 检查企业版表是否需要初始化
-		initEnterprise(db)
+		initEnterprisePG(db)
 		return
 	}
-
-	// 全新安装：先社区版再企业版
 	runSQLFile(db, "init_pg.sql", readInitSQL)
-	initEnterprise(db)
+	initEnterprisePG(db)
+}
+
+func autoInitDM(db *gorm.DB) {
+	var count int64
+	if err := db.Raw(
+		"SELECT COUNT(*) FROM ALL_TABLES WHERE OWNER = 'CONTFUL_ENT' AND TABLE_NAME LIKE 'CONTFUL_%'",
+	).Scan(&count).Error; err != nil {
+		zlog.Logger.Warn().Err(err).Msg("无法查询 ALL_TABLES，跳过自动初始化")
+		return
+	}
+	if count > 0 {
+		zlog.Logger.Info().Int64("tables", count).Msg("达梦数据库已初始化")
+		return
+	}
+	runSQLFile(db, "init_ent_dm.sql", readDMEntSQL)
 }
 
 // splitSQL 将 SQL 文本按语句分割（支持字符串和 dollar-quote）。
 func splitSQL(sql string) []string {
+	// 达梦 Oracle 语句用 / 分隔（PG 用 ;）
+	if isDM() {
+		return splitSQLOracle(sql)
+	}
+	return splitSQLPG(sql)
+}
+
+func splitSQLPG(sql string) []string {
 	var statements []string
 	current := strings.Builder{}
 	inString := false
@@ -158,7 +211,6 @@ func splitSQL(sql string) []string {
 
 	for i := 0; i < len(sql); i++ {
 		ch := sql[i]
-
 		if inString {
 			current.WriteByte(ch)
 			if ch == '\'' {
@@ -171,18 +223,16 @@ func splitSQL(sql string) []string {
 			}
 			continue
 		}
-
 		if inDollar {
 			if ch == '$' && i+len(dollarTag) <= len(sql) && sql[i:i+len(dollarTag)] == dollarTag {
 				current.WriteString(dollarTag)
 				i += len(dollarTag) - 1
 				inDollar = false
-				continue
+			} else {
+				current.WriteByte(ch)
 			}
-			current.WriteByte(ch)
 			continue
 		}
-
 		if ch == '$' && i+1 < len(sql) {
 			j := i + 1
 			for j < len(sql) && sql[j] != '$' {
@@ -197,26 +247,27 @@ func splitSQL(sql string) []string {
 				continue
 			}
 		}
-
 		if ch == '\'' {
 			current.WriteByte(ch)
 			inString = true
 			continue
 		}
-
 		if ch == ';' {
 			current.WriteByte(ch)
 			statements = append(statements, current.String())
 			current.Reset()
 			continue
 		}
-
 		current.WriteByte(ch)
 	}
-
 	remaining := strings.TrimSpace(current.String())
 	if remaining != "" {
 		statements = append(statements, remaining)
 	}
 	return statements
+}
+
+// splitSQLOracle 按 / 分隔 Oracle/DM PL/SQL 块
+func splitSQLOracle(sql string) []string {
+	return strings.FieldsFunc(sql, func(r rune) bool { return r == '/' })
 }

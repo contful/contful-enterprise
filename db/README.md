@@ -1,66 +1,49 @@
-# Contful 数据库初始化指南
+# Contful Enterprise 数据库初始化指南
 
 ## 📁 文件结构
 
 ```
 db/
-└── init_pg.sql    # 完整初始化脚本（DDL 建表 + 种子数据）
+├── init_pg.sql              # 社区版 PostgreSQL 初始化
+├── init_ent_pg.sql           # 企业版 PostgreSQL 增量（审计导出、保留策略）
+├── init_ent_dm.sql           # 企业版达梦 DM8 完整初始化
+├── upgrade/                  # 升级脚本目录
+│   ├── upgrade_v1.4.0_webhook_pg.sql   # v1.4.0 Webhook PG 升级
+│   └── upgrade_v1.4.0_webhook_dm.sql   # v1.4.0 Webhook DM 升级
+└── README.md
 ```
 
-## 🚀 初始化步骤
+## 🚀 PostgreSQL 初始化
 
 ```bash
-# 一条命令完成建表 + 默认数据导入
-psql -h <host> -U <user> -d <db> -f db/init_pg.sql
+# 企业版部署：先社区版基础表，再企业版增量
+psql -h <host> -U <user> -d contful_ent -f db/init_pg.sql
+psql -h <host> -U <user> -d contful_ent -f db/init_ent_pg.sql
 ```
 
-**⚠️ 注意**：此脚本会删除所有已有表并重建，**仅用于全新部署或开发环境重置**。
+## 🚀 达梦 DM8 初始化
+
+```sql
+-- 以 SYSDBA 身份执行一条 SQL 文件即可
+-- dm://SYSDBA:SYSDBA008@139.198.171.102:5236
+DROP USER CONTFUL_ENT CASCADE;
+@db/init_ent_dm.sql
+```
 
 ## 🐳 Docker 自动初始化
 
-`entrypoint.sh` 在 `CONTFUL_AUTO_INIT=true` 时自动执行 `init_pg.sql`，无需手动操作。
+设置 `CONTFUL_AUTO_INIT=true` + `DB_TYPE=dm`，服务启动时自动选择对应 SQL：
 
----
-
-## 📝 init_pg.sql 内容说明
-
-按顺序执行：
-
-1. **启用扩展**：`uuid-ossp`、`pgcrypto`
-2. **清理已有对象**：触发器、函数、表、ENUM 类型（支持重复执行）
-3. **创建 ENUM 类型**：`user_status`、`entry_status`、`field_type` 等
-4. **创建触发器函数**：`update_updated_time_column()`、`prevent_audit_log_update()`
-5. **建表**：14 张表（`contful_` 前缀），含字段、索引、触发器、注释
-6. **种子数据**：默认站点、系统角色、权限元数据、管理员用户、系统配置（幂等设计）
-
-### 表清单
-
-| 表名 | 说明 |
-|---|---|
-| `contful_system_users` | 系统用户 |
-| `contful_system_roles` | 系统角色 |
-| `contful_system_user_roles` | 用户-角色关联 |
-| `contful_system_config` | 系统配置 |
-| `contful_system_permission_groups` | 权限分组 |
-| `contful_system_permissions` | 权限项 |
-| `contful_audit_logs` | 审计日志（防篡改） |
-| `contful_sites` | 站点 |
-| `contful_schemas` | 内容模型 |
-| `contful_fields` | 字段定义 |
-| `contful_entries` | 内容条目 |
-| `contful_entry_values` | 条目字段值 |
-| `contful_entry_versions` | 条目版本历史 |
-| `contful_asset_folders` | 媒体文件夹 |
-| `contful_assets` | 媒体资产 |
-| `contful_tokens` | API Token |
-
----
+| DB_TYPE | 执行的 SQL |
+|---------|-----------|
+| `postgres`（默认） | `init_pg.sql` + `init_ent_pg.sql` |
+| `dm` | `init_ent_dm.sql` |
 
 ## 🔑 默认账号
 
 | 字段 | 值 |
-|---|---|
+|------|-----|
 | 邮箱 | `admin@contful.com` |
 | 密码 | `contful@com` |
 
-> ⚠️ **请登录后立即修改默认密码！**
+> ⚠️ 登录后立即修改默认密码
