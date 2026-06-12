@@ -69,7 +69,11 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	}
 	setPoolSQL(sqlDB, maxOpen, maxIdle, maxLifetime)
 
-	db, err := gorm.Open(&dmDialector{Conn: sqlDB}, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := gorm.Open(&dmDialector{Conn: sqlDB}, &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+		// DM8 元数据返回大写列名，NamingStrategy 需匹配
+		NamingStrategy: dmNamingStrategy{},
+	})
 	if err != nil {
 		sqlDB.Close()
 		return nil, err
@@ -143,6 +147,12 @@ func (p *dmConnPool) QueryContext(ctx context.Context, query string, args ...int
 func (p *dmConnPool) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	return p.db.QueryRowContext(ctx, dmFixSQL(query), args...)
 }
+
+// dmNamingStrategy 嵌入默认策略，仅覆盖 ColumnName 保持原样
+// DM8 元数据返回大写列名，GORM 默认转换为 snake_case 小写 → 匹配失败
+type dmNamingStrategy struct{ schema.NamingStrategy }
+
+func (dmNamingStrategy) ColumnName(table, column string) string { return column }
 
 func setPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
 	sqlDB, _ := db.DB()
