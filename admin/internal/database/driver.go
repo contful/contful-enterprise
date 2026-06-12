@@ -15,9 +15,7 @@ import (
 	"github.com/contful/contful/admin/pkg/uid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
-	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
 )
 
@@ -70,9 +68,12 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	}
 	setPoolSQL(sqlDB, maxOpen, maxIdle, maxLifetime)
 
-	db, err := gorm.Open(&dmDialector{Conn: sqlDB}, &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-		// DM8 元数据返回大写列名，NamingStrategy 需匹配
+	// Use PostgreSQL Dialector (correct model query building) + DM driver
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		Conn:       sqlDB,
+		DriverName: "dm",
+	}), &gorm.Config{
+		Logger:         logger.Default.LogMode(logger.Silent),
 		NamingStrategy: dmNamingStrategy{},
 	})
 	if err != nil {
@@ -80,49 +81,20 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 		return nil, err
 	}
 
-	// 替换 ConnPool 为 SQL 改写代理层
-	db.ConnPool = &dmConnPool{db: sqlDB}
-
-	// GORM getInstance() 不复制 Statement.ConnPool → 需回调强制注入
+	// Wrap ConnPool with SQL rewriting proxy and force-set on every Statement
+	proxy := &dmConnPool{db: sqlDB}
+	db.ConnPool = proxy
 	hook := func(d *gorm.DB) { d.Statement.ConnPool = d.ConnPool }
 	db.Callback().Query().Before("gorm:query").Register("dm:cp", hook)
 	db.Callback().Row().Before("gorm:row").Register("dm:cp", hook)
 	db.Callback().Raw().Before("gorm:raw").Register("dm:cp", hook)
-	db.Callback().Create().Before("gorm:create").Register("dm:cp", hook)
-	db.Callback().Update().Before("gorm:update").Register("dm:cp", hook)
-	db.Callback().Delete().Before("gorm:delete").Register("dm:cp", hook)
 
 	currentDBType = "dm"
 	uid.SetDBType("dm")
 	return db, nil
 }
 
-// ============================ DM Dialector ============================
-
-type dmDialector struct{ Conn *sql.DB }
-
-func (d dmDialector) Name() string                                       { return "dm" }
-func (d dmDialector) Explain(_ string, _ ...interface{}) string          { return "" }
-func (d dmDialector) DefaultValueOf(*schema.Field) clause.Expression     { return nil }
-func (d dmDialector) Initialize(db *gorm.DB) error                       { db.ConnPool = d.Conn; return nil }
-func (d dmDialector) Migrator(db *gorm.DB) gorm.Migrator                 { return migrator.Migrator{Config: migrator.Config{DB: db}} }
-func (d dmDialector) BindVarTo(w clause.Writer, _ *gorm.Statement, v interface{}) {
-	w.WriteByte('?')
-}
-func (d dmDialector) QuoteTo(writer clause.Writer, s string) { writer.WriteString(s) }
-func (d dmDialector) DataTypeOf(field *schema.Field) string {
-	switch field.DataType {
-	case schema.Bool: return "CHAR(1)"
-	case schema.Int, schema.Uint: return "INT"
-	case schema.Float: return "FLOAT"
-	case schema.String: return "VARCHAR(255)"
-	case schema.Time: return "TIMESTAMP"
-	case schema.Bytes: return "BLOB"
-	default: return "VARCHAR(255)"
-	}
-}
-
-// ============================ DM ConnPool Proxy (SQL Rewrite) ============================
+// ============================ SQL Rewrite ============================
 
 var (
 	dmQuoteRe = regexp.MustCompile(`"([^"]+)"`)
@@ -133,9 +105,7 @@ func dmFixSQL(sql string) string {
 	sql = dmQuoteRe.ReplaceAllString(sql, "$1")
 	return dmLimitRe.ReplaceAllStringFunc(sql, func(m string) string {
 		parts := dmLimitRe.FindStringSubmatch(m)
-		if parts == nil {
-			return m
-		}
+		if parts == nil { return m }
 		if parts[3] != "" {
 			return fmt.Sprintf("OFFSET %s ROWS FETCH NEXT %s ROWS ONLY", parts[3], parts[1])
 		}
@@ -158,13 +128,15 @@ func (p *dmConnPool) QueryRowContext(ctx context.Context, query string, args ...
 	return p.db.QueryRowContext(ctx, dmFixSQL(query), args...)
 }
 
-// dmNamingStrategy: 列名转大写 snake_case 匹配 DM8 元数据
-// GORM 默认 PasswordHash → password_hash，DM8 返回 PASSWORD_HASH
+// ============================ Naming Strategy ============================
+
 type dmNamingStrategy struct{ schema.NamingStrategy }
 
 func (s dmNamingStrategy) ColumnName(table, column string) string {
 	return strings.ToUpper(s.NamingStrategy.ColumnName(table, column))
 }
+
+// ============================ Pool ============================
 
 func setPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
 	sqlDB, _ := db.DB()
