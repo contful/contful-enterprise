@@ -83,22 +83,14 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	// 替换 ConnPool 为 SQL 改写代理层
 	db.ConnPool = &dmConnPool{db: sqlDB}
 
-	// GORM 执行查询时使用 Statement.ConnPool，需在每次查询前同步
-	db.Callback().Query().Before("gorm:query").Register("dm:set_pool", func(d *gorm.DB) {
-		if d.Statement.ConnPool == nil {
-			d.Statement.ConnPool = d.ConnPool
-		}
-	})
-	db.Callback().Row().Before("gorm:row").Register("dm:set_pool", func(d *gorm.DB) {
-		if d.Statement.ConnPool == nil {
-			d.Statement.ConnPool = d.ConnPool
-		}
-	})
-	db.Callback().Raw().Before("gorm:raw").Register("dm:set_pool", func(d *gorm.DB) {
-		if d.Statement.ConnPool == nil {
-			d.Statement.ConnPool = d.ConnPool
-		}
-	})
+	// GORM getInstance() 不复制 Statement.ConnPool → 需回调强制注入
+	hook := func(d *gorm.DB) { d.Statement.ConnPool = d.ConnPool }
+	db.Callback().Query().Before("gorm:query").Register("dm:cp", hook)
+	db.Callback().Row().Before("gorm:row").Register("dm:cp", hook)
+	db.Callback().Raw().Before("gorm:raw").Register("dm:cp", hook)
+	db.Callback().Create().Before("gorm:create").Register("dm:cp", hook)
+	db.Callback().Update().Before("gorm:update").Register("dm:cp", hook)
+	db.Callback().Delete().Before("gorm:delete").Register("dm:cp", hook)
 
 	currentDBType = "dm"
 	uid.SetDBType("dm")
