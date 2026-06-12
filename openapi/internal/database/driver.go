@@ -6,25 +6,24 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 
 	_ "gitee.com/chunanyong/dm"
 	"github.com/contful/contful/openapi/pkg/uid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
-	"gorm.io/gorm/migrator"
-	"gorm.io/gorm/schema"
 )
 
-// DBType 当前数据库类型（运行时由 Open 设置）
+// currentDBType 运行时数据库类型
 var currentDBType = "postgres"
 
 // CurrentDBType 返回当前数据库类型
 func CurrentDBType() string { return currentDBType }
 
-// DSNConfig 数据库连接参数（PG + DM 通用）
+// DSNConfig 数据库连接参数
 type DSNConfig struct {
 	DBType   string
 	Host     string
@@ -36,14 +35,12 @@ type DSNConfig struct {
 	SSLMode  string
 }
 
-// Open 打开数据库连接，根据 DBType 选择 PG 或 DM 驱动
+// Open 打开数据库连接
 func Open(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, error) {
-	switch cfg.DBType {
-	case "dm":
+	if cfg.DBType == "dm" {
 		return openDM(cfg, maxOpen, maxIdle, maxLifetime)
-	default:
-		return openPG(cfg, maxOpen, maxIdle, maxLifetime)
 	}
+	return openPG(cfg, maxOpen, maxIdle, maxLifetime)
 }
 
 // ============================ PostgreSQL ============================
@@ -51,14 +48,11 @@ func Open(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, erro
 func openPG(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name, cfg.SSLMode)
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		return nil, err
 	}
-	applyDBPool(db, maxOpen, maxIdle, maxLifetime)
+	setPool(db, maxOpen, maxIdle, maxLifetime)
 	currentDBType = "postgres"
 	uid.SetDBType("postgres")
 	return db, nil
@@ -82,21 +76,53 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 		sqlDB.Close()
 		return nil, fmt.Errorf("dm ping: %w", err)
 	}
-	applyDBPoolSQL(sqlDB, maxOpen, maxIdle, maxLifetime)
+	setPoolSQL(sqlDB, maxOpen, maxIdle, maxLifetime)
 
-	db, err := gorm.Open(&dmDialector{Conn: sqlDB}, &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+	// 使用 PG Dialector + DM driver — GORM 的模型查询生成 PG 语法
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		Conn:       sqlDB,
+		DriverName: "dm",
+	}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		sqlDB.Close()
 		return nil, err
 	}
+
+	// 注册 callback 将 LIMIT/OFFSET 改写为 DM8 兼容语法
+	registerDMCallbacks(db)
+
 	currentDBType = "dm"
 	uid.SetDBType("dm")
 	return db, nil
 }
 
-func applyDBPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
+// ============================ DM LIMIT/OFFSET 改写 ============================
+
+var limitRe = regexp.MustCompile(`(?i)\bLIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?`)
+
+func registerDMCallbacks(db *gorm.DB) {
+	_ = db.Callback().Query().Before("gorm:query").Register("dm:rewrite_limit", func(d *gorm.DB) {
+		sql := d.Statement.SQL.String()
+		sql = limitRe.ReplaceAllStringFunc(sql, func(match string) string {
+			parts := limitRe.FindStringSubmatch(match)
+			if parts == nil {
+				return match
+			}
+			limit, _ := strconv.Atoi(parts[1])
+			if parts[2] != "" {
+				offset, _ := strconv.Atoi(parts[2])
+				return fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offset, limit)
+			}
+			return fmt.Sprintf("FETCH FIRST %d ROWS ONLY", limit)
+		})
+		d.Statement.SQL.Reset()
+		d.Statement.SQL.WriteString(sql)
+	})
+}
+
+// ============================ Pool ============================
+
+func setPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
 	sqlDB, _ := db.DB()
 	if sqlDB != nil {
 		sqlDB.SetMaxIdleConns(maxIdle)
@@ -105,53 +131,8 @@ func applyDBPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
 	}
 }
 
-func applyDBPoolSQL(db *sql.DB, maxOpen, maxIdle int, maxLifetime int) {
+func setPoolSQL(db *sql.DB, maxOpen, maxIdle int, maxLifetime int) {
 	db.SetMaxIdleConns(maxIdle)
 	db.SetMaxOpenConns(maxOpen)
 	db.SetConnMaxLifetime(time.Duration(maxLifetime) * time.Second)
 }
-
-// ============================ DM GORM Dialector ============================
-
-type dmDialector struct {
-	Conn *sql.DB
-}
-
-func (d dmDialector) Name() string                           { return "dm" }
-func (d dmDialector) Initialize(_ *gorm.DB) error             { return nil }
-func (d dmDialector) Explain(_ string, _ ...interface{}) string { return "" }
-
-func (d dmDialector) Migrator(db *gorm.DB) gorm.Migrator {
-	return migrator.Migrator{Config: migrator.Config{DB: db}}
-}
-
-func (d dmDialector) BindVarTo(writer clause.Writer, _ *gorm.Statement, _ interface{}) {
-	writer.WriteByte('?')
-}
-
-func (d dmDialector) QuoteTo(writer clause.Writer, s string) {
-	// DM8 默认大小写不敏感，双引号反而强制区分大小写
-	// GORM 生成小写表名 → 不加引号让 DM8 自动匹配大写表名
-	writer.WriteString(s)
-}
-
-func (d dmDialector) DataTypeOf(field *schema.Field) string {
-	switch field.DataType {
-	case schema.Bool:
-		return "CHAR(1)"
-	case schema.Int, schema.Uint:
-		return "INT"
-	case schema.Float:
-		return "FLOAT"
-	case schema.String:
-		return "VARCHAR(255)"
-	case schema.Time:
-		return "TIMESTAMP"
-	case schema.Bytes:
-		return "BLOB"
-	default:
-		return "VARCHAR(255)"
-	}
-}
-
-func (d dmDialector) DefaultValueOf(*schema.Field) clause.Expression { return nil }
