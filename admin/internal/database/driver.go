@@ -70,8 +70,9 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 
 	// Use PostgreSQL Dialector (correct model query building) + DM driver
 	db, err := gorm.Open(postgres.New(postgres.Config{
-		Conn:       sqlDB,
-		DriverName: "dm",
+		Conn:                 sqlDB,
+		DriverName:           "dm",
+		PreferSimpleProtocol: true, // 禁用 prepared statement → ConnPool proxy 生效
 	}), &gorm.Config{
 		Logger:         logger.Default.LogMode(logger.Silent),
 		NamingStrategy: dmNamingStrategy{},
