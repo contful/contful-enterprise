@@ -76,6 +76,7 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	}), &gorm.Config{
 		Logger:         logger.Default.LogMode(logger.Silent),
 		NamingStrategy: dmNamingStrategy{},
+		PrepareStmt:    false, // 禁用 GORM 级别的 prepared statement → ConnPool 代理可拦截
 	})
 	if err != nil {
 		sqlDB.Close()
@@ -99,11 +100,16 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 
 var (
 	dmQuoteRe = regexp.MustCompile(`"([^"]+)"`)
-	dmLimitRe = regexp.MustCompile(`\bLIMIT\s+(\d+)(\s+OFFSET\s+(\d+))?\b`)
+	dmLimitRe = regexp.MustCompile(`\bLIMIT\s+(\$?\d+)(\s+OFFSET\s+(\$?\d+))?\b`)
+	dmDollarN = regexp.MustCompile(`\$\d+`) // PG dialect $N → DM driver ?
 )
 
 func dmFixSQL(sql string) string {
+	// 0. Replace $N → ? (PG dialect → DM driver)
+	sql = dmDollarN.ReplaceAllString(sql, "?")
+	// 1. Strip double quotes
 	sql = dmQuoteRe.ReplaceAllString(sql, "$1")
+	// 2. LIMIT/OFFSET → FETCH FIRST
 	return dmLimitRe.ReplaceAllStringFunc(sql, func(m string) string {
 		parts := dmLimitRe.FindStringSubmatch(m)
 		if parts == nil { return m }
