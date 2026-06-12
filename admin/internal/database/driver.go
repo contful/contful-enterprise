@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	_ "gitee.com/chunanyong/dm"
@@ -148,11 +149,13 @@ func (p *dmConnPool) QueryRowContext(ctx context.Context, query string, args ...
 	return p.db.QueryRowContext(ctx, dmFixSQL(query), args...)
 }
 
-// dmNamingStrategy 嵌入默认策略，仅覆盖 ColumnName 保持原样
-// DM8 元数据返回大写列名，GORM 默认转换为 snake_case 小写 → 匹配失败
+// dmNamingStrategy: 列名转大写 snake_case 匹配 DM8 元数据
+// GORM 默认 PasswordHash → password_hash，DM8 返回 PASSWORD_HASH
 type dmNamingStrategy struct{ schema.NamingStrategy }
 
-func (dmNamingStrategy) ColumnName(table, column string) string { return column }
+func (s dmNamingStrategy) ColumnName(table, column string) string {
+	return strings.ToUpper(s.NamingStrategy.ColumnName(table, column))
+}
 
 func setPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
 	sqlDB, _ := db.DB()
