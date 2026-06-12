@@ -10,7 +10,7 @@
     "url": "https://github.com/contful/contful.git"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
