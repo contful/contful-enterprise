@@ -82,6 +82,7 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 
 	// 替换 ConnPool 为 SQL 改写代理层
 	db.ConnPool = &dmConnPool{db: sqlDB}
+	db.Statement.ConnPool = db.ConnPool
 
 	currentDBType = "dm"
 	uid.SetDBType("dm")
