@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	_ "gitee.com/chunanyong/dm"
@@ -91,63 +90,48 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	return db, nil
 }
 
-// ============================ DM Query Rewrite Callbacks ============================
+// ============================ DM Query Rewrite ============================
 
-var limitRe = regexp.MustCompile(`\bLIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?\b`)
-var quoteRe = regexp.MustCompile(`"([a-z][a-z0-9_]*)"`) // 匹配带引号的小写标识符
+var quoteRe = regexp.MustCompile(`"([^"]+)"`)
+var limitRe = regexp.MustCompile(`\bLIMIT\s+(\d+)(\s+OFFSET\s+(\d+))?\b`)
+
+func dmRewrite(sql string) string {
+	sql = quoteRe.ReplaceAllString(sql, "$1")
+	return limitRe.ReplaceAllStringFunc(sql, func(m string) string {
+		parts := limitRe.FindStringSubmatch(m)
+		if parts == nil { return m }
+		limit, _ := strconv.Atoi(parts[1])
+		if parts[3] != "" {
+			offset, _ := strconv.Atoi(parts[3])
+			return fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offset, limit)
+		}
+		return fmt.Sprintf("FETCH FIRST %d ROWS ONLY", limit)
+	})
+}
 
 func registerDMCallbacks(db *gorm.DB) {
-	// 回调 1: 去掉双引号（PG Dialector 默认加引号 → DM8 区分大小写）
-	db.Callback().Query().Before("gorm:query").Register("dm:unquote", func(d *gorm.DB) {
-		sql := d.Statement.SQL.String()
-		// 只去表名列名的引号，保留字符串内的引号
-		sql = quoteRe.ReplaceAllString(sql, "$1")
-		d.Statement.SQL.Reset()
-		d.Statement.SQL.WriteString(sql)
-	})
+	wrap := func(orig func(*gorm.DB)) func(*gorm.DB) {
+		return func(d *gorm.DB) {
+			orig(d)
+			if sql := d.Statement.SQL.String(); sql != "" {
+				newSQL := dmRewrite(sql)
+				if newSQL != sql {
+					d.Statement.SQL.Reset()
+					d.Statement.SQL.WriteString(newSQL)
+				}
+			}
+		}
+	}
 
-	// 回调 2: LIMIT/OFFSET → Oracle FETCH FIRST / OFFSET … ROWS FETCH NEXT
-	db.Callback().Query().Before("gorm:query").Register("dm:limit", func(d *gorm.DB) {
-		sql := d.Statement.SQL.String()
-		sql = limitRe.ReplaceAllStringFunc(sql, func(m string) string {
-			m = strings.ToUpper(m)
-			parts := limitRe.FindStringSubmatch(m)
-			if parts == nil {
-				return m
-			}
-			limit, _ := strconv.Atoi(parts[1])
-			if parts[2] != "" {
-				offset, _ := strconv.Atoi(parts[2])
-				return fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offset, limit)
-			}
-			return fmt.Sprintf("FETCH FIRST %d ROWS ONLY", limit)
-		})
-		d.Statement.SQL.Reset()
-		d.Statement.SQL.WriteString(sql)
-	})
-
-	// 回调 3: 同样处理 Row 查询
-	db.Callback().Row().Before("gorm:row").Register("dm:row_unquote", func(d *gorm.DB) {
-		sql := d.Statement.SQL.String()
-		sql = quoteRe.ReplaceAllString(sql, "$1")
-		d.Statement.SQL.Reset()
-		d.Statement.SQL.WriteString(sql)
-	})
-	db.Callback().Row().Before("gorm:row").Register("dm:row_limit", func(d *gorm.DB) {
-		sql := d.Statement.SQL.String()
-		sql = limitRe.ReplaceAllStringFunc(sql, func(m string) string {
-			parts := limitRe.FindStringSubmatch(m)
-			if parts == nil { return m }
-			limit, _ := strconv.Atoi(parts[1])
-			if parts[2] != "" {
-				offset, _ := strconv.Atoi(parts[2])
-				return fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offset, limit)
-			}
-			return fmt.Sprintf("FETCH FIRST %d ROWS ONLY", limit)
-		})
-		d.Statement.SQL.Reset()
-		d.Statement.SQL.WriteString(sql)
-	})
+	if orig := db.Callback().Query().Get("gorm:query"); orig != nil {
+		db.Callback().Query().Replace("gorm:query", wrap(orig))
+	}
+	if orig := db.Callback().Row().Get("gorm:row"); orig != nil {
+		db.Callback().Row().Replace("gorm:row", wrap(orig))
+	}
+	if orig := db.Callback().Raw().Get("gorm:raw"); orig != nil {
+		db.Callback().Raw().Replace("gorm:raw", wrap(orig))
+	}
 }
 
 func setPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
