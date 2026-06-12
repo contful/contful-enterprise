@@ -4,10 +4,10 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"regexp"
-	"strconv"
 	"time"
 
 	_ "gitee.com/chunanyong/dm"
@@ -25,14 +25,8 @@ var currentDBType = "postgres"
 func CurrentDBType() string { return currentDBType }
 
 type DSNConfig struct {
-	DBType   string
-	Host     string
-	Port     int
-	User     string
-	Password string
-	Name     string
-	Schema   string
-	SSLMode  string
+	DBType, Host, User, Password, Name, Schema, SSLMode string
+	Port                                                 int
 }
 
 func Open(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, error) {
@@ -55,6 +49,8 @@ func openPG(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	return db, nil
 }
 
+// ============================ 达梦 DM8 ============================
+
 func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, error) {
 	schemaName := cfg.Schema
 	if schemaName == "" {
@@ -73,65 +69,79 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	}
 	setPoolSQL(sqlDB, maxOpen, maxIdle, maxLifetime)
 
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		Conn:       sqlDB,
-		DriverName: "dm",
-	}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := gorm.Open(&dmDialector{Conn: sqlDB}, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		sqlDB.Close()
 		return nil, err
 	}
 
-	// 改写 LIMIT/OFFSET + 脱引号
-	registerDMCallbacks(db)
+	// 替换 ConnPool 为 SQL 改写代理层
+	db.ConnPool = &dmConnPool{db: sqlDB}
 
 	currentDBType = "dm"
 	uid.SetDBType("dm")
 	return db, nil
 }
 
-// ============================ DM Query Rewrite ============================
+// ============================ DM Dialector ============================
 
-var quoteRe = regexp.MustCompile(`"([^"]+)"`)
-var limitRe = regexp.MustCompile(`\bLIMIT\s+(\d+)(\s+OFFSET\s+(\d+))?\b`)
+type dmDialector struct{ Conn *sql.DB }
 
-func dmRewrite(sql string) string {
-	sql = quoteRe.ReplaceAllString(sql, "$1")
-	return limitRe.ReplaceAllStringFunc(sql, func(m string) string {
-		parts := limitRe.FindStringSubmatch(m)
-		if parts == nil { return m }
-		limit, _ := strconv.Atoi(parts[1])
-		if parts[3] != "" {
-			offset, _ := strconv.Atoi(parts[3])
-			return fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offset, limit)
+func (d dmDialector) Name() string                                       { return "dm" }
+func (d dmDialector) Explain(_ string, _ ...interface{}) string          { return "" }
+func (d dmDialector) DefaultValueOf(*schema.Field) clause.Expression     { return nil }
+func (d dmDialector) Initialize(db *gorm.DB) error                       { db.ConnPool = d.Conn; return nil }
+func (d dmDialector) Migrator(db *gorm.DB) gorm.Migrator                 { return migrator.Migrator{Config: migrator.Config{DB: db}} }
+func (d dmDialector) BindVarTo(w clause.Writer, _ *gorm.Statement, v interface{}) {
+	w.WriteByte('?')
+}
+func (d dmDialector) QuoteTo(writer clause.Writer, s string) { writer.WriteString(s) }
+func (d dmDialector) DataTypeOf(field *schema.Field) string {
+	switch field.DataType {
+	case schema.Bool: return "CHAR(1)"
+	case schema.Int, schema.Uint: return "INT"
+	case schema.Float: return "FLOAT"
+	case schema.String: return "VARCHAR(255)"
+	case schema.Time: return "TIMESTAMP"
+	case schema.Bytes: return "BLOB"
+	default: return "VARCHAR(255)"
+	}
+}
+
+// ============================ DM ConnPool Proxy (SQL Rewrite) ============================
+
+var (
+	dmQuoteRe = regexp.MustCompile(`"([^"]+)"`)
+	dmLimitRe = regexp.MustCompile(`\bLIMIT\s+(\d+)(\s+OFFSET\s+(\d+))?\b`)
+)
+
+func dmFixSQL(sql string) string {
+	sql = dmQuoteRe.ReplaceAllString(sql, "$1")
+	return dmLimitRe.ReplaceAllStringFunc(sql, func(m string) string {
+		parts := dmLimitRe.FindStringSubmatch(m)
+		if parts == nil {
+			return m
 		}
-		return fmt.Sprintf("FETCH FIRST %d ROWS ONLY", limit)
+		if parts[3] != "" {
+			return fmt.Sprintf("OFFSET %s ROWS FETCH NEXT %s ROWS ONLY", parts[3], parts[1])
+		}
+		return fmt.Sprintf("FETCH FIRST %s ROWS ONLY", parts[1])
 	})
 }
 
-func registerDMCallbacks(db *gorm.DB) {
-	wrap := func(orig func(*gorm.DB)) func(*gorm.DB) {
-		return func(d *gorm.DB) {
-			orig(d)
-			if sql := d.Statement.SQL.String(); sql != "" {
-				newSQL := dmRewrite(sql)
-				if newSQL != sql {
-					d.Statement.SQL.Reset()
-					d.Statement.SQL.WriteString(newSQL)
-				}
-			}
-		}
-	}
+type dmConnPool struct{ db *sql.DB }
 
-	if orig := db.Callback().Query().Get("gorm:query"); orig != nil {
-		db.Callback().Query().Replace("gorm:query", wrap(orig))
-	}
-	if orig := db.Callback().Row().Get("gorm:row"); orig != nil {
-		db.Callback().Row().Replace("gorm:row", wrap(orig))
-	}
-	if orig := db.Callback().Raw().Get("gorm:raw"); orig != nil {
-		db.Callback().Raw().Replace("gorm:raw", wrap(orig))
-	}
+func (p *dmConnPool) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return p.db.PrepareContext(ctx, dmFixSQL(query))
+}
+func (p *dmConnPool) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return p.db.ExecContext(ctx, dmFixSQL(query), args...)
+}
+func (p *dmConnPool) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	return p.db.QueryContext(ctx, dmFixSQL(query), args...)
+}
+func (p *dmConnPool) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	return p.db.QueryRowContext(ctx, dmFixSQL(query), args...)
 }
 
 func setPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
@@ -148,29 +158,3 @@ func setPoolSQL(db *sql.DB, maxOpen, maxIdle int, maxLifetime int) {
 	db.SetMaxOpenConns(maxOpen)
 	db.SetConnMaxLifetime(time.Duration(maxLifetime) * time.Second)
 }
-
-// 以下类型和方法不再需要，但保留以避免编译错误
-type dmDialector struct{ Conn *sql.DB }
-
-func (d dmDialector) Name() string                             { return "dm" }
-func (d dmDialector) Initialize(_ *gorm.DB) error               { return nil }
-func (d dmDialector) Explain(_ string, _ ...interface{}) string { return "" }
-func (d dmDialector) Migrator(db *gorm.DB) gorm.Migrator {
-	return migrator.Migrator{Config: migrator.Config{DB: db}}
-}
-func (d dmDialector) BindVarTo(writer clause.Writer, _ *gorm.Statement, _ interface{}) {
-	writer.WriteByte('?')
-}
-func (d dmDialector) QuoteTo(writer clause.Writer, s string) { writer.WriteString(s) }
-func (d dmDialector) DataTypeOf(field *schema.Field) string {
-	switch field.DataType {
-	case schema.Bool: return "CHAR(1)"
-	case schema.Int, schema.Uint: return "INT"
-	case schema.Float: return "FLOAT"
-	case schema.String: return "VARCHAR(255)"
-	case schema.Time: return "TIMESTAMP"
-	case schema.Bytes: return "BLOB"
-	default: return "VARCHAR(255)"
-	}
-}
-func (d dmDialector) DefaultValueOf(*schema.Field) clause.Expression { return nil }
