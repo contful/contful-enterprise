@@ -82,7 +82,23 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 
 	// 替换 ConnPool 为 SQL 改写代理层
 	db.ConnPool = &dmConnPool{db: sqlDB}
-	db.Statement.ConnPool = db.ConnPool
+
+	// GORM 执行查询时使用 Statement.ConnPool，需在每次查询前同步
+	db.Callback().Query().Before("gorm:query").Register("dm:set_pool", func(d *gorm.DB) {
+		if d.Statement.ConnPool == nil {
+			d.Statement.ConnPool = d.ConnPool
+		}
+	})
+	db.Callback().Row().Before("gorm:row").Register("dm:set_pool", func(d *gorm.DB) {
+		if d.Statement.ConnPool == nil {
+			d.Statement.ConnPool = d.ConnPool
+		}
+	})
+	db.Callback().Raw().Before("gorm:raw").Register("dm:set_pool", func(d *gorm.DB) {
+		if d.Statement.ConnPool == nil {
+			d.Statement.ConnPool = d.ConnPool
+		}
+	})
 
 	currentDBType = "dm"
 	uid.SetDBType("dm")
