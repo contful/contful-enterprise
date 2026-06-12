@@ -8,22 +8,23 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "gitee.com/chunanyong/dm"
 	"github.com/contful/contful/openapi/pkg/uid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/migrator"
+	"gorm.io/gorm/schema"
 )
 
-// currentDBType 运行时数据库类型
 var currentDBType = "postgres"
 
-// CurrentDBType 返回当前数据库类型
 func CurrentDBType() string { return currentDBType }
 
-// DSNConfig 数据库连接参数
 type DSNConfig struct {
 	DBType   string
 	Host     string
@@ -35,15 +36,12 @@ type DSNConfig struct {
 	SSLMode  string
 }
 
-// Open 打开数据库连接
 func Open(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, error) {
 	if cfg.DBType == "dm" {
 		return openDM(cfg, maxOpen, maxIdle, maxLifetime)
 	}
 	return openPG(cfg, maxOpen, maxIdle, maxLifetime)
 }
-
-// ============================ PostgreSQL ============================
 
 func openPG(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
@@ -58,15 +56,13 @@ func openPG(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	return db, nil
 }
 
-// ============================ 达梦 DM8 ============================
-
 func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, error) {
-	schema := cfg.Schema
-	if schema == "" {
-		schema = cfg.User
+	schemaName := cfg.Schema
+	if schemaName == "" {
+		schemaName = cfg.User
 	}
 	dsn := fmt.Sprintf("dm://%s:%s@%s:%d?schema=%s&compatibleMode=oracle",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, schema)
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, schemaName)
 
 	sqlDB, err := sql.Open("dm", dsn)
 	if err != nil {
@@ -78,7 +74,6 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	}
 	setPoolSQL(sqlDB, maxOpen, maxIdle, maxLifetime)
 
-	// 使用 PG Dialector + DM driver — GORM 的模型查询生成 PG 语法
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		Conn:       sqlDB,
 		DriverName: "dm",
@@ -88,7 +83,7 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 		return nil, err
 	}
 
-	// 注册 callback 将 LIMIT/OFFSET 改写为 DM8 兼容语法
+	// 改写 LIMIT/OFFSET + 脱引号
 	registerDMCallbacks(db)
 
 	currentDBType = "dm"
@@ -96,17 +91,29 @@ func openDM(cfg *DSNConfig, maxOpen, maxIdle int, maxLifetime int) (*gorm.DB, er
 	return db, nil
 }
 
-// ============================ DM LIMIT/OFFSET 改写 ============================
+// ============================ DM Query Rewrite Callbacks ============================
 
-var limitRe = regexp.MustCompile(`(?i)\bLIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?`)
+var limitRe = regexp.MustCompile(`\bLIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?\b`)
+var quoteRe = regexp.MustCompile(`"([a-z][a-z0-9_]*)"`) // 匹配带引号的小写标识符
 
 func registerDMCallbacks(db *gorm.DB) {
-	_ = db.Callback().Query().Before("gorm:query").Register("dm:rewrite_limit", func(d *gorm.DB) {
+	// 回调 1: 去掉双引号（PG Dialector 默认加引号 → DM8 区分大小写）
+	db.Callback().Query().Before("gorm:query").Register("dm:unquote", func(d *gorm.DB) {
 		sql := d.Statement.SQL.String()
-		sql = limitRe.ReplaceAllStringFunc(sql, func(match string) string {
-			parts := limitRe.FindStringSubmatch(match)
+		// 只去表名列名的引号，保留字符串内的引号
+		sql = quoteRe.ReplaceAllString(sql, "$1")
+		d.Statement.SQL.Reset()
+		d.Statement.SQL.WriteString(sql)
+	})
+
+	// 回调 2: LIMIT/OFFSET → Oracle FETCH FIRST / OFFSET … ROWS FETCH NEXT
+	db.Callback().Query().Before("gorm:query").Register("dm:limit", func(d *gorm.DB) {
+		sql := d.Statement.SQL.String()
+		sql = limitRe.ReplaceAllStringFunc(sql, func(m string) string {
+			m = strings.ToUpper(m)
+			parts := limitRe.FindStringSubmatch(m)
 			if parts == nil {
-				return match
+				return m
 			}
 			limit, _ := strconv.Atoi(parts[1])
 			if parts[2] != "" {
@@ -118,9 +125,30 @@ func registerDMCallbacks(db *gorm.DB) {
 		d.Statement.SQL.Reset()
 		d.Statement.SQL.WriteString(sql)
 	})
-}
 
-// ============================ Pool ============================
+	// 回调 3: 同样处理 Row 查询
+	db.Callback().Row().Before("gorm:row").Register("dm:row_unquote", func(d *gorm.DB) {
+		sql := d.Statement.SQL.String()
+		sql = quoteRe.ReplaceAllString(sql, "$1")
+		d.Statement.SQL.Reset()
+		d.Statement.SQL.WriteString(sql)
+	})
+	db.Callback().Row().Before("gorm:row").Register("dm:row_limit", func(d *gorm.DB) {
+		sql := d.Statement.SQL.String()
+		sql = limitRe.ReplaceAllStringFunc(sql, func(m string) string {
+			parts := limitRe.FindStringSubmatch(m)
+			if parts == nil { return m }
+			limit, _ := strconv.Atoi(parts[1])
+			if parts[2] != "" {
+				offset, _ := strconv.Atoi(parts[2])
+				return fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offset, limit)
+			}
+			return fmt.Sprintf("FETCH FIRST %d ROWS ONLY", limit)
+		})
+		d.Statement.SQL.Reset()
+		d.Statement.SQL.WriteString(sql)
+	})
+}
 
 func setPool(db *gorm.DB, maxOpen, maxIdle int, maxLifetime int) {
 	sqlDB, _ := db.DB()
@@ -136,3 +164,29 @@ func setPoolSQL(db *sql.DB, maxOpen, maxIdle int, maxLifetime int) {
 	db.SetMaxOpenConns(maxOpen)
 	db.SetConnMaxLifetime(time.Duration(maxLifetime) * time.Second)
 }
+
+// 以下类型和方法不再需要，但保留以避免编译错误
+type dmDialector struct{ Conn *sql.DB }
+
+func (d dmDialector) Name() string                             { return "dm" }
+func (d dmDialector) Initialize(_ *gorm.DB) error               { return nil }
+func (d dmDialector) Explain(_ string, _ ...interface{}) string { return "" }
+func (d dmDialector) Migrator(db *gorm.DB) gorm.Migrator {
+	return migrator.Migrator{Config: migrator.Config{DB: db}}
+}
+func (d dmDialector) BindVarTo(writer clause.Writer, _ *gorm.Statement, _ interface{}) {
+	writer.WriteByte('?')
+}
+func (d dmDialector) QuoteTo(writer clause.Writer, s string) { writer.WriteString(s) }
+func (d dmDialector) DataTypeOf(field *schema.Field) string {
+	switch field.DataType {
+	case schema.Bool: return "CHAR(1)"
+	case schema.Int, schema.Uint: return "INT"
+	case schema.Float: return "FLOAT"
+	case schema.String: return "VARCHAR(255)"
+	case schema.Time: return "TIMESTAMP"
+	case schema.Bytes: return "BLOB"
+	default: return "VARCHAR(255)"
+	}
+}
+func (d dmDialector) DefaultValueOf(*schema.Field) clause.Expression { return nil }
