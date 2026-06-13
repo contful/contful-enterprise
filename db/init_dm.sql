@@ -439,7 +439,11 @@ COMMIT;
 -- Contful Enterprise DM8 种子数据
 -- =============================================================================
 
--- 1. 系统角色
+-- 1. 默认站点
+INSERT INTO CONTFUL_ENT.contful_sites (id, name, slug, description, locale, timezone, is_active, settings, created_time, updated_time)
+SELECT '00000000-0000-0000-0000-000000000001', '默认站点', 'default', '系统默认站点', 'zh-CN', 'Asia/Shanghai', '1', '{}', SYSTIMESTAMP, SYSTIMESTAMP FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM CONTFUL_ENT.contful_sites WHERE id = '00000000-0000-0000-0000-000000000001');
+
+-- 2. 系统角色
 INSERT INTO CONTFUL_ENT.contful_system_roles (id, name, description, is_system, permissions, created_time, updated_time)
 SELECT '00000000-0000-0000-0000-000000000101', 'Super Admin', '超级管理员，拥有所有权限', '1', '["users:read","users:write","users:delete","sites:read","sites:write","sites:delete","tokens:read","tokens:write","tokens:delete","settings:read","settings:write","audit:read","audit:export","roles:read","roles:write","roles:delete","schema:read","schema:write","entry:read","entry:write","asset:read","asset:write"]', SYSTIMESTAMP, SYSTIMESTAMP FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM CONTFUL_ENT.contful_system_roles WHERE id = '00000000-0000-0000-0000-000000000101');
 
