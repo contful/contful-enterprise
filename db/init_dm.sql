@@ -175,7 +175,11 @@ CREATE TABLE CONTFUL_ENT.contful_asset_folders (
     id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
+    slug VARCHAR2(255) NOT NULL,
+    path VARCHAR2(500) NOT NULL,
     parent_id VARCHAR2(36),
+    sort_order NUMBER DEFAULT 0,
+    created_by VARCHAR2(36),
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     deleted_time TIMESTAMP,
@@ -183,6 +187,7 @@ CREATE TABLE CONTFUL_ENT.contful_asset_folders (
     CONSTRAINT fk_asset_folders_site FOREIGN KEY (site_id) REFERENCES CONTFUL_ENT.contful_sites(id)
 );
 CREATE INDEX idx_asset_folders_site ON CONTFUL_ENT.contful_asset_folders(site_id);
+CREATE INDEX idx_asset_folders_parent ON CONTFUL_ENT.contful_asset_folders(parent_id);
 
 -- =============================================================================
 -- 8. 资产表
