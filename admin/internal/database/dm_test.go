@@ -3,21 +3,26 @@
 package database
 
 import (
+	"os"
 	"testing"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-// TestDMFullStack 一条龙验证 DM 连接 → 查询 → bcrypt 校验
+// TestDMFullStack 验证 DM 连接 → 查询 → bcrypt
+// 环境变量: DM_HOST, DM_PORT, DM_USER, DM_PASSWORD, DM_NAME, DM_SCHEMA
 func TestDMFullStack(t *testing.T) {
+	if os.Getenv("DM_HOST") == "" && os.Getenv("PG_HOST") == "" {
+		t.Skip("无 DB 环境变量，跳过集成测试")
+	}
 	cfg := &DSNConfig{
 		DBType:   "dm",
-		Host:     "139.198.171.102",
-		Port:     5236,
-		User:     "SYSDBA",
-		Password: "SYSDBA008",
-		Name:     "CONTFUL_ENT",
-		Schema:   "CONTFUL_ENT",
+		Host:     envOr("DM_HOST", "139.198.171.102"),
+		Port:     envInt("DM_PORT", 5236),
+		User:     envOr("DM_USER", "SYSDBA"),
+		Password: envOr("DM_PASSWORD", "SYSDBA008"),
+		Name:     envOr("DM_NAME", "CONTFUL_ENT"),
+		Schema:   envOr("DM_SCHEMA", "CONTFUL_ENT"),
 	}
 
 	db, err := Open(cfg, 10, 5, 3600)
@@ -25,10 +30,8 @@ func TestDMFullStack(t *testing.T) {
 		t.Fatalf("Open failed: %v", err)
 	}
 
-	// 临时为测试禁用 prepared statement（复现 service 行为）
 	db.Config.PrepareStmt = false
 
-	// Step 1: raw query — 验 SQL 改写和连接
 	t.Run("RawExists", func(t *testing.T) {
 		var n int
 		if err := db.Raw("SELECT COUNT(*) FROM contful_system_users").Scan(&n).Error; err != nil {
@@ -37,7 +40,6 @@ func TestDMFullStack(t *testing.T) {
 		t.Logf("Users count = %d", n)
 	})
 
-	// Step 2: model Find — 验 Schema 映射
 	t.Run("FindAdmin", func(t *testing.T) {
 		type user struct {
 			ID           string
@@ -51,11 +53,10 @@ func TestDMFullStack(t *testing.T) {
 			t.Fatalf("Find admin failed: %v", err)
 		}
 		if u.Email == "" {
-			t.Fatal("Find returned empty fields — schema mapping broken")
+			t.Fatal("Find returned empty fields")
 		}
 		t.Logf("Found: id=%s email=%s hash_len=%d", u.ID, u.Email, len(u.PasswordHash))
 
-		// Step 3: bcrypt — 验密码
 		if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte("contful@com")); err != nil {
 			t.Fatalf("bcrypt mismatch: %v (hash=[%s])", err, u.PasswordHash)
 		}
