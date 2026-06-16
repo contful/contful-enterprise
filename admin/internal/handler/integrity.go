@@ -9,7 +9,7 @@ import (
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // IntegrityHandler 验签处理器

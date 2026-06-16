@@ -20,7 +20,7 @@ import (
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/contful/contful/admin/internal/storage"
 
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // 常见 MIME 类型

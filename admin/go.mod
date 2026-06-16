@@ -6,7 +6,7 @@ module github.com/contful/contful/admin
 go 1.25.0
 
 require (
-	gitee.com/chunanyong/dm v1.8.23
+	gitee.com/chunanyong/dm v1.8.23 // indirect
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.5.1
 	github.com/aws/aws-sdk-go-v2 v1.41.9
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.102.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/google/uuid v1.6.0
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.26.3+incompatible
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/pquerna/otp v1.5.0
@@ -26,7 +26,7 @@ require (
 	github.com/tjfoc/gmsm v1.4.1
 	golang.org/x/crypto v0.52.0
 	gorm.io/datatypes v1.2.7
-	gorm.io/driver/postgres v1.6.0
+	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/gorm v1.31.1
 )
 
@@ -100,3 +100,7 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect
 )
+
+require github.com/contful/contful-enterprise/shared v0.0.0
+
+replace github.com/contful/contful-enterprise/shared => ../shared

@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 
 	"github.com/contful/contful/admin/internal/middleware"
 	"github.com/contful/contful/admin/internal/model"

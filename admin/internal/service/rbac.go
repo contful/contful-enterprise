@@ -12,7 +12,7 @@ import (
 
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )

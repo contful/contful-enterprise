@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/contful/contful/admin/internal/model"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 	"gorm.io/gorm"
 )
 

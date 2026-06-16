@@ -3,7 +3,7 @@
 package model
 
 import (
-	"github.com/contful/contful/openapi/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // TokenContext Token 验证通过后存入 Context 的信息

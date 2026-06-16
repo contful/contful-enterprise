@@ -5,7 +5,7 @@ package storage
 import (
 	"context"
 
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // StorageConfigFunc 根据 siteID 返回 ProviderConfig 的函数（保留用于潜在扩展）。

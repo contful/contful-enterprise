@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/contful/contful/openapi/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 	"gorm.io/gorm"
 )
 

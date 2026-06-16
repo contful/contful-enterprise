@@ -16,7 +16,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/repository"
 	"github.com/gin-gonic/gin"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // WebhookHandler Webhook 管理接口

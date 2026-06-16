@@ -24,7 +24,7 @@ import (
 	"github.com/contful/contful/openapi/internal/model"
 	"github.com/contful/contful/openapi/internal/repository"
 	"github.com/contful/contful/openapi/internal/service"
-	"github.com/contful/contful/openapi/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 func main() {

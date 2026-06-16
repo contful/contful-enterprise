@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/contful/contful/openapi/internal/repository"
-	"github.com/contful/contful/openapi/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // Resolver GraphQL 查询解析器

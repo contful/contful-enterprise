@@ -7,14 +7,14 @@ go 1.25.0
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/google/uuid v1.6.0
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/graphql-go/graphql v0.8.1
 	github.com/graphql-go/handler v0.2.4
 	github.com/redis/go-redis/v9 v9.20.0
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/viper v1.21.0
 	github.com/subosito/gotenv v1.6.0
-	gorm.io/driver/postgres v1.6.0
+	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/gorm v1.31.1
 )
 
@@ -68,3 +68,7 @@ require (
 	golang.org/x/text v0.37.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+require github.com/contful/contful-enterprise/shared v0.0.0
+
+replace github.com/contful/contful-enterprise/shared => ../shared

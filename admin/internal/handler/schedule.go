@@ -10,7 +10,7 @@ import (
 	"github.com/contful/contful/admin/internal/model"
 	"github.com/contful/contful/admin/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // ScheduleHandler 排期处理器

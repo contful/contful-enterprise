@@ -12,7 +12,7 @@ import (
 	"github.com/contful/contful/admin/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // SchemaHandler 内容模型处理器

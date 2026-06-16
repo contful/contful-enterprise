@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 
 	"github.com/contful/contful/admin/internal/crypto"
 	"github.com/contful/contful/admin/internal/middleware"

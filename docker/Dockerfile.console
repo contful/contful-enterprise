@@ -28,6 +28,7 @@ RUN if [ "$PROXY" = "true" ]; then \
 
 WORKDIR /app
 
+COPY shared/go.mod shared/go.sum ./shared/
 COPY admin/go.mod admin/go.sum ./
 RUN if [ "$PROXY" = "true" ]; then \
         export GOPROXY=https://goproxy.cn,direct GONOSUMDB=* GONOSUMCHECK=*; \
@@ -36,6 +37,7 @@ RUN if [ "$PROXY" = "true" ]; then \
         go mod download; \
     fi
 
+COPY shared/ ./shared/
 COPY admin/ .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags=${DB_TYPE} -ldflags="-s -w" -o /app/admin .
 

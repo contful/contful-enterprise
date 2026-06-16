@@ -5,7 +5,7 @@ package audit
 import (
 	"context"
 
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // DataSigner 数据签名接口。

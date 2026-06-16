@@ -12,7 +12,7 @@ import (
 	"strconv"
 
 	"github.com/contful/contful/openapi/internal/repository"
-	"github.com/contful/contful/openapi/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 )
 
 // ErrContentSchemaNotFound 内容模型不存在

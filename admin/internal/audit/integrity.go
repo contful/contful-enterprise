@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 	"gorm.io/gorm"
 
 	"github.com/contful/contful/admin/internal/crypto"

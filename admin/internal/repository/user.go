@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/contful/contful/admin/internal/model"

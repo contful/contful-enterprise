@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/contful/contful/admin/pkg/uid"
+	"github.com/contful/contful-enterprise/shared/uid"
 	"github.com/rs/zerolog/log"
 
 	"github.com/contful/contful/admin/internal/model"
