@@ -34,12 +34,10 @@ DROP TRIGGER IF EXISTS update_asset_folders_updated_time ON contful_asset_folder
 DROP TRIGGER IF EXISTS update_assets_updated_time ON contful_assets;
 DROP TRIGGER IF EXISTS update_tokens_updated_time ON contful_tokens;
 DROP TRIGGER IF EXISTS prevent_audit_logs_update ON contful_audit_logs;
-DROP TRIGGER IF EXISTS trg_audit_logs_search_vector ON contful_audit_logs;
 
 -- 删除函数
 DROP FUNCTION IF EXISTS update_updated_time_column();
 DROP FUNCTION IF EXISTS prevent_audit_log_update();
-DROP FUNCTION IF EXISTS update_audit_logs_search_vector();
 
 -- 删除表（按依赖顺序，CASCADE 自动处理外键）
 DROP TABLE IF EXISTS contful_tokens CASCADE;
@@ -57,8 +55,6 @@ DROP TABLE IF EXISTS contful_system_roles CASCADE;
 DROP TABLE IF EXISTS contful_system_users CASCADE;
 DROP TABLE IF EXISTS contful_system_permissions CASCADE;
 DROP TABLE IF EXISTS contful_system_permission_groups CASCADE;
-DROP TABLE IF EXISTS contful_audit_anomalies CASCADE;
-DROP TABLE IF EXISTS contful_audit_query_templates CASCADE;
 DROP TABLE IF EXISTS contful_system_config CASCADE;
 
 -- 删除 ENUM 类型（需先删除依赖的表）
@@ -125,21 +121,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION prevent_audit_log_update() IS '审计日志防篡改触发器函数';
-
-CREATE OR REPLACE FUNCTION update_audit_logs_search_vector()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.search_vector :=
-    setweight(to_tsvector('simple', COALESCE(NEW.action, '')), 'A') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.details, '')), 'B') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.resource_type, '')), 'B') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.ip_address::text, '')), 'C') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.user_agent, '')), 'D');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-COMMENT ON FUNCTION update_audit_logs_search_vector() IS '自动更新审计日志 search_vector 的触发器函数';
 
 -- =============================================================================
 -- 系统用户表
@@ -343,12 +324,6 @@ CREATE TABLE contful_audit_logs (
     details TEXT,
     ip_address INET,
     user_agent TEXT,
-    request_body TEXT,
-    response_status SMALLINT,
-    duration_ms INTEGER,
-    session_id VARCHAR(64),
-    geo_ip_info JSONB DEFAULT '{}'::jsonb,
-    search_vector TSVECTOR,
     data_signature VARCHAR(128) NOT NULL DEFAULT '',
     created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -359,18 +334,11 @@ CREATE INDEX idx_audit_logs_category ON contful_audit_logs(category);
 CREATE INDEX idx_audit_logs_created ON contful_audit_logs(created_time DESC);
 CREATE INDEX idx_audit_logs_site_user_time ON contful_audit_logs(site_id, user_id, created_time DESC);
 CREATE INDEX idx_audit_logs_category_time ON contful_audit_logs(category, created_time DESC);
--- GIN 全文搜索索引
-CREATE INDEX idx_audit_logs_search ON contful_audit_logs USING GIN(search_vector);
 
 -- 审计日志防篡改触发器
 CREATE TRIGGER prevent_audit_logs_update
     BEFORE UPDATE ON contful_audit_logs
     FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_update();
-
--- search_vector 自动更新触发器（INSERT/UPDATE 时自动更新 search_vector）
-CREATE TRIGGER trg_audit_logs_search_vector
-    BEFORE INSERT OR UPDATE ON contful_audit_logs
-    FOR EACH ROW EXECUTE FUNCTION update_audit_logs_search_vector();
 
 COMMENT ON TABLE contful_audit_logs IS '审计日志表：记录所有操作行为，不可修改';
 COMMENT ON COLUMN contful_audit_logs.id IS '日志唯一标识符';
@@ -384,73 +352,8 @@ COMMENT ON COLUMN contful_audit_logs.category IS '操作类别：auth/content/me
 COMMENT ON COLUMN contful_audit_logs.details IS '操作详情';
 COMMENT ON COLUMN contful_audit_logs.ip_address IS '客户端 IP';
 COMMENT ON COLUMN contful_audit_logs.user_agent IS '客户端 User-Agent';
-COMMENT ON COLUMN contful_audit_logs.request_body IS '请求体内容';
-COMMENT ON COLUMN contful_audit_logs.response_status IS '响应 HTTP 状态码';
-COMMENT ON COLUMN contful_audit_logs.duration_ms IS '请求耗时（毫秒）';
-COMMENT ON COLUMN contful_audit_logs.session_id IS '会话 ID';
-COMMENT ON COLUMN contful_audit_logs.geo_ip_info IS 'IP 地理位置信息 JSONB';
-COMMENT ON COLUMN contful_audit_logs.search_vector IS '全文搜索向量';
 COMMENT ON COLUMN contful_audit_logs.data_signature IS '审计日志完整性签名，防篡改';
 COMMENT ON COLUMN contful_audit_logs.created_time IS '日志创建时间';
-
--- =============================================================================
--- 审计异常事件表
--- =============================================================================
-
-CREATE TABLE contful_audit_anomalies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    audit_log_id UUID,
-    anomaly_type VARCHAR(50) NOT NULL,
-    severity VARCHAR(20) NOT NULL,
-    score DECIMAL(5,2) NOT NULL,
-    baseline_value JSONB,
-    actual_value JSONB,
-    description TEXT NOT NULL,
-    detected_time TIMESTAMPTZ NOT NULL,
-    resolved_time TIMESTAMPTZ,
-    resolution_note TEXT,
-    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_audit_anomalies_type ON contful_audit_anomalies(anomaly_type);
-CREATE INDEX idx_audit_anomalies_detected ON contful_audit_anomalies(detected_time DESC);
-CREATE INDEX idx_audit_anomalies_log ON contful_audit_anomalies(audit_log_id);
-CREATE INDEX idx_audit_anomalies_severity ON contful_audit_anomalies(severity);
-
-COMMENT ON TABLE contful_audit_anomalies IS '审计异常事件表：存储异常检测结果';
-COMMENT ON COLUMN contful_audit_anomalies.id IS '异常事件唯一标识符';
-COMMENT ON COLUMN contful_audit_anomalies.audit_log_id IS '关联的审计日志 ID';
-COMMENT ON COLUMN contful_audit_anomalies.anomaly_type IS '异常类型：abnormal_login/high_frequency/permission_escalation/time_series_anomaly/behavior_deviation';
-COMMENT ON COLUMN contful_audit_anomalies.severity IS '严重程度：low/medium/high/critical';
-COMMENT ON COLUMN contful_audit_anomalies.score IS '异常评分（0-100）';
-COMMENT ON COLUMN contful_audit_anomalies.baseline_value IS '基线值 JSONB';
-COMMENT ON COLUMN contful_audit_anomalies.actual_value IS '实际值 JSONB';
-COMMENT ON COLUMN contful_audit_anomalies.description IS '异常描述';
-COMMENT ON COLUMN contful_audit_anomalies.detected_time IS '检测时间';
-COMMENT ON COLUMN contful_audit_anomalies.resolved_time IS '解决时间';
-COMMENT ON COLUMN contful_audit_anomalies.resolution_note IS '解决备注';
-COMMENT ON COLUMN contful_audit_anomalies.created_time IS '创建时间';
-
--- =============================================================================
--- 审计查询模板表
--- =============================================================================
-
-CREATE TABLE contful_audit_query_templates (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(200) NOT NULL,
-    conditions JSONB NOT NULL,
-    created_by UUID,
-    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_audit_query_templates_created_by ON contful_audit_query_templates(created_by);
-
-COMMENT ON TABLE contful_audit_query_templates IS '审计查询模板表：保存用户的查询条件组合';
-COMMENT ON COLUMN contful_audit_query_templates.id IS '模板唯一标识符';
-COMMENT ON COLUMN contful_audit_query_templates.name IS '模板名称';
-COMMENT ON COLUMN contful_audit_query_templates.conditions IS '查询条件 JSONB';
-COMMENT ON COLUMN contful_audit_query_templates.created_by IS '创建者用户 ID';
-COMMENT ON COLUMN contful_audit_query_templates.created_time IS '创建时间';
 
 -- =============================================================================
 -- 站点表
@@ -1007,117 +910,6 @@ CREATE INDEX IF NOT EXISTS idx_entries_scheduled_unpublish
 
 
 -- =============================================================================
--- 生产环境迁移脚本 (v2.0.0 - 审计日志升级)
--- 用于已有数据库的增量迁移，每个语句都是幂等的（IF NOT EXISTS / IF EXISTS）
--- =============================================================================
-
--- 审计日志新增 5 列
-ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS request_body TEXT;
-ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS response_status SMALLINT;
-ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS duration_ms INTEGER;
-ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS session_id VARCHAR(64);
-ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS geo_ip_info JSONB DEFAULT '{}'::jsonb;
-
--- 全文搜索向量列 + GIN 索引
-ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS search_vector TSVECTOR;
-CREATE INDEX IF NOT EXISTS idx_audit_logs_search ON contful_audit_logs USING GIN(search_vector);
-
--- 创建 search_vector 触发器函数
-CREATE OR REPLACE FUNCTION update_audit_logs_search_vector()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.search_vector :=
-    setweight(to_tsvector('simple', COALESCE(NEW.action, '')), 'A') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.details, '')), 'B') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.resource_type, '')), 'B') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.ip_address::text, '')), 'C') ||
-    setweight(to_tsvector('simple', COALESCE(NEW.user_agent, '')), 'D');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- 创建 search_vector 触发器（幂等）
-DROP TRIGGER IF EXISTS trg_audit_logs_search_vector ON contful_audit_logs;
-CREATE TRIGGER trg_audit_logs_search_vector
-    BEFORE INSERT ON contful_audit_logs
-    FOR EACH ROW EXECUTE FUNCTION update_audit_logs_search_vector();
-
--- 历史数据：禁用 prevent 触发器 → 填充 search_vector → 重建
--- 已有 prevent_audit_logs_update 触发器阻止 UPDATE，需先禁用
-ALTER TABLE contful_audit_logs DISABLE TRIGGER prevent_audit_logs_update;
-UPDATE contful_audit_logs SET search_vector = NULL WHERE search_vector IS NULL;
-ALTER TABLE contful_audit_logs ENABLE TRIGGER prevent_audit_logs_update;
--- 注：上面 SET search_vector = NULL 实际会被触发器拦截，改用以下方式直接操作系统列
--- 执行后需手动运行以下更新：
--- BEGIN;
--- ALTER TABLE contful_audit_logs DISABLE TRIGGER prevent_audit_logs_update;
--- UPDATE contful_audit_logs SET
---   search_vector =
---     setweight(to_tsvector('simple', COALESCE(action, '')), 'A') ||
---     setweight(to_tsvector('simple', COALESCE(details, '')), 'B') ||
---     setweight(to_tsvector('simple', COALESCE(resource_type, '')), 'B') ||
---     setweight(to_tsvector('simple', COALESCE(ip_address::text, '')), 'C') ||
---     setweight(to_tsvector('simple', COALESCE(user_agent, '')), 'D')
---   WHERE search_vector IS NULL;
--- ALTER TABLE contful_audit_logs ENABLE TRIGGER prevent_audit_logs_update;
--- COMMIT;
-
--- 创建异常事件表
-CREATE TABLE IF NOT EXISTS contful_audit_anomalies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    audit_log_id UUID,
-    anomaly_type VARCHAR(50) NOT NULL,
-    severity VARCHAR(20) NOT NULL,
-    score DECIMAL(5,2) NOT NULL,
-    baseline_value JSONB,
-    actual_value JSONB,
-    description TEXT NOT NULL,
-    detected_time TIMESTAMPTZ NOT NULL,
-    resolved_time TIMESTAMPTZ,
-    resolution_note TEXT,
-    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_audit_anomalies_type ON contful_audit_anomalies(anomaly_type);
-CREATE INDEX IF NOT EXISTS idx_audit_anomalies_detected ON contful_audit_anomalies(detected_time DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_anomalies_log ON contful_audit_anomalies(audit_log_id);
-CREATE INDEX IF NOT EXISTS idx_audit_anomalies_severity ON contful_audit_anomalies(severity);
-
--- 创建查询模板表
-CREATE TABLE IF NOT EXISTS contful_audit_query_templates (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(200) NOT NULL,
-    conditions JSONB NOT NULL,
-    created_by UUID,
-    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_audit_query_templates_created_by ON contful_audit_query_templates(created_by);
-
--- 新增 RBAC 权限
-INSERT INTO contful_system_permissions (group_id, action, label, label_en, sort_order)
-SELECT g.id, t.action, t.label, t.label_en, t.sort_order
-FROM (VALUES
-    ('00000000-0000-0000-0000-000000000306'::uuid, 'anomaly_read', '异常洞察', 'Anomaly Read', 2),
-    ('00000000-0000-0000-0000-000000000306'::uuid, 'scan',         '异常扫描', 'Anomaly Scan',  3)
-) AS t(group_id, action, label, label_en, sort_order)
-JOIN contful_system_permission_groups g ON g.id = t.group_id::uuid
-WHERE NOT EXISTS (
-    SELECT 1 FROM contful_system_permissions p WHERE p.group_id = g.id AND p.action = t.action
-);
-
--- 更新超级管理员角色：追加 audit:anomaly_read 和 audit:scan 权限
-UPDATE contful_system_roles
-SET permissions = permissions || '["audit:anomaly_read", "audit:scan"]'::jsonb
-WHERE id = '00000000-0000-0000-0000-000000000101'::uuid
-  AND NOT (permissions @> '"audit:anomaly_read"'::jsonb);
-
--- 更新审计人员角色：追加 audit:anomaly_read 权限
-UPDATE contful_system_roles
-SET permissions = permissions || '["audit:anomaly_read"]'::jsonb
-WHERE id = '00000000-0000-0000-0000-000000000103'::uuid
-  AND NOT (permissions @> '"audit:anomaly_read"'::jsonb);
-
-
--- =============================================================================
 -- 种子数据
 -- 幂等设计：使用 INSERT ... WHERE NOT EXISTS / ON CONFLICT DO NOTHING
 -- =============================================================================
@@ -1154,7 +946,7 @@ SELECT
       "sites:read","sites:write","sites:delete",
       "tokens:read","tokens:write","tokens:delete",
       "settings:read","settings:write",
-      "audit:read","audit:export","audit:anomaly_read","audit:scan",
+      "audit:read","audit:export",
       "roles:read","roles:write","roles:delete"]'::jsonb,
     NOW(),
     NOW()
@@ -1168,7 +960,7 @@ SELECT
     '审计人员，仅可查看和导出审计日志',
     TRUE,
     '["users:read","sites:read","tokens:read",
-      "settings:read","audit:read","audit:export","audit:anomaly_read"]'::jsonb,
+      "settings:read","audit:read","audit:export"]'::jsonb,
     NOW(),
     NOW()
 WHERE NOT EXISTS (SELECT 1 FROM contful_system_roles WHERE id = '00000000-0000-0000-0000-000000000103'::uuid);
@@ -1209,10 +1001,8 @@ FROM (VALUES
     ('00000000-0000-0000-0000-000000000304'::uuid, 'delete', '删除 Token','Delete Tokens',     2),
     ('00000000-0000-0000-0000-000000000305'::uuid, 'read',   '查看设置',  'View Settings',     0),
     ('00000000-0000-0000-0000-000000000305'::uuid, 'write',  '修改设置',  'Edit Settings',     1),
-    ('00000000-0000-0000-0000-000000000306'::uuid, 'read',         '查看日志',  'View Logs',         0),
-    ('00000000-0000-0000-0000-000000000306'::uuid, 'export',       '导出日志',  'Export Logs',       1),
-    ('00000000-0000-0000-0000-000000000306'::uuid, 'anomaly_read', '异常洞察',  'Anomaly Read',      2),
-    ('00000000-0000-0000-0000-000000000306'::uuid, 'scan',         '异常扫描',  'Anomaly Scan',      3),
+    ('00000000-0000-0000-0000-000000000306'::uuid, 'read',   '查看日志',  'View Logs',         0),
+    ('00000000-0000-0000-0000-000000000306'::uuid, 'export', '导出日志',  'Export Logs',       1),
     ('00000000-0000-0000-0000-000000000307'::uuid, 'read',   '查看角色',  'View Roles',        0),
     ('00000000-0000-0000-0000-000000000307'::uuid, 'write',  '管理角色',  'Manage Roles',      1),
     ('00000000-0000-0000-0000-000000000307'::uuid, 'delete', '删除角色',  'Delete Roles',      2),

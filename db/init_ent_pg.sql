@@ -55,6 +55,45 @@ CREATE INDEX IF NOT EXISTS idx_entries_scheduled_unpublish
 
 -- 1.2 system_config 表：企业版配置键无需改表，通过 seed_data 写入即可
 
+-- 1.3 contful_audit_logs 表：企业版审计日志增强字段
+ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS request_body TEXT;
+ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS response_status SMALLINT;
+ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS duration_ms INTEGER;
+ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS session_id VARCHAR(64);
+ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS geo_ip_info JSONB DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN contful_audit_logs.request_body IS '[企业版] 请求体内容';
+COMMENT ON COLUMN contful_audit_logs.response_status IS '[企业版] 响应 HTTP 状态码';
+COMMENT ON COLUMN contful_audit_logs.duration_ms IS '[企业版] 请求耗时（毫秒）';
+COMMENT ON COLUMN contful_audit_logs.session_id IS '[企业版] 会话 ID';
+COMMENT ON COLUMN contful_audit_logs.geo_ip_info IS '[企业版] IP 地理位置信息 JSONB';
+
+-- 1.4 contful_audit_logs 表：全文搜索向量列 + GIN 索引（仅 PostgreSQL）
+ALTER TABLE contful_audit_logs ADD COLUMN IF NOT EXISTS search_vector TSVECTOR;
+CREATE INDEX IF NOT EXISTS idx_audit_logs_search ON contful_audit_logs USING GIN(search_vector);
+
+COMMENT ON COLUMN contful_audit_logs.search_vector IS '[企业版] 全文搜索向量';
+
+-- search_vector 自动更新触发器函数（企业版独有）
+CREATE OR REPLACE FUNCTION update_audit_logs_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.search_vector :=
+    setweight(to_tsvector('simple', COALESCE(NEW.action, '')), 'A') ||
+    setweight(to_tsvector('simple', COALESCE(NEW.details, '')), 'B') ||
+    setweight(to_tsvector('simple', COALESCE(NEW.resource_type, '')), 'B') ||
+    setweight(to_tsvector('simple', COALESCE(NEW.ip_address::text, '')), 'C') ||
+    setweight(to_tsvector('simple', COALESCE(NEW.user_agent, '')), 'D');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- search_vector 触发器（幂等创建）
+DROP TRIGGER IF EXISTS trg_audit_logs_search_vector ON contful_audit_logs;
+CREATE TRIGGER trg_audit_logs_search_vector
+    BEFORE INSERT ON contful_audit_logs
+    FOR EACH ROW EXECUTE FUNCTION update_audit_logs_search_vector();
+
 -- =============================================================================
 -- 二、企业版独有表（contful_ent_ 前缀）
 -- =============================================================================
@@ -90,6 +129,59 @@ COMMENT ON COLUMN contful_ent_schedule_logs.error_message IS '失败原因';
 COMMENT ON COLUMN contful_ent_schedule_logs.audit_log_id IS '关联的审计日志 ID';
 COMMENT ON COLUMN contful_ent_schedule_logs.created_time IS '记录创建时间';
 
+-- 2.2 contful_audit_anomalies — 审计异常事件
+CREATE TABLE IF NOT EXISTS contful_audit_anomalies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    audit_log_id UUID,
+    anomaly_type VARCHAR(50) NOT NULL,
+    severity VARCHAR(20) NOT NULL,
+    score DECIMAL(5,2) NOT NULL,
+    baseline_value JSONB,
+    actual_value JSONB,
+    description TEXT NOT NULL,
+    detected_time TIMESTAMPTZ NOT NULL,
+    resolved_time TIMESTAMPTZ,
+    resolution_note TEXT,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_anomalies_type ON contful_audit_anomalies(anomaly_type);
+CREATE INDEX IF NOT EXISTS idx_audit_anomalies_detected ON contful_audit_anomalies(detected_time DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_anomalies_log ON contful_audit_anomalies(audit_log_id);
+CREATE INDEX IF NOT EXISTS idx_audit_anomalies_severity ON contful_audit_anomalies(severity);
+
+COMMENT ON TABLE contful_audit_anomalies IS '[企业版] 审计异常事件表：存储异常检测结果';
+COMMENT ON COLUMN contful_audit_anomalies.id IS '异常事件唯一标识符';
+COMMENT ON COLUMN contful_audit_anomalies.audit_log_id IS '关联的审计日志 ID';
+COMMENT ON COLUMN contful_audit_anomalies.anomaly_type IS '异常类型：abnormal_login/high_frequency/permission_escalation/time_series_anomaly/behavior_deviation';
+COMMENT ON COLUMN contful_audit_anomalies.severity IS '严重程度：low/medium/high/critical';
+COMMENT ON COLUMN contful_audit_anomalies.score IS '异常评分（0-100）';
+COMMENT ON COLUMN contful_audit_anomalies.baseline_value IS '基线值 JSONB';
+COMMENT ON COLUMN contful_audit_anomalies.actual_value IS '实际值 JSONB';
+COMMENT ON COLUMN contful_audit_anomalies.description IS '异常描述';
+COMMENT ON COLUMN contful_audit_anomalies.detected_time IS '检测时间';
+COMMENT ON COLUMN contful_audit_anomalies.resolved_time IS '解决时间';
+COMMENT ON COLUMN contful_audit_anomalies.resolution_note IS '解决备注';
+COMMENT ON COLUMN contful_audit_anomalies.created_time IS '创建时间';
+
+-- 2.3 contful_audit_query_templates — 审计查询模板
+CREATE TABLE IF NOT EXISTS contful_audit_query_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL,
+    conditions JSONB NOT NULL,
+    created_by UUID,
+    created_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_query_templates_created_by ON contful_audit_query_templates(created_by);
+
+COMMENT ON TABLE contful_audit_query_templates IS '[企业版] 审计查询模板表：保存用户查询条件组合';
+COMMENT ON COLUMN contful_audit_query_templates.id IS '模板唯一标识符';
+COMMENT ON COLUMN contful_audit_query_templates.name IS '模板名称';
+COMMENT ON COLUMN contful_audit_query_templates.conditions IS '查询条件 JSONB';
+COMMENT ON COLUMN contful_audit_query_templates.created_by IS '创建者用户 ID';
+COMMENT ON COLUMN contful_audit_query_templates.created_time IS '创建时间';
+
 -- =============================================================================
 -- 三、种子数据（企业版默认配置）
 -- =============================================================================
@@ -106,9 +198,13 @@ COMMENT ON COLUMN contful_ent_schedule_logs.created_time IS '记录创建时间'
 --
 -- 修改开源表（ALTER，不删不改现有列）：
 --   entries:  +scheduled_publish_time, +scheduled_unpublish_time, +2 索引
+--   contful_audit_logs:  +request_body, +response_status, +duration_ms, +session_id, +geo_ip_info, +search_vector, +GIN 索引, +触发器函数, +触发器
 --
--- 新增企业版独有表（contful_ent_ 前缀）：
+-- 新增企业版表：
 --   contful_ent_schedule_logs — 排期执行记录
+--   contful_audit_anomalies — 审计异常事件
+--   contful_audit_query_templates — 审计查询模板
+
 --
 -- 不需要改表的功能：
 --   国密全套（SM2/SM3/SM4）— 纯应用层，配置通过 system_config 管理
