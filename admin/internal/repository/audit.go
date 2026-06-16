@@ -4,6 +4,9 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/contful/contful-enterprise/shared/uid"
 	"github.com/contful/contful/admin/internal/audit"
@@ -60,17 +63,20 @@ func (r *AuditRepository) GetByID(ctx context.Context, id uid.UID) (*model.Audit
 
 // List 通用列表查询（支持筛选和分页）
 func (r *AuditRepository) List(ctx context.Context, filter *model.AuditLogFilter, page, pageSize int) ([]model.AuditLog, int64, error) {
+	// 有关键词时走全文搜索
+	if filter != nil && filter.Keyword != "" {
+		return r.SearchFullText(ctx, filter, page, pageSize)
+	}
+
 	var logs []model.AuditLog
 	var total int64
 
 	query := r.buildFilterQuery(ctx, filter)
 
-	// 统计总数
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// 分页查询
 	offset := (page - 1) * pageSize
 	if err := query.Offset(offset).Limit(pageSize).Order("created_time DESC").Find(&logs).Error; err != nil {
 		return nil, 0, err
@@ -84,13 +90,43 @@ func (r *AuditRepository) ExportAll(ctx context.Context, filter *model.AuditLogF
 	var logs []model.AuditLog
 	var total int64
 
-	query := r.buildFilterQuery(ctx, filter)
+	query := r.buildFilterQueryWithKeyword(ctx, filter)
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	if err := query.Limit(maxRows).Order("created_time DESC").Find(&logs).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return logs, total, nil
+}
+
+// GetRecentLogs 查询最近一段时间内的审计日志（异常扫描用）
+func (r *AuditRepository) GetRecentLogs(ctx context.Context, since time.Duration) ([]model.AuditLog, error) {
+	var logs []model.AuditLog
+	err := r.db.WithContext(ctx).
+		Model(&model.AuditLog{}).
+		Where("created_time >= ?", time.Now().Add(-since)).
+		Order("created_time DESC").
+		Find(&logs).Error
+	return logs, err
+}
+
+// SearchFullText 全文搜索（GIN tsvector）
+func (r *AuditRepository) SearchFullText(ctx context.Context, filter *model.AuditLogFilter, page, pageSize int) ([]model.AuditLog, int64, error) {
+	var logs []model.AuditLog
+	var total int64
+
+	query := r.buildFilterQueryWithKeyword(ctx, filter)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Order("created_time DESC").Find(&logs).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -126,6 +162,76 @@ func (r *AuditRepository) buildFilterQuery(ctx context.Context, filter *model.Au
 			query = query.Where("created_time <= ?", filter.EndTime)
 		}
 	}
+
+	return query
+}
+
+// buildFilterQueryWithKeyword 构建带全文搜索的查询
+func (r *AuditRepository) buildFilterQueryWithKeyword(ctx context.Context, filter *model.AuditLogFilter) *gorm.DB {
+	query := r.db.WithContext(ctx).Model(&model.AuditLog{})
+	hasKeyword := filter != nil && filter.Keyword != ""
+
+	if filter == nil {
+		return query
+	}
+
+	// 收集所有条件表达式
+	var conds []string
+	var args []interface{}
+
+	if filter.SiteID != nil {
+		conds = append(conds, "site_id = ?")
+		args = append(args, *filter.SiteID)
+	}
+	if filter.UserID != nil {
+		conds = append(conds, "user_id = ?")
+		args = append(args, *filter.UserID)
+	}
+	if filter.Action != "" {
+		conds = append(conds, "action = ?")
+		args = append(args, filter.Action)
+	}
+	if filter.ResourceType != "" {
+		conds = append(conds, "resource_type = ?")
+		args = append(args, filter.ResourceType)
+	}
+	if filter.Category != "" {
+		conds = append(conds, "category = ?")
+		args = append(args, filter.Category)
+	}
+	if filter.Level != "" {
+		conds = append(conds, "level = ?")
+		args = append(args, filter.Level)
+	}
+	if !filter.StartTime.IsZero() {
+		conds = append(conds, "created_time >= ?")
+		args = append(args, filter.StartTime)
+	}
+	if !filter.EndTime.IsZero() {
+		conds = append(conds, "created_time <= ?")
+		args = append(args, filter.EndTime)
+	}
+
+	// 全文搜索条件
+	if hasKeyword {
+		// 使用 plainto_tsquery 处理用户输入（转义单引号防注入）
+		keyword := strings.ReplaceAll(filter.Keyword, "'", "''")
+		keywordCond := fmt.Sprintf("search_vector @@ plainto_tsquery('simple', '%s')", keyword)
+		conds = append(conds, keywordCond)
+	}
+
+	if len(conds) == 0 {
+		return query
+	}
+
+	// 组合条件逻辑
+	combinator := "AND"
+	if filter.Combinator == "or" {
+		combinator = "OR"
+	}
+
+	whereClause := strings.Join(conds, " "+combinator+" ")
+	query = query.Where(whereClause, args...)
 
 	return query
 }

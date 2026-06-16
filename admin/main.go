@@ -116,6 +116,8 @@ func runServer() {
 	systemRoleRepo := repository.NewSystemRoleRepository(db)
 	systemConfigRepo := repository.NewSystemConfigRepository(db, redisClient)
 	permRepo := repository.NewPermissionRepository(db)
+	anomalyRepo := repository.NewAnomalyRepository(db)
+	queryTemplateRepo := repository.NewQueryTemplateRepository(db)
 
 	// 初始化加密器（根据配置选择算法）
 	var crypter crypto.Crypter
@@ -148,6 +150,49 @@ func runServer() {
 	// 初始化 Audit Service（审计日志）
 	auditService := service.NewAuditService(auditRepo, configService)
 	logger.Info().Msg("Audit 服务已就绪")
+
+	// 初始化 Rule Engine（异常检测规则）
+	ruleEngine, err := audit.NewRuleEngine("internal/audit/rules/default.yaml")
+	if err != nil {
+		logger.Warn().Err(err).Msg("规则引擎初始化失败，异常检测将不可用")
+	} else {
+		if err := ruleEngine.StartWatch(); err != nil {
+			logger.Warn().Err(err).Msg("规则文件监听启动失败")
+		} else {
+			logger.Info().Msg("规则引擎已就绪（热加载已启用）")
+		}
+	}
+	// 优雅关闭时停止文件监听
+	defer func() {
+		if ruleEngine != nil {
+			ruleEngine.StopWatch()
+		}
+	}()
+
+	// 初始化 Detector
+	detector := audit.NewDetector(db)
+	logger.Info().Msg("异常检测器已就绪")
+
+	// 初始化 Export Service
+	exportService := service.NewExportService(auditRepo)
+
+	// 初始化 Anomaly Service
+	var anomalyService *service.AnomalyService
+	if ruleEngine != nil {
+		anomalyService = service.NewAnomalyService(anomalyRepo, auditRepo, ruleEngine, detector)
+		logger.Info().Msg("异常检测服务已就绪")
+	}
+
+	// 初始化 Scanner（定时扫描）
+	var scanner *service.Scanner
+	if anomalyService != nil {
+		scanner = service.NewScanner(db, anomalyService)
+		if err := scanner.Start(); err != nil {
+			logger.Warn().Err(err).Msg("定时扫描启动失败")
+		} else {
+			logger.Info().Msg("定时异常扫描已启动（每 5 分钟）")
+		}
+	}
 
 	// 初始化 RBAC 服务（不再需要 siteRoleRepo 和 siteUserRepo）
 	rbacService := service.NewRBACService(db, redisClient, systemRoleRepo, userRepo, permRepo)
@@ -246,7 +291,12 @@ func runServer() {
 	systemConfigHandler := handler.NewSystemConfigHandler(systemConfigRepo, rbacService, auditService)
 	permHandler := handler.NewPermissionHandler(permRepo, rbacService)
 	dashboardHandler := handler.NewDashboardHandler(service.NewDashboardService(db))
-	auditHandler := handler.NewAuditHandler(auditService)
+	auditHandler := handler.NewAuditHandler(auditService, exportService)
+	var anomalyHandler *handler.AnomalyHandler
+	if anomalyService != nil {
+		anomalyHandler = handler.NewAnomalyHandler(anomalyService, scanner)
+	}
+	queryTemplateHandler := handler.NewQueryTemplateHandler(queryTemplateRepo, auditService)
 
 	// 初始化 Webhook
 	webhookRepo := repository.NewWebhookRepository(db)
@@ -602,6 +652,39 @@ func runServer() {
 		protected.GET("/audit/logs/export/xlsx",
 			middleware.RequirePermission(rbacService, "audit:export"),
 			auditHandler.ExportXLSX)
+		protected.GET("/audit/logs/export/json",
+			middleware.RequirePermission(rbacService, "audit:export"),
+			auditHandler.ExportJSON)
+
+		// 查询模板管理
+		protected.GET("/audit/query/templates",
+			middleware.RequirePermission(rbacService, "audit:read"),
+			queryTemplateHandler.List)
+		protected.POST("/audit/query/templates",
+			middleware.RequirePermission(rbacService, "audit:read"),
+			queryTemplateHandler.Create)
+		protected.GET("/audit/query/templates/:id/apply",
+			middleware.RequirePermission(rbacService, "audit:read"),
+			queryTemplateHandler.Apply)
+		protected.DELETE("/audit/query/templates/:id",
+			middleware.RequirePermission(rbacService, "audit:read"),
+			queryTemplateHandler.Delete)
+
+		// 异常检测
+		if anomalyHandler != nil {
+			protected.GET("/audit/anomalies",
+				middleware.RequirePermission(rbacService, "audit:anomaly_read"),
+				anomalyHandler.List)
+			protected.GET("/audit/anomalies/summary",
+				middleware.RequirePermission(rbacService, "audit:anomaly_read"),
+				anomalyHandler.Summary)
+			protected.POST("/audit/anomalies/scan",
+				middleware.RequirePermission(rbacService, "audit:scan"),
+				anomalyHandler.TriggerScan)
+			protected.GET("/audit/anomalies/:id",
+				middleware.RequirePermission(rbacService, "audit:anomaly_read"),
+				anomalyHandler.Get)
+		}
 
 		// ─── Webhook 管理 ─────────────────────────
 		protected.GET("/webhooks",
@@ -727,6 +810,11 @@ func runServer() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	logger.Info().Msg("shutting down server...")
+
+	// 停止定时扫描
+	if scanner != nil {
+		scanner.Stop()
+	}
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Duration(cfg.Server.ShutdownTimeout)*time.Second)
 	defer shutdownCancel()

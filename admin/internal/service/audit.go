@@ -180,6 +180,11 @@ func (s *AuditService) List(ctx context.Context, filter *model.AuditLogFilter, p
 	return s.auditRepo.List(ctx, filter, page, pageSize)
 }
 
+// SearchLogs 全文搜索审计日志
+func (s *AuditService) SearchLogs(ctx context.Context, filter *model.AuditLogFilter, page, pageSize int) ([]model.AuditLog, int64, error) {
+	return s.auditRepo.SearchFullText(ctx, filter, page, pageSize)
+}
+
 // GetByID 根据 ID 获取审计日志详情
 func (s *AuditService) GetByID(ctx context.Context, id uid.UID) (*model.AuditLog, error) {
 	return s.auditRepo.GetByID(ctx, id)
@@ -190,7 +195,7 @@ func (s *AuditService) GetSigningKey(ctx context.Context) (string, error) {
 	return s.configSvc.GetAuditSigningKey()
 }
 
-// ExportCSV 导出审计日志为 CSV 格式
+// ExportCSV 导出审计日志为 CSV 格式（支持字段选择）
 // 返回: CSV 字节流、实际记录数、总数、error
 func (s *AuditService) ExportCSV(ctx context.Context, filter *model.AuditLogFilter, maxRows int) ([]byte, int64, int64, error) {
 	logs, total, err := s.auditRepo.ExportAll(ctx, filter, maxRows)
@@ -205,11 +210,11 @@ func (s *AuditService) ExportCSV(ctx context.Context, filter *model.AuditLogFilt
 
 	w := csv.NewWriter(&buf)
 
-	// 表头
-	headers := []string{
-		"id", "action", "category", "level", "resource_type", "resource_id",
-		"user_id", "site_id", "ip_address", "user_agent", "details",
-		"created_time", "data_signature",
+	// 根据 filter.Fields 决定导出哪些列
+	cols := getExportColumns(filter)
+	headers := make([]string, 0, len(cols))
+	for _, c := range cols {
+		headers = append(headers, c.label)
 	}
 	if err := w.Write(headers); err != nil {
 		return nil, 0, 0, fmt.Errorf("write csv header: %w", err)
@@ -217,20 +222,9 @@ func (s *AuditService) ExportCSV(ctx context.Context, filter *model.AuditLogFilt
 
 	// 数据行
 	for _, log := range logs {
-		row := []string{
-			log.ID.String(),
-			log.Action,
-			string(log.Category),
-			string(log.Level),
-			log.ResourceType,
-			uuidOrEmpty(log.ResourceID),
-			uuidOrEmpty(log.UserID),
-			uuidOrEmpty(log.SiteID),
-			log.IPAddress,
-			log.UserAgent,
-			log.Details,
-			log.CreatedTime.Format("2006-01-02T15:04:05Z07:00"),
-			log.DataSignature,
+		row := make([]string, 0, len(cols))
+		for _, c := range cols {
+			row = append(row, c.value(&log))
 		}
 		if err := w.Write(row); err != nil {
 			return nil, 0, 0, fmt.Errorf("write csv row: %w", err)
@@ -249,6 +243,64 @@ func (s *AuditService) ExportCSV(ctx context.Context, filter *model.AuditLogFilt
 	buf.WriteString(sigLine)
 
 	return buf.Bytes(), int64(len(logs)), total, nil
+}
+
+type exportColumn struct {
+	label string
+	value func(*model.AuditLog) string
+}
+
+var allExportColumns = []exportColumn{
+	{"id", func(l *model.AuditLog) string { return l.ID.String() }},
+	{"action", func(l *model.AuditLog) string { return l.Action }},
+	{"category", func(l *model.AuditLog) string { return string(l.Category) }},
+	{"level", func(l *model.AuditLog) string { return string(l.Level) }},
+	{"resource_type", func(l *model.AuditLog) string { return l.ResourceType }},
+	{"resource_id", func(l *model.AuditLog) string { return uuidOrEmpty(l.ResourceID) }},
+	{"user_id", func(l *model.AuditLog) string { return uuidOrEmpty(l.UserID) }},
+	{"site_id", func(l *model.AuditLog) string { return uuidOrEmpty(l.SiteID) }},
+	{"ip_address", func(l *model.AuditLog) string { return l.IPAddress }},
+	{"user_agent", func(l *model.AuditLog) string { return l.UserAgent }},
+	{"details", func(l *model.AuditLog) string { return l.Details }},
+	{"created_time", func(l *model.AuditLog) string { return l.CreatedTime.Format("2006-01-02T15:04:05Z07:00") }},
+	{"data_signature", func(l *model.AuditLog) string { return l.DataSignature }},
+	{"response_status", func(l *model.AuditLog) string {
+		if l.ResponseStatus != nil {
+			return fmt.Sprintf("%d", *l.ResponseStatus)
+		}
+		return ""
+	}},
+	{"duration_ms", func(l *model.AuditLog) string {
+		if l.DurationMs != nil {
+			return fmt.Sprintf("%d", *l.DurationMs)
+		}
+		return ""
+	}},
+	{"session_id", func(l *model.AuditLog) string {
+		if l.SessionID != nil {
+			return *l.SessionID
+		}
+		return ""
+	}},
+}
+
+func getExportColumns(filter *model.AuditLogFilter) []exportColumn {
+	if len(filter.Fields) == 0 {
+		return allExportColumns[:13] // 默认 13 个基础字段（不含新字段）
+	}
+	selected := make([]exportColumn, 0, len(filter.Fields))
+	for _, f := range filter.Fields {
+		for _, c := range allExportColumns {
+			if c.label == f {
+				selected = append(selected, c)
+				break
+			}
+		}
+	}
+	if len(selected) == 0 {
+		return allExportColumns[:13]
+	}
+	return selected
 }
 
 // ExportXLSX 导出审计日志为 XLSX 格式（含条件着色 + 完整性声明 sheet）

@@ -1,0 +1,56 @@
+# Contful 企业版 - 异常检测规则配置
+# 使用 simple pg 配置（暂不装 zhparser）
+
+rules:
+  - name: abnormal_login
+    type: abnormal_login
+    enabled: true
+    description: "检测用户在异常地理位置或异常时段的登录行为"
+    query: |
+      SELECT user_id, ip_address, geo_ip_info, created_time
+      FROM contful_audit_logs
+      WHERE category = 'auth' AND action = 'login'
+        AND created_time > NOW() - INTERVAL '5 minutes'
+    analysis:
+      geo_deviation: true
+      time_deviation: true
+    thresholds:
+      geo_distance_km: 500
+      score_min: 60
+
+  - name: high_frequency
+    type: high_frequency
+    enabled: true
+    description: "检测短时间内高频操作（暴力操作/API 滥用）"
+    window: 60s
+    threshold: 50
+    score: 70
+
+  - name: permission_escalation
+    type: permission_escalation
+    enabled: true
+    description: "检测越权操作（低权限用户执行高权限动作）"
+    sensitive_actions:
+      - "delete_user"
+      - "grant_role"
+      - "modify_permission"
+    score: 90
+
+  - name: time_series_anomaly
+    type: time_series_anomaly
+    enabled: true
+    description: "基于操作次数时间序列检测异常波动"
+    baseline_window: 168h
+    deviation_factor: 3.0
+    score: 65
+
+  - name: behavior_deviation
+    type: behavior_deviation
+    enabled: true
+    description: "检测用户行为模式偏离历史基线"
+    baseline_window: 720h
+    features:
+      - "action_distribution"
+      - "time_of_day"
+      - "ip_prefix"
+    score: 75

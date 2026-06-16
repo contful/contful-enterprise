@@ -6,7 +6,7 @@ module github.com/contful/contful/admin
 go 1.25.0
 
 require (
-	gitee.com/chunanyong/dm v1.8.23 // indirect
+	gitee.com/chunanyong/dm v1.8.23
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.5.1
 	github.com/aws/aws-sdk-go-v2 v1.41.9
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
@@ -19,12 +19,14 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/pquerna/otp v1.5.0
 	github.com/redis/go-redis/v9 v9.20.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/viper v1.21.0
 	github.com/subosito/gotenv v1.6.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.73
 	github.com/tjfoc/gmsm v1.4.1
 	golang.org/x/crypto v0.52.0
+	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.7
 	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/gorm v1.31.1
@@ -53,7 +55,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clbanning/mxj v1.8.4 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -101,6 +102,9 @@ require (
 	gorm.io/driver/mysql v1.5.6 // indirect
 )
 
-require github.com/contful/contful-enterprise/shared v0.0.0
+require (
+	github.com/contful/contful-enterprise/shared v0.0.0
+	github.com/fsnotify/fsnotify v1.10.1
+)
 
 replace github.com/contful/contful-enterprise/shared => ../shared
