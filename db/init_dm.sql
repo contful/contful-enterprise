@@ -276,6 +276,7 @@ CREATE TABLE CONTFUL_ENT.contful_system_roles (
     permissions CLOB DEFAULT '[]',
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
+    deleted_time TIMESTAMP,
     CONSTRAINT pk_system_roles PRIMARY KEY (id)
 );
 
