@@ -169,7 +169,24 @@ CREATE INDEX idx_entry_values_entry ON CONTFUL_ENT.contful_entry_values(entry_id
 CREATE INDEX idx_entry_values_field ON CONTFUL_ENT.contful_entry_values(entry_id, field_id);
 
 -- =============================================================================
--- 7. 资产文件夹
+-- 7. 条目版本历史（对齐 init_pg.sql）
+-- =============================================================================
+CREATE TABLE CONTFUL_ENT.contful_entry_versions (
+    id VARCHAR2(36),
+    entry_id VARCHAR2(36) NOT NULL,
+    version NUMBER NOT NULL,
+    values_snapshot CLOB NOT NULL,
+    created_by VARCHAR2(36),
+    created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
+    change_summary CLOB,
+    CONSTRAINT pk_entry_versions PRIMARY KEY (id),
+    CONSTRAINT fk_entry_versions_entry FOREIGN KEY (entry_id) REFERENCES CONTFUL_ENT.contful_entries(id),
+    CONSTRAINT uq_entry_versions UNIQUE (entry_id, version)
+);
+CREATE INDEX idx_entry_versions_entry ON CONTFUL_ENT.contful_entry_versions(entry_id);
+
+-- =============================================================================
+-- 8. 资产文件夹
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_asset_folders (
     id VARCHAR2(36) ,
@@ -190,24 +207,38 @@ CREATE INDEX idx_asset_folders_site ON CONTFUL_ENT.contful_asset_folders(site_id
 CREATE INDEX idx_asset_folders_parent ON CONTFUL_ENT.contful_asset_folders(parent_id);
 
 -- =============================================================================
--- 8. 资产表
+-- 9. 资产表（对齐 init_pg.sql）
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_assets (
-    id VARCHAR2(36) ,
+    id VARCHAR2(36),
     site_id VARCHAR2(36) NOT NULL,
     folder_id VARCHAR2(36),
-    filename VARCHAR2(500) NOT NULL,
-    original_name VARCHAR2(500),
-    mime_type VARCHAR2(100),
-    file_size NUMBER,
+    uuid VARCHAR2(36) NOT NULL,
+    name VARCHAR2(255) NOT NULL,
+    original_name VARCHAR2(255) NOT NULL,
+    slug VARCHAR2(255) NOT NULL,
+    type VARCHAR2(50) NOT NULL,
+    mime_type VARCHAR2(100) NOT NULL,
+    extension VARCHAR2(20) NOT NULL,
+    size NUMBER NOT NULL,
     width NUMBER,
     height NUMBER,
-    alt_text VARCHAR2(500),
+    duration FLOAT,
+    path VARCHAR2(500) NOT NULL,
+    url VARCHAR2(2000) NOT NULL,
+    thumbnail_url VARCHAR2(500),
+    alt CLOB,
+    title VARCHAR2(255),
     caption CLOB,
-    tags VARCHAR2(500),
-    storage_driver VARCHAR2(50),
-    url VARCHAR2(2000),
+    alt_text CLOB,
+    description CLOB,
+    tags CLOB DEFAULT '[]',
     metadata CLOB DEFAULT '{}',
+    visibility VARCHAR2(20) DEFAULT 'private',
+    file_hash VARCHAR2(64),
+    disk VARCHAR2(50) DEFAULT 'local',
+    download_count NUMBER DEFAULT 0,
+    used_count NUMBER DEFAULT 0,
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,
     deleted_time TIMESTAMP,
@@ -219,16 +250,16 @@ CREATE INDEX idx_assets_site ON CONTFUL_ENT.contful_assets(site_id);
 CREATE INDEX idx_assets_folder ON CONTFUL_ENT.contful_assets(folder_id);
 
 -- =============================================================================
--- 9. API Token 表
+-- 10. API Token 表（对齐 init_pg.sql）
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_tokens (
     id VARCHAR2(36) ,
     site_id VARCHAR2(36) NOT NULL,
     name VARCHAR2(255) NOT NULL,
     description CLOB,
-    token_prefix VARCHAR2(10),
-    token_hash VARCHAR2(255),
-    encrypted_token VARCHAR2(2000),
+    token_prefix VARCHAR2(20),
+    token_hash VARCHAR2(64),
+    encrypted_token CLOB,
     expires_time TIMESTAMP,
     status VARCHAR2(20) DEFAULT 'active',
     last_used_time TIMESTAMP,
@@ -243,7 +274,7 @@ CREATE TABLE CONTFUL_ENT.contful_tokens (
 CREATE INDEX idx_tokens_site ON CONTFUL_ENT.contful_tokens(site_id);
 
 -- =============================================================================
--- 10. 审计日志表
+-- 11. 审计日志表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_audit_logs (
     id VARCHAR2(36) ,
@@ -266,7 +297,7 @@ CREATE INDEX idx_audit_logs_level ON CONTFUL_ENT.contful_audit_logs(level, creat
 CREATE INDEX idx_audit_logs_user ON CONTFUL_ENT.contful_audit_logs(user_id);
 
 -- =============================================================================
--- 11. 系统角色
+-- 12. 系统角色
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_system_roles (
     id VARCHAR2(36) ,
@@ -281,7 +312,7 @@ CREATE TABLE CONTFUL_ENT.contful_system_roles (
 );
 
 -- =============================================================================
--- 12. 用户-角色关联
+-- 13. 用户-角色关联
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_system_user_roles (
     user_id VARCHAR2(36) NOT NULL,
@@ -293,7 +324,7 @@ CREATE TABLE CONTFUL_ENT.contful_system_user_roles (
 );
 
 -- =============================================================================
--- 13. 系统配置
+-- 14. 系统配置
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_system_config (
     config_key VARCHAR2(100) NOT NULL,
@@ -308,7 +339,7 @@ CREATE TABLE CONTFUL_ENT.contful_system_config (
 );
 
 -- =============================================================================
--- 14. 权限分组
+-- 15. 权限分组
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_system_permission_groups (
     id VARCHAR2(36) ,
@@ -321,7 +352,7 @@ CREATE TABLE CONTFUL_ENT.contful_system_permission_groups (
 );
 
 -- =============================================================================
--- 15. 权限项
+-- 16. 权限项
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_system_permissions (
     group_id VARCHAR2(36) NOT NULL,
@@ -334,7 +365,7 @@ CREATE TABLE CONTFUL_ENT.contful_system_permissions (
 );
 
 -- =============================================================================
--- 16. Webhook 配置表
+-- 17. Webhook 配置表
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_webhooks (
     id VARCHAR2(36) ,
@@ -353,7 +384,7 @@ CREATE INDEX idx_webhooks_site ON CONTFUL_ENT.contful_webhooks(site_id);
 CREATE INDEX idx_webhooks_active ON CONTFUL_ENT.contful_webhooks(is_active);
 
 -- =============================================================================
--- 17. Webhook 投递记录
+-- 18. Webhook 投递记录
 -- =============================================================================
 CREATE TABLE CONTFUL_ENT.contful_webhook_deliveries (
     id VARCHAR2(36) ,
