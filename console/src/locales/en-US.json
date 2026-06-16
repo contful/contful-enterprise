@@ -195,6 +195,65 @@
       "info": "Info",
       "warn": "Warn",
       "error": "Error"
+    },
+    "anomalyTab": "Anomalies",
+    "logsTab": "Audit Logs",
+    "anomaly": {
+      "title": "Anomaly Insights",
+      "totalEvents": "Anomaly Events",
+      "byType": "By Type",
+      "bySeverity": "By Severity",
+      "lastScan": "Last Scan",
+      "manualScan": "Manual Scan",
+      "scanning": "Scanning...",
+      "scanSuccess": "Scan completed",
+      "trend": "Anomaly Trend",
+      "severity": { "low": "Low", "medium": "Medium", "high": "High", "critical": "Critical" },
+      "type": {
+        "abnormal_login": "Abnormal Login",
+        "high_frequency": "High Frequency",
+        "permission_escalation": "Permission Escalation",
+        "time_series_anomaly": "Time Series Anomaly",
+        "behavior_deviation": "Behavior Deviation"
+      },
+      "score": "Risk Score",
+      "description": "Description",
+      "detectedTime": "Detected Time",
+      "resolvedTime": "Resolved Time",
+      "baselineValue": "Baseline Value",
+      "actualValue": "Actual Value",
+      "noAnomalies": "No anomalies detected"
+    },
+    "advancedFilter": {
+      "keyword": "Keyword Search",
+      "keywordPlaceholder": "Search actions, details, IP...",
+      "combinator": "Combinator",
+      "and": "AND",
+      "or": "OR",
+      "timePreset": "Time Range",
+      "preset1h": "1 Hour",
+      "preset24h": "24 Hours",
+      "preset7d": "7 Days"
+    },
+    "queryTemplate": {
+      "title": "Query Templates",
+      "placeholder": "Select template",
+      "save": "Save as Template",
+      "saveTitle": "Save Template",
+      "templateName": "Template Name",
+      "namePlaceholder": "Enter template name",
+      "deleteConfirm": "Delete this template?",
+      "saveSuccess": "Template saved",
+      "deleteSuccess": "Template deleted",
+      "applySuccess": "Template applied"
+    },
+    "export": {
+      "title": "Export Logs",
+      "format": "Export Format",
+      "fields": "Select Fields",
+      "exportBtn": "Export",
+      "success": "Export successful",
+      "failed": "Export failed"
     }
   },
   "dashboard": {

@@ -196,6 +196,65 @@
       "info": "信息",
       "warn": "警告",
       "error": "错误"
+    },
+    "anomalyTab": "异常洞察",
+    "logsTab": "操作日志",
+    "anomaly": {
+      "title": "异常洞察",
+      "totalEvents": "异常事件",
+      "byType": "按类型",
+      "bySeverity": "按严重程度",
+      "lastScan": "上次扫描",
+      "manualScan": "手动扫描",
+      "scanning": "扫描中...",
+      "scanSuccess": "扫描完成",
+      "trend": "异常趋势",
+      "severity": { "low": "低", "medium": "中", "high": "高", "critical": "严重" },
+      "type": {
+        "abnormal_login": "异常登录",
+        "high_frequency": "高频操作",
+        "permission_escalation": "越权操作",
+        "time_series_anomaly": "时序异常",
+        "behavior_deviation": "行为偏离"
+      },
+      "score": "风险评分",
+      "description": "描述",
+      "detectedTime": "检测时间",
+      "resolvedTime": "解决时间",
+      "baselineValue": "基线值",
+      "actualValue": "实际值",
+      "noAnomalies": "暂无异常事件"
+    },
+    "advancedFilter": {
+      "keyword": "关键词搜索",
+      "keywordPlaceholder": "搜索动作、详情、IP...",
+      "combinator": "组合逻辑",
+      "and": "且",
+      "or": "或",
+      "timePreset": "时间范围",
+      "preset1h": "1小时",
+      "preset24h": "24小时",
+      "preset7d": "7天"
+    },
+    "queryTemplate": {
+      "title": "查询模板",
+      "placeholder": "选择查询模板",
+      "save": "保存为模板",
+      "saveTitle": "保存查询模板",
+      "templateName": "模板名称",
+      "namePlaceholder": "输入模板名称",
+      "deleteConfirm": "确认删除此模板？",
+      "saveSuccess": "模板保存成功",
+      "deleteSuccess": "模板删除成功",
+      "applySuccess": "模板应用成功"
+    },
+    "export": {
+      "title": "导出日志",
+      "format": "导出格式",
+      "fields": "选择字段",
+      "exportBtn": "导出",
+      "success": "导出成功",
+      "failed": "导出失败"
     }
   },
   "dashboard": {

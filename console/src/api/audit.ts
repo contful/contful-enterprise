@@ -4,7 +4,6 @@
 import { get } from '@/utils/request'
 import type { AuditLog, AuditLogListResponse, AuditLevel, AuditType } from '@/types/audit'
 
-// 审计日志列表查询参数
 export interface AuditLogListParams {
   site_id?: string
   user_id?: string
@@ -16,14 +15,21 @@ export interface AuditLogListParams {
   end_time?: string
   page?: number
   page_size?: number
+  keyword?: string
+  combinator?: string
+  time_preset?: string
+  fields?: string[]
+  export_format?: string
 }
 
-// 获取审计日志列表
 export function getAuditLogs(params?: AuditLogListParams) {
   return get<AuditLogListResponse>('/audit/logs', { params })
 }
 
-// 获取审计日志详情
 export function getAuditLog(id: string) {
   return get<AuditLog>(`/audit/logs/${id}`)
+}
+
+export function exportAuditJSON(params?: Record<string, any>) {
+  return get('/audit/logs/export/json', { params, responseType: 'blob' })
 }

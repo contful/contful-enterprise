@@ -5,6 +5,10 @@ export type AuditLevel = 'debug' | 'info' | 'warn' | 'error'
 
 export type AuditType = 'auth' | 'content' | 'media' | 'settings' | 'user' | 'system'
 
+export type AnomalyType = 'abnormal_login' | 'high_frequency' | 'permission_escalation' | 'time_series_anomaly' | 'behavior_deviation'
+
+export type AnomalySeverity = 'low' | 'medium' | 'high' | 'critical'
+
 export interface AuditLog {
   id: string
   site_id?: string
@@ -19,6 +23,11 @@ export interface AuditLog {
   user_agent?: string
   created_time: string
   data_signature?: string
+  request_body?: string
+  response_status?: number
+  duration_ms?: number
+  session_id?: string
+  geo_ip_info?: Record<string, any>
 }
 
 export interface AuditLogListResponse {
