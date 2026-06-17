@@ -20,18 +20,9 @@
 -- 一、修改开源表结构（ALTER TABLE — 仅追加）
 -- =============================================================================
 
--- 1.1 entries 表：定时发布排期字段
-ALTER TABLE contful_entries ADD scheduled_publish_time TIMESTAMP;
-ALTER TABLE contful_entries ADD scheduled_unpublish_time TIMESTAMP;
-
+-- 1.1 entries 表：定时发布排期字段（字段和索引已在 init_dm.sql 中定义，此处仅补充注释）
 COMMENT ON COLUMN contful_entries.scheduled_publish_time IS '[企业版] 计划发布时间，非空时表示已排期发布';
 COMMENT ON COLUMN contful_entries.scheduled_unpublish_time IS '[企业版] 计划下架时间，非空时表示已排期下架';
-
-CREATE INDEX idx_entries_scheduled_publish
-    ON contful_entries(scheduled_publish_time);
-
-CREATE INDEX idx_entries_scheduled_unpublish
-    ON contful_entries(scheduled_unpublish_time);
 
 -- 1.2 contful_audit_logs 表：企业版审计日志增强字段（达梦不支持 tsvector/GIN/JSONB）
 ALTER TABLE contful_audit_logs ADD request_body TEXT;
