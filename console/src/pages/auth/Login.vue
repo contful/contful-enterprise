@@ -147,7 +147,7 @@ const loginForm = reactive({
 
 const logoUrl = ref('/assets/logo.png')
 const siteName = ref('Contful')
-const siteDescription = ref(t('auth.openSource') + ' Headless CMS')
+const siteDescription = ref('Headless CMS 企业版')
 const loginBackgroundUrl = ref('')
 const mfaEnforced = ref(false)
 const loginMaxAttempts = ref(5)
